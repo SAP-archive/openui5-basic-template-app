@@ -1,5 +1,3 @@
-![openui5](http://openui5.org/images/OpenUI5_new_big_side.png)
-
 # openui5-empty-template-app
 This is an empty UI5 application template which you can use as a starter template to build UI5 applications
 
