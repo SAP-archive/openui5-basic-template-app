@@ -5,8 +5,6 @@ This is an empty UI5 application template which you can use as a starter templat
 
 ## Getting started
 
-## Getting started
-
 1.Install node.js (get it from [nodejs.org](http://nodejs.org/)).
   * If working behind a proxy, you need to configure it properly (HTTP_PROXY / HTTPS_PROXY / NO_PROXY environment variables)
 
