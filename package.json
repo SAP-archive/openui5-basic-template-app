@@ -1,7 +1,7 @@
 {
-  "name": "openui5-empty-template-app",
+  "name": "Open UI5 Basic Template",
   "version": "0.1.0",
-  "description": "A template for UI5 applications",
+  "description": "Best-practice starting point for building a freestyle app",
   "private": true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
