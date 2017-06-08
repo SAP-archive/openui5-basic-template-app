@@ -1,8 +1,14 @@
-<mvc:View controllerName="sap.ui.demo.demoTemplate.controller.App" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:mvc="sap.ui.core.mvc"
-	displayBlock="true" xmlns="sap.m">
+<mvc:View
+	controllerName="sap.ui.demo.basicTemplate.controller.App"
+	xmlns:html="http://www.w3.org/1999/xhtml"
+	xmlns:mvc="sap.ui.core.mvc"
+	displayBlock="true"
+	xmlns="sap.m">
 	<App>
 		<pages>
-			<Page title="{i18n>title}">
+			<Page
+				id="page"
+				title="{i18n>title}">
 				<content></content>
 			</Page>
 		</pages>
