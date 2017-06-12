@@ -12,7 +12,7 @@ sap.ui.define([
 
 			assertions: {
 
-				iShouldSeeTheAppPage: function () {
+				iShouldSeeTheApp: function () {
 					return this.waitFor({
 						id: "page",
 						viewName: sViewName,

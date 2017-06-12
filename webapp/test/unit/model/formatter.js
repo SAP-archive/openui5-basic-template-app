@@ -1,10 +1,12 @@
 /*global QUnit*/
 
-sap.ui.define([], function() {
+sap.ui.define([
+	"sap/ui/demo/basicTemplate/model/formatter"
+], function() {
 	"use strict";
 
-	QUnit.module("Model");
-	QUnit.test("Should see dummy test for the model folder", function (assert) {
-		assert.ok(true, "I see the test for the formatter");
+	QUnit.module("Formatters");
+	QUnit.test("I should test my formatters", function (assert) {
+		assert.ok(true);
 	});
 });

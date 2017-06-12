@@ -1,12 +1,16 @@
 /*global QUnit*/
 
-sap.ui.define([], function() {
+sap.ui.define([
+	"sap/ui/demo/basicTemplate/controller/App.controller"
+], function(oController) {
 	"use strict";
 
-	QUnit.module();
+	QUnit.module("App Controller");
 
-	QUnit.test("Should see dummy test for the controller folder", function (assert) {
-		assert.ok(true, "I see the test for App.controller");
+	QUnit.test("I should test the app controller", function (assert) {
+		var oAppController = new oController();
+		oAppController.onInit();
+		assert.ok(oAppController);
 	});
 
 });
