@@ -22,7 +22,7 @@ sap.ui.define([
 		iStartTheApp : function (oOptions) {
 			oOptions = oOptions || {};
 			// Start the app with a minimal delay to make tests run fast but still async to discover basic timing issues
-			this.iStartMyAppInAFrame(getFrameUrl(oOptions.hash, "serverDelay=50"));
+			this.iStartMyAppInAFrame(getFrameUrl(oOptions.hash));
 		},
 
 		iLookAtTheScreen : function () {

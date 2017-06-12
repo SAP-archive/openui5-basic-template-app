@@ -18,7 +18,7 @@ sap.ui.require([
 	});
 
 	sap.ui.require([
-		"sap/ui/demo/basicTemplate/test/integration/dummyJourney"
+		"sap/ui/demo/basicTemplate/test/integration/navigationJourney"
 	], function () {
 		QUnit.start();
 	});
