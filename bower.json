@@ -1,5 +1,5 @@
 {
-  "name": "OpenUI5 Basic Template",
+  "name": "openui5-basic-template-app",
   "description": "A template for UI5 applications",
   "private": true,
   "dependencies": {
