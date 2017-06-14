@@ -1,7 +1,7 @@
 {
 	"_version": "1.5.0",
 	"sap.app": {
-		"id": "sap.ui.demo.demoTemplate",
+		"id": "sap.ui.demo.basicTemplate",
 		"type": "application",
 		"i18n": "i18n/i18n.properties",
 		"applicationVersion": {
@@ -10,11 +10,7 @@
 		"title": "{{appTitle}}",
 		"description": "{{appDescription}}",
 		"resources": "resources.json",
-		"ach": "ach",
-		"sourceTemplate": {
-			"id": "ui5template.basicSAPUI5ApplicationProject",
-			"version": "1.40.12"
-		}
+		"ach": "ach"
 	},
 
 	"sap.ui": {
@@ -35,13 +31,12 @@
 		"supportedThemes": [
 			"sap_hcb",
 			"sap_belize"
-
 		]
 	},
 
 	"sap.ui5": {
 		"rootView": {
-			"viewName": "sap.ui.demo.demoTemplate.view.App",
+			"viewName": "sap.ui.demo.basicTemplate.view.App",
 			"type": "XML"
 		},
 		"dependencies": {
@@ -49,8 +44,7 @@
 			"libs": {
 				"sap.ui.core": {},
 				"sap.m": {},
-				"sap.ui.layout": {},
-				"sap.uxap": {}
+				"sap.ui.layout": {}
 			}
 		},
 		"contentDensities": {
@@ -61,7 +55,7 @@
 			"i18n": {
 				"type": "sap.ui.model.resource.ResourceModel",
 				"settings": {
-					"bundleName": "sap.ui.demo.demoTemplate.i18n.i18n"
+					"bundleName": "sap.ui.demo.basicTemplate.i18n.i18n"
 				}
 			}
 		},
