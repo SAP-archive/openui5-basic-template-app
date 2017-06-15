@@ -59,6 +59,27 @@
 				}
 			}
 		},
+		"routing": {
+			"config": {
+				"routerClass": "sap.m.routing.Router",
+				"viewType": "XML",
+				"viewPath": "sap.ui.demo.basicTemplate.view",
+				"controlId": "app",
+				"controlAggregation": "pages"
+			},
+			"routes": [
+				{
+					"pattern": "",
+					"name": "home",
+					"target": "home"
+				}
+			],
+			"targets": {
+				"home": {
+					"viewName": "App"
+				}
+			}
+		},
 		"resources": {
 			"css": [{
 				"uri": "css/style.css"
