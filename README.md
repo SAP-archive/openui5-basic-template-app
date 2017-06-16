@@ -1,5 +1,5 @@
-# openui5-empty-template-app
-This is an empty UI5 application template which you can use as a starter template to build UI5 applications
+# openui5-basic-template-app
+This is a basic application template which you can use as a starting point to build OpenUI5 applications
 
 ## Getting started
 
@@ -15,8 +15,8 @@ npm install grunt-cli bower -g
 3.Clone the repository and navigate into it
 
 ```sh
-git clone https://github.com/SAP/openui5-empty-template-app.git
-cd openui5-empty-template-app
+git clone https://github.com/SAP/openui5-basic-template-app.git
+cd openui5-basic-template-app
 ```
 
 4.Install all npm dependencies
