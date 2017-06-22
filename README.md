@@ -1,5 +1,5 @@
 # openui5-basic-template-app
-This is a basic application template which you can use as a starting point to build OpenUI5 applications
+This is a basic app template which you can use as a starting point to build OpenUI5 apps.
 
 ## Getting started
 
