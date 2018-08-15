@@ -8,9 +8,9 @@
     - For installation instructions please see: [Installing the UI5 CLI](https://github.com/SAP/ui5-tooling#installing-the-ui5-cli).
 
 ## Getting started
-1. Clone the repository (on the `ui5-tooling` branch) and navigate into it
+1. Clone the repository (on the `master` branch) and navigate into it
     ```sh
-    git clone -b ui5-tooling https://github.com/SAP/openui5-basic-template-app.git
+    git clone https://github.com/SAP/openui5-basic-template-app.git
     cd openui5-basic-template-app
     ```
 1. Install all dependencies
