@@ -1,40 +1,44 @@
+![OpenUI5 logo](http://openui5.org/images/OpenUI5_new_big_side.png)
+
 # openui5-basic-template-app
-This is a basic app template which you can use as a starting point to build OpenUI5 apps.
+[OpenUI5](https://github.com/SAP/openui5) basic template app using the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling). You can use it as a starting point to build custom OpenUI5 apps.
 
-## Getting started
+## Prerequisites
+The **UI5 build and development tooling command line interface (UI5 CLI)** has to be installed.
+For installation instructions please see [Installing the UI5 CLI](https://github.com/SAP/ui5-tooling#installing-the-ui5-cli).
 
-1.Install node.js (get it from [nodejs.org](http://nodejs.org/)).
-  * If working behind a proxy, you need to configure it properly (HTTP_PROXY / HTTPS_PROXY / NO_PROXY environment variables)
+## Setup
+1. Clone the repository and navigate into it
+    ```sh
+    git clone https://github.com/SAP/openui5-basic-template-app.git
+    cd openui5-basic-template-app
+    ```
+1. Install all dependencies
+    ```sh
+    npm install
+    ```
 
-2.Install grunt-cli and bower globally
+1. Start a local server and run the application (http://localhost:8080/index.html)
+    ```sh
+    ui5 serve -o /index.html
+    ```
 
-```sh
-npm install grunt-cli bower -g
-```
+## Testing
+* Run ESLint code validation
+    ```sh
+    npm run lint
+    ```
+* Start a local server and execute the tests automatically after every change
+    ```sh
+    npm run watch
+    ```
+* Run ESLint, start a local server and run the tests in CI mode
+    ```sh
+    npm test
+    ```
 
-3.Clone the repository and navigate into it
+For more build and development options please see: [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
 
-```sh
-git clone https://github.com/SAP/openui5-basic-template-app.git
-cd openui5-basic-template-app
-```
-
-4.Install all npm dependencies
-
-```sh
-npm install
-```
-
-5.Install all bower dependencies
-
-```sh
-bower install
-```
-
-6.Run grunt to lint, build and run a local server (have a look into `Gruntfile.js` to see all the tasks).
-
-```sh
-grunt
-```
-
-7.Open the app in your browser: [http://localhost:8080](http://localhost:8080)
+## Support
+This repository is based on the [OpenUI5 template demo apps](https://openui5.hana.ondemand.com/demoapps.html) and updated regularly with our latest recommendations. 
+If you found a bug, please create an [OpenUI5 issue](https://github.com/sap/openui5/issues). Thank you!

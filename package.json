@@ -4,20 +4,31 @@
   "description": "Best-practice starting point for building a freestyle app",
   "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "ui5 serve",
+    "lint": "eslint webapp",
+    "karma": "karma start",
+    "karma-ci": "karma start karma-ci.conf.js",
+    "watch": "start-server-and-test start http://localhost:8080 karma",
+    "test": "npm run lint && rimraf coverage && start-server-and-test start http://localhost:8080 karma-ci",
+    "build": "rimraf dist && ui5 build --a"
+  },
+  "dependencies": {
+    "@openui5/sap.m": "^1.52.5",
+    "@openui5/sap.ui.core": "^1.52.5",
+    "@openui5/sap.ui.layout": "^1.52.5",
+    "@openui5/themelib_sap_belize": "^1.52.5"
   },
   "devDependencies": {
-    "eslint-plugin-openui5": "0.1.0",
-    "grunt": "^0.4.5",
-    "grunt-contrib-clean": "^0.6.0",
-    "grunt-contrib-connect": "^0.9.0",
-    "grunt-contrib-copy": "^0.7.0",
-    "grunt-contrib-qunit": "^0.5.2",
-    "grunt-eslint": "^17.3.1",
-    "grunt-openui5": "^0.5.0",
-    "grunt-shell": "^1.1.2",
-    "grunt-zip": "^0.16.2"
+    "@ui5/cli": "^0.1.0",
+    "eslint": "^4.19.1",
+    "karma": "^2.0.2",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-coverage": "^1.1.2",
+    "karma-openui5": "^0.2.3",
+    "karma-phantomjs-launcher": "^1.0.4",
+    "karma-qunit": "^1.2.1",
+    "qunitjs": "^2.4.1",
+    "rimraf": "^2.6.2",
+    "start-server-and-test": "^1.4.1"
   }
 }
-
-
