@@ -1,15 +1,8 @@
 <mvc:View
-	controllerName="sap.ui.demo.basicTemplate.controller.App"
-	xmlns:mvc="sap.ui.core.mvc"
 	displayBlock="true"
-	xmlns="sap.m">
-	<App>
-		<pages>
-			<Page
-				id="page"
-				title="{i18n>title}">
-				<content></content>
-			</Page>
-		</pages>
-	</App>
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc">
+	<Shell>
+		<App id="app"/>
+	</Shell>
 </mvc:View>
