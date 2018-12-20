@@ -40,7 +40,7 @@ module.exports = function(config) {
 
 		reporters: ['progress', 'coverage'],
 
-		captureTimeout: 30000,
+		browserDisconnectTolerance: 5,
 
 		browsers: ['ChromeHeadless'],
 
