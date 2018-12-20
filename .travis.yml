@@ -1,0 +1,20 @@
+language: node_js
+node_js:
+  - "8"
+before_install:
+  - npm install --global @ui5/cli
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+before_script:
+  - npm test
+  - ui5 build -a
+deploy:
+  provider: pages
+  local-dir: dist
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
+  keep-history: true
+  on:
+    branch: master
+
+
