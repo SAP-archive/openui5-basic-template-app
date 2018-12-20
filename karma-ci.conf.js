@@ -40,9 +40,7 @@ module.exports = function(config) {
 
 		reporters: ['progress', 'coverage'],
 
-		browserNoActivityTimeout : 10000,
-
-		browsers: ['ChromeHeadless'],
+		browsers: ['Chrome'],
 
 		singleRun: true
 	});
