@@ -42,12 +42,6 @@ module.exports = function(config) {
 
 		captureTimeout: 30000,
 
-		browserDisconnectTimeout: 30000,
-
-		browserDisconnectTolerance: 3,
-
-		browserNoActivityTimeout: 30000,
-
 		browsers: ['ChromeHeadless'],
 
 		singleRun: true
