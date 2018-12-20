@@ -1,0 +1,6 @@
+/*!
+ * UI development toolkit for HTML5 (OpenUI5)
+ * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/core/Renderer","./InputBaseRenderer"],function(e,t){"use strict";var r=e.extend(t);r.writeInnerValue=function(e,t){if(t._bValid){e.writeAttributeEscaped("value",t._formatValue(t.getDateValue()))}else{e.writeAttributeEscaped("value",t.getValue())}};r.writeInnerAttributes=function(e,t){e.writeAttribute("type","text");if(t._bMobile){e.writeAttribute("readonly","readonly")}};r.getAriaRole=function(e){return"combobox"};r.getDescribedByAnnouncement=function(e){var r=t.getDescribedByAnnouncement.apply(this,arguments);return sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("DATEPICKER_DATE_TYPE")+" "+r};r.getAccessibilityState=function(e){var r=t.getAccessibilityState.apply(this,arguments);r["autocomplete"]="none";r["haspopup"]=true;r["expanded"]=false;if(e._bMobile&&e.getEnabled()&&e.getEditable()){r["readonly"]=false}return r};return r},true);

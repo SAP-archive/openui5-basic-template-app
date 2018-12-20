@@ -1,0 +1,393 @@
+/* ================================ */
+/* CSS for control sap.m/InputBase  */
+/* Base theme                       */
+/* ================================ */
+
+.sapMInputBase {
+	height: 2.5rem;
+	background: transparent;
+	position: relative;
+	display: inline-block;
+	vertical-align: top;
+	outline: none;
+	box-sizing: border-box;
+	line-height: 0;
+}
+
+.sapMInputBaseNoWidth {
+	max-width: 100%;
+}
+
+.sapMInputBaseHeightMargin {
+	margin: 0.25rem 0;
+}
+
+.sapMInputBaseInner {
+	background: transparent;
+	border: none;
+	font-style: normal;
+	-webkit-appearance: none;
+	-moz-appearance: textfield;
+	font-size: @sapMFontMediumSize;
+	font-family: @sapUiFontFamily;
+	line-height: normal;
+	padding: 0 0.75rem;
+	height: 100%;
+	box-sizing: border-box;
+	flex: auto;
+	min-width: 3rem;
+	text-overflow: ellipsis;
+}
+
+.sapMInputBaseContentWrapper {
+	height: 100%;
+	box-sizing: border-box;
+	display: inline-flex;
+	flex-direction: row;
+	justify-content: flex-end;
+	position: relative;
+	overflow: hidden;
+	min-width: -moz-min-content;
+	min-width: min-content;
+}
+
+.sapMInputBaseIconContainer {
+	display: inline-block;
+	height: 100%;
+	width: auto;
+	outline: none;
+}
+
+.sapMInputBaseDynamicContent {
+	height: 100%;
+	display: flex;
+	flex: 1;
+}
+
+html[data-sap-ui-browser^="ie"].sap-desktop .sapMInputBaseDynamicContent {
+	flex: 1 1 auto;
+}
+
+.sapMInputBaseNoWidth .sapMInputBaseDynamicContent {
+	flex: auto;
+}
+
+.sapMInputBaseHasBeginIcons .sapMInputBaseInner {
+	padding-left: 0.25rem;
+}
+
+.sapMInputBaseHasEndIcons .sapMInputBaseInner {
+	padding-right: 0.25rem;
+}
+
+.sapMInputBaseIcon {
+	width: 2.375rem;
+	min-width: 2.375rem;
+	height: 100%;
+	line-height: 2.375rem;
+	vertical-align: middle;
+	cursor: pointer;
+	background: transparent;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+.sapMInputDescriptionWrapper {
+	display: inline-block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	vertical-align: top;
+}
+
+.sapMFocus {
+	& .sapMInputBaseContentWrapper {
+		&::before {
+			content: "";
+			position: absolute;
+			top: 1px;
+			left: 1px;
+			right: 1px;
+			bottom: 1px;
+			pointer-events: none;
+			z-index: 1;
+		}
+	}
+}
+
+html[data-sap-ui-browser^="ie"].sap-desktop,
+html[data-sap-ui-browser^="ed"].sap-desktop {
+	.sapMFocus .sapMInputBaseContentWrapper:not(.sapMInputBaseDisabledWrapper) {
+		&::before {
+			content: " ";
+			position: absolute;
+			top: 1px;
+			left: 1px;
+			right: 1px;
+			bottom: 1px;
+			border: 2px dashed @sapUiContentFocusColor;
+			pointer-events: none;
+			z-index: 1;
+		}
+	}
+}
+
+.sapMInputBaseInner::-webkit-input-placeholder {
+	font-size: @sapMFontMediumSize;
+	font-style: italic;
+}
+
+.sapMInputBaseInner::-moz-placeholder {
+	font-size: @sapMFontMediumSize;
+	font-style: italic;
+}
+
+.sapMInputBaseInner:-ms-input-placeholder {
+	font-size: @sapMFontMediumSize;
+	font-style: italic;
+}
+
+.sapMInputBaseInner {
+	width: 100%;
+}
+
+.sapMInputBaseInner::-webkit-outer-spin-button,
+.sapMInputBaseInner::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.sapMInputBaseInner:focus {
+	outline: none;
+	outline-width: 0;
+}
+
+/* remove user agent pseudo-element clear button (IE specifix) */ // TODO remove after 1.62 version
+.sapMInputBaseInner::-ms-clear {
+	/* note: don't use display: none; see BCP 1570024996 */
+	height: 0;
+}
+
+.sapMPointer>.sapMInputBaseInner {
+	cursor: pointer;
+}
+
+.sapMInputBaseDisabled {
+	opacity: 0.5;
+	.sapMInputBaseIcon {
+		cursor: default;
+	}
+}
+
+.sapMInputBaseInner[placeholder] {
+	text-overflow: ellipsis;
+}
+
+.sapMInputBaseInner::-webkit-input-placeholder {
+	color: @sapUiFieldPlaceholderTextColor;
+	text-overflow: ellipsis !important;
+	/* important is necessary to overwrite inline style of shadow dom */
+}
+
+.sapMInputBaseInner::-moz-placeholder {
+	color: @sapUiFieldPlaceholderTextColor;
+}
+
+.sapMInputBaseInner:-ms-input-placeholder {
+	color: @sapUiFieldPlaceholderTextColor;
+}
+
+input.sapMInputBaseInner:invalid {
+	/* disable native browser input validation visualization e.g. for type email or number */
+	box-shadow: none;
+}
+
+/*read only*/
+
+.sapMInputBaseReadonly .sapMInputBaseContentWrapper {
+	border-color: @sapUiFieldReadOnlyBorderColor;
+	background: @sapUiFieldReadOnlyBackground;
+}
+
+.sapMInputBaseInner:not(.sapMInputBaseReadonlyWrapper):not(.sapMInputBaseContentWrapperState):focus {
+	border-color: @sapUiFieldFocusBorderColor;
+}
+
+html[data-sap-ui-browser^="ie"].sap-desktop,
+html[data-sap-ui-browser^="ed"].sap-desktop {
+	.sapMFocus .sapMInputBaseContentWrapper:not(.sapMInputBaseDisabledWrapper) {
+		&::before {
+			border: 1px dashed @sapUiContentFocusColor;
+		}
+	}
+}
+
+.sapMInputBaseContentWrapper:not(.sapMInputBaseReadonlyWrapper):not(.sapMInputBaseContentWrapperState):not(.sapMInputBaseDisabledWrapper) {
+	&:hover {
+		background: @sapUiFieldHoverBackground;
+		border-color: @sapUiFieldHoverBorderColor;
+	}
+	&:active {
+		background: @sapUiFieldHoverBackground;
+		border-color: @sapUiFieldHoverBorderColor;
+	}
+}
+
+.sapMILI-CTX .sapMInputBaseContentWrapper,
+.sapMILI-CTX .sapMInputBaseInner,
+.sapMILI-CTX .sapMInputBaseDisabled .sapMInputBaseInner,
+.sapMILI-CTX .sapMInputBaseReadonlyWrapper .sapMInputBaseInner {
+	text-align: right;
+	background: transparent;
+}
+
+.sapMLIBActive .sapMInputBaseInner {
+	color: @sapUiListActiveTextColor;
+	background: transparent;
+}
+
+.sapMLIBActive .sapMInputBaseInner::-webkit-input-placeholder {
+	color: @sapUiListActiveTextColor;
+}
+
+/* Compact size */
+
+.sapUiSizeCompact {
+	.sapMInputBase {
+		line-height: 1rem;
+		height: 1.625rem;
+	}
+	.sapMInputBaseContentWrapper {
+		height: 1.625rem;
+	}
+	.sapMInputBaseInner {
+		padding: 0 0.5rem;
+		min-width: 2rem;
+	}
+	.sapMInputBaseIcon {
+		width: 2rem;
+		min-width: 2rem;
+		line-height: 1.5rem;
+	}
+	.sapMInputBaseContentWrapper.sapMInputBaseContentWrapperState .sapMInputBaseIcon {
+		line-height: 1.375rem;
+	}
+	.sapMInputDescriptionWrapper span {
+		line-height: 1.625rem;
+	}
+
+	.sapMInputBaseHasEndIcons .sapMInputBaseInner {
+		padding-right: 0.25rem;
+	}
+}
+
+.sapUiSizeCompact .sapMInputBaseHeightMargin {
+	margin: 0.1875rem 0;
+}
+
+/* Condensed size */
+
+.sapUiSizeCondensed .sapUiTableCell {
+	.sapMInputBase {
+		height: 1.375rem;
+		/* + 2*1px padding = 1.5rem */
+		padding: 0 0.0625rem;
+		/* 1px padding only */
+	}
+	.sapMInputBaseHeightMargin {
+		margin: 0;
+	}
+	.sapMInputBaseInner:not(.sapMInputBaseContentWrapperState) {
+		border-color: transparent;
+	}
+	.sapMInputBaseContentWrapper {
+		height: 1.375rem;
+	}
+	.sapMInputDescriptionWrapper span {
+		line-height: 1.375rem;
+	}
+}
+
+/* Input selection fix -
+ * Due to the fact that the CSS parsing rules require dropping the whole rule when encountering an invalid
+ * pseudo-element, two separate rules must be written */
+
+.sapMInputBaseInner {
+	&::selection,
+	&::-moz-selection {
+		background: @sapUiSelected;
+		color: @sapUiContentContrastTextColor;
+	}
+}
+
+/* Google chrome and Safari input selection fix:
+ * The browser renders the selection background with 50% opacity by default.
+ * The solution is to use fade with a value for alpha 99 if it's set 100 the browser ignores it.
+ */
+
+html[data-sap-ui-browser^="sf"],
+html[data-sap-ui-browser^="cr"] {
+	.sapMInputBaseInner::selection {
+		background: fade(@sapUiSelected, 99);
+		color: fade(@sapUiContentContrastTextColor, 99);
+	}
+}
+
+html[data-sap-ui-browser^="ed"] {
+	.sapMInputBaseInner {
+		line-height: 0;
+	}
+}
+
+// When disabled or read-only hide placeholder by setting opacity to 0
+.sapMInputBaseDisabled {
+	.sapMInputBaseInner::-webkit-input-placeholder {
+		opacity: 0;
+	}
+	.sapMInputBaseInner::-moz-placeholder {
+		opacity: 0;
+	}
+	.sapMInputBaseInner:-ms-input-placeholder {
+		color: @sapUiFieldBackground;
+	}
+}
+
+// IE fires onfocusin on disabled inputs
+html[data-sap-ui-browser^="ie"] .sapMFocus .sapMInputBaseDisabledWrapper {
+	&::before {
+		display: none;
+		pointer-events: none;
+	}
+}
+
+.sapMInputBaseReadonly {
+	.sapMInputBaseInner::-webkit-input-placeholder {
+		opacity: 0;
+	}
+	.sapMInputBaseInner::-moz-placeholder {
+		opacity: 0;
+	}
+	.sapMInputBaseInner:-ms-input-placeholder {
+		color: @sapUiFieldReadOnlyBackground;
+	}
+}
+
+.sapMInputBaseDisabledWrapper .sapMInputBaseIcon {
+	color: @sapUiContentDisabledTextColor;
+}
+
+/* pressed */
+
+.sapMInputBaseIconPressed .sapMInputBaseIcon,
+html.sap-desktop .sapMInputBaseIconPressed .sapMInputBaseIcon:hover {
+	background: @sapUiToggleButtonPressedBackground;
+}
+
+.sapMInputBaseIconPressed .sapMInputBaseIcon::before {
+	color: @sapUiToggleButtonPressedTextColor;
+}
+
+.sapMInputBaseIconPressed .sapMInputBaseContentWrapper:not(.sapMInputBaseReadonlyWrapper):not(.sapMInputBaseContentWrapperState):not(.sapMInputBaseDisabledWrapper) {
+	border-color: @sapUiFieldActiveBorderColor;
+}

@@ -1,0 +1,6 @@
+/*!
+ * UI development toolkit for HTML5 (OpenUI5)
+ * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/core/IconPool"],function(e){"use strict";e.insertFontFaceStyle();var t={};t.render=function(e,t){var s=t.getShowIcon();var a=t.getCustomIcon();var o=t.getTooltip_AsString();var r=t._getRB();e.write("<div");e.writeControlData(t);e.addClass("sapMPullDown");if(!t._bTouchMode){e.addClass("sapMPullDownNontouch")}else{e.addClass("sapMPullDownTouch")}if(s&&!a){e.addClass("sapMPullDownLogo")}e.writeClasses();if(o){e.writeAttributeEscaped("title",o)}e.write(' tabindex="0"');e.write(" role='button' aria-controls='"+t.getParent().sId+"-cont'>");if(s&&a){var i=t.getCustomIconImage();if(i){e.write('<div class="sapMPullDownCI">');e.renderControl(i);e.write("</div>")}}e.write('<span class="sapMPullDownIcon"></span>');e.write('<span class="sapMPullDownBusy">');e.renderControl(t._oBusyIndicator);e.write("</span>");e.write("<span id="+t.getId()+'-T class="sapMPullDownText" aria-live="assertive">');e.writeEscaped(r.getText(t._bTouchMode?"PULL2REFRESH_PULLDOWN":"PULL2REFRESH_REFRESH"));e.write("</span>");e.write("<span id="+t.getId()+'-I class="sapMPullDownInfo">');e.writeEscaped(t.getDescription());e.write("</span>");e.write("</div>")};return t},true);

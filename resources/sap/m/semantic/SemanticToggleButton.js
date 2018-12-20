@@ -1,0 +1,6 @@
+/*!
+ * UI development toolkit for HTML5 (OpenUI5)
+ * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/m/semantic/SemanticButton","sap/m/library","sap/ui/events/KeyCodes"],function(e,t,s){"use strict";var o=t.ButtonType;var n=e.extend("sap.m.semantic.SemanticToggleButton",{metadata:{library:"sap.m",properties:{pressed:{type:"boolean",group:"Data",defaultValue:false}}}});n.prototype._onTap=function(e){e.setMarked();if(this.getEnabled()){this.setPressed(!this.getPressed());this.firePress({pressed:this.getPressed()})}};n.prototype._onKeydown=function(e){if(e.which===s.SPACE||e.which===s.ENTER){this._onTap(e)}};n.prototype._applyProperty=function(t,s,o){if(t==="pressed"){this._setPressed(s,o)}else{e.prototype._applyProperty.apply(this,arguments)}};n.prototype._setPressed=function(e,t){var s=e?o.Emphasized:o.Default;this._getControl().setType(s,t)};n.prototype._createInstance=function(e){var t=new e({id:this.getId()+"-toggleButton"});t.addEventDelegate({ontap:this._onTap,onkeydown:this._onKeydown},this);return t};return n});

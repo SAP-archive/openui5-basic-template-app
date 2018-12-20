@@ -1,0 +1,25 @@
+/* ============================================ */
+/* CSS for control sap.m/NotificationListBase  */
+/* Belize theme                                 */
+/* ============================================ */
+
+@_sap_m_NotificationListBase_ItemBackground: @sapUiListBackground;
+@_sap_m_NotificationListBase_ItemGroupedBackground: darken(@sapUiListBackground,5);
+//Special case for visual specification of sap.m.NotificationListGroup
+.sapContrastPlus .sapContrast,
+.sapContrast .sapContrastPlus,
+.sapContrastPlus.sapContrast {
+
+  .sapMNLI {
+    background: fade(@sapUiListBackground, 60);
+  }
+  .sapMNLG-GroupHeader {
+    background: fade(@sapUiListBackground, 60);
+  }
+
+  .sapMNLG-Body {
+    .sapMNLI {
+      background: fade(darken(@sapUiListBackground,5), 60) ;
+    }
+  }
+}

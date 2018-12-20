@@ -1,0 +1,6 @@
+/*!
+ * UI development toolkit for HTML5 (OpenUI5)
+ * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+(function(r){"use strict";var e,i,t,s,a,o,u=false;o=document.getElementById("sap-ui-bootstrap");if(o){t=o.getAttribute("src");s=t.match(/^(?:.*\/)?resources\//i);if(s){a=s[1]}}if(a==null){e=document.getElementsByTagName("script");for(i=0;i<e.length;i++){t=e[i].getAttribute("src");if(t){s=t.match(/(.*\/)sap-ui-core-nojQuery\.js$/i);if(s){a=s[1];break}}}}if(a==null){throw new Error("sap-ui-core-nojQuery.js: could not identify script tag!")}for(i=0;i<r.length;i++){t=r[i];if(t.indexOf("raw:")===0){t=a+t.slice(4);document.write('<script src="'+t+'"><\/script>')}else if(t.indexOf("require:")===0){t=t.slice(8);u=u||t==="sap/ui/core/Core";document.write('<script>sap.ui.requireSync("'+t+'");<\/script>')}}if(u){document.write("<script>sap.ui.getCore().boot && sap.ui.getCore().boot();<\/script>")}})(["raw:sap/ui/thirdparty/baseuri.js","raw:sap/ui/thirdparty/es6-promise.js","raw:sap/ui/thirdparty/es6-string-methods.js","raw:sap/ui/thirdparty/es6-object-assign.js","raw:ui5loader.js","raw:ui5loader-autoconfig.js","require:sap/ui/core/Core"]);

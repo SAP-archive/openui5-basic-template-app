@@ -1,0 +1,43 @@
+/* ================================== */
+/* CSS for control sap.f/DynamicPage  */
+/* Belize High Contrast Black theme   */
+/* ================================== */
+
+.sapFDynamicPage {
+	/* DynamicPageTitle and Toggle Header Visual Indicator hover state */
+	&.sapFDynamicPageTitleClickEnabled {
+		.sapFDynamicPageTitle:hover,
+		&.sapFDynamicPageTitleForceHovered .sapFDynamicPageTitle {
+			background: @sapUiHighlight;
+			box-shadow: @sapUiShadowHeader;
+		}
+		&.sapFDynamicPageTitleForceHovered {
+			.sapFDynamicPageToggleHeaderIndicator {
+				.sapMBtnInner {
+					background-color: @sapUiHighlight;
+				}
+			}
+		}
+	}
+
+	// Footer
+	.sapFDynamicPageFooter {
+		opacity: 1;
+
+		.sapFDynamicPageActualFooterControl.sapMTB {
+			box-shadow: @sapUiShadowLevel2;
+			border-bottom: 0 none;
+		}
+	}
+}
+
+.sapFDynamicPageHeaderPinButton > .sapMBtnInner {
+	border: 0.0625rem solid;
+	&:not(.sapMToggleBtnPressed) {
+		background-color: @sapHC_StandardBackground;
+	}
+}
+
+.sapFDynamicPageHeaderPinButton:hover > .sapMBtnInner {
+	background-color: @sapUiHighlight;
+}

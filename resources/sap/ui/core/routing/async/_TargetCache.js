@@ -1,0 +1,6 @@
+/*!
+ * UI development toolkit for HTML5 (OpenUI5)
+ * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/core/mvc/View","sap/ui/core/Component"],function(e,t){"use strict";return{_getObjectWithGlobalId:function(n,i,o){var a=this,r,u,s,c=[];function f(){switch(i){case"View":n.viewName=n.name;delete n.name;if(o){return sap.ui.view(n)}else{return e.create(n)}break;case"Component":return t.create(n);default:}}function d(e){if(a._oCache){c.forEach(function(t){s[t]=e});a.fireCreated({object:e,type:i,options:n})}return e}if(n.async===undefined){n.async=true}u=n.name;this._checkName(u,i);s=this._oCache[i.toLowerCase()][u];r=s&&s[n.id];if(r){return r}if(this._oComponent){r=this._oComponent.runAsOwner(f)}else{r=f()}if(r instanceof Promise){r=r.then(d)}else{r.loaded().then(d)}if(!s){s=this._oCache[i.toLowerCase()][u]={};s[undefined]=r;c.push(undefined)}if(n.id!==undefined){s[n.id]=r;c.push(n.id)}return r},_getViewWithGlobalId:function(e){if(e&&!e.name){e.name=e.viewName}return this._getObjectWithGlobalId(e,"View",true)},_getComponentWithGlobalId:function(e){return this._getObjectWithGlobalId(e,"Component")}}});

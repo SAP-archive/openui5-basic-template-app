@@ -1,0 +1,6 @@
+/*!
+ * UI development toolkit for HTML5 (OpenUI5)
+ * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["./DragDropBase"],function(r,e){"use strict";var t=r.extend("sap.ui.core.dnd.DragInfo",{metadata:{library:"sap.ui.core",interfaces:["sap.ui.core.dnd.IDragInfo"],properties:{sourceAggregation:{type:"string",defaultValue:null}},events:{dragStart:{allowPreventDefault:true},dragEnd:{}}}});t.prototype.isDraggable=function(e){if(!this.getEnabled()){return false}var t=this.getParent();if(!t){return false}var a=this.getSourceAggregation();if(!r.checkMetadata(t,a,"draggable")){return false}if(t===e&&!a){return true}if(e.getParent()===t&&a===e.sParentAggregationName){return true}return false};t.prototype.fireDragStart=function(r){if(!r||!r.dragSession){return}var e=r.dragSession;return this.fireEvent("dragStart",{dragSession:e,browserEvent:r.originalEvent,target:e.getDragControl()},true)};t.prototype.fireDragEnd=function(r){if(!r||!r.dragSession){return}var e=r.dragSession;return this.fireEvent("dragEnd",{dragSession:e,browserEvent:r.originalEvent,target:e.getDragControl()})};return t},true);

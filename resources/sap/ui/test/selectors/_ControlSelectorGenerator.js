@@ -1,0 +1,6 @@
+/*!
+ * UI development toolkit for HTML5 (OpenUI5)
+ * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/base/ManagedObject","sap/ui/test/_OpaLogger","sap/ui/thirdparty/jquery","sap/ui/test/selectors/_ControlSelectorValidator","sap/ui/test/selectors/_selectors"],function(e,t,o,r,a){"use strict";var i=e.extend("sap.ui.test.selectors._ControlSelectorGenerator");var n=t.getLogger("sap.ui.test.selectors._ControlSelectorGenerator");i._generate=function(e){var t=[];var l=new r(t,e.validationRoot);var s=[a.globalID,a.viewID,a.labelFor,a.bindingPath,a.properties,a.dropdownItem,a.tableRowItem];s.forEach(function(t){var r;var a;var n=t._getAncestors(e.control);if(n&&!e.validationRoot){if(n.validation){r=i._generate({control:e.control,validationRoot:n.validation})}if(n.selector){a=i._generate({control:n.selector})}}var s=t.generate(e.control,a,r);if(o.isArray(s)){s.forEach(function(e){if(o.isArray(e)){e.forEach(function(e){l._validate(e)})}else{l._validate(e)}})}else{l._validate(s)}});if(t[0]){n.debug("The top matching unique selector is: "+JSON.stringify(t[0]));return t[0]}else{throw new Error("Could not generate a selector for control "+e.control)}};return i});

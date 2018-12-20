@@ -1,0 +1,6 @@
+/*!
+ * UI development toolkit for HTML5 (OpenUI5)
+ * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/ui/Device","sap/ui/dom/getScrollbarSize"],function(t,e){"use strict";var i={};i.render=function(i,r){var a=sap.ui.getCore().getConfiguration().getRTL(),d="sapMScrollBarTouch",s=r.getContentSize(),w=r.getId(),l=t.support.touch,n=e(l?d:undefined),o=t.browser.edge&&!n.width?15:n.width;i.write("<div");i.writeControlData(r);i.addClass("sapMScrollBarOuterDiv");if(l){i.addClass(d)}i.addStyle("width",o+"px");i.writeClasses();i.writeStyles();i.write(">");i.write("<div");i.writeAttribute("id",w+"-sb");i.addClass("sapMScrollBarInnerDiv");i.addStyle("width",o*2+"px");i.addStyle(a?"margin-right":"margin-left",-Math.abs(o)+"px");i.writeClasses();i.writeStyles();i.write(">");i.write("<div");i.writeAttribute("id",w+"-sbcnt");i.addStyle("width",o+"px");if(s){i.addStyle("height",s)}i.writeStyles();i.write(">");i.write("</div>");i.write("</div>");i.write("<div>");i.write("<span");i.writeAttribute("id",w+"-ffsize");i.addClass("sapMScrollBarDistantSpan");i.writeClasses();i.write(">");i.write("</span>");i.write("</div>");i.write("</div>")};return i},true);

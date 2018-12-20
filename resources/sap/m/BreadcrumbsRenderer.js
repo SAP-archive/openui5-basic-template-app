@@ -1,0 +1,6 @@
+/*!
+ * UI development toolkit for HTML5 (OpenUI5)
+ * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/m/Text"],function(e){"use strict";var t={};t.render=function(r,i){var s=i._getControlsForBreadcrumbTrail(),a=i._getSelect();r.write("<ul");r.writeControlData(i);r.addClass("sapMBreadcrumbs");r.writeClasses();r.writeAttribute("role","navigation");r.writeAttributeEscaped("aria-label",t._getResourceBundleText("BREADCRUMB_LABEL"));r.write(">");if(a.getVisible()){this._renderControlInListItem(r,a,false,"sapMBreadcrumbsSelectItem")}s.forEach(function(t){this._renderControlInListItem(r,t,t instanceof e)},this);r.write("</ul>")};t._renderControlInListItem=function(e,t,r,i){e.write("<li");e.writeAttribute("role","presentation");e.writeAttribute("aria-hidden","true");e.addClass("sapMBreadcrumbsItem");e.addClass(i);e.writeClasses();e.write(">");e.renderControl(t);if(!r){e.write("<span");e.addClass("sapMBreadcrumbsSeparator");e.writeClasses();e.write(">/</span>")}e.write("</li>")};t._getResourceBundleText=function(e){return sap.ui.getCore().getLibraryResourceBundle("sap.m").getText(e)};return t},true);

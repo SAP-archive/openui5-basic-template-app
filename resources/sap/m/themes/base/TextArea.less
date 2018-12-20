@@ -1,0 +1,80 @@
+/* =============================== */
+/* CSS for control sap.m/TextArea  */
+/* Base theme                      */
+/* =============================== */
+
+/* uses sapMInputBase styles */
+
+.sapMTextAreaInner {
+	overflow: auto; /* remove scrollbars if not needed */
+	-webkit-transform: none; /* transform is blocking scroll */
+	resize: none;
+	margin: 0;
+}
+
+.sapMTextArea .sapMInputBaseContentWrapper {
+	-webkit-overflow-scrolling: touch;
+	height: 100%;
+	width: 100%;
+	line-height: 0;
+	display: block;
+}
+
+.sapMTextArea .sapMTextAreaInner {
+	-webkit-overflow-scrolling: touch;
+	line-height: 1.4;
+	height: 100%;
+	width: 100%;
+}
+
+.sapMTextAreaGrow {
+	/* should not grow more than screen size */
+	max-height: calc(~"100vh - 6rem");
+	overflow: hidden;
+}
+
+.sapMTextAreaWithCounter {
+	& .sapMTextAreaCounter {
+		float:right;
+		overflow: hidden;
+		font-family: @sapUiFontFamily;
+		font-size: @sapMFontSmallSize;
+		padding: 0.125rem 0.125rem 0.5rem;
+	}
+
+	& .sapMInputBaseContentWrapper {
+		height: calc(~"100% - 1.5rem");
+	}
+}
+
+.sapMInputBase.sapMTextArea {
+	height: auto;
+	min-height: 2.5rem;
+
+	.sapMTextAreaInner {
+		line-height: 1.4;
+		padding: 0.625rem 0.75rem;
+		-webkit-overflow-scrolling: touch; /* IOS only */
+	}
+}
+
+.sapMInputBase.sapMTextArea .sapMInputBaseContentWrapperState .sapMTextAreaInner {
+	padding: 0.5625rem 0.6875rem;
+}
+
+/**** Compact Size ****/
+.sapUiSizeCompact {
+	.sapMInputBase.sapMTextArea {
+		min-height: 1.625rem;
+		margin: 0.1875rem 0;
+
+		.sapMTextAreaInner {
+			line-height: 1.4;
+			padding: 0.1875rem 0.5rem;
+		}
+	}
+}
+
+.sapUiSizeCompact .sapMInputBase.sapMTextArea .sapMInputBaseContentWrapperState .sapMTextAreaInner {
+	padding: 0.125rem 0.4375rem;
+}
