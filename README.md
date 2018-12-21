@@ -4,8 +4,6 @@
 # openui5-basic-template-app
 OpenUI5 basic template app using the UI5 Build and Development Tooling. You can use it as a starting point to build custom OpenUI5 apps.
 
-You can also see the [template](https://sap.github.io/openui5-basic-template-app) live.
-
 ## More information
 * [Live Demo](https://sap.github.io/openui5-basic-template-app)
 * [Documentation](https://openui5nightly.hana.ondemand.com/#/topic/a460a7348a6c431a8bd967ab9fb8d918)
