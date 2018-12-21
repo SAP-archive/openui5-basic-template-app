@@ -1,7 +1,14 @@
+[![Build Status](https://travis-ci.org/SAP/openui5-basic-template-app.svg?branch=master)](https://travis-ci.org/SAP/openui5-basic-template-app)
 ![OpenUI5 logo](http://openui5.org/images/OpenUI5_new_big_side.png)
 
 # openui5-basic-template-app
-[OpenUI5](https://github.com/SAP/openui5) basic template app using the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling). You can use it as a starting point to build custom OpenUI5 apps.
+OpenUI5 basic template app using the UI5 Build and Development Tooling. You can use it as a starting point to build custom OpenUI5 apps.
+
+## More information
+* [Live Demo](https://sap.github.io/openui5-basic-template-app)
+* [Documentation](https://openui5.hana.ondemand.com/#/topic/7a4d93c0b0bb439b9d889ffc5b02eac9)
+* [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
+* [OpenUI5](https://github.com/SAP/openui5)
 
 ## Prerequisites
 The **UI5 build and development tooling command line interface (UI5 CLI)** has to be installed.
