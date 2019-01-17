@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,7 +14,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.ui.core",
-		version: "1.61.0",
+		version: "1.61.2",
 		designtime: "sap/ui/core/designtime/library.designtime",
 		types: [
 
@@ -147,7 +147,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	 * @namespace
 	 * @alias sap.ui.core
 	 * @author SAP SE
-	 * @version 1.61.0
+	 * @version 1.61.2
 	 * @public
 	 */
 	var thisLib = sap.ui.core;
@@ -1359,7 +1359,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	/**
 	 * Sort order of a column
 	 *
-	 * @version 1.61.0
+	 * @version 1.61.2
 	 * @enum {string}
 	 * @public
 	 * @since 1.61.0

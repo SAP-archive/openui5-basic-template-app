@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/support/library"],function(e){"use strict";var i=e.Categories,t=e.Severity,n=e.Audiences;var o={id:"definingColumnWidths",audiences:[n.Control],categories:[i.Usability],enabled:true,minversion:"1.28",title:"Table: Defining column widths",description:"Defining column widths",resolution:"Configure at least 1 column with width=auto or do not configure the width at all",resolutionurls:[{text:"Documentation: Defining Column Widths",href:"https://sapui5.hana.ondemand.com/#/topic/6f778a805bc3453dbb66e246d8271839"}],check:function(e,i,n){var o=0;n.getElementsByClassName("sap.m.Table").forEach(function(i){var n=i.getColumns();n.forEach(function(e){var i=e.getWidth();if(i!=="auto"||i!==""){o++}});if(o===n.length){e.addIssue({severity:t.Medium,details:"All the columns are configured with a width. This should be avoided.",context:{id:i.getId()}})}})}};return[o]},true);

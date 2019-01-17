@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/Device"],function(e){"use strict";var t={};t.render=function(t,i){var r=i.getAggregation("_columns"),a=i.getLabelText()||"",s=sap.ui.getCore().getLibraryResourceBundle("sap.m"),d,l=sap.ui.getCore().getConfiguration().getRTL();t.write("<div");t.writeControlData(i);t.addClass("sapMTimePickerContainer");t.addStyle("width",i.getWidth());t.addStyle("height",i.getHeight());t.writeClasses();t.writeStyles();t.writeAccessibilityState(i,{label:(a+" "+s.getText("TIMEPICKER_SCREENREADER_TAG")).trim()});t.write(">");if(!e.system.desktop){t.write('<div id="'+i.getId()+"-label"+'"');t.addClass("sapMTimePickerContainerLabel");t.writeClasses();t.write(">");t.addStyle("display","block");t.writeEscaped(a);t.write("</div>")}if(l){for(d=r.length-1;d>=0;d--){t.renderControl(r[d])}}else{for(d=0;d<r.length;d++){t.renderControl(r[d])}}t.write("</div>")};return t},true);

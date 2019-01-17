@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([],function(){"use strict";var e={};e.render=function(e,i){var a=i.getId();var t=i.getTooltip_AsString();e.write("<div");e.writeControlData(i);e.addClass("sapMPlanCal");if(i._iSize!==undefined&&i._iSize!==null){e.addClass("sapMSize"+i._iSize)}if(!i.getSingleSelection()){e.addClass("sapMPlanCalMultiSel")}if(!i.getShowRowHeaders()){e.addClass("sapMPlanCalNoHead")}if(i.getShowWeekNumbers()&&i._viewAllowsWeekNumbers(i.getViewKey())){e.addClass("sapMPlanCalWithWeekNumbers")}if(i.getShowDayNamesLine()&&i._viewAllowsDayNamesLine(i.getViewKey())){e.addClass("sapMPlanCalWithDayNamesLine")}if(t){e.writeAttributeEscaped("title",t)}var s=i.getWidth();if(s){e.addStyle("width",s)}var l=i.getHeight();if(l){e.addStyle("height",l)}e.writeAccessibilityState(i);e.writeClasses();e.writeStyles();e.write(">");var r=i.getAggregation("table");e.renderControl(r);var d=i._oRB.getText("PLANNINGCALENDAR");e.write('<span id="'+a+'-Descr" class="sapUiInvisibleText">'+d+"</span>");d=i._oRB.getText("PLANNINGCALENDAR_VIEW");e.write('<span id="'+a+'-SelDescr" class="sapUiInvisibleText">'+d+"</span>");e.write("</div>")};return e},true);

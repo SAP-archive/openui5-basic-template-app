@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/support/library"],function(e){"use strict";var t=e.Categories,i=e.Severity,o=e.Audiences;var a={id:"tokenizerParentRule",audiences:[o.Application],categories:[t.Usage],enabled:true,minversion:"1.28",title:"Tokenizer: Tokenizer parent control",description:"The tokenizer can only be used as part of MultiComboBox, MultiInput or ValueHelpDialog.",resolution:"Do not use the Tokenizer control standalone.",check:function(e,t,o){var a=o.getElementsByClassName("sap.m.Tokenizer"),n,r,s;a.forEach(function(t){s=t.getParent();r=s&&s.getMetadata().getName();n=s&&r==="sap.m.MultiInput"||r==="sap.m.MultiComboBox"||r==="sap.ui.layout.VerticalLayout"&&s.hasStyleClass("compVHTokenizerHLayout");if(!n){e.addIssue({severity:i.High,details:"Tokenizer with id: "+t.getId()+" is not inside a MultiComboBox, MultiInput or ValueHelpDialog",context:{id:t.getId()}})}})}};return[a]},true);

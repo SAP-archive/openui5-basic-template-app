@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,7 +25,7 @@ function(Control, ScrollBarRenderer) {
 	 * care of only rendering the currently visible rows and use this <code>ScrollBar</code> control to make
 	 * the users think they are actually scrolling through a long list.
 	 * @extends sap.ui.core.Control
-	 * @version 1.61.0
+	 * @version 1.61.2
 	 *
 	 * @private
 	 * @alias sap.m.ScrollBar

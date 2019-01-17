@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/test/matchers/Matcher","sap/ui/test/matchers/I18NText"],function(e,t){"use strict";var r=new t;var a=e.extend("sap.ui.test.matchers.LabelFor",{metadata:{publicMethods:["isMatching"],properties:{text:{type:"string"},modelName:{type:"string",defaultValue:"i18n"},key:{type:"string"},parameters:{type:"any"},propertyName:{type:"string",defaultValue:"text"}}},isMatching:function(e){var t;var a=sap.ui.test.Opa5.getPlugin();var i=this.getModelName();var s=this.getText();var n=this.getParameters();var o=this.getPropertyName();var g=this.getKey();if(s&&g){this._oLogger.error("Combination of text and key properties is not allowed");return false}if(!s&&!g){this._oLogger.error("Text and key properties are not defined but exactly one is required");return false}var p=a.getMatchingControls({controlType:"sap.m.Label",visible:false});r.applySettings({key:g,modelName:i,parameters:n,propertyName:o});t=p.some(function(t){if(g&&r.isMatching(t)){return e.getId()===t.getLabelForRendering()}else if(s&&t.getText()===s){return e.getId()===t.getLabelForRendering()}});if(!t){var l=g?"I18N text key "+g:"text "+s;this._oLogger.debug("Control '"+e+"' does not have an associated label with "+l)}return t}});return a});

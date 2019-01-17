@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -37,7 +37,7 @@ sap.ui.define([
 	 * @param {string} [sIdPrefix] Prefix used for the Ids. If not set a default prefix is used.
 	 * @returns {jQuery.sap.storage.Storage}
 	 *
-	 * @version 1.61.0
+	 * @version 1.61.2
 	 * @since 0.11.0
 	 * @namespace
 	 * @public
@@ -94,7 +94,7 @@ sap.ui.define([
 	 * should be deleted the method {@link #removeAll} should be used.
 	 *
 	 * @author SAP SE
-	 * @version 1.61.0
+	 * @version 1.61.2
 	 * @since 0.11.0
 	 * @public
 	 * @name jQuery.sap.storage.Storage
@@ -198,7 +198,7 @@ sap.ui.define([
 	 * Enumeration of the storage types supported by {@link jQuery.sap.storage.Storage}
 	 * @enum {string}
 	 * @public
-	 * @version 1.61.0
+	 * @version 1.61.2
 	 * @since 0.11.0
 	 */
 	jQuery.sap.storage.Type = Storage.Type;

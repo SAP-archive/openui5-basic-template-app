@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -60,7 +60,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 * @public
 	 * @since 1.51.0
-	 * @version 1.61.0
+	 * @version 1.61.2
 	 */
 	var Stream = ODataType.extend("sap.ui.model.odata.type.Stream", {
 			constructor : function (oFormatOptions, oConstraints) {

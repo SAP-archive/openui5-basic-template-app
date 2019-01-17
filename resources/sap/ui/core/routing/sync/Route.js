@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/Log","sap/ui/thirdparty/jquery"],function(t,e){"use strict";return{_routeMatched:function(i,a,o){var r=this._oRouter,n,s,h,f,u,c=null,d=null,_;if(this._oParent){n=this._oParent._routeMatched(i)}else if(this._oNestingParent){this._oNestingParent._routeMatched(i,false,this)}f=e.extend({},r._oConfig,this._oConfig);_=e.extend({},i);_.routeConfig=f;u={name:f.name,arguments:i,config:f};if(o){u.nestedRoute=o}this.fireBeforeMatched(u);r.fireBeforeRouteMatched(u);if(this._oTarget){h=this._oTarget;h._updateOptions(this._convertToTargetOptions(f));if(h._isValid(n,false)){s=h._place(n)}s=s||{};c=s.oTargetParent;d=s.oTargetControl;u.view=c;u.targetControl=d}else{r._oTargets._display(this._oConfig.target,_,this._oConfig.titleTarget)}if(f.callback){f.callback(this,i,f,d,c)}this.fireEvent("matched",u);r.fireRouteMatched(u);if(a){t.info("The route named '"+f.name+"' did match with its pattern",this);this.fireEvent("patternMatched",u);r.fireRoutePatternMatched(u)}return s}}});

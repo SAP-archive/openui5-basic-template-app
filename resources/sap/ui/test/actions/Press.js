@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/test/_OpaLogger","sap/ui/test/actions/Action","sap/base/Log","sap/ui/thirdparty/jquery"],function(t,e,s,a){"use strict";var r=t.getLogger("sap.ui.test.actions.Press");var o=e.extend("sap.ui.test.actions.Press",{metadata:{publicMethods:["executeOn"]},init:function(){e.prototype.init.apply(this,arguments);this.controlAdapters=a.extend(this.controlAdapters,o.controlAdapters)},executeOn:function(t){var e=this.$(t),a=e[0];if(e.length){r.timestamp("opa.actions.press");s.debug("Pressed the control "+t,this._sLogPrefix);this._tryOrSimulateFocusin(e,t);this._createAndDispatchMouseEvent("mousedown",a);this.getUtils().triggerEvent("selectstart",a);this._createAndDispatchMouseEvent("mouseup",a);this._createAndDispatchMouseEvent("click",a)}}});o.controlAdapters={};o.controlAdapters["sap.m.Input"]="vhi";o.controlAdapters["sap.m.SearchField"]="search";o.controlAdapters["sap.m.ListBase"]="trigger";o.controlAdapters["sap.m.Page"]="navButton";o.controlAdapters["sap.m.semantic.FullscreenPage"]="navButton";o.controlAdapters["sap.m.semantic.DetailPage"]="navButton";o.controlAdapters["sap.m.ComboBox"]="arrow";o.controlAdapters["sap.ui.comp.smartfilterbar.SmartFilterBar"]="btnGo";o.controlAdapters["sap.m.ObjectAttribute"]="text";o.controlAdapters["sap.m.ObjectIdentifier"]="link";return o});

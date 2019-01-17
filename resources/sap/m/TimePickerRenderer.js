@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/core/Renderer","./InputBaseRenderer","sap/ui/core/library"],function(e,t,i){"use strict";var r=i.ValueState;var n=e.extend(t);n.CSS_CLASS="sapMTimePicker";n.addOuterClasses=function(e,t){e.addClass(n.CSS_CLASS)};n.writeDecorations=function(e,t){var i=t._oResourceBundle,r=i.getText("TIMEPICKER_SCREENREADER_TAG");e.write('<span id="'+t.getId()+'-descr" style="visibility: hidden; display: none;">');e.writeEscaped(r);e.write("</span>")};n.writeInnerValue=function(e,t){e.writeAttributeEscaped("value",t._formatValue(t.getDateValue()))};n.writeInnerId=function(e,t){e.writeAttribute("id",t.getId()+"-"+this.getInnerSuffix())};n.getInnerSuffix=function(){return"inner"};n.getAriaRole=function(){return"combobox"};n.getAccessibilityState=function(e){var t=this.getAriaLabelledBy(e),i=this.getAriaDescribedBy(e),n=e.getAccessibilityInfo();if(e.getValueState()===r.Error){n.invalid=true}if(t){n.labelledby={value:t.trim(),append:true}}if(i){n.describedby={value:i.trim(),append:true}}return n};n.getAriaDescribedBy=function(e){var t=e.getId()+"-descr ";if(this.getDescribedByAnnouncement(e)){t+=e.getId()+"-describedby"}return t};return n},true);

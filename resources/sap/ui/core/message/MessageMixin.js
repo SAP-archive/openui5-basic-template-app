@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/core/library","sap/base/Log"],function(e,t){"use strict";var a=e.ValueState;var s=function(){this.refreshDataState=i;this.fnDestroy=this.destroy;this.destroy=n};function i(e,s){if(s.getChanges().messages){var i=s.getMessages();var n=sap.ui.core.LabelEnablement.getReferencingLabels(this);var r=n[0];var g=false;i.forEach(function(e){if(n&&n.length>0){var a=sap.ui.getCore().byId(r);if(a.getMetadata().isInstanceOf("sap.ui.core.Label")&&a.getText&&e.getAdditionalText()!==a.getText()){e.setAdditionalText(a.getText());g=true}else{t.warning("sap.ui.core.message.Message: Can't create labelText."+"Label with id "+r+" is no valid sap.ui.core.Label.",this)}}if(e.getControlId()!==this.getId()){e.addControlId(this.getId());g=true}}.bind(this));var o=sap.ui.getCore().getMessageManager().getMessageModel();o.checkUpdate(g,true);if(i&&i.length>0){var l=i[0];if(a[l.type]){this.setValueState(l.type);this.setValueStateText(l.message)}}else{this.setValueState(a.None);this.setValueStateText("")}}}function n(){var e=this.getId();function t(t){t.removeControlId(e)}for(var a in this.mBindingInfos){var s=this.mBindingInfos[a];if(s.binding){var i=s.binding.getDataState();var n=i.getMessages();n.forEach(t)}}this.fnDestroy.apply(this,arguments)}return s},true);

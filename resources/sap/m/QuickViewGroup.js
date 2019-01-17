@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["./library","sap/ui/core/Element"],function(e,t){"use strict";var r=t.extend("sap.m.QuickViewGroup",{metadata:{library:"sap.m",properties:{visible:{type:"boolean",group:"Appearance",defaultValue:true},heading:{type:"string",group:"Misc",defaultValue:""}},defaultAggregation:"elements",aggregations:{elements:{type:"sap.m.QuickViewGroupElement",multiple:true,singularName:"element",bindable:"bindable"}}}});["setModel","bindAggregation","setAggregation","insertAggregation","addAggregation","removeAggregation","removeAllAggregation","destroyAggregation"].forEach(function(e){r.prototype["_"+e+"Old"]=r.prototype[e];r.prototype[e]=function(){var t=r.prototype["_"+e+"Old"].apply(this,arguments);var a=this.getParent();if(a){a._updatePage()}if(["removeAggregation","removeAllAggregation"].indexOf(e)!==-1){return t}return this}});r.prototype.setProperty=function(){t.prototype.setProperty.apply(this,arguments);var e=this.getParent();if(e){e._updatePage()}};return r});

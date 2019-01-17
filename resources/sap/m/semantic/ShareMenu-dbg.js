@@ -1,6 +1,6 @@
 /*!
  * UI development toolkit for HTML5 (OpenUI5)
- * (c) Copyright 2009-2018 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,7 +43,7 @@ sap.ui.define([
 	 * ShareMenu is a special menu that is represented by (1) an actionSheet with the menu items and (2) a button that opens the actionSheet.
 	 * If the menu has only one item, then that item appears in place of the button that opens the actionSheet.
 	 *
-	 * @version 1.61.0
+	 * @version 1.61.2
 	 * @private
 	 * @since 1.30.0
 	 * @alias sap.m.semantic.ShareMenu
