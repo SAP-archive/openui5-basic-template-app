@@ -1,6 +1,6 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var t;sap.ui.getCore().registerPlugin({startPlugin:function(e){t=e}});return{getAllControls:function(t){var e,n,r=[],i=this.getCoreElements();for(n in i){if(!i.hasOwnProperty(n)){continue}e=i[n];if(this.checkControlType(e,t)){r.push(e)}}return r},checkControlType:function(t,e){if(e){return t instanceof e}else{return true}},getCoreElements:function(){var e={};if(!t){return e}return t.mElements||e},isUIDirty:function(){return t&&t.getUIDirty()}}},true);
+sap.ui.define([],function(){"use strict";var e;sap.ui.getCore().registerPlugin({startPlugin:function(t){e=t}});return{getAllControls:function(e){var t,n,r=[],i=this.getCoreElements();for(n in i){if(!i.hasOwnProperty(n)){continue}t=i[n];if(this.checkControlType(t,e)){r.push(t)}}return r},checkControlType:function(e,t){if(t){return e instanceof t}else{return true}},getCoreElements:function(){var t={};if(!e){return t}return e.mElements||t},getCoreElement:function(e,t){var n=this.getCoreElements()[e]||null;return this.checkControlType(n,t)?n:null},isUIDirty:function(){return e&&e.getUIDirty()}}},true);

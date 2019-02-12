@@ -1,5 +1,5 @@
 /*
- * ! UI development toolkit for HTML5 (OpenUI5)
+ * ! OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @class The <code>P13nColumnsPanel</code> control is used to define column-specific settings for table personalization.
 	 * @extends sap.m.P13nPanel
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @constructor
 	 * @public
 	 * @since 1.26.0
@@ -761,6 +761,19 @@ sap.ui.define([
 	};
 
 	P13nColumnsPanel.prototype._sortModelItemsByPersistentIndex = function(aModelItems) {
+		// BCP 0020751294 0000593415 2018
+		var oCollator;
+		var sLanguage;
+		try {
+			sLanguage = sap.ui.getCore().getConfiguration().getLocale().toString();
+			if (typeof window.Intl !== 'undefined') {
+				oCollator = window.Intl.Collator(sLanguage, {
+					numeric: true
+				});
+			}
+		} catch (oException) {
+			// this exception can happen if the configured language is not convertible to BCP47 -> getLocale will deliver an exception
+		}
 		// BCP 0020751295 0000514259 2018
 		aModelItems.forEach(function(oMItem, iIndex) {
 			oMItem.localIndex = iIndex;
@@ -779,13 +792,9 @@ sap.ui.define([
 					return a.localIndex - b.localIndex;
 				}
 			} else if ((a.persistentSelected === false || a.persistentSelected === undefined) && (b.persistentSelected === false || b.persistentSelected === undefined)) {
-				if (a.text < b.text) {
-					return -1;
-				} else if (a.text > b.text) {
-					return 1;
-				} else {
-					return a.localIndex - b.localIndex;
-				}
+				return oCollator ? oCollator.compare(a.text, b.text) : a.text.localeCompare(b.text, sLanguage, {
+					numeric: true
+				});
 			}
 		});
 		aModelItems.forEach(function(oMItem) {

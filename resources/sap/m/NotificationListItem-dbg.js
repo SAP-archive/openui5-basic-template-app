@@ -1,11 +1,12 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'./library',
+	'sap/ui/Device',
 	'./NotificationListBase',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/IconPool',
@@ -15,6 +16,7 @@ sap.ui.define([
 ],
 function(
 	library,
+	Device,
 	NotificationListBase,
 	InvisibleText,
 	IconPool,
@@ -46,7 +48,7 @@ function(
 	 * @extends sap.m.NotificationListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -257,6 +259,30 @@ function(
 	};
 
 	/**
+	 * Handles the <code>focusin</code> event.
+	 *
+	 * @param {jQuery.Event} event The event object.
+	 */
+	NotificationListItem.prototype.onfocusin = function (event) {
+
+		if (!Device.browser.msie) {
+			return;
+		}
+
+		// in IE the elements inside can get the focus (IE issue)
+		// https://stackoverflow.com/questions/18259754/ie-click-on-child-does-not-focus-parent-parent-has-tabindex-0
+		// in that case just focus the whole item
+		var target = event.target;
+
+		if (target !== this.getDomRef() && !target.classList.contains('sapMBtn')) {
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			this.focus();
+		}
+	};
+
+
+	/**
 	 * Called when the control is destroyed.
 	 *
 	 * @private
@@ -357,7 +383,13 @@ function(
 	 * @private
 	 */
 	NotificationListItem.prototype._showHideTruncateButton = function () {
-		var notificationDomRef = this.getDomRef();
+
+		var notificationDomRef = this.getDomRef(),
+			oCore = sap.ui.getCore();
+
+		if (!notificationDomRef) {
+			return;
+		}
 
 		if (this._canTruncate() && (!this.getHideShowMoreButton())) { // if the Notification has long text
 			// show the truncate button
@@ -391,6 +423,8 @@ function(
 		if (this.getTitle()) {
 			notificationDomRef.querySelector('.sapMNLI-Header').classList.remove('sapMNLI-TitleWrapper--initial-overwrite');
 		}
+
+		oCore.detachThemeChanged(this._showHideTruncateButton, this);
 	};
 
 	/**
@@ -417,7 +451,6 @@ function(
 			//exit for invisible items
 			return;
 		}
-
 		that._resizeNotification();
 
 		this._sNotificationResizeHandler = ResizeHandler.register(notificationDomRef, function () {

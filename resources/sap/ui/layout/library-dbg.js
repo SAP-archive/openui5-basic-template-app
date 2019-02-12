@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -20,14 +20,14 @@ sap.ui.define([
 	 * @namespace
 	 * @name sap.ui.layout
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @public
 	 */
 
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.ui.layout",
-		version: "1.61.2",
+		version: "1.62.1",
 		dependencies: ["sap.ui.core"],
 		designtime: "sap/ui/layout/designtime/library.designtime",
 		types: [
@@ -85,7 +85,11 @@ sap.ui.define([
 			"sap.ui.layout.form.GridElementData",
 			"sap.ui.layout.form.ColumnElementData",
 			"sap.ui.layout.form.ColumnContainerData",
-			"sap.ui.layout.cssgrid.GridItemLayoutData"
+			"sap.ui.layout.cssgrid.GridItemLayoutData",
+			"sap.ui.layout.cssgrid.GridLayoutBase",
+			"sap.ui.layout.cssgrid.GridBasicLayout",
+			"sap.ui.layout.cssgrid.GridBoxLayout",
+			"sap.ui.layout.cssgrid.GridResponsiveLayout"
 		],
 		extensions: {
 			flChangeHandlers: {

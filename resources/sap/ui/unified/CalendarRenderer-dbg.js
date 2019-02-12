@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -37,10 +37,6 @@ sap.ui.define([],
 		if (aMonths.length > 1) {
 			oRm.addClass("sapUiCalMulti");
 		}
-		// This makes the calendar focusable and therefore
-		// the white empty areas can be clicked without closing the calendar
-		// by accident.
-		oRm.writeAttribute("tabindex", "-1");
 
 		var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
 		var mAccProps = {labelledby: {value: "", append: false}}; // render on Month

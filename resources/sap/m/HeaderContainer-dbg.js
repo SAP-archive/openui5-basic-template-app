@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -9,6 +9,7 @@ sap.ui.define([
 	'sap/ui/Device',
 	'sap/ui/core/delegate/ItemNavigation',
 	'sap/ui/core/library',
+	'sap/ui/core/IntervalTrigger',
 	'sap/ui/base/ManagedObject',
 	'sap/ui/core/Icon',
 	'./HeaderContainerRenderer',
@@ -30,6 +31,7 @@ function(
 	Device,
 	ItemNavigation,
 	coreLibrary,
+	IntervalTrigger,
 	ManagedObject,
 	Icon,
 	HeaderContainerRenderer,
@@ -45,6 +47,29 @@ function(
 		var HeaderContainerItemContainer = Control.extend("sap.m.HeaderContainerItemContainer", {
 			metadata: {
 				defaultAggregation: "item",
+				properties: {
+					/**
+					 * This value is rendered as an <code>aria-posinset</code> attribute
+					 */
+					position: {
+						type: "int",
+						defaultValue: null
+					},
+					/**
+					 * This value is rendered as an <code>aria-setsize</code> attribute
+					 */
+					setSize: {
+						type: "int",
+						defaultValue: null
+					},
+					/**
+					 * This value is rendered as an <code>aria-labelledby</code> attribute
+					 */
+					ariaLabelledBy: {
+						type: "string",
+						defaultValue: null
+					}
+				},
 				aggregations: {
 					item: {
 						type: "sap.ui.core.Control",
@@ -62,6 +87,12 @@ function(
 				oRM.writeControlData(oControl);
 				oRM.addClass("sapMHdrCntrItemCntr");
 				oRM.addClass("sapMHrdrCntrInner");
+				oRM.writeAttribute("aria-setsize", oControl.getSetSize());
+				oRM.writeAttribute("aria-posinset", oControl.getPosition());
+				oRM.writeAttribute("role", "listitem");
+				if (oControl.getAriaLabelledBy()) {
+					oRM.writeAttributeEscaped("aria-labelledby", oControl.getAriaLabelledBy());
+				}
 				oRM.writeClasses();
 				oRM.write(">");
 				oRM.renderControl(oInnerControl);
@@ -84,7 +115,7 @@ function(
 		 * @since 1.44.0
 		 *
 		 * @author SAP SE
-		 * @version 1.61.2
+		 * @version 1.62.1
 		 *
 		 * @public
 		 * @alias sap.m.HeaderContainer
@@ -196,6 +227,21 @@ function(
 						multiple: false,
 						visibility: "hidden"
 					}
+				},
+				associations: {
+					/**
+					 * Controls or IDs that label controls in the <code>content</code> aggregation.
+					 * Each ariaLabelledBy item is assigned to its appropriate counterpart in the <code>content</code> aggregation.
+					 * <br>If you want to annotate all the controls in the <code>content</code> aggregation, add the same number of items to the <code>ariaLabelledBy</code> annotation.
+					 * <br>Can be used by screen reader software.
+					 *
+					 * @since 1.62.0
+					 */
+					ariaLabelledBy: {
+						type: "sap.ui.core.Control",
+						multiple: true,
+						singularName: "ariaLabelledBy"
+					}
 				}
 			}
 		});
@@ -275,7 +321,7 @@ function(
 					}
 				}.bind(this)
 			});
-			sap.ui.getCore().attachIntervalTimer(this._checkOverflow, this);
+			IntervalTrigger.addListener(this._checkOverflow, this);
 		};
 
 		HeaderContainer.prototype.onBeforeRendering = function () {
@@ -305,7 +351,7 @@ function(
 				this._oItemNavigation.destroy();
 				this._oItemNavigation = null;
 			}
-			sap.ui.getCore().detachIntervalTimer(this._checkOverflow, this);
+			IntervalTrigger.removeListener(this._checkOverflow, this);
 		};
 
 		HeaderContainer.prototype.onsaptabnext = function (oEvt) {
@@ -864,7 +910,22 @@ function(
 						});
 					}
 				}
-				return this._unWrapHeaderContainerItemContainer(this._oScrollCntr[sFunctionName].apply(this._oScrollCntr, args.slice(1)));
+
+				var vResult = this._oScrollCntr[sFunctionName].apply(this._oScrollCntr, args.slice(1));
+
+				if (sFunctionName !== "removeAllAggregation") {
+					var aContent = this._oScrollCntr.getContent();
+					var aAriaLabelledBy = this.getAriaLabelledBy();
+
+					for (var i = 0; i < aContent.length; i++) {
+						var oItem = aContent[i];
+						oItem.setPosition(i + 1);
+						oItem.setSetSize(aContent.length);
+						oItem.setAriaLabelledBy(aAriaLabelledBy[i]);
+					}
+				}
+
+				return this._unWrapHeaderContainerItemContainer(vResult);
 			} else {
 				return ManagedObject.prototype[sFunctionName].apply(this, args.slice(1));
 			}

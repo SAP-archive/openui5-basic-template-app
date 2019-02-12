@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.unified.MenuItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -109,8 +109,6 @@ sap.ui.define([
 		if (oInfo.bAccessible) {
 			rm.writeAttribute("role", "menuitem");
 			rm.writeAttribute("aria-disabled", !bIsEnabled);
-			rm.writeAttribute("aria-posinset", oInfo.iItemNo);
-			rm.writeAttribute("aria-setsize", oInfo.iTotalItems);
 		}
 
 		// Left border
@@ -142,6 +140,8 @@ sap.ui.define([
 				disabled: !bIsEnabled,
 				multiline: false,
 				autocomplete: "none",
+				posinset: oInfo.iItemNo,
+				setsize: oInfo.iTotalItems,
 				labelledby: {value: /*oMenu.getId() + "-label " + */itemId + "-lbl", append: true}
 			});
 		}

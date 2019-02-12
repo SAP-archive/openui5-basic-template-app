@@ -1,11 +1,11 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([],function(){"use strict";var t={};var r=t.hasOwnProperty;var e=t.toString;var c=r.toString;var n=c.call(Object);var a=function(t){
 /*
-		 * The code in this function is taken from jQuery 3.1.1 "jQuery.extend" and got modified.
+		 * The code in this function is taken from jQuery 3.1.1 "jQuery.isPlainObject" and got modified.
 		 *
 		 * jQuery JavaScript Library v3.1.1
 		 * http://jquery.com/

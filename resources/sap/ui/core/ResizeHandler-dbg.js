@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -9,9 +9,10 @@ sap.ui.define([
 	'sap/ui/base/Object',
 	"sap/base/Log",
 	"sap/ui/util/ActivityDetection",
+	"sap/ui/core/IntervalTrigger",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(BaseObject, Log, ActivityDetection, jQuery) {
+	function(BaseObject, Log, ActivityDetection, IntervalTrigger, jQuery) {
 	"use strict";
 
 	// local logger, by default only logging errors
@@ -31,7 +32,7 @@ sap.ui.define([
 	 * @alias sap.ui.core.ResizeHandler
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @public
 	 */
 
@@ -60,14 +61,14 @@ sap.ui.define([
 	function clearListener(){
 		if (this.bRegistered) {
 			this.bRegistered = false;
-			sap.ui.getCore().detachIntervalTimer(this.checkSizes, this);
+			IntervalTrigger.removeListener(this.checkSizes, this);
 		}
 	}
 
 	function initListener(){
 		if (!this.bRegistered && this.aResizeListeners.length > 0) {
 			this.bRegistered = true;
-			sap.ui.getCore().attachIntervalTimer(this.checkSizes, this);
+			IntervalTrigger.addListener(this.checkSizes, this);
 		}
 	}
 
@@ -122,7 +123,7 @@ sap.ui.define([
 	/**
 	 * Detaches listener from resize event.
 	 *
-	 * @param {string} Registration-ID returned from attachListener
+	 * @param {string} sId Registration-ID returned from attachListener
 	 * @private
 	 */
 	ResizeHandler.prototype.detachListener = function(sId){

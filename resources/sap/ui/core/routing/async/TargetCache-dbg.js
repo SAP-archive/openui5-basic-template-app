@@ -1,12 +1,13 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/core/mvc/View",
-	"sap/ui/core/Component"
-], function(View, Component) {
+	"sap/ui/core/Component",
+	"sap/ui/core/routing/HashChanger"
+], function(View, Component, HashChanger) {
 	"use strict";
 
 	/**
@@ -19,12 +20,14 @@ sap.ui.define([
 		/**
 		 * @private
 		 */
-		_getObjectWithGlobalId : function (oOptions, sType, bNoPromise) {
+		_getObjectWithGlobalId : function (oOptions, sType, bNoPromise, oInfo) {
 			var that = this,
 				vPromiseOrObject,
 				sName,
 				oInstanceCache,
 				aWrittenIds = [];
+
+			oInfo = oInfo || {};
 
 			function fnCreateObjectAsync() {
 				switch (sType) {
@@ -39,6 +42,14 @@ sap.ui.define([
 						}
 						break;
 					case "Component":
+						// create the RouterHashChanger for the component which is going to be created
+						var oRouterHashChanger = that._createRouterHashChanger(oInfo.prefix);
+						if (oRouterHashChanger) {
+							oOptions.settings = oOptions.settings || {};
+							// put the RouterHashChanger as a private property to the Component constructor
+							oOptions.settings._routerHashChanger = oRouterHashChanger;
+						}
+
 						return Component.create(oOptions);
 					default:
 						// do nothing
@@ -50,6 +61,10 @@ sap.ui.define([
 					aWrittenIds.forEach(function(sId) {
 						oInstanceCache[sId] = oObject;
 					});
+
+					if (oInfo.afterCreate) {
+						oInfo.afterCreate(oObject);
+					}
 
 					that.fireCreated({
 						object: oObject,
@@ -109,8 +124,22 @@ sap.ui.define([
 			return this._getObjectWithGlobalId(oOptions, "View", true /* no promise */);
 		},
 
-		_getComponentWithGlobalId : function(oOptions) {
-			return this._getObjectWithGlobalId(oOptions, "Component");
+		_getComponentWithGlobalId : function(oOptions, oInfo) {
+			return this._getObjectWithGlobalId(oOptions, "Component", false /* use promise */, oInfo);
+		},
+
+		_createRouterHashChanger: function(sPrefix) {
+			var oRouterHashChanger;
+
+			var oRouter = this._oComponent && this._oComponent.getRouter();
+			if (oRouter) {
+				oRouterHashChanger = oRouter.getHashChanger();
+				if (oRouterHashChanger && sPrefix) {
+					oRouterHashChanger = oRouterHashChanger.createSubHashChanger(sPrefix);
+				}
+			}
+			// default to the root RouterHashChanger
+			return oRouterHashChanger || HashChanger.getInstance().createRouterHashChanger();
 		}
 	};
 });

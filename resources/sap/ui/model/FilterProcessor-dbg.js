@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -9,6 +9,9 @@ sap.ui.define(['./Filter', 'sap/base/Log', 'sap/ui/Device'],
 	"use strict";
 
 	// only use unorm and apply polyfill if needed and when not in a mobile browser
+	// String.prototype.normalize is not available in IE nor in Android webview
+	// As this functionality is used for filtering user input:
+	//  Special characters which require normalization are a rare case for a mobile device keyboard, hence the mobile check
 	if (!String.prototype.normalize && !Device.browser.mobile) {
 		var NormalizePolyfill = sap.ui.requireSync('sap/base/strings/NormalizePolyfill');
 		NormalizePolyfill.apply();

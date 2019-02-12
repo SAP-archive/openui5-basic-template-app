@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -112,7 +112,7 @@ sap.ui.define([
 	 *            Whether the <code>metadataLoaded</code> event will be fired only after all annotations have
 	 *            been loaded as well
 	 * @param {map} [mParameters.serviceUrlParams]
-	 *            Map of URL parameters (name/value pairs) - these parameters will be attached to all requests
+	 *            Map of URL parameters (name/value pairs) - these parameters will be attached to all requests, except for the <code>$metadata</code> request
 	 * @param {map} [mParameters.metadataUrlParams]
 	 *            Map of URL parameters for metadata requests - only attached to a <code>$metadata</code> request
 	 * @param {sap.ui.model.BindingMode} [mParameters.defaultBindingMode=OneWay]
@@ -158,7 +158,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataModel
@@ -5686,6 +5686,7 @@ sap.ui.define([
 				delete this.oSharedMetaData.oMetadata;
 			}
 			delete this.oMetadata;
+			delete this.pMetadataLoaded;
 		}
 
 		if (this.oMetaModel) {
@@ -5699,6 +5700,7 @@ sap.ui.define([
 
 			this.oAnnotations.destroy();
 			delete this.oAnnotations;
+			delete this.pAnnotationsLoaded;
 		}
 
 	};

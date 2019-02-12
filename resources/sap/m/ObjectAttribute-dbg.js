@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -35,7 +35,7 @@ function(library, Control, coreLibrary, Text, ObjectAttributeRenderer, Log) {
 	 * <code>text</code> property is styled and acts as a link. In this case the <code>text</code>
 	 * property must also be set, as otherwise there will be no link displayed for the user.
 	 * @extends sap.ui.core.Control
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -99,7 +99,8 @@ function(library, Control, coreLibrary, Text, ObjectAttributeRenderer, Log) {
 					domRef : {type : "string"}
 				}
 			}
-		}
+		},
+		dnd: { draggable: true, droppable: false }
 	}});
 
 	/**
@@ -135,6 +136,7 @@ function(library, Control, coreLibrary, Text, ObjectAttributeRenderer, Log) {
 		}
 		sText = oppositeDirectionMarker + sText + oppositeDirectionMarker;
 		if (sTitle) {
+			sTitle = sTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // saniteze the sTitle in order to make it usable in regex
 			sText = sText.replace(new RegExp(sTitle + ":\\s+", "gi"), "");
 			sText = sTitle + ": " + sText;
 		}

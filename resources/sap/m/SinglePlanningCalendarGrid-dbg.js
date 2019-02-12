@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -62,7 +62,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.61.2
+		 * @version 1.62.1
 		 *
 		 * @constructor
 		 * @private
@@ -175,6 +175,7 @@ sap.ui.define([
 				oAppointment = sap.ui.getCore().byId(oEvent.target.id);
 
 				if (oAppointment && oAppointment.isA("sap.m.CalendarAppointment")) {
+					this._toggleAppointmentSelection(oAppointment, !(oEvent.ctrlKey || oEvent.metaKey));
 					this.fireAppointmentSelect({
 						appointment: oAppointment
 					});
@@ -191,10 +192,51 @@ sap.ui.define([
 			return this.setProperty("startDate", oStartDate);
 		};
 
+		/**
+		 * Holds the selected appointments. If no appointments are selected, an empty array is returned.
+		 *
+		 * @returns {sap.ui.unified.CalendarAppointment[]} All selected appointments
+		 * @since 1.62
+		 * @public
+		 */
+		SinglePlanningCalendarGrid.prototype.getSelectedAppointments = function() {
+			return this.getAppointments().filter(function(oAppointment) {
+				return oAppointment.getSelected();
+			});
+		};
+
 
 		/*
 		 * PRIVATE API
 		 */
+
+		/**
+		 * Selects or deselects an appointment that is passed as a parameter. If it is selected, it is going to be
+		 * deselected and vice versa. If modifier keys are pressed - the previously selected appointments will be
+		 * preserved.
+		 *
+		 * @param {sap.m.CalendarAppointment} oAppointment The appointment to be selected/deselected.
+		 * @param {boolean} [bRemoveOldSelection=false] If true, previously selected appointments will be deselected.
+		 * @private
+		 */
+		SinglePlanningCalendarGrid.prototype._toggleAppointmentSelection = function (oAppointment, bRemoveOldSelection) {
+			var aAppointments, i, iAppointmentsLength;
+
+			if (bRemoveOldSelection) {
+				aAppointments = this.getAppointments();
+				for (i = 0, iAppointmentsLength = aAppointments.length; i < iAppointmentsLength; i++) {
+					if (aAppointments[i].getId() !== oAppointment.getId() && aAppointments[i].getSelected()) {
+						aAppointments[i].setProperty("selected", false, true); // do not invalidate
+						// get appointment element(s) (it might be rendered in several columns) and remove its selection class
+						jQuery('[data-sap-ui=' + aAppointments[i].getId() + ']').find(".sapUiCalendarApp").removeClass("sapUiCalendarAppSel");
+					}
+				}
+			}
+
+			oAppointment.setProperty("selected", !oAppointment.getSelected(), true); // do not invalidate
+			// get appointment element(s) and toggle its selection class
+			jQuery('[data-sap-ui=' + oAppointment.getId() + ']').find(".sapUiCalendarApp").toggleClass("sapUiCalendarAppSel", oAppointment.getSelected());
+		};
 
 		/**
 		 * Handles the <code>tap</code> event on the grid.
@@ -205,6 +247,7 @@ sap.ui.define([
 			var oAppointment = sap.ui.getCore().byId(oEvent.target.parentElement.id);
 
 			if (oAppointment && oAppointment.isA("sap.m.CalendarAppointment")) {
+				this._toggleAppointmentSelection(oAppointment, !(oEvent.ctrlKey || oEvent.metaKey));
 				this.fireAppointmentSelect({
 					appointment: oAppointment
 				});
@@ -497,7 +540,7 @@ sap.ui.define([
 		 * Determines if an appointment fits in the visible hours of the grid.
 		 *
 		 * @param {CalendarDate} oColumnCalDate the start date of the grid
-		 * @returns {boolaen} true if the appointment is in the visible hours
+		 * @returns {boolean} true if the appointment is in the visible hours
 		 * @private
 		 */
 		SinglePlanningCalendarGrid.prototype._isAppointmentFitInVisibleHours = function (oColumnCalDate) {

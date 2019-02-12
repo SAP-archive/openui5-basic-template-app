@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -72,7 +72,7 @@ sap.ui.define([
 	 * @mixes sap.ui.model.odata.v4.ODataParentBinding
 	 * @public
 	 * @since 1.37.0
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
 	 * @borrows sap.ui.model.odata.v4.ODataBinding#hasPendingChanges as #hasPendingChanges
 	 * @borrows sap.ui.model.odata.v4.ODataBinding#isInitial as #isInitial
@@ -265,7 +265,12 @@ sap.ui.define([
 			this.oAggregation = oAggregation;
 		}
 
-		this.removeCachesAndMessages();
+		if (this.isRootBindingSuspended()) {
+			this.setResumeChangeReason(sChangeReason);
+			return;
+		}
+
+		this.removeCachesAndMessages("");
 		this.fetchCache(this.oContext);
 		this.reset(sChangeReason);
 	};
@@ -456,7 +461,7 @@ sap.ui.define([
 			var sGroupId;
 
 			that.iMaxLength += 1;
-			if (!bSkipRefresh && that.isRefreshable()) {
+			if (!bSkipRefresh && that.isRoot()) {
 				sGroupId = that.getGroupId();
 				if (!that.oModel.isDirectGroup(sGroupId) && !that.oModel.isAutoGroup(sGroupId)) {
 					sGroupId = "$auto";
@@ -673,7 +678,7 @@ sap.ui.define([
 
 		return this.fetchFilter(oContext, this.mQueryOptions.$filter)
 			.then(function (sFilter) {
-				return that.mergeQueryOptions(that.mQueryOptions, sOrderby, sFilter);
+				return _Helper.mergeQueryOptions(that.mQueryOptions, sOrderby, sFilter);
 			});
 	};
 
@@ -910,10 +915,9 @@ sap.ui.define([
 	 * @returns {sap.ui.model.odata.v4.ODataListBinding}
 	 *   <code>this</code> to facilitate method chaining
 	 * @throws {Error}
-	 *   If the binding's root binding is suspended, if there are pending changes, if an unsupported
-	 *   operation mode is used (see {@link sap.ui.model.odata.v4.ODataModel#bindList}), or if any
-	 *   given filter including their embedded filters is marked as case
-	 *   insensitive
+	 *   If there are pending changes, if an unsupported operation mode is used (see
+	 *   {@link sap.ui.model.odata.v4.ODataModel#bindList}), or if any given filter including their
+	 *   embedded filters is marked as case insensitive
 	 *
 	 * @public
 	 * @see sap.ui.model.ListBinding#filter
@@ -923,7 +927,6 @@ sap.ui.define([
 		var aFilters = _Helper.toArray(vFilters);
 
 		ODataListBinding.checkCaseSensitiveFilters(aFilters);
-		this.checkSuspended();
 		if (this.sOperationMode !== OperationMode.Server) {
 			throw new Error("Operation mode has to be sap.ui.model.odata.OperationMode.Server");
 		}
@@ -931,13 +934,19 @@ sap.ui.define([
 			throw new Error("Cannot filter due to pending changes");
 		}
 
-		this.createReadGroupLock(this.getGroupId(), true);
 		if (sFilterType === FilterType.Control) {
 			this.aFilters = aFilters;
 		} else {
 			this.aApplicationFilters = aFilters;
 		}
-		this.removeCachesAndMessages();
+
+		if (this.isRootBindingSuspended()) {
+			this.setResumeChangeReason(ChangeReason.Filter);
+			return this;
+		}
+
+		this.createReadGroupLock(this.getGroupId(), true);
+		this.removeCachesAndMessages("");
 		this.fetchCache(this.oContext);
 		this.reset(ChangeReason.Filter);
 
@@ -1420,52 +1429,15 @@ sap.ui.define([
 	};
 
 	/**
-	 * Merges the given values for "$orderby" and "$filter" into the given map of query options.
-	 * Ensures that the original map is left unchanged, but creates a copy only if necessary.
-	 *
-	 * @param {object} [mQueryOptions]
-	 *   The map of query options
-	 * @param {string} [sOrderby]
-	 *   The new value for the query option "$orderby"
-	 * @param {string} [sFilter]
-	 *   The new value for the query option "$filter"
-	 * @returns {object}
-	 *   The merged map of query options
-	 *
-	 * @private
-	 */
-	ODataListBinding.prototype.mergeQueryOptions = function (mQueryOptions, sOrderby, sFilter) {
-		var mResult;
-
-		function set(sProperty, sValue) {
-			if (sValue && (!mQueryOptions || mQueryOptions[sProperty] !== sValue)) {
-				if (!mResult) {
-					mResult = mQueryOptions ? _Helper.clone(mQueryOptions) : {};
-				}
-				mResult[sProperty] = sValue;
-			}
-		}
-
-		set("$orderby", sOrderby);
-		set("$filter", sFilter);
-		return mResult || mQueryOptions;
-	};
-
-	/**
 	 * @override
 	 * @see sap.ui.model.odata.v4.ODataBinding#refreshInternal
 	 */
-	ODataListBinding.prototype.refreshInternal = function (sGroupId) {
+	ODataListBinding.prototype.refreshInternal = function (sResourcePathPrefix, sGroupId,
+			bCheckUpdate) {
 		var aContexts = this.aContexts, // keep it, because reset sets a new, empty array
 			that = this;
 
-		this.createReadGroupLock(sGroupId, this.isRefreshable());
-		return this.oCachePromise.then(function (oCache) {
-			if (oCache) {
-				that.removeCachesAndMessages();
-				that.fetchCache(that.oContext);
-			}
-			that.reset(ChangeReason.Refresh);
+		function refreshDependentBindings() {
 			// Do not use this.getDependentBindings() because this still contains the children of
 			// the -1 context which will not survive.
 			// The array may be sparse, but forEach skips the gaps and the -1
@@ -1476,9 +1448,25 @@ sap.ui.define([
 					// drill down..." when the row is no longer part of the collection. They get
 					// another update request in createContexts, when the context for the row is
 					// reused.
-					oDependentBinding.refreshInternal(sGroupId, false);
+					oDependentBinding.refreshInternal(sResourcePathPrefix, sGroupId, false);
 				});
 			});
+		}
+
+		if (this.isRootBindingSuspended()) {
+			this.refreshSuspended(sGroupId);
+			refreshDependentBindings();
+			return SyncPromise.resolve();
+		}
+
+		this.createReadGroupLock(sGroupId, this.isRoot());
+		return this.oCachePromise.then(function (oCache) {
+			if (oCache) {
+				that.removeCachesAndMessages(sResourcePathPrefix);
+				that.fetchCache(that.oContext);
+			}
+			that.reset(ChangeReason.Refresh);
+			refreshDependentBindings();
 		});
 	};
 
@@ -1503,7 +1491,8 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataListBinding.prototype.refreshSingle = function (oContext, oGroupLock, bAllowRemoval) {
-		var that = this;
+		var sResourcePathPrefix = oContext.getPath().slice(1),
+			that = this;
 
 		return this.oCachePromise.then(function (oCache) {
 			var bDataRequested = false,
@@ -1553,7 +1542,8 @@ sap.ui.define([
 						aUpdatePromises.push(oContext.checkUpdate());
 						if (bAllowRemoval) {
 							aUpdatePromises.push(
-								that.refreshDependentBindings(oGroupLock.getGroupId(), false));
+								that.refreshDependentBindings(sResourcePathPrefix,
+									oGroupLock.getGroupId()));
 						}
 					}
 
@@ -1573,7 +1563,8 @@ sap.ui.define([
 			if (!bAllowRemoval) {
 				// call refreshInternal on all dependent bindings to ensure that all resulting data
 				// requests are in the same batch request
-				aPromises.push(that.refreshDependentBindings(oGroupLock.getGroupId(), false));
+				aPromises.push(that.refreshDependentBindings(sResourcePathPrefix,
+					oGroupLock.getGroupId()));
 			}
 
 			return SyncPromise.all(aPromises).then(function (aResults) {
@@ -1587,7 +1578,43 @@ sap.ui.define([
 	 * @see sap.ui.model.odata.v4.ODataParentBinding#requestSideEffects
 	 */
 	ODataListBinding.prototype.requestSideEffects = function (sGroupId, aPaths, oContext) {
-		return this.refreshInternal(sGroupId);
+		var oModel = this.oModel,
+			// Hash set of collection-valued navigation property meta paths (relative to the cache's
+			// root) which need to be refreshed, maps string to <code>true</code>
+			mNavigationPropertyPaths = {},
+			oPromise,
+			aPromises,
+			that = this;
+
+		/*
+		 * Adds an error handler to the given promise which reports errors to the model.
+		 *
+		 * @param {Promise} oPromise - A promise
+		 * @return {Promise} A promise including an error handler
+		 */
+		function reportError(oPromise) {
+			return oPromise.catch(function (oError) {
+				oModel.reportError("Failed to request side effects", sClassName, oError);
+				throw oError;
+			});
+		}
+
+		return this.oCachePromise.then(function (oCache) {
+			if (aPaths.indexOf("") < 0) {
+				oPromise = oCache.requestSideEffects(oModel.lockGroup(sGroupId),
+					aPaths, mNavigationPropertyPaths, that.iCurrentBegin,
+					that.iCurrentEnd - that.iCurrentBegin);
+				if (oPromise) {
+					aPromises = [oPromise];
+					that.visitSideEffects(sGroupId, aPaths, oContext, mNavigationPropertyPaths,
+						aPromises);
+
+					return SyncPromise.all(aPromises.map(reportError));
+				}
+			}
+
+			return that.refreshInternal("", sGroupId);
+		});
 	};
 
 	/**
@@ -1644,8 +1671,12 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataListBinding.prototype.resumeInternal = function () {
-		var aBindings = this.getDependentBindings();
+		var aBindings = this.getDependentBindings(),
+			sChangeReason = this.sResumeChangeReason;
 
+		this.sResumeChangeReason = ChangeReason.Change;
+
+		this.removeCachesAndMessages("");
 		this.reset();
 		this.fetchCache(this.oContext);
 		aBindings.forEach(function (oDependentBinding) {
@@ -1653,7 +1684,12 @@ sap.ui.define([
 			// binding is reset and the binding has not yet fired a change event
 			oDependentBinding.resumeInternal(false);
 		});
-		this._fireChange({reason : ChangeReason.Change});
+		this._fireChange({reason : sChangeReason});
+
+		// Update after the change event, otherwise $count is fetched before the request
+		this.oModel.getDependentBindings(this.oHeaderContext).forEach(function (oBinding) {
+			oBinding.checkUpdate();
+		});
 	};
 
 	/**
@@ -1689,8 +1725,7 @@ sap.ui.define([
 	 *   property for which a grand total is needed; only a single group level is supported.
 	 * @throws {Error}
 	 *   If the given data aggregation object is unsupported, if the system query option
-	 *   <code>$apply</code> has been specified explicitly before, if the binding's root binding
-	 *   is suspended, or if there are pending changes
+	 *   <code>$apply</code> has been specified explicitly before, or if there are pending changes
 	 *
 	 * @example <caption>First group level is product category including subtotals for the net
 	 *     amount in display currency. On leaf level, transaction currency is used as an additional
@@ -1713,7 +1748,6 @@ sap.ui.define([
 	 * @since 1.55.0
 	 */
 	ODataListBinding.prototype.setAggregation = function (oAggregation) {
-		this.checkSuspended();
 		if (this.hasPendingChanges()) {
 			throw new Error("Cannot set $$aggregation due to pending changes");
 		}
@@ -1724,7 +1758,13 @@ sap.ui.define([
 		oAggregation = _Helper.clone(oAggregation);
 		this.mQueryOptions.$apply = _AggregationHelper.buildApply(oAggregation).$apply;
 		this.oAggregation = oAggregation;
-		this.removeCachesAndMessages();
+
+		if (this.isRootBindingSuspended()) {
+			this.setResumeChangeReason(ChangeReason.Change);
+			return;
+		}
+
+		this.removeCachesAndMessages("");
 		this.fetchCache(this.oContext);
 		this.reset(ChangeReason.Change);
 	};
@@ -1795,15 +1835,14 @@ sap.ui.define([
 	 * @returns {sap.ui.model.odata.v4.ODataListBinding}
 	 *   <code>this</code> to facilitate method chaining
 	 * @throws {Error}
-	 *   If the binding's root binding is suspended, there are pending changes or if an unsupported
-	 *   operation mode is used (see {@link sap.ui.model.odata.v4.ODataModel#bindList}).
+	 *   If there are pending changes or if an unsupported operation mode is used (see
+	 *   {@link sap.ui.model.odata.v4.ODataModel#bindList}).
 	 *
 	 * @public
 	 * @see sap.ui.model.ListBinding#sort
 	 * @since 1.39.0
 	 */
 	ODataListBinding.prototype.sort = function (vSorters) {
-		this.checkSuspended();
 		if (this.sOperationMode !== OperationMode.Server) {
 			throw new Error("Operation mode has to be sap.ui.model.odata.OperationMode.Server");
 		}
@@ -1813,10 +1852,17 @@ sap.ui.define([
 		}
 
 		this.aSorters = _Helper.toArray(vSorters);
-		this.removeCachesAndMessages();
+
+		if (this.isRootBindingSuspended()) {
+			this.setResumeChangeReason(ChangeReason.Sort);
+			return this;
+		}
+
+		this.removeCachesAndMessages("");
 		this.createReadGroupLock(this.getGroupId(), true);
 		this.fetchCache(this.oContext);
 		this.reset(ChangeReason.Sort);
+
 		return this;
 	};
 

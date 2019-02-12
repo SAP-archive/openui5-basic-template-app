@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -92,7 +92,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.61.2
+		 * @version 1.62.1
 		 *
 		 * @constructor
 		 * @public
@@ -198,7 +198,7 @@ sap.ui.define([
 
 			// Prevents image having 0 width and height when the LightBox rendered
 			// busy state first and then loaded the image in the meantime
-			if (oNativeImage.src !== sImageSrc) {
+			if (oNativeImage.getAttribute('src') !== sImageSrc) {
 				oNativeImage.src = sImageSrc;
 			}
 
@@ -432,6 +432,8 @@ sap.ui.define([
 		 */
 		LightBox.prototype._fnOpened = function() {
 			var that = this;
+			that._onResize();
+
 			jQuery('#sap-ui-blocklayer-popup').on("click", function() {
 				that.close();
 			});
@@ -614,10 +616,18 @@ sap.ui.define([
 		 */
 		LightBox.prototype._setImageSize = function (image, imageWidth, imageHeight) {
 			var footerHeight = this._calculateFooterHeightInPx(),
-				dimensions = this._getDimensions(imageWidth, imageHeight, footerHeight);
+				dimensions = this._getDimensions(imageWidth, imageHeight, footerHeight),
+				width = dimensions.width + 'px',
+				height = dimensions.height + 'px',
+				imgDomRef = image.getDomRef();
 
-			image.setWidth(dimensions.width + 'px');
-			image.setHeight(dimensions.height + 'px');
+			image.setProperty('width', width, true);
+			image.setProperty('height', height, true);
+
+			if (imgDomRef) {
+				imgDomRef.style.width = width;
+				imgDomRef.style.height = height;
+			}
 		};
 
 		/**

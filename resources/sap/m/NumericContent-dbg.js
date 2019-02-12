@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @since 1.34
 	 *
 	 * @public
@@ -127,8 +127,8 @@ sap.ui.define([
 	};
 
 	NumericContent.prototype.onBeforeRendering = function() {
-		this.$().unbind("mouseenter", this._addTooltip);
-		this.$().unbind("mouseleave", this._removeTooltip);
+		this.$().unbind("mouseenter");
+		this.$().unbind("mouseleave");
 	};
 
 	NumericContent.prototype.onAfterRendering = function() {

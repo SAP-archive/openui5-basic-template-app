@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -65,7 +65,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -907,56 +907,67 @@ sap.ui.define([
 
 		this.oHexField = Library.ColorPickerHelper.factory.createInput(sId + "-hxF", {
 			value: this.Color.hex.substr(1),
-			change: this._handleHexValueChange.bind(this)
+			change: this._handleHexValueChange.bind(this),
+			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "COLORPICKER_HEX")
 		}).addStyleClass(CONSTANTS.HEXClass);
 
 
 		this.oRedField = Library.ColorPickerHelper.factory.createInput(sId + "-rF", {
 			value: this.Color.r,
-			change: this._handleRedValueChange.bind(this)
+			change: this._handleRedValueChange.bind(this),
+			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "COLORPICKER_RED")
 		}).addStyleClass(CONSTANTS.LeftColumnInputClass);
 
 
 		this.oGreenField = Library.ColorPickerHelper.factory.createInput(sId + "-gF", {
 			value: this.Color.g,
-			change: this._handleGreenValueChange.bind(this)
+			change: this._handleGreenValueChange.bind(this),
+			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "COLORPICKER_GREEN")
 		}).addStyleClass(CONSTANTS.LeftColumnInputClass);
 
 
 
 		this.oBlueField = Library.ColorPickerHelper.factory.createInput(sId + "-bF", {
 			value: this.Color.b,
-			change: this._handleBlueValueChange.bind(this)
+			change: this._handleBlueValueChange.bind(this),
+			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "COLORPICKER_BLUE")
 		}).addStyleClass(CONSTANTS.LeftColumnInputClass);
 
 
 		this.oHueField = Library.ColorPickerHelper.factory.createInput(sId + "-hF", {
 			value: this.Color.h,
-			change: this._handleHueValueChange.bind(this)
+			change: this._handleHueValueChange.bind(this),
+			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "COLORPICKER_HUE")
 		}).addStyleClass(CONSTANTS.RightColumnInputClass);
 
 
 		this.oSatField = Library.ColorPickerHelper.factory.createInput(sId + "-sF", {
 			value: this.Color.s,
-			change: this._handleSatValueChange.bind(this)
+			change: this._handleSatValueChange.bind(this),
+			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "COLORPICKER_SAT") +
+				" " + InvisibleText.getStaticId("sap.ui.unified", "COLORPICKER_PERCENTAGE")
 		}).addStyleClass(CONSTANTS.RightColumnInputClass);
 
 
 		this.oLitField = Library.ColorPickerHelper.factory.createInput(sId + "-lF", {
 			value: this.Color.l,
-			change: this._handleLitValueChange.bind(this)
+			change: this._handleLitValueChange.bind(this),
+			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "COLORPICKER_LIGHTNESS") +
+				" " + InvisibleText.getStaticId("sap.ui.unified", "COLORPICKER_PERCENTAGE")
 		}).addStyleClass(CONSTANTS.RightColumnInputClass).addStyleClass(CONSTANTS.HideForHSVClass);
 
 
 		this.oAlphaField = Library.ColorPickerHelper.factory.createInput(sId + "-aF", {
 			value: this.Color.a,
-			change: this._handleAlphaValueChange.bind(this)
+			change: this._handleAlphaValueChange.bind(this),
+			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "COLORPICKER_ALPHA")
 		}).addStyleClass(CONSTANTS.RightColumnInputClass).addStyleClass(CONSTANTS.HideForHSVClass).addStyleClass("sapUnifiedA");
 
 
 		this.oValField = Library.ColorPickerHelper.factory.createInput(sId + "-vF", {
 			value: this.Color.v,
-			change: this._handleValValueChange.bind(this)
+			change: this._handleValValueChange.bind(this),
+			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "COLORPICKER_VALUE")
 		}).addStyleClass(CONSTANTS.RightColumnInputClass).addStyleClass(CONSTANTS.HideForHSLClass);
 
 
@@ -2480,9 +2491,9 @@ sap.ui.define([
 	ColorPicker.prototype._createUnifiedColorPicker = function(sId) {
 		var that = this;
 
-		this.oRbRGB = Library.ColorPickerHelper.factory.createRadioButtonItem();
+		this.oRbRGB = Library.ColorPickerHelper.factory.createRadioButtonItem({tooltip: oRb.getText("COLORPICKER_SELECT_RGB_TOOLTIP")});
 		this.oRbRGB.addStyleClass("sapUiCPRB");
-		this.oRbHSLV = Library.ColorPickerHelper.factory.createRadioButtonItem();
+		this.oRbHSLV = Library.ColorPickerHelper.factory.createRadioButtonItem({tooltip: oRb.getText("COLORPICKER_SELECT_HSL_TOOLTIP")});
 		this.oRbHSLV.addStyleClass("sapUiCPRB");
 		this.oButton = Library.ColorPickerHelper.factory.createButton(sId + "-toggleMode", {
 			type: Device.system.phone ? "Default" : "Transparent",

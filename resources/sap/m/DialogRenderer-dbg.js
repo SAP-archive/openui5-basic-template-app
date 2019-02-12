@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -161,7 +161,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/library"],
 				// Invisible element which is used to determine when desktop keyboard navigation
 				// has reached the first focusable element of a dialog and went beyond. In that case, the controller
 				// will focus the last focusable element.
-				oRm.write('<span id="' + oControl.getId() + '-firstfe" tabindex="0"></span>');
+				oRm.write('<span id="' + oControl.getId() + '-firstfe" tabindex="0" class="sapMDialogFirstFE"></span>');
 			}
 
 			if (oHeader) {
@@ -222,7 +222,7 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/library"],
 				// Invisible element which is used to determine when desktop keyboard navigation
 				// has reached the last focusable element of a dialog and went beyond. In that case, the controller
 				// will focus the first focusable element.
-				oRm.write('<span id="' + oControl.getId() + '-lastfe" tabindex="0"></span>');
+				oRm.write('<span id="' + oControl.getId() + '-lastfe" tabindex="0" class="sapMDialogLastFE"></span>');
 			}
 
 			oRm.write("</div>");

@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.61.2"
+      "version": "1.62.1"
     },
     "title": "SAPUI5 library with layout controls.",
     "description": "SAPUI5 library with layout controls.",
@@ -22,10 +22,10 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.61",
+      "minUI5Version": "1.62",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.61.2"
+          "minVersion": "1.62.1"
         }
       }
     },
@@ -67,7 +67,11 @@
           "sap.ui.layout.form.GridElementData",
           "sap.ui.layout.form.ColumnElementData",
           "sap.ui.layout.form.ColumnContainerData",
-          "sap.ui.layout.cssgrid.GridItemLayoutData"
+          "sap.ui.layout.cssgrid.GridItemLayoutData",
+          "sap.ui.layout.cssgrid.GridLayoutBase",
+          "sap.ui.layout.cssgrid.GridBasicLayout",
+          "sap.ui.layout.cssgrid.GridBoxLayout",
+          "sap.ui.layout.cssgrid.GridResponsiveLayout"
         ],
         "types": [
           "sap.ui.layout.BackgroundDesign",

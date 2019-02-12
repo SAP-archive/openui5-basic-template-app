@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -21,7 +21,7 @@ sap.ui.define(['./InputBase', './MaskEnabler', './MaskInputRenderer'], function(
 	 *
 	 * @author SAP SE
 	 * @extends sap.m.InputBase
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -58,7 +58,8 @@ sap.ui.define(['./InputBase', './MaskEnabler', './MaskInputRenderer'], function(
 				 A list of validation rules (one rule per mask character).
 				 */
 				rules: {type: "sap.m.MaskInputRule", multiple: true, singularName: "rule"}
-			}
+			},
+			dnd: { draggable: false, droppable: true }
 		}
 	});
 

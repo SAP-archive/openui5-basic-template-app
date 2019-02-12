@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -163,6 +163,8 @@ sap.ui.define([
 			var iProcessing = oPendingInteraction.processing - oPendingInteraction.navigation - oPendingInteraction.roundtrip;
 			oPendingInteraction.processing = iProcessing > -1 ? iProcessing : 0;
 
+			oPendingInteraction.completed = true;
+			Object.freeze(oPendingInteraction);
 			aInteractions.push(oPendingInteraction);
 			Log.info("Interaction step finished: trigger: " + oPendingInteraction.trigger + "; duration: " + oPendingInteraction.duration + "; requests: " + oPendingInteraction.requests.length, "Interaction.js");
 			oPendingInteraction = null;

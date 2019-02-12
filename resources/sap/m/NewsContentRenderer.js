@@ -1,6 +1,6 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var t={};t.render=function(t,e){var i=e.getSubheader();var r=e.getTooltip_AsString();if(typeof r!=="string"){r=""}t.write("<div");t.writeControlData(e);t.writeAttribute("id",e.getId()+"-news-content");t.writeAttribute("role","presentation");t.writeAttributeEscaped("aria-label",r);t.addClass("sapMNwC");if(e.hasListeners("press")){t.addClass("sapMPointer");t.writeAttribute("tabindex","0")}t.writeClasses();t.write(">");t.write("<div");t.addClass("sapMNwCCTxt");t.writeClasses();t.write(">");t.renderControl(e._oContentText);t.write("</div>");t.write("<div");t.writeAttribute("id",e.getId()+"-subheader");t.addClass("sapMNwCSbh");t.writeClasses();t.write(">");t.writeEscaped(i);t.write("</div>");t.write("</div>")};return t},true);
+sap.ui.define([],function(){"use strict";var e={};e.render=function(e,t){var r=t.getSubheader();var i=t.getTooltip_AsString();if(typeof i!=="string"){i=""}e.write("<div");e.writeControlData(t);e.writeAttribute("role","presentation");e.writeAttributeEscaped("aria-label",i);e.addClass("sapMNwC");if(t.hasListeners("press")){e.addClass("sapMPointer");e.writeAttribute("tabindex","0")}e.writeClasses();e.write(">");e.write("<div");e.addClass("sapMNwCCTxt");e.writeClasses();e.write(">");e.renderControl(t._oContentText);e.write("</div>");e.write("<div");e.writeAttribute("id",t.getId()+"-subheader");e.addClass("sapMNwCSbh");e.writeClasses();e.write(">");e.writeEscaped(r);e.write("</div>");e.write("</div>")};return e},true);

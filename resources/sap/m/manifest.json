@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.61.2"
+      "version": "1.62.1"
     },
     "title": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "description": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
@@ -22,13 +22,13 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.61",
+      "minUI5Version": "1.62",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.61.2"
+          "minVersion": "1.62.1"
         },
         "sap.ui.unified": {
-          "minVersion": "1.61.2",
+          "minVersion": "1.62.1",
           "lazy": true
         }
       }
@@ -74,6 +74,7 @@
           "sap.m.FeedListItem",
           "sap.m.FlexBox",
           "sap.m.FormattedText",
+          "sap.m.GenericTag",
           "sap.m.GenericTile",
           "sap.m.GroupHeaderListItem",
           "sap.m.GrowingList",
@@ -201,6 +202,7 @@
         ],
         "elements": [
           "sap.m.CalendarAppointment",
+          "sap.m.CarouselLayout",
           "sap.m.Column",
           "sap.m.FlexItemData",
           "sap.m.FeedListItemAction",
@@ -286,6 +288,8 @@
           "sap.m.FlexJustifyContent",
           "sap.m.FlexRendertype",
           "sap.m.FrameType",
+          "sap.m.GenericTagDesign",
+          "sap.m.GenericTagValueState",
           "sap.m.GenericTileMode",
           "sap.m.GenericTileScope",
           "sap.m.HeaderLevel",

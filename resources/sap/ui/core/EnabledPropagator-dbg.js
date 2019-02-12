@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -25,7 +25,7 @@ sap.ui.define(['./Control'],
 	 * </code>
 	 *
 	 * @author Daniel Brinkmann
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @param {boolean} [bDefault=true] the value that should be used as default value for the enhancement of the control.
 	 * @param {boolean} [bLegacy=false] whether the introduced property should use the old name 'Enabled'
 	 * @public

@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -58,7 +58,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.61.2
+		 * @version 1.62.1
 		 *
 		 * @constructor
 		 * @public
@@ -176,7 +176,8 @@ sap.ui.define([
 				defaultAction: {}
 			},
 			defaultAggregation : "menu",
-			designtime: "sap/m/designtime/MenuButton.designtime"
+			designtime: "sap/m/designtime/MenuButton.designtime",
+			dnd: { draggable: true, droppable: false }
 		}});
 
 		EnabledPropagator.call(MenuButton.prototype);
@@ -472,6 +473,8 @@ sap.ui.define([
 			if (this._isSplitButton()) {
 				this._getButtonControl().setArrowState(false);
 			}
+
+			this.$().removeAttr("aria-controls");
 		};
 
 		MenuButton.prototype._menuItemSelected = function(oEvent) {

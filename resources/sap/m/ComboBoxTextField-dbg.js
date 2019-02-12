@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -35,7 +35,7 @@ sap.ui.define([
 		 * @extends sap.m.InputBase
 		 *
 		 * @author SAP SE
-		 * @version 1.61.2
+		 * @version 1.62.1
 		 *
 		 * @constructor
 		 * @public
@@ -73,6 +73,8 @@ sap.ui.define([
 			}
 		});
 
+		var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+
 		ComboBoxTextField.prototype.init = function () {
 			InputBase.prototype.init.apply(this, arguments);
 			var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
@@ -107,6 +109,13 @@ sap.ui.define([
 					this.getIcon().addAssociation("ariaLabelledBy", sLabelId, true);
 				}
 			}, this);
+
+			//Creates an invisible aria node for the given message bundle text in the static UIArea for ARIA announcements.
+			if (!this.oInvisibleText && Device.browser.msie) {
+				this.oInvisibleText = new InvisibleText(this.getId() + '-describedby', {
+					text: oRb.getText("ACC_CTR_TYPE_COMBO")
+				}).toStatic();
+			}
 		};
 
 		ComboBoxTextField.prototype.setShowButton = function(bShowButton) {
@@ -189,6 +198,16 @@ sap.ui.define([
 			var oInfo = InputBase.prototype.getAccessibilityInfo.apply(this, arguments);
 			oInfo.type = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_COMBO");
 			return oInfo;
+		};
+
+		ComboBoxTextField.prototype.exit = function() {
+			InputBase.prototype.exit.apply(this, arguments);
+
+			//destroy the already created invisible text
+			if (this.oInvisibleText) {
+				this.oInvisibleText.destroy();
+				this.oInvisibleText = null;
+			}
 		};
 
 		return ComboBoxTextField;

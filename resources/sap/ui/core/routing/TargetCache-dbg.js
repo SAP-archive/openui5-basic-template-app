@@ -1,12 +1,12 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	'sap/ui/base/EventProvider',
-	'sap/ui/core/routing/async/_TargetCache',
-	'sap/ui/core/routing/sync/_TargetCache',
+	'sap/ui/core/routing/async/TargetCache',
+	'sap/ui/core/routing/sync/TargetCache',
 	"sap/base/assert",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery"
@@ -247,14 +247,14 @@ sap.ui.define([
 			 * Privates
 			 */
 
-			_get : function (oOptions, sType, bGlobalId) {
+			_get : function (oOptions, sType, bGlobalId, oInfo) {
 				var oObject;
 				switch (sType) {
 					case "View":
 						oObject = this._getView(oOptions, bGlobalId);
 						break;
 					case "Component":
-						oObject = this._getComponent(oOptions, bGlobalId);
+						oObject = this._getComponent(oOptions, bGlobalId, oInfo);
 						break;
 					default:
 						throw Error("The given sType: " + sType + " isn't supported by TargetCache.getObject");
@@ -276,12 +276,12 @@ sap.ui.define([
 				return this._getViewWithGlobalId(oOptions);
 			},
 
-			_getComponent : function (oOptions, bGlobalId) {
+			_getComponent : function (oOptions, bGlobalId, oInfo) {
 				if (!bGlobalId) {
 					oOptions = this._createId(oOptions);
 				}
 
-				return this._getComponentWithGlobalId(oOptions);
+				return this._getComponentWithGlobalId(oOptions, oInfo);
 			},
 
 			_createId: function (oOptions) {

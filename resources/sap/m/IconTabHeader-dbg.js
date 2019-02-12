@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -79,7 +79,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -1197,6 +1197,9 @@ function(
 	 * @private
 	 */
 	IconTabHeader.prototype._checkOverflow = function() {
+		if (this.bIsDestroyed) {
+			return;
+		}
 
 		var oBarHead = this.getDomRef("head");
 		var $bar = this.$();
@@ -1315,6 +1318,9 @@ function(
 	 * @return {sap.m.IconTabHeader} this pointer for chaining
 	 */
 	IconTabHeader.prototype._scrollIntoView = function(oItem, iDuration) {
+		if (this.bIsDestroyed) {
+			return;
+		}
 
 		var $item = oItem.$(),
 			iScrollLeft,

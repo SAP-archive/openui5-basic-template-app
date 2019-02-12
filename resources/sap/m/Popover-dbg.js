@@ -1,6 +1,6 @@
 
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -107,7 +107,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Control
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.61.2
+		* @version 1.62.1
 		*
 		* @public
 		* @alias sap.m.Popover
@@ -410,7 +410,7 @@ sap.ui.define([
 			this._followOfTolerance = 32;
 
 			// used to judge if enableScrolling needs to be disabled
-			this._scrollContentList = [sap.m.NavContainer, sap.m.Page, sap.m.ScrollContainer];
+			this._scrollContentList = ["sap.m.NavContainer", "sap.m.Page", "sap.m.ScrollContainer"];
 
 			// Make this.oPopup call this._adjustPositionAndArrow each time after its position is changed
 			this._fnAdjustPositionAndArrow = jQuery.proxy(this._adjustPositionAndArrow, this);
@@ -614,7 +614,7 @@ sap.ui.define([
 					if (oNavContent) {
 						oNavContent.attachEvent("navigate", function (oEvent) {
 							var oPage = oEvent.getParameter("to");
-							if (oPage instanceof sap.m.Page) {
+							if (oPage instanceof Control && oPage.isA("sap.m.Page")) {
 								this.$().toggleClass("sapMPopoverWithHeaderCont", !!oPage._getAnyHeader());
 							}
 						}, this);
@@ -790,6 +790,10 @@ sap.ui.define([
 
 				var that = this;
 				var fCheckAndOpen = function () {
+					if (oPopup.bIsDestroyed) {
+						return;
+					}
+
 					if (oPopup.getOpenState() === OpenState.CLOSING) {
 						if (that._sOpenTimeout) {
 							clearTimeout(that._sOpenTimeout);
@@ -937,6 +941,7 @@ sap.ui.define([
 			oStyle.bottom = "";
 			oStyle.width = "";
 			oStyle.height = "";
+			oStyle.overflow = "";
 
 			oScrollAreaStyle.width = "";
 			oScrollAreaStyle.display = "";
@@ -1121,11 +1126,11 @@ sap.ui.define([
 		Popover.prototype._getSingleNavContent = function () {
 			var aContent = this._getAllContent();
 
-			while (aContent.length === 1 && aContent[0] instanceof sap.ui.core.mvc.View) {
+			while (aContent.length === 1 && aContent[0] instanceof Control && aContent[0].isA("sap.ui.core.mvc.View")) {
 				aContent = aContent[0].getContent();
 			}
 
-			if (aContent.length === 1 && aContent[0] instanceof sap.m.NavContainer) {
+			if (aContent.length === 1 && aContent[0] instanceof Control && aContent[0].isA("sap.m.NavContainer")) {
 				return aContent[0];
 			} else {
 				return null;
@@ -1135,11 +1140,11 @@ sap.ui.define([
 		Popover.prototype._getSinglePageContent = function () {
 			var aContent = this._getAllContent();
 
-			while (aContent.length === 1 && aContent[0] instanceof sap.ui.core.mvc.View) {
+			while (aContent.length === 1 && aContent[0] instanceof Control && aContent[0].isA("sap.ui.core.mvc.View")) {
 				aContent = aContent[0].getContent();
 			}
 
-			if (aContent.length === 1 && aContent[0] instanceof sap.m.Page) {
+			if (aContent.length === 1 && aContent[0] instanceof Control && aContent[0].isA("sap.m.Page")) {
 				return aContent[0];
 			} else {
 				return null;
@@ -1155,11 +1160,11 @@ sap.ui.define([
 		Popover.prototype._hasSinglePageContent = function () {
 			var aContent = this._getAllContent();
 
-			while (aContent.length === 1 && aContent[0] instanceof sap.ui.core.mvc.View) {
+			while (aContent.length === 1 && aContent[0] instanceof Control && aContent[0].isA("sap.ui.core.mvc.View")) {
 				aContent = aContent[0].getContent();
 			}
 
-			if (aContent.length === 1 && aContent[0] instanceof sap.m.Page) {
+			if (aContent.length === 1 && aContent[0] instanceof Control && aContent[0].isA("sap.m.Page")) {
 				return true;
 			} else {
 				return false;
@@ -1175,22 +1180,17 @@ sap.ui.define([
 		 * @returns {boolean} True if there is a scrollable element within the Popover's content
 		 */
 		Popover.prototype._hasSingleScrollableContent = function () {
-			var aContent = this._getAllContent(), i;
+			var aContent = this._getAllContent();
 
-			while (aContent.length === 1 && aContent[0] instanceof sap.ui.core.mvc.View) {
+			while (aContent.length === 1 && aContent[0] instanceof Control && aContent[0].isA("sap.ui.core.mvc.View")) {
 				aContent = aContent[0].getContent();
 			}
 
-			if (aContent.length === 1) {
-				for (i = 0; i < this._scrollContentList.length; i++) {
-					if (aContent[0] instanceof this._scrollContentList[i]) {
-						return true;
-					}
-				}
-				return false;
-			} else {
-				return false;
+			if (aContent.length === 1 && aContent[0] instanceof Control && aContent[0].isA(this._scrollContentList)) {
+				return true;
 			}
+
+			return false;
 		};
 
 		/**

@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -172,7 +172,7 @@ sap.ui.define([
 	 * {@link sap.m.PlanningCalendarView PlanningCalendarView}'s properties.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -633,7 +633,8 @@ sap.ui.define([
 		});
 
 		var oTableHeaderToolbar = new OverflowToolbar(this.getId() + "-Toolbar", {
-			design: ToolbarDesign.Transparent
+			design: ToolbarDesign.Transparent,
+			visible: false
 		});
 		oTableHeaderToolbar._oPlanningCalendar = this;
 
@@ -846,6 +847,41 @@ sap.ui.define([
 			$Table.style.height = sStyle;
 		}
 	};
+
+	PlanningCalendar.prototype.addToolbarContent = function(oContent) {
+		this.addAggregation("toolbarContent", oContent);
+		_switchTableHeaderToolbarVisibility.call(this);
+		return this;
+	 };
+
+	 PlanningCalendar.prototype.insertToolbarContent = function(oContent, iIndex) {
+		this.insertAggregation("toolbarContent", oContent, iIndex);
+		_switchTableHeaderToolbarVisibility.call(this);
+		return this;
+	 };
+
+	 PlanningCalendar.prototype.removeToolbarContent = function(vObject) {
+		var oRemoved = this.removeAggregation("toolbarContent", vObject);
+		_switchTableHeaderToolbarVisibility.call(this);
+		return oRemoved;
+	 };
+
+	 PlanningCalendar.prototype.removeAllToolbarContent = function() {
+		var aRemoved = this.removeAllAggregation("toolbarContent");
+		_switchTableHeaderToolbarVisibility.call(this);
+		return aRemoved;
+	 };
+
+	 PlanningCalendar.prototype.destroyToolbarContent = function() {
+		var destroyed = this.destroyAggregation("toolbarContent");
+		_switchTableHeaderToolbarVisibility.call(this);
+		return destroyed;
+	 };
+
+	 function _switchTableHeaderToolbarVisibility () {
+		this._getTableHeaderToolbar().setVisible(!!this.getToolbarContent().length);
+	 }
+
 
 	/**
 	 * Sets the given date as start date. The current date is used as default.
@@ -2791,7 +2827,8 @@ sap.ui.define([
 			aggregations : {
 				intervalHeaders : {type : "sap.ui.unified.CalendarAppointment", multiple : true},
 				_intervalPlaceholders : {type : "IntervalPlaceholder", multiple : true, visibility : "hidden", dnd : {droppable: true}}
-			}
+			},
+			dnd: true
 		},
 		renderer: PlanningCalendarRowTimelineRenderer
 	});

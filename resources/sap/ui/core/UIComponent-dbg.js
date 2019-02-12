@@ -1,5 +1,5 @@
 /*
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -55,7 +55,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Component
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @alias sap.ui.core.UIComponent
 	 * @since 1.9.2
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
@@ -67,6 +67,17 @@ sap.ui.define([
 
 			var bCreated = false;
 			try {
+				if (typeof sId !== "string") {
+					mSettings = sId;
+					sId = undefined;
+				}
+
+				// save the _routerHashChanger for the creation of Router
+				if (mSettings && mSettings._routerHashChanger) {
+					this._oRouterHashChanger = mSettings._routerHashChanger;
+					delete mSettings._routerHashChanger;
+				}
+
 				Component.apply(this, arguments);
 				bCreated = true;
 			} finally {
@@ -282,7 +293,7 @@ sap.ui.define([
 		if (vRoutes) {
 			var Router = sap.ui.requireSync("sap/ui/core/routing/Router");
 			var fnRouterConstructor = getConstructorFunctionFor(this._getRouterClassName() || Router);
-			this._oRouter = new fnRouterConstructor(vRoutes, oRoutingConfig, this, oRoutingManifestEntry.targets);
+			this._oRouter = new fnRouterConstructor(vRoutes, oRoutingConfig, this, oRoutingManifestEntry.targets, this._oRouterHashChanger);
 			this._oTargets = this._oRouter.getTargets();
 			this._oViews = this._oRouter.getViews();
 		} else if (oRoutingManifestEntry.targets) {
@@ -534,6 +545,10 @@ sap.ui.define([
 			// make sure to prefix the ID of the rootView
 			if (oRootView.id) {
 				oRootView.id = this.createId(oRootView.id);
+			}
+			if (oRootView.async) {
+				// for now the processing mode is always set to "sequential"
+				oRootView.processingMode = "sequential";
 			}
 			return View._legacyCreate(oRootView);
 		} else if (oRootView) {

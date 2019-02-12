@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -34,29 +34,27 @@ sap.ui.define(["sap/ui/Device"],
 			this.renderAttributes(oRm, oControl); // may be used by inheriting renderers, but DO NOT write class or style attributes! Instead, call addClass/addStyle.
 		}
 
-		// The following CSS classes need to be added using the addStyleClass function because
-		//  they are manipulated later on also using the togggleStyleClass function
 		if (!Device.system.phone) {
 			if (Device.orientation.portrait) {
-				oControl.addStyleClass("sapMSplitContainerPortrait");
+				oRm.addClass("sapMSplitContainerPortrait");
 			}
 			switch (sMode) {
 				case "ShowHideMode":
-					oControl.addStyleClass("sapMSplitContainerShowHide");
+					oRm.addClass("sapMSplitContainerShowHide");
 					break;
 				case "StretchCompress":
-					oControl.addStyleClass("sapMSplitContainerStretchCompress");
+					oRm.addClass("sapMSplitContainerStretchCompress");
 					break;
 				case "PopoverMode":
-					oControl.addStyleClass("sapMSplitContainerPopover");
+					oRm.addClass("sapMSplitContainerPopover");
 					break;
 				case "HideMode":
-					oControl.addStyleClass("sapMSplitContainerHideMode");
+					oRm.addClass("sapMSplitContainerHideMode");
 					break;
 			}
 		}
 
-		oRm.writeClasses(oControl);
+		oRm.writeClasses();
 		oRm.writeStyles();
 		var sTooltip = oControl.getTooltip_AsString();
 		if (sTooltip) {

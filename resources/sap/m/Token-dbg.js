@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -12,7 +12,8 @@ sap.ui.define([
 	'sap/ui/core/library',
 	'sap/ui/core/Icon',
 	'./TokenRenderer',
-	"sap/ui/events/KeyCodes"
+	"sap/ui/events/KeyCodes",
+	'sap/ui/core/theming/Parameters'
 ],
 	function(
 		library,
@@ -21,7 +22,8 @@ sap.ui.define([
 		coreLibrary,
 		Icon,
 		TokenRenderer,
-		KeyCodes
+		KeyCodes,
+		Parameters
 	) {
 	"use strict";
 
@@ -52,7 +54,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -138,10 +140,13 @@ sap.ui.define([
 	 * This file defines behavior for the control,
 	 */
 	Token.prototype.init = function() {
-		var that = this;
+		var that = this,
+			bSysCancelIconUsed = Parameters.get("_sap_m_Token_Sys_Cancel_Icon") === "true",
+			sSrcIcon = bSysCancelIconUsed ? "sap-icon://sys-cancel" : "sap-icon://decline";
+
 		this._deleteIcon = new Icon({
 			id : that.getId() + "-icon",
-			src : "sap-icon://sys-cancel",
+			src : sSrcIcon,
 			noTabStop: true,
 			press : function(oEvent) {
 				var oParent = that.getParent();

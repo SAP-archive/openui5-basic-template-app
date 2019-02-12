@@ -1,6 +1,6 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["./ComboBoxBaseRenderer","sap/ui/core/Renderer"],function(e,t){"use strict";var n=t.extend(e);n.CSS_CLASS_MULTICOMBOBOX="sapMMultiComboBox";n.addOuterClasses=function(t,r){e.addOuterClasses.apply(this,arguments);t.addClass(n.CSS_CLASS_MULTICOMBOBOX);if(r._hasTokens()){t.addClass("sapMMultiComboBoxHasToken")}};n.writeInnerAttributes=function(t,n){if(sap.ui.getCore().getConfiguration().getAccessibility()){var r=n._oTokenizer&&n._oTokenizer.getTokensInfoId();t.writeAttribute("aria-describedby",r)}e.writeInnerAttributes.apply(this,arguments)};n.prependInnerContent=function(e,t){e.renderControl(t._oTokenizer)};return n},true);
+sap.ui.define(["./ComboBoxBaseRenderer","./ComboBoxTextFieldRenderer","sap/ui/core/Renderer","sap/ui/Device"],function(e,i,r,t){"use strict";var s=r.extend(e);s.CSS_CLASS_MULTICOMBOBOX="sapMMultiComboBox";s.addOuterClasses=function(i,r){e.addOuterClasses.apply(this,arguments);i.addClass(s.CSS_CLASS_MULTICOMBOBOX);if(r._hasTokens()){i.addClass("sapMMultiComboBoxHasToken")}};s.getAccessibilityState=function(e){var r=i.getAccessibilityState.call(this,e),s=e._oTokenizer&&e._oTokenizer.getTokensInfoId();r.expanded=e.isOpen();if(sap.ui.getCore().getConfiguration().getAccessibility()){if(t.browser.internet_explorer&&r.describedby){r.describedby={value:(r.describedby+" "+s).trim(),append:true}}else{r.describedby={value:s.trim(),append:true}}}return r};s.prependInnerContent=function(e,i){e.renderControl(i._oTokenizer)};return s},true);

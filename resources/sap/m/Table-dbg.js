@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -56,7 +56,7 @@ sap.ui.define([
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -146,15 +146,15 @@ sap.ui.define([
 				}
 			},
 			/**
-			 * This event gets fired when the user performs paste from clipboard on the table.
-			 * Paste action can be performed from the context menu or with CTRL-V keyboard key combination.
+			 * This event gets fired when the user pastes content from the clipboard to the table.
+			 * Pasting can be done via the context menu or the standard paste keyboard shortcut, if the focus is inside the table.
 			 * @since 1.60
 			 */
 			paste : {
 				allowPreventDefault: true,
 				parameters : {
 					/**
-					 * 2D-Array of strings with data from the clipboard. The first dimension represents the rows and the
+					 * 2D array of strings with data from the clipboard. The first dimension represents the rows, and the
 					 * second dimension represents the cells of the tabular data.
 					 */
 					data : {type : "string[][]"}

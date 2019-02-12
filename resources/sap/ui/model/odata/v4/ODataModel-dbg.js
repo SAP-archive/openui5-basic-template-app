@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -184,7 +184,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.Model
 	 * @public
 	 * @since 1.37.0
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 */
 	var ODataModel = Model.extend("sap.ui.model.odata.v4.ODataModel",
 			/** @lends sap.ui.model.odata.v4.ODataModel.prototype */
@@ -272,19 +272,19 @@ sap.ui.define([
 						this.sServiceUrl + "$metadata", mParameters.annotationURI, this,
 						mParameters.supportReferences);
 					this.oRequestor = _Requestor.create(this.sServiceUrl, {
-							fnFetchEntityContainer :
+							fetchEntityContainer :
 								this.oMetaModel.fetchEntityContainer.bind(this.oMetaModel),
-							fnFetchMetadata : this.oMetaModel.fetchObject.bind(this.oMetaModel),
-							fnGetGroupProperty : this.getGroupProperty.bind(this),
+							fetchMetadata : this.oMetaModel.fetchObject.bind(this.oMetaModel),
+							getGroupProperty : this.getGroupProperty.bind(this),
 							lockGroup : this.lockGroup.bind(this),
-							fnOnCreateGroup : function (sGroupId) {
+							onCreateGroup : function (sGroupId) {
 								if (that.isAutoGroup(sGroupId)) {
 									sap.ui.getCore().addPrerenderingTask(
 										that._submitBatch.bind(that, sGroupId, true));
 								}
 							},
-							fnReportBoundMessages : this.reportBoundMessages.bind(this),
-							fnReportUnboundMessages : this.reportUnboundMessages.bind(this)
+							reportBoundMessages : this.reportBoundMessages.bind(this),
+							reportUnboundMessages : this.reportUnboundMessages.bind(this)
 						}, mHeaders, this.mUriParameters, sODataVersion);
 					if (mParameters.earlyRequests) {
 						this.oMetaModel.fetchEntityContainer(true);
@@ -585,8 +585,23 @@ sap.ui.define([
 	 * to get it updated asynchronously and register a change listener at the binding to be informed
 	 * when the value is available.
 	 *
+	 * It is possible to create a property binding pointing to metadata. A '##' in the
+	 * binding's path is recognized as a separator and splits it into two parts.
+	 * The part before the separator is resolved with the binding's context and the result is
+	 * transformed into a metadata context (see
+	 * {@link sap.ui.model.odata.v4.ODataMetaModel#getMetaContext}). The part following the
+	 * separator is then interpreted relative to this metadata context, even if it starts with
+	 * a '/'; a trailing '/' is allowed here, see
+	 * {@link sap.ui.model.odata.v4.ODataMetaModel#requestObject} for the effect it has.
+	 *
+	 * If the target type specified in the corresponding control property's binding info is "any"
+	 * and the binding is relative or points to metadata, the binding may have an object value;
+	 * in this case and unless the binding refers to an action advertisement the binding's mode must
+	 * be {@link sap.ui.model.BindingMode.OneTime}.
+	 *
 	 * @param {string} sPath
-	 *   The binding path in the model; must not be empty or end with a slash
+	 *   The binding path in the model; must not be empty. Must not end with a '/' unless the
+	 *   binding points to metadata.
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context which is required as base for a relative path
 	 * @param {object} [mParameters]
@@ -597,7 +612,8 @@ sap.ui.define([
 	 *   Query options specified for the binding overwrite model query options.
 	 *   Note: The binding only creates its own data service request if it is absolute or if it is
 	 *   relative to a context created via {@link #createBindingContext}. The binding parameters are
-	 *   ignored in case the binding creates no own data service request.
+	 *   ignored in case the binding creates no own data service request or in case the binding
+	 *   points to metadata.
 	 * @param {string} [mParameters.$$groupId]
 	 *   The group ID to be used for <b>read</b> requests triggered by this binding; if not
 	 *   specified, either the parent binding's group ID (if the binding is relative) or the
@@ -607,10 +623,13 @@ sap.ui.define([
 	 * @returns {sap.ui.model.odata.v4.ODataPropertyBinding}
 	 *   The property binding
 	 * @throws {Error}
-	 *   If disallowed binding parameters are provided
+	 *   If disallowed binding parameters are provided or in case the binding's value is an object
+	 *   and the preconditions specified above are not fulfilled
 	 *
 	 * @public
+	 * @see sap.ui.base.ManagedObject#bindProperty
 	 * @see sap.ui.model.Model#bindProperty
+	 * @see sap.ui.model.PropertyBinding#setType
 	 * @since 1.37.0
 	 */
 	ODataModel.prototype.bindProperty = function (sPath, oContext, mParameters) {
@@ -910,6 +929,18 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns the model's bindings.
+	 *
+	 * @returns {sap.ui.model.Binding[]}
+	 *   An array with all bindings, or an empty array if there are no bindings
+	 *
+	 * @private
+	 */
+	ODataModel.prototype.getAllBindings = function () {
+		return this.aAllBindings;
+	};
+
+	/**
 	 * Cannot get a shared context for a path. Contexts are created by bindings instead and there
 	 * may be multiple contexts for the same path.
 	 *
@@ -1190,7 +1221,8 @@ sap.ui.define([
 	 * @param {string} [sGroupId]
 	 *   The group ID to be used for refresh; valid values are <code>undefined</code>, '$auto',
 	 *   '$auto.*', '$direct' or application group IDs as specified in
-	 *   {@link sap.ui.model.odata.v4.ODataModel}
+	 *   {@link sap.ui.model.odata.v4.ODataModel}. It is ignored for suspended bindings, because
+	 *   resume uses the binding's group ID
 	 * @throws {Error}
 	 *   If the given group ID is invalid or if there are pending changes, see
 	 *   {@link #hasPendingChanges}
@@ -1206,9 +1238,12 @@ sap.ui.define([
 	ODataModel.prototype.refresh = function (sGroupId) {
 		this.checkGroupId(sGroupId);
 
+		// Note: aBindings contains all bindings with change listeners (owned by Model)
 		this.aBindings.slice().forEach(function (oBinding) {
-			if (oBinding.isRefreshable()) {
-				oBinding.refresh(sGroupId);
+			if (oBinding.isRoot()) {
+				// ignore the group ID for suspended bindings to avoid mismatches and errors; they
+				// refresh via resume with their own group ID anyway
+				oBinding.refresh(oBinding.isSuspended() ? undefined : sGroupId);
 			}
 		});
 	};

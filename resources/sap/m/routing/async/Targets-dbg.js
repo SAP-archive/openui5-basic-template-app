@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -46,8 +46,8 @@ sap.ui.define([], function() {
 		/**
 		 * @private
 		 */
-		_displaySingleTarget: function(sName) {
-			var oTarget = this.getTarget(sName);
+		_displaySingleTarget: function(oTargetInfo) {
+			var oTarget = this.getTarget(oTargetInfo.name);
 
 			return this._super._displaySingleTarget.apply(this, arguments).then(function(oViewInfo){
 				if (oTarget) {

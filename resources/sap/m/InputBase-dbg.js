@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -62,7 +62,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -217,6 +217,40 @@ function(
 	/* ----------------------------------------------------------- */
 	/* Private methods                                             */
 	/* ----------------------------------------------------------- */
+
+
+	/**
+	 * Handles the input event of the control
+	 * @param {jQuery.Event} oEvent The event object.
+	 * @protected
+	 */
+
+	InputBase.prototype.handleInput = function(oEvent) {
+		// ie 10+ fires the input event when an input field with a native placeholder is focused
+		if (this._bIgnoreNextInput) {
+			this._bIgnoreNextInput = false;
+			oEvent.setMarked("invalid");
+			return;
+		}
+
+		this._bIgnoreNextInput = false;
+
+		// ie11 fires input event from read-only fields
+		if (!this.getEditable()) {
+			oEvent.setMarked("invalid");
+			return;
+		}
+
+		// ie11 fires input event whenever placeholder attribute is changed
+		if (document.activeElement !== oEvent.target &&
+			Device.browser.msie && this.getValue() === this._lastValue) {
+			oEvent.setMarked("invalid");
+			return;
+		}
+
+		// dom value updated other than value property
+		this._bCheckDomValue = true;
+	};
 
 	/**
 	 * To allow setting of default placeholder e.g. in DatePicker
@@ -584,24 +618,7 @@ function(
 	 * @param {jQuery.Event} oEvent The event object.
 	 */
 	InputBase.prototype.oninput = function(oEvent) {
-
-		// ie 10+ fires the input event when an input field with a native placeholder is focused
-		if (this._bIgnoreNextInput) {
-			this._bIgnoreNextInput = false;
-			oEvent.setMarked("invalid");
-			return;
-		}
-
-		this._bIgnoreNextInput = false;
-
-		// ie11 fires input event from read-only fields
-		if (!this.getEditable()) {
-			oEvent.setMarked("invalid");
-			return;
-		}
-
-		// dom value updated other than value property
-		this._bCheckDomValue = true;
+		this.handleInput(oEvent);
 	};
 
 	/**
@@ -1023,7 +1040,7 @@ function(
 
 				oDomRef.appendChild(oDescribedByDomRef);
 			} else if (oDescribedByDomRef && !sAnnouncement) {
-				oDomRef.removeChild(oDescribedByDomRef);
+				oDescribedByDomRef.parentNode.removeChild(oDescribedByDomRef);
 				var sDescribedByDomRefId = oDescribedByDomRef.id;
 
 				if (sAriaDescribedby && sDescribedByDomRefId) {

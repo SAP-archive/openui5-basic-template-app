@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -125,7 +125,7 @@ sap.ui.define([
 	 * mobile devices, it opens in full screen.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -158,7 +158,8 @@ sap.ui.define([
 			 */
 			_popup: { type: "sap.m.ResponsivePopover", multiple: false, visibility: "hidden" }
 		},
-		designtime: "sap/m/designtime/DateTimePicker.designtime"
+		designtime: "sap/m/designtime/DateTimePicker.designtime",
+		dnd: { draggable: false, droppable: true }
 	}});
 
 	var PopupContent = Control.extend("sap.m.internal.DateTimePickerPopup", {

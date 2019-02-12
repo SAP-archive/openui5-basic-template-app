@@ -1,6 +1,6 @@
 {
 	"_sap_ui_unified_ColorPicker_CircleSize": "13px",
-	"_sap_ui_commons_ColorPicker_CircleSize": "8px",
+	"_sap_ui_unified_ColorPicker_commonsCircleSize": "8px",
 	"_sap_ui_unified_Menu_ItmHeight": "2rem",
 	"_sap_ui_unified_Menu_ItmPadding": "0.5rem",
 	"_sap_ui_unified_Menu_ItmHeightCozy": "3rem",

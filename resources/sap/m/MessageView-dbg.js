@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -109,7 +109,7 @@ sap.ui.define([
 	 * It also exposes an event {@link sap.m.MessageView#activeTitlePress}, which can be used for navigation from a message to the source of the issue.
 	 * <br><br>
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
@@ -373,9 +373,7 @@ sap.ui.define([
 		}
 
 		// Bind automatically to the MessageModel if no items are bound
-		if (!this.getBindingInfo("items") && !aItems.length) {
-			this._makeAutomaticBinding();
-		}
+		this._makeAutomaticBinding();
 	};
 
 	/**
@@ -447,11 +445,25 @@ sap.ui.define([
 	};
 
 	/**
+	 * If there's no items binding, attach the MessageView to the sap.ui.getCore().getMessageManager().getMessageModel()
+	 *
+	 * @sap-restricted sap.m.MessagePopover
+	 * @private
+	 */
+	MessageView.prototype._makeAutomaticBinding = function () {
+		var aItems = this.getItems();
+
+		if (!this.getBindingInfo("items") && !aItems.length) {
+			this._bindToMessageModel();
+		}
+	};
+
+	/**
 	 * Makes automatic binding to the Message Model with default template
 	 *
 	 * @private
 	 */
-	MessageView.prototype._makeAutomaticBinding = function () {
+	MessageView.prototype._bindToMessageModel = function () {
 		var that = this;
 
 		this.setModel(sap.ui.getCore().getMessageManager().getMessageModel(), "message");

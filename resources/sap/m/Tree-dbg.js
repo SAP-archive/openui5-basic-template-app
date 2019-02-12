@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -39,7 +39,7 @@ function(
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -177,15 +177,16 @@ function(
 			// make sure when rendering is called, the padding calc uses the correct deepest level
 			this._updateDeepestLevel(oItem);
 
+			var oBinding = this.getBinding("items");
 			if (bExpand == undefined) {
-				this.getBinding("items").toggleIndex(iIndex);
+				oBinding.toggleIndex(iIndex);
 			} else if (bExpand) {
-				this.getBinding("items").expand(iIndex);
+				oBinding.expand(iIndex);
 			} else {
-				this.getBinding("items").collapse(iIndex);
+				oBinding.collapse(iIndex);
 			}
 
-			bExpandedAfterPress = oItem.getExpanded();
+			bExpandedAfterPress = oBinding.isExpanded(iIndex);
 			if (bExpandedBeforePress !== bExpandedAfterPress && !oItem.isLeaf()) {
 				this.fireToggleOpenState({
 					itemIndex: iIndex,

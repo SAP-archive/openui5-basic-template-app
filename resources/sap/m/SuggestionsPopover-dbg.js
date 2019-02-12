@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -67,7 +67,7 @@ sap.ui.define([
 	 * @alias sap.m.SuggestionsPopover
 	 *
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 */
 	var SuggestionsPopover = BaseObject.extend("sap.m.SuggestionsPopover", /** @lends sap.m.SuggestionsPopover.prototype */ {
 
@@ -76,6 +76,9 @@ sap.ui.define([
 
 			// stores a reference to the input control that instantiates the popover
 			this._oInput = oInput;
+
+			// stores currently typed value
+			this._sTypedInValue = '';
 
 			// adds event delegate for the arrow keys
 			this._oInput.addEventDelegate({
@@ -132,11 +135,7 @@ sap.ui.define([
 				this._oShowMoreButton = null;
 			}
 
-			this._bDoTypeAhead = null;
-			this._sTypedInValue = null;
 			this._oProposedItem = null;
-			this._sProposedItemText = null;
-			this._bSuggestionItemTapped = null;
 			this._oInputDelegate = null;
 		}
 	});
@@ -745,8 +744,12 @@ sap.ui.define([
 					oInput._sCloseTimer = setTimeout(function() {
 						oInput._iPopupListSelectedIndex = -1;
 						oInput.cancelPendingSuggest();
+						if (this._sTypedInValue) {
+							this._oInput.setValue(this._sTypedInValue);
+						}
+						this._oProposedItem = null;
 						oPopup.close();
-					}, 0);
+					}.bind(this), 0);
 				}
 			} else {
 				// hide table on phone when there are no items to display
@@ -1205,7 +1208,7 @@ sap.ui.define([
 
 		this._oProposedItem = null;
 		this._sProposedItemText = null;
-		this._sTypedInValue = null;
+		this._sTypedInValue = '';
 		this._bSuggestionItemTapped = false;
 	};
 

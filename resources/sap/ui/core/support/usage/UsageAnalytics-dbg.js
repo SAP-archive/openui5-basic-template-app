@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -16,7 +16,7 @@ sap.ui.define(['jquery.sap.global', '../../Element', '../../routing/Router'],
 		"use strict";
 
 		var EVENTS_BLACKLIST = ["modelContextChange", "beforeRendering", "afterRendering", "propertyChanged",
-			"aggregationChanged", "componentCreated", "afterInit", "updateStarted", "updateFinished", "load"];
+			"aggregationChanged", "componentCreated", "afterInit", "updateStarted", "updateFinished", "load", "scroll"];
 
 		/**
 		 * Usage Analytics routines. This class is meant for private usages. Apps are not supposed to used it.

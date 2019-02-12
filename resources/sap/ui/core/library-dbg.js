@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -14,7 +14,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.ui.core",
-		version: "1.61.2",
+		version: "1.62.1",
 		designtime: "sap/ui/core/designtime/library.designtime",
 		types: [
 
@@ -45,6 +45,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 			"sap.ui.core.ID",
 			"sap.ui.core.IconColor",
 			"sap.ui.core.ImeMode",
+			"sap.ui.core.IndicationColor",
 			"sap.ui.core.MessageType",
 			"sap.ui.core.OpenState",
 			"sap.ui.core.Orientation",
@@ -147,7 +148,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	 * @namespace
 	 * @alias sap.ui.core
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @public
 	 */
 	var thisLib = sap.ui.core;
@@ -1115,6 +1116,49 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
+	/**
+	 * Colors to highlight certain UI elements.
+	 * In contrast to the <code>ValueState</code> the semantic meaning must be defined by the application.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.62.0
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.IndicationColor = {
+
+		/**
+		 * Indication Color 1
+		 * @public
+		 */
+		Indication01 : "Indication01",
+
+		/**
+		 * Indication Color 2
+		 * @public
+		 */
+		Indication02 : "Indication02",
+
+		/**
+		 * Indication Color 3
+		 * @public
+		 */
+		Indication03 : "Indication03",
+
+		/**
+		 * Indication Color 4
+		 * @public
+		 */
+		Indication04 : "Indication04",
+
+		/**
+		 * Indication Color 5
+		 * @public
+		 */
+		Indication05 : "Indication05"
+
+	};
+
 
 	/**
 	 * Defines the different message types of a message
@@ -1359,7 +1403,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	/**
 	 * Sort order of a column
 	 *
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @enum {string}
 	 * @public
 	 * @since 1.61.0

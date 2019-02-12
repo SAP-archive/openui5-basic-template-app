@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -234,7 +234,7 @@ sap.ui.define([
 			}
 			if (oNode.id === "PATH") {
 				oPropertyMetadata = that.oModelInterface
-					.fnFetchMetadata(sMetaPath + "/" + oNode.value).getResult();
+					.fetchMetadata(sMetaPath + "/" + oNode.value).getResult();
 				if (!oPropertyMetadata) {
 					throw new Error("Invalid filter path: " + oNode.value);
 				}
@@ -524,8 +524,11 @@ sap.ui.define([
 				+ "received 'OData-Version' header with value '" + vODataVersion
 				+ "' in response for " + this.sServiceUrl + sResourcePath);
 		}
-		if (sDataServiceVersion === "1.0" || sDataServiceVersion === "2.0"
-				|| !sDataServiceVersion) {
+		if (!sDataServiceVersion) {
+			return;
+		}
+		sDataServiceVersion = sDataServiceVersion.split(";")[0];
+		if (sDataServiceVersion === "1.0" || sDataServiceVersion === "2.0") {
 			return;
 		}
 		throw new Error("Expected 'DataServiceVersion' header with value '1.0' or '2.0' but "
@@ -573,7 +576,7 @@ sap.ui.define([
 					// treat as candidate for "entityPropertyInJson"
 					return {
 						value : this.convertPrimitive(oCandidate,
-							this.oModelInterface.fnFetchMetadata(sMetaPath).getResult(),
+							this.oModelInterface.fetchMetadata(sMetaPath).getResult(),
 							sMetaPath, aKeys[0])
 					};
 				} else if (oCandidate.__metadata) {
@@ -586,7 +589,7 @@ sap.ui.define([
 		if (bIsArray && !oResponsePayload.results.length) {
 			oPayload = []; // no conversion needed
 		} else if (bIsArray && !oResponsePayload.results[0].__metadata) {
-			oPropertyMetadata = this.oModelInterface.fnFetchMetadata(sMetaPath).getResult();
+			oPropertyMetadata = this.oModelInterface.fetchMetadata(sMetaPath).getResult();
 			oPayload = oResponsePayload.results.map(function (vValue) {
 				return that.convertPrimitive(vValue, oPropertyMetadata, sMetaPath, "");
 			});
@@ -897,7 +900,7 @@ sap.ui.define([
 		oType = this.mTypesByName[sName];
 		if (!oType) {
 			oType = this.mTypesByName[sName] =
-				this.oModelInterface.fnFetchMetadata("/" + sName).getResult();
+				this.oModelInterface.fetchMetadata("/" + sName).getResult();
 		}
 		return oType;
 	};
@@ -940,7 +943,7 @@ sap.ui.define([
 	 */
 	// @override
 	_V2Requestor.prototype.ready = function () {
-		return this.oModelInterface.fnFetchEntityContainer().then(function () {});
+		return this.oModelInterface.fetchEntityContainer().then(function () {});
 	};
 
 	/**

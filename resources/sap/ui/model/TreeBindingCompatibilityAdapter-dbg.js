@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -230,7 +230,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"],
 					that.clearSelection();
 					var _aSelectedContexts = this._aSelectedContexts;
 					jQuery.each(this.aContexts, function(iIndex, oContext) {
-						if (((_aSelectedContexts ? this.aContexts.indexOf(oContext) : -1)) >= 0) {
+						if (((_aSelectedContexts ? _aSelectedContexts.indexOf(oContext) : -1)) >= 0) {
 							that.addSelectionInterval(iIndex, iIndex);
 						}
 					});

@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -120,7 +120,7 @@ sap.ui.define([
      * @private
      */
     _ControlFinder._getControlForElement = function (vElement) {
-        var vSelector = Object.prototype.toString.call(vElement) === "[object String]" ? "#" + vElement : vElement;
+        var vSelector = Object.prototype.toString.call(vElement) === "[object String]" ? document.getElementById(vElement) : vElement;
         var controls = _ControlFinder._getIdentifiedDOMElement(vSelector).control();
         return controls && controls[0];
     };

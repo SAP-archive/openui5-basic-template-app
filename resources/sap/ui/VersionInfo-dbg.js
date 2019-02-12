@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -83,7 +83,7 @@ sap.ui.define(['sap/base/util/LoaderExtensions'], function (LoaderExtensions) {
 			// single lib in a second call (which re-uses this same promise) or vice versa.
 			if (mOptions.async && oVersionInfoPromise instanceof Promise) {
 				return oVersionInfoPromise.then(function() {
-					return sap.ui.getVersionInfo(mOptions);
+					return VersionInfo._load(mOptions);
 				});
 			}
 
@@ -106,7 +106,7 @@ sap.ui.define(['sap/base/util/LoaderExtensions'], function (LoaderExtensions) {
 
 				// Calling the function again with the same arguments will return the
 				// cached value from "sap.ui.versioninfo".
-				return sap.ui.getVersionInfo(mOptions);
+				return VersionInfo._load(mOptions);
 			};
 			var fnHandleError = function(oError) {
 				// Remove the stored Promise as the versioninfo couldn't be loaded

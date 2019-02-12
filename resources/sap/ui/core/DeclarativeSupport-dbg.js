@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @class Static class for enabling declarative UI support.
 	 *
 	 * @author Peter Muessig, Tino Butz
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @since 1.7.0
 	 * @public
 	 * @alias sap.ui.core.DeclarativeSupport
@@ -194,6 +194,7 @@ sap.ui.define([
 
 			var mSettings = {};
 			mSettings.id = this._getId($element, oView);
+			mSettings.processingMode = oView && oView._sProcessingMode;
 			this._addSettingsForAttributes(mSettings, fnClass, oElement, oView);
 			this._addSettingsForAggregations(mSettings, fnClass, oElement, oView);
 

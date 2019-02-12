@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -40,7 +40,6 @@ sap.ui.define(['./ListItemBaseRenderer'], function(ListItemBaseRenderer) {
 		oRm.addClass("sapMLIB sapMUCNoDataPage");
 		ListItemBaseRenderer.addFocusableClasses.call(ListItemBaseRenderer, oRm);
 		oRm.writeClasses();
-		oRm.writeAttribute("id", oUploadCollection.getId() + "-no-data-page");
 		oRm.write(">");
 
 		oRm.renderControl(oUploadCollection.getAggregation("_noDataIcon"));

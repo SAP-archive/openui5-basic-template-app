@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -61,10 +61,10 @@
 				}
 			};
 
-			var oScript = _getScript(document.querySelector('SCRIPT[src][id=sap-ui-bootstrap]'), /^((?:.*\/)?resources\/)/);
+			var oScript = _getScript(document.querySelector('SCRIPT[src][id=sap-ui-bootstrap]'), /^((?:[^?#]*\/)?resources\/)/);
 			if (!oScript) {
 				var aScripts = document.querySelectorAll('SCRIPT[src]');
-				var rBootScripts = /^(.*\/)?(?:sap-ui-(core|custom|boot|merged)(?:-.*)?)\.js(?:[?#]|$)/;
+				var rBootScripts = /^([^?#]*\/)?(?:sap-ui-(?:core|custom|boot|merged)(?:-[^?#/]*)?|jquery.sap.global|ui5loader(?:-autoconfig)?)\.js(?:[?#]|$)/;
 				for (var iScriptIndex = 0; iScriptIndex < aScripts.length; iScriptIndex++ ) {
 					oScript = _getScript(aScripts[iScriptIndex], rBootScripts);
 					if ( oScript ) {

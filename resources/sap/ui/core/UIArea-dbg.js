@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -178,7 +178,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @param {sap.ui.core.Core} oCore internal API of the <core>Core</code> that manages this UIArea
 	 * @param {object} [oRootNode] reference to the DOM element that should be 'hosting' the UI Area.
 	 * @public
@@ -794,6 +794,37 @@ sap.ui.define([
 	};
 
 	/**
+	 * Enabled or disables logging of certain event types.
+	 *
+	 * The event handling code of class UIArea logs all processed browser events with log level DEBUG.
+	 * Only some events that occur too frequently are suppressed by default: <code>mousemove</code>,
+	 * <code>mouseover</code>, <code>mouseout</code>, <code>scroll</code>, <code>dragover</code>,
+	 * <code>dragenter</code> and <code>dragleave</code>.
+	 *
+	 * With this method, logging can be disabled for further event types or it can be enabled for
+	 * some or all of the event types listed above. The parameter <code>mEventTypes</code> is a map
+	 * of boolean values keyed by event type names. When the value for an event type coerces to true,
+	 * events of that type won't be logged.
+	 *
+	 * @example
+	 * sap.ui.require(['sap/ui/core/UIArea'], function(UIArea) {
+	 *   UIArea.configureEventLogging({
+	 *     mouseout: false,  // no longer suppress logging of mouseout events
+	 *     focusin: 1        // suppress logging of focusin events
+	 *   });
+	 * });
+	 *
+	 * @param {object} [mEventTypes] Map of logging flags keyed by event types
+	 * @returns {object} A copy of the resulting event logging configuration (not normalized)
+	 * @public
+	 * @since 1.62
+	 */
+	UIArea.configureEventLogging = function(mEventTypes) {
+		Object.assign(mVerboseEvents, mEventTypes);
+		return Object.assign({}, mVerboseEvents); // return a copy
+	};
+
+	/**
 	 * Handles all incoming DOM events centrally and dispatches the event to the
 	 * registered event handlers.
 	 * @param {jQuery.Event} oEvent the jQuery event object
@@ -801,16 +832,17 @@ sap.ui.define([
 	 */
 	UIArea.prototype._handleEvent = function(/**event*/oEvent) {
 		// execute the registered event handlers
-		var oElement = null,
+		var oTargetElement,
+			oElement,
 			bInteractionRelevant;
 
 		// TODO: this should be the 'lowest' SAPUI5 Control of this very
 		// UIArea instance's scope -> nesting scenario
-		oElement = jQuery(oEvent.target).control(0);
+		oTargetElement = oElement = jQuery(oEvent.target).control(0);
 
 		ActivityDetection.refresh();
 
-		if (oElement === null) {
+		if (oTargetElement == null) {
 			return;
 		}
 
@@ -834,7 +866,7 @@ sap.ui.define([
 		oEvent.setMarked("firstUIArea");
 
 		// store the element on the event (aligned with jQuery syntax)
-		oEvent.srcControl = oElement;
+		oEvent.srcControl = oTargetElement;
 
 		// in case of CRTL+SHIFT+ALT the contextmenu event should not be dispatched
 		// to allow to display the browsers context menu
@@ -959,12 +991,11 @@ sap.ui.define([
 			Log.debug("'" + oEvent.type + "' propagation has been stopped");
 		}
 
-		// logging: prevent the logging of some events that are verbose and for others do some info logging into the console
+		// logging: prevent the logging of some events that are verbose and for others do some logging into the console
 		var sEventName = oEvent.type;
 		if (!mVerboseEvents[sEventName]) {
-			var oElem = jQuery(oEvent.target).control(0);
-			if (oElem) {
-				Log.debug("Event fired: '" + sEventName + "' on " + oElem, "", "sap.ui.core.UIArea");
+			if (oTargetElement) {
+				Log.debug("Event fired: '" + sEventName + "' on " + oTargetElement, "", "sap.ui.core.UIArea");
 			} else {
 				Log.debug("Event fired: '" + sEventName + "'", "", "sap.ui.core.UIArea");
 			}

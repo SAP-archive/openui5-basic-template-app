@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -17,7 +17,11 @@ sap.ui.define([
 	});
 
 	QUnit.moduleStart(function (oDetails) {
-		Opa._usageReport.moduleUpdate(oDetails);
+		Opa._usageReport.moduleStart(oDetails);
+	});
+
+	QUnit.testStart(function () {
+		Opa._usageReport.testStart();
 	});
 
 	QUnit.testDone(function (oDetails) {
@@ -33,7 +37,7 @@ sap.ui.define([
 	});
 
 	QUnit.moduleDone(function (oDetails) {
-		Opa._usageReport.moduleUpdate(oDetails);
+		Opa._usageReport.moduleDone(oDetails);
 	});
 
 	QUnit.done(function (oDetails) {

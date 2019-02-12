@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -38,7 +38,7 @@ sap.ui.define([
 	 * Applies a sap.ui.layout.cssgrid.GridSettings to a provided DOM element or Control.
 	 *
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 *
@@ -143,7 +143,9 @@ sap.ui.define([
 		oGrid.getGridDomRefs().forEach(function (oDomRef) {
 			if (oDomRef.children){
 				for (var i = 0; i < oDomRef.children.length; i++) {
-					oDomRef.children[i].classList.add("sapUiLayoutCSSGridItem");
+					if (!oDomRef.children[i].classList.contains("sapMGHLI")) {
+						oDomRef.children[i].classList.add("sapUiLayoutCSSGridItem");
+					}
 				}
 			}
 		});

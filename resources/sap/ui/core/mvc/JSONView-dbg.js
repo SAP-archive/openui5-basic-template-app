@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -44,7 +44,7 @@ sap.ui.define([
 	 * @class
 	 * A View defined using JSON.
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.JSONView
@@ -99,8 +99,8 @@ sap.ui.define([
 	 *
 	 * When property <code>async</code> is set to true, the view definition and the controller class (and its
 	 * dependencies) will be loaded asynchronously. Any controls used in the view might be loaded sync or
-	 * async, depending on the experimental runtime configuration option "xx-xml-processing". Even when
-	 * the view definition is provided as string or object tree, controller or controls might be loaded
+	 * async, depending on the view configuration. Even when the view definition is provided as string or object tree,
+	 * controller or controls might be loaded
 	 * asynchronously. In any case, a view instance will be returned synchronously by this factory API, but its
 	 * content (control tree) might appear only later. Also see {@link sap.ui.core.mvc.View#loaded}.
 	 *

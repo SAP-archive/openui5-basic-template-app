@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -54,7 +54,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.61.2
+		 * @version 1.62.1
 		 *
 		 * @constructor
 		 * @public
@@ -130,7 +130,8 @@ sap.ui.define([
 					 */
 					addNewButtonPress: { }
 				},
-				designtime: "sap/m/designtime/TabContainer.designtime"
+				designtime: "sap/m/designtime/TabContainer.designtime",
+				dnd: { draggable: false, droppable: true }
 			},
 			constructor : function (vId, mSettings) {
 				var aStashedItems = [];
@@ -337,7 +338,9 @@ sap.ui.define([
 				this.fireItemSelect({item: oNextItem});
 			}
 			// Focus (force to wait until invalidated)
-			setTimeout(fnFocusCallback.bind(this), 0);
+			if (document.activeElement.classList.contains('sapMTabStripSelectListItemCloseBtn')) {
+				setTimeout(fnFocusCallback.bind(this), 0);
+			}
 		};
 
 		TabContainer.prototype._attachItemPropertyChanged = function (oTabContainerItem) {
@@ -424,7 +427,8 @@ sap.ui.define([
 				new sap.m.TabStripItem({
 					key: oItem.getId(),
 					text: oItem.getName(),
-					modified: oItem.getModified()
+					modified: oItem.getModified(),
+					tooltip: oItem.getTooltip()
 				})
 			);
 
@@ -457,7 +461,8 @@ sap.ui.define([
 				new sap.m.TabStripItem({
 					key: oItem.getId(),
 					text: oItem.getName(),
-					modified: oItem.getModified()
+					modified: oItem.getModified(),
+					tooltip: oItem.getTooltip()
 				}),
 				iIndex
 			);

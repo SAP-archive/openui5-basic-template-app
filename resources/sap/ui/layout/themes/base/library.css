@@ -4144,6 +4144,9 @@ L  0.390625% =  4px / 1024px
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL12 {
   grid-template-columns: repeat(auto-fit, minmax(calc((100% - 11 * 0.5rem) / 12), 1fr));
 }
+.sapUiLayoutCSSGridBoxLayoutContainer.sapFGridListGroup {
+  grid-auto-rows: auto;
+}
 /* Mixins */
 /* Mixin to generate breakpoints.
  * Used for all browsers except IE11.

@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -2535,7 +2535,7 @@ sap.ui.define([
 	//****************************************************
 	//Handling of movement of the dock references
 	//****************************************************
-	Popup.DockTrigger = new IntervalTrigger(200);
+	Popup.DockTrigger = IntervalTrigger;
 
 	Popup.checkDocking = function(){
 		if (this.getOpenState() === OpenState.OPEN) {

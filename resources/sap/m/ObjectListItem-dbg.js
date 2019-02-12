@@ -1,11 +1,13 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.ObjectListItem.
 sap.ui.define([
+	'sap/ui/core/Control',
+	'sap/ui/base/ManagedObjectObserver',
 	'./ListItemBase',
 	'./library',
 	'sap/ui/core/IconPool',
@@ -14,6 +16,8 @@ sap.ui.define([
 	'./ObjectListItemRenderer'
 ],
 function(
+	Control,
+	ManagedObjectObserver,
 	ListItemBase,
 	library,
 	IconPool,
@@ -53,7 +57,7 @@ function(
 		 *
 		 * <b>Note:</b> The control must only be used in the context of a list.
 		 * @extends sap.m.ListItemBase
-		 * @version 1.61.2
+		 * @version 1.62.1
 		 *
 		 * @constructor
 		 * @public
@@ -200,7 +204,8 @@ function(
 				 */
 				_objectNumber: {type: "sap.m.ObjectNumber", multiple: false, visibility: "hidden"}
 			},
-			designtime: "sap/m/designtime/ObjectListItem.designtime"
+			designtime: "sap/m/designtime/ObjectListItem.designtime",
+			dnd: { draggable: true, droppable: true }
 		}});
 
 		/**
@@ -209,6 +214,9 @@ function(
 		 */
 		ObjectListItem.prototype.init = function (oEvent) {
 			this._generateObjectNumber();
+
+			this._observerObjectMarkerChanges = this._observerObjectMarkerChanges.bind(this);
+			this._oMarkersObservers = {};
 		};
 
 		/**
@@ -287,7 +295,43 @@ function(
 		 */
 		ObjectListItem.prototype._hasBottomContent = function() {
 
-			return (this._hasAttributes() || this._hasStatus() || this.getShowMarkers() || this.getMarkLocked() || this.getMarkers().length > 0);
+			return (this._hasAttributes() || this._hasStatus() || this.getShowMarkers() || this.getMarkLocked() || this._getVisibleMarkers().length > 0);
+		};
+
+		/**
+		 * @private
+		 * @returns {Array} The visible attributes of the control
+		 */
+		ObjectListItem.prototype._getVisibleAttributes = function() {
+
+			var aAllAttributes = this.getAttributes();
+			var aVisibleAttributes = [];
+
+			for (var i = 0; i < aAllAttributes.length; i++) {
+				if (aAllAttributes[i].getVisible()) {
+					aVisibleAttributes.push(aAllAttributes[i]);
+				}
+			}
+
+			return aVisibleAttributes;
+		};
+
+		/**
+		 * @private
+		 * @returns {Array} The visible markers of the control
+		 */
+		ObjectListItem.prototype._getVisibleMarkers = function() {
+
+			var aAllMarkers = this.getMarkers();
+			var aVisibleMarkers = [];
+
+			for (var i = 0; i < aAllMarkers.length; i++) {
+				if (aAllMarkers[i].getVisible()) {
+					aVisibleMarkers.push(aAllMarkers[i]);
+				}
+			}
+
+			return aVisibleMarkers;
 		};
 
 		/**
@@ -464,6 +508,82 @@ function(
 						aAllMarkers[i].setVisible(bMarked);
 				}
 			}
+
+			return this;
+		};
+
+		ObjectListItem.prototype.addAggregation = function(sAggregationName, oObject, bSuppressInvalidate) {
+			Control.prototype.addAggregation.apply(this, arguments);
+
+			if (sAggregationName === "markers") {
+				this._startObservingMarker(oObject);
+			}
+
+			return this;
+		};
+
+		ObjectListItem.prototype.insertAggregation = function(sAggregationName, oObject, iIndex, bSuppressInvalidate) {
+			Control.prototype.insertAggregation.apply(this, arguments);
+
+			if (sAggregationName === "markers") {
+				this._startObservingMarker(oObject);
+			}
+
+			return this;
+		};
+
+		ObjectListItem.prototype.removeAggregation = function(sAggregationName, vObject, bSuppressInvalidate) {
+			var oObject = Control.prototype.removeAggregation.apply(this, arguments);
+
+			if (sAggregationName === "markers") {
+				this._stopObservingMarker(oObject);
+			}
+
+			return oObject;
+		};
+
+		ObjectListItem.prototype.removeAllAggregation = function(sAggregationName, bSuppressInvalidate) {
+			var aItems = Control.prototype.removeAllAggregation.apply(this, arguments);
+
+			if (sAggregationName === "markers") {
+				for (var i = 0; i < aItems.length; i++) {
+					this._stopObservingMarker(aItems[i]);
+				}
+			}
+
+			return aItems;
+		};
+
+		ObjectListItem.prototype.destroyAggregation = function(sAggregationName, bSuppressInvalidate) {
+			if (sAggregationName === "markers") {
+				this.getMarkers().forEach(function (oMarker) {
+					this._stopObservingMarker(oMarker);
+				}, this);
+			}
+
+			return Control.prototype.destroyAggregation.apply(this, arguments);
+		};
+
+		ObjectListItem.prototype._observerObjectMarkerChanges = function (oChanges) {
+			if (oChanges.current !== oChanges.old) {
+				this.invalidate();
+			}
+		};
+
+		ObjectListItem.prototype._startObservingMarker = function (oMarker) {
+			var oObserver = new ManagedObjectObserver(this._observerObjectMarkerChanges);
+			this._oMarkersObservers[oMarker.getId()] = oObserver;
+
+			oObserver.observe(oMarker, { properties: true });
+
+			return this;
+		};
+
+		ObjectListItem.prototype._stopObservingMarker = function (oMarker) {
+			var sMarkerId = oMarker.getId();
+
+			this._oMarkersObservers[sMarkerId].disconnect();
+			delete this._oMarkersObservers[sMarkerId];
 
 			return this;
 		};

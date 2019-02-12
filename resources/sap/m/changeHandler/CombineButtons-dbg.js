@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -13,7 +13,7 @@ sap.ui.define(["sap/ui/fl/Utils", "sap/base/util/uid", 'sap/ui/base/ManagedObjec
 		 *
 		 * @alias sap.m.changeHandler.CombineButtons
 		 * @author SAP SE
-		 * @version 1.61.2
+		 * @version 1.62.1
 		 * @experimental Since 1.48
 		 */
 		var CombineButtons = { };
@@ -64,6 +64,8 @@ sap.ui.define(["sap/ui/fl/Utils", "sap/base/util/uid", 'sap/ui/base/ManagedObjec
 			aButtons.forEach(function (oButton, index) {
 				var oIdToSave,
 					oMenuItem,
+					oBindingInfo = oButton.getBindingInfo("enabled"),
+					aCustomData = oButton.getAggregation("customData"),
 					oSelector = oChangeDefinition.content.buttonsIdForSave[index],
 					sButtonText = oModifier.getProperty(oButton, "text");
 
@@ -78,9 +80,16 @@ sap.ui.define(["sap/ui/fl/Utils", "sap/base/util/uid", 'sap/ui/base/ManagedObjec
 				// observe the Button enabled property so in case it is changed the new value should be applied to the MenuItem also
 				new ManagedObjectObserver(function (oChanges) {
 					oModifier.setProperty(oMenuItem, "enabled", oChanges.current);
+					if (oBindingInfo) {
+						oMenuItem.bindProperty("enabled", oBindingInfo);
+					}
 				}).observe(oButton, {
 					properties: ["enabled"]
 				});
+
+				if (oBindingInfo) {
+					oMenuItem.bindProperty("enabled", oBindingInfo);
+				}
 
 				if (sButtonText) {
 					bIsRtl ? aMenuButtonName.unshift(sButtonText) : aMenuButtonName.push(sButtonText);
@@ -95,11 +104,17 @@ sap.ui.define(["sap/ui/fl/Utils", "sap/base/util/uid", 'sap/ui/base/ManagedObjec
 				oModifier.setProperty(oIdToSave, "key", "originalButtonId");
 				oModifier.setProperty(oIdToSave, "value", oModifier.getId(oButton));
 
+				if (aCustomData && aCustomData.length > 0) {
+					aCustomData.forEach(function (oCustomData, index) {
+						oModifier.insertAggregation(oMenuItem, "customData", oCustomData, index);
+					});
+				}
+
 				oModifier.removeAggregation(oParent, sParentAggregation, oButton);
 				// adding each button control to the menuItem's dependents aggregation
 				// this way we can save all relevant information it may have
 				oModifier.insertAggregation(oMenuItem, "dependents", oButton);
-				oModifier.insertAggregation(oMenuItem, "customData", oIdToSave);
+				oModifier.insertAggregation(oMenuItem, "customData", oIdToSave, 0);
 				oModifier.insertAggregation(oMenu, "items", oMenuItem, index);
 			});
 

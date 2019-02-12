@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -45,7 +45,7 @@ sap.ui.define([
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.m",
-		version: "1.61.2",
+		version: "1.62.1",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/m/designtime/library.designtime",
 		types: [
@@ -66,6 +66,8 @@ sap.ui.define([
 			"sap.m.FlexJustifyContent",
 			"sap.m.FlexRendertype",
 			"sap.m.FrameType",
+			"sap.m.GenericTagDesign",
+			"sap.m.GenericTagValueState",
 			"sap.m.GenericTileMode",
 			"sap.m.GenericTileScope",
 			"sap.m.HeaderLevel",
@@ -162,6 +164,7 @@ sap.ui.define([
 			"sap.m.FeedListItem",
 			"sap.m.FlexBox",
 			"sap.m.FormattedText",
+			"sap.m.GenericTag",
 			"sap.m.GenericTile",
 			"sap.m.GroupHeaderListItem",
 			"sap.m.GrowingList",
@@ -289,6 +292,7 @@ sap.ui.define([
 		],
 		elements: [
 			"sap.m.CalendarAppointment",
+			"sap.m.CarouselLayout",
 			"sap.m.Column",
 			"sap.m.FlexItemData",
 			"sap.m.FeedListItemAction",
@@ -485,7 +489,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.m
 	 * @author SAP SE
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 * @public
 	 */
 	var thisLib = sap.m;
@@ -1308,6 +1312,49 @@ sap.ui.define([
 		 * @public
 		 */
 		KeyValue: "KeyValue"
+	};
+
+	/**
+	 * Design modes for the <code>GenericTag</code> control.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.62.0
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.GenericTagDesign = {
+		/**
+		 * Everything from the control is rendered.
+		 * @public
+		 */
+		Full : "Full",
+		/**
+		 * Everything from the control is rendered except the status icon.
+		 * @public
+		 */
+		StatusIconHidden : "StatusIconHidden"
+	};
+
+	/**
+	 * Value states for the <code>GenericTag</code> control.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.62.0
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.GenericTagValueState = {
+		/**
+		 * The value is rendered in its normal state.
+		 * @public
+		 */
+		None : "None",
+		/**
+		 * Warning icon is rendered that overrides the control set in the <code>value</code>
+		 * aggregation of the <code>GenericTag</code> control.
+		 * @public
+		 */
+		Error : "Error"
 	};
 
 	/**
@@ -3537,6 +3584,34 @@ sap.ui.define([
 		 * @public
 		 */
 		Hyphenated : "Hyphenated"
+	};
+
+	/**
+	 * Available sticky modes for the {@link sap.m.SinglePlanningCalendar}
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.62
+	 * @ui5-metamodel This enumeration also will be described in tge UI5 (legacy) designtime metamodel
+	 */
+	thisLib.PlanningCalendarStickyMode = {
+		/**
+		 * Nothing will stick at the top.
+		 * @public
+		 */
+		None: "None",
+
+		/**
+		 * Actions toolbar, navigation toolbar and the column headers will be sticky.
+		 * @public
+		 */
+		All: "All",
+
+		/**
+		 * Only the navigation toolbar and column headers will be sticky.
+		 * @public
+		 */
+		NavBarAndColHeaders: "NavBarAndColHeaders"
 	};
 
 	//lazy imports for MessageToast

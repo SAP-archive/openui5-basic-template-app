@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -62,7 +62,7 @@ function(
 	 *
 	 * NOTE: This control must be rendered as a full screen control in order to make the show/hide master area work properly.
 	 * @extends sap.ui.core.Control
-	 * @version 1.61.2
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -1538,6 +1538,8 @@ function(
 				this._removeMasterButton(this._oDetailNav.getCurrentPage());
 			}
 
+			var $this = this.$();
+
 			if (sMode !== "PopoverMode" && this._oPopOver.getContent().length > 0) {
 				this._updateMasterPosition("landscape");
 			} else if (sMode == "PopoverMode") {
@@ -1547,25 +1549,25 @@ function(
 					}
 					this._setMasterButton(this._oDetailNav.getCurrentPage());
 				}
-				this.toggleStyleClass("sapMSplitContainerShowHide", false);
-				this.toggleStyleClass("sapMSplitContainerStretchCompress", false);
-				this.toggleStyleClass("sapMSplitContainerHideMode", false);
-				this.toggleStyleClass("sapMSplitContainerPopover", true);
+				$this.toggleClass("sapMSplitContainerShowHide", false);
+				$this.toggleClass("sapMSplitContainerStretchCompress", false);
+				$this.toggleClass("sapMSplitContainerHideMode", false);
+				$this.toggleClass("sapMSplitContainerPopover", true);
 			}
 
 			if (sMode == "StretchCompressMode") {
-				this.toggleStyleClass("sapMSplitContainerShowHide", false);
-				this.toggleStyleClass("sapMSplitContainerPopover", false);
-				this.toggleStyleClass("sapMSplitContainerHideMode", false);
-				this.toggleStyleClass("sapMSplitContainerStretchCompress", true);
+				$this.toggleClass("sapMSplitContainerShowHide", false);
+				$this.toggleClass("sapMSplitContainerPopover", false);
+				$this.toggleClass("sapMSplitContainerHideMode", false);
+				$this.toggleClass("sapMSplitContainerStretchCompress", true);
 				this._removeMasterButton(this._oDetailNav.getCurrentPage());
 			}
 
 			if (sMode == "ShowHideMode") {
-				this.toggleStyleClass("sapMSplitContainerPopover", false);
-				this.toggleStyleClass("sapMSplitContainerStretchCompress", false);
-				this.toggleStyleClass("sapMSplitContainerHideMode", false);
-				this.toggleStyleClass("sapMSplitContainerShowHide", true);
+				$this.toggleClass("sapMSplitContainerPopover", false);
+				$this.toggleClass("sapMSplitContainerStretchCompress", false);
+				$this.toggleClass("sapMSplitContainerHideMode", false);
+				$this.toggleClass("sapMSplitContainerShowHide", true);
 
 				if (!Device.orientation.landscape) {
 					this._setMasterButton(this._oDetailNav.getCurrentPage());
@@ -1573,10 +1575,10 @@ function(
 			}
 
 			if (sMode === "HideMode") {
-				this.toggleStyleClass("sapMSplitContainerPopover", false);
-				this.toggleStyleClass("sapMSplitContainerStretchCompress", false);
-				this.toggleStyleClass("sapMSplitContainerShowHide", false);
-				this.toggleStyleClass("sapMSplitContainerHideMode", true);
+				$this.toggleClass("sapMSplitContainerPopover", false);
+				$this.toggleClass("sapMSplitContainerStretchCompress", false);
+				$this.toggleClass("sapMSplitContainerShowHide", false);
+				$this.toggleClass("sapMSplitContainerHideMode", true);
 
 				// always hide the master area after changing mode to HideMode
 				this._oMasterNav.toggleStyleClass("sapMSplitContainerMasterVisible", false);
@@ -1686,7 +1688,7 @@ function(
 		if (this._oldIsLandscape !== isLandscape) {
 			this._oldIsLandscape = isLandscape;
 			if (!Device.system.phone) {
-				this.toggleStyleClass("sapMSplitContainerPortrait", !isLandscape);
+				this.$().toggleClass("sapMSplitContainerPortrait", !isLandscape);
 
 				//hidemode doesn't react to orientation change
 				if (mode === "HideMode") {

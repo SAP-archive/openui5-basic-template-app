@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -49,15 +49,23 @@
             // avoid recursion when generating selector in subtree
             if (mGeneratorAncestors && !oOptions.validationRoot) {
                 if (mGeneratorAncestors.validation) {
-                    mRelativeSelector = _ControlSelectorGenerator._generate({
-                        control: oOptions.control,
-                        validationRoot: mGeneratorAncestors.validation
-                    });
+                    try {
+                        mRelativeSelector = _ControlSelectorGenerator._generate({
+                            control: oOptions.control,
+                            validationRoot: mGeneratorAncestors.validation
+                        });
+                    } catch (oError) {
+                        _oLogger.debug("Could not generate selector relative to ancestor " + mGeneratorAncestors.validation + ". Error: " + oError);
+                    }
                 }
                 if (mGeneratorAncestors.selector) {
-                    mAncestorSelector = _ControlSelectorGenerator._generate({
-                        control: mGeneratorAncestors.selector
-                    });
+                    try {
+                        mAncestorSelector = _ControlSelectorGenerator._generate({
+                            control: mGeneratorAncestors.selector
+                        });
+                    } catch (oError) {
+                        _oLogger.debug("Could not generate selector for ancestor " + mGeneratorAncestors.selector + ". Error: " + oError);
+                    }
                 }
             }
 

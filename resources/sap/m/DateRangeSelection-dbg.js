@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -115,8 +115,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.61.2
-	 * @version 1.61.2
+	 * @version 1.62.1
+	 * @version 1.62.1
 	 *
 	 * @constructor
 	 * @public
@@ -154,7 +154,8 @@ sap.ui.define([
 			 */
 			to : {type : "object", group : "Misc", defaultValue : null, deprecated: true}
 		},
-		designtime: "sap/m/designtime/DateRangeSelection.designtime"
+		designtime: "sap/m/designtime/DateRangeSelection.designtime",
+		dnd: { draggable: false, droppable: true }
 	}});
 
 	/**
@@ -527,8 +528,8 @@ sap.ui.define([
 		//If we have version of control with delimiter, then sValue should consist of two dates delimited with delimiter,
 		//hence we have to split the value to these dates
 		var sDelimiter = _getDelimiter.call(this);
-		sValue = sValue.trim();
 		if (sDelimiter && sValue) {
+			sValue = sValue.trim();
 			sValue = _trim(sValue, [sDelimiter, " "]);
 
 			aDates = sValue.split(sDelimiter);
@@ -762,6 +763,9 @@ sap.ui.define([
 			if (oDate1 && oDate2) {
 				var oDate1Old = this.getDateValue();
 				var oDate2Old = this.getSecondDateValue();
+
+				// the selected range includes all of the hours from the second date
+				oDate2.setHours(11, 59, 59);
 
 				var sValue;
 				if (!deepEqual(oDate1, oDate1Old) || !deepEqual(oDate2, oDate2Old)) {

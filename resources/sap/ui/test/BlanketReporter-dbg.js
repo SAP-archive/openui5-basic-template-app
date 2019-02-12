@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -133,7 +133,7 @@ sap.ui.define([
 					+ "</div>");
 				oHtml.setVisible(true);
 			} else {
-				oHtml.setContent("<div/>");
+				oHtml.setContent("<div></div>");
 			}
 		}
 	});
@@ -495,8 +495,9 @@ sap.ui.define([
 			}
 
 			oDiv.setAttribute("class", "coverageSummary");
-			oDiv.innerHTML = '<a href="#coverage" id="coverage">Blanket Code Coverage: OK</a>';
-			jQuery(oDiv).one("click", function (oMouseEvent) {
+			oDiv.innerHTML = '<a href="" id="coverage">Blanket Code Coverage: OK</a>';
+			jQuery("#coverage").one("click", function (oMouseEvent) {
+				oMouseEvent.preventDefault();
 				jQuery(oDiv).fadeOut(function () {
 					createViewAndPlaceAt(oModel, getDiv());
 				});

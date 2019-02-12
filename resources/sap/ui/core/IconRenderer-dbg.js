@@ -1,5 +1,5 @@
 /*!
- * UI development toolkit for HTML5 (OpenUI5)
+ * OpenUI5
  * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
@@ -82,11 +82,11 @@ sap.ui.define(['./IconPool', './library', "sap/base/security/encodeXML"], functi
 		}
 
 		if (sColor && !(sColor in IconColor)) {
-			oRm.addStyle("color", encodeXML(sColor));
+			oRm.addStyle("color", sColor);
 		}
 
 		if (sBackgroundColor && !(sBackgroundColor in IconColor)) {
-			oRm.addStyle("background-color", encodeXML(sBackgroundColor));
+			oRm.addStyle("background-color", sBackgroundColor);
 		}
 
 		if (sSize) {
