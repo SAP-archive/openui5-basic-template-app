@@ -7,7 +7,7 @@ OpenUI5 basic template app using the UI5 Build and Development Tooling. You can 
 ## More information
 * [Live Demo](https://sap.github.io/openui5-basic-template-app)
 * [Documentation](https://openui5.hana.ondemand.com/#/topic/7a4d93c0b0bb439b9d889ffc5b02eac9)
-* [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
+* [UI5 Tooling](https://github.com/SAP/ui5-tooling)
 * [OpenUI5](https://github.com/SAP/openui5)
 
 ## Prerequisites
