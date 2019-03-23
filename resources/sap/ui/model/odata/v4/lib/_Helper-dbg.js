@@ -90,7 +90,7 @@ sap.ui.define([
 		addToSelect : function (mQueryOptions, aSelectPaths) {
 			mQueryOptions.$select = mQueryOptions.$select || [];
 			aSelectPaths.forEach(function (sPath) {
-				if (mQueryOptions.$select.indexOf(sPath) < 0 ) {
+				if (mQueryOptions.$select.indexOf(sPath) < 0) {
 					mQueryOptions.$select.push(sPath);
 				}
 			});
@@ -207,6 +207,9 @@ sap.ui.define([
 		 *   HTTP status code
 		 * @param {string} jqXHR.statusText
 		 *   HTTP status text
+		 * @param {string} sMessage
+		 *   The message for the <code>Error</code> instance; code and status text of the HTTP error
+		 *   are appended
 		 * @param {string} [sRequestUrl]
 		 *   The request URL
 		 * @param {string} [sResourcePath]
@@ -229,10 +232,10 @@ sap.ui.define([
 		 * "http://docs.oasis-open.org/odata/odata-json-format/v4.0/os/odata-json-format-v4.0-os.html"
 		 * >"19 Error Response"</a>
 		 */
-		createError : function (jqXHR, sRequestUrl, sResourcePath) {
+		createError : function (jqXHR, sMessage, sRequestUrl, sResourcePath) {
 			var sBody = jqXHR.responseText,
 				sContentType = jqXHR.getResponseHeader("Content-Type"),
-				oResult = new Error(jqXHR.status + " " + jqXHR.statusText);
+				oResult = new Error(sMessage + ": " + jqXHR.status + " " + jqXHR.statusText);
 
 			oResult.status = jqXHR.status;
 			oResult.statusText = jqXHR.statusText;
@@ -405,7 +408,8 @@ sap.ui.define([
 
 		/**
 		 * Iterates recursively over all properties of the given value and fires change events
-		 * to all listeners.
+		 * to all listeners. Also fires a change event for the object itself, for example in case of
+		 * an advertised action.
 		 *
 		 * @param {object} mChangeListeners A map of change listeners by path
 		 * @param {string} sPath The path of the current value
@@ -425,6 +429,8 @@ sap.ui.define([
 						bRemoved ? undefined : vValue);
 				}
 			});
+
+			_Helper.fireChange(mChangeListeners, sPath, bRemoved ? undefined : oValue);
 		},
 
 		/**
@@ -1102,53 +1108,69 @@ sap.ui.define([
 		 * are updated. Fires change events for all changed properties. The function recursively
 		 * handles modified, added or removed structural properties and fires change events for all
 		 * modified/added/removed primitive properties therein. Collection-valued properties are
-		 * only updated in oOldValue; there are no change events for properties therein.
+		 * only updated in the old object, there are no change events for properties therein. Also
+		 * fires change events for new advertised actions.
 		 *
 		 * @param {object} mChangeListeners A map of change listeners by path
-		 * @param {string} sPath The path of oOldValue in mChangeListeners
-		 * @param {object} oOldValue The old value
-		 * @param {object} [oNewValue] The new value
+		 * @param {string} sPath The path of the old object in mChangeListeners
+		 * @param {object} oOldObject The old object
+		 * @param {object} [oNewObject] The new object
 		 */
-		updateExisting : function (mChangeListeners, sPath, oOldValue, oNewValue) {
-			if (!oNewValue) {
+		updateExisting : function (mChangeListeners, sPath, oOldObject, oNewObject) {
+			if (!oNewObject) {
 				return;
 			}
 
-			// iterate over all properties in the old value
-			Object.keys(oOldValue).forEach(function (sProperty) {
+			// iterate over all properties in the old object
+			Object.keys(oOldObject).forEach(function (sProperty) {
 				var sPropertyPath = _Helper.buildPath(sPath, sProperty),
-					vOldValue = oOldValue[sProperty],
-					vNewValue;
+					vOldProperty = oOldObject[sProperty],
+					vNewProperty;
 
-				if (sProperty in oNewValue) {
+				if (sProperty in oNewObject || sProperty[0] === "#") {
 					// the property was patched
-					vNewValue = oNewValue[sProperty];
-					if (vNewValue && typeof vNewValue === "object") {
-						if (Array.isArray(vNewValue)) {
+					vNewProperty = oNewObject[sProperty];
+					if (vNewProperty && typeof vNewProperty === "object") {
+						if (Array.isArray(vNewProperty)) {
 							// copy complete collection; no change events as long as
 							// collection-valued properties are not supported
-							oOldValue[sProperty] = vNewValue;
-						} else if (vOldValue) {
+							oOldObject[sProperty] = vNewProperty;
+						} else if (vOldProperty) {
 							// a structural property in cache and patch -> recursion
-							_Helper.updateExisting(mChangeListeners, sPropertyPath, vOldValue,
-								vNewValue);
+							_Helper.updateExisting(mChangeListeners, sPropertyPath, vOldProperty,
+								vNewProperty);
 						} else {
 							// a structural property was added
-							oOldValue[sProperty] = vNewValue;
-							_Helper.fireChanges(mChangeListeners, sPropertyPath, vNewValue, false);
+							oOldObject[sProperty] = vNewProperty;
+							_Helper.fireChanges(mChangeListeners, sPropertyPath, vNewProperty,
+								false);
 						}
-					} else if (vOldValue && typeof vOldValue === "object") {
+					} else if (vOldProperty && typeof vOldProperty === "object") {
 						// a structural property was removed
-						oOldValue[sProperty] = vNewValue;
-						_Helper.fireChanges(mChangeListeners, sPropertyPath, vOldValue, true);
+						oOldObject[sProperty] = vNewProperty;
+						_Helper.fireChanges(mChangeListeners, sPropertyPath, vOldProperty, true);
 					} else {
 						// a primitive property
-						oOldValue[sProperty] = vNewValue;
-						if (vOldValue !== vNewValue) {
-							_Helper.fireChange(mChangeListeners, sPropertyPath, vNewValue);
+						oOldObject[sProperty] = vNewProperty;
+						if (vOldProperty !== vNewProperty) {
+							_Helper.fireChange(mChangeListeners, sPropertyPath, vNewProperty);
 						}
 					}
 				}
+			});
+
+			// iterate over all new advertised actions
+			Object.keys(oNewObject).filter(function (sProperty) {
+				return sProperty[0] === "#";
+			}).filter(function (sAdvertisedAction) {
+				return !(sAdvertisedAction in oOldObject);
+			}).forEach(function (sNewAdvertisedAction) {
+				var vNewProperty = oNewObject[sNewAdvertisedAction],
+					sPropertyPath = _Helper.buildPath(sPath, sNewAdvertisedAction);
+
+				// a structural property was added
+				oOldObject[sNewAdvertisedAction] = vNewProperty;
+				_Helper.fireChanges(mChangeListeners, sPropertyPath, vNewProperty, false);
 			});
 		},
 

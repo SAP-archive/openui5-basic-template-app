@@ -13,7 +13,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", 'sap/base/util/ObjectPath', "sap/base
 	 * @classdesc Base Class for a Renderer.
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 * @namespace
 	 * @public
 	 * @alias sap.ui.core.Renderer

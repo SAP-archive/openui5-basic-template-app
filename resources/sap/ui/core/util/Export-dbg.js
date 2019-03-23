@@ -134,7 +134,7 @@ sap.ui.define(['sap/ui/core/Control', './ExportColumn', './ExportRow', './Export
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 * @since 1.22.0
 	 *
 	 * @public

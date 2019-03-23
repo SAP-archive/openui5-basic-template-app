@@ -79,7 +79,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @constructor
 	 * @public
@@ -1169,11 +1169,11 @@ function(
 		var sSuffix = this._bTextOnly ? "TextOnly" : "";
 		var sLeftArrowClass = "sapMITBArrowScrollLeft" + sSuffix;
 		var sRightArrowClass = "sapMITBArrowScrollRight" + sSuffix;
+		//sapMITHVerticallyCenteredArrow class is implemented only in fiori 3.0 theme. It aligns all arrows vertically
+		var aCssClassesToAddLeft = ["sapMITBArrowScroll", sLeftArrowClass, "sapMITHVerticallyCenteredArrow"];
+		var aCssClassesToAddRight = ["sapMITBArrowScroll", sRightArrowClass, "sapMITHVerticallyCenteredArrow"];
 
-		var aCssClassesToAddLeft = ["sapMITBArrowScroll", sLeftArrowClass];
-		var aCssClassesToAddRight = ["sapMITBArrowScroll", sRightArrowClass];
-
-		if (this._bInLine) {
+		if (this._bInLine || this.isInlineMode()) {
 			aCssClassesToAddLeft.push('sapMITBArrowScrollLeftInLine');
 			aCssClassesToAddRight.push('sapMITBArrowScrollRightInLine');
 		}

@@ -21,7 +21,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Element
 		*
 		* @author SAP SE
-		* @version 1.62.1
+		* @version 1.63.0
 		*
 		* @constructor
 		* @public
@@ -89,8 +89,8 @@ sap.ui.define([
 				};
 			});
 
-		Group.prototype.setProperty = function () {
-			Element.prototype.setProperty.apply(this, arguments);
+		Group.prototype.setProperty = function (sName, oValue) {
+			Element.prototype.setProperty.call(this, sName, oValue, true);
 
 			var oPage = this.getParent();
 			if (oPage) {

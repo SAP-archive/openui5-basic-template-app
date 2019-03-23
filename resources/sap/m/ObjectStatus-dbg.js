@@ -36,9 +36,13 @@ sap.ui.define([
 	 *
 	 * @class
 	 * Status information that can be either text with a value state, or an icon.
+	 *
+	 *
+	 * With 1.63, large design of the control is supported by setting <code>sapMObjectStatusLarge</code> CSS class to the <code>ObjectStatus</code>.
+	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @constructor
 	 * @public

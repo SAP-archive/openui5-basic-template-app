@@ -202,7 +202,8 @@ sap.ui.define([
 						}
 						fnCallback();
 					}
-					that.oRequestor.reportBoundMessages(that.sResourcePath, [], [sEntityPath]);
+					that.oRequestor.getModelInterface().reportBoundMessages(that.sResourcePath, [],
+						[sEntityPath]);
 				});
 		});
 	};
@@ -411,7 +412,7 @@ sap.ui.define([
 				sPropertyPath += "/";
 			}
 			sPropertyPath += sPath.split("/").slice(0, iPathLength).join("/");
-			return that.oRequestor
+			return that.oRequestor.getModelInterface()
 				.fetchMetadata(that.sMetaPath + _Helper.getMetaPath(sPropertyPath))
 				.then(function (oProperty) {
 					if (!oProperty) {
@@ -524,7 +525,7 @@ sap.ui.define([
 		 */
 		function fetchType(sMetaPath) {
 			aPromises.push(that.oRequestor.fetchTypeForPath(sMetaPath).then(function (oType) {
-				var oMessageAnnotation = that.oRequestor
+				var oMessageAnnotation = that.oRequestor.getModelInterface()
 						.fetchMetadata(sMetaPath + "/" + sMessagesAnnotation).getResult();
 
 				if (oMessageAnnotation) {
@@ -1059,7 +1060,7 @@ sap.ui.define([
 			visitInstance(oRoot, sRootMetaPath || this.sMetaPath, sRootPath || "", sRequestUrl);
 		}
 		if (bHasMessages) {
-			this.oRequestor.reportBoundMessages(
+			this.oRequestor.getModelInterface().reportBoundMessages(
 				this.fnGetOriginalResourcePath
 					? this.fnGetOriginalResourcePath(oRoot)
 					: this.sResourcePath,
@@ -1815,7 +1816,7 @@ sap.ui.define([
 		this.sMetaPath = sMetaPath || this.sMetaPath; // overrides Cache c'tor
 		this.bPost = bPost;
 		this.bPosting = false;
-		this.oPromise = null;
+		this.oPromise = null; // a SyncPromise for the current value
 	}
 
 	// make SingleCache a Cache
@@ -1958,29 +1959,32 @@ sap.ui.define([
 	 * @param {string} [sResourcePath=this.sResourcePath]
 	 *   A resource path relative to the service URL; it must not contain a query string
 	 * @returns {Promise}
-	 *   A promise resolving with the updated data
+	 *   A promise resolving with the updated data, or rejected with an error if loading of side
+	 *   effects fails.
 	 * @throws {Error} If the side effects require a $expand
 	 *
 	 * @public
 	 */
 	SingleCache.prototype.requestSideEffects = function (oGroupLock, aPaths,
 			mNavigationPropertyPaths, sResourcePath) {
-		var mQueryOptions = _Helper.intersectQueryOptions(this.mQueryOptions, aPaths,
+		var oOldValuePromise = this.fetchValue(_GroupLock.$cached, ""),
+			mQueryOptions = _Helper.intersectQueryOptions(this.mQueryOptions, aPaths,
 				this.oRequestor.getModelInterface().fetchMetadata,
 				this.sMetaPath + "/$Type", // add $Type because of return value context
 				mNavigationPropertyPaths),
+			oResult,
 			that = this;
 
 		if (!mQueryOptions) {
-			return this.fetchValue(_GroupLock.$cached, "");
+			return oOldValuePromise;
 		}
 
 		sResourcePath = (sResourcePath || this.sResourcePath)
 			+ this.oRequestor.buildQueryString(this.sMetaPath, mQueryOptions, false, true);
-		this.oPromise = Promise.all([
+		oResult = SyncPromise.all([
 			this.oRequestor.request("GET", sResourcePath, oGroupLock),
 			this.fetchTypes(),
-			this.fetchValue(_GroupLock.$cached, "")
+			oOldValuePromise
 		]).then(function (aResult) {
 			var oNewValue = aResult[0],
 				oOldValue = aResult[2];
@@ -1991,8 +1995,12 @@ sap.ui.define([
 
 			return oOldValue;
 		});
+		this.oPromise = oResult.catch(function () {
+			// if side effects cannot be requested, keep the old value!
+			return oOldValuePromise;
+		});
 
-		return this.oPromise;
+		return oResult;
 	};
 
 	//*********************************************************************************************

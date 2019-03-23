@@ -25,7 +25,7 @@ sap.ui.define(['sap/ui/unified/CalendarAppointment'],
 		 * <b>Disclaimer</b>: this control is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
 		 *
 		 * @extends sap.ui.unified.CalendarAppointment
-		 * @version 1.62.1
+		 * @version 1.63.0
 		 *
 		 *
 		 * @constructor

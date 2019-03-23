@@ -53,7 +53,7 @@ sap.ui.define([
 	 *
 	 * This control cannot be used stand-alone, it just renders a <code>Form</code>, so it must be assigned to a <code>Form</code> using the <code>layout</code> aggregation.
 	 * @extends sap.ui.layout.form.FormLayout
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @constructor
 	 * @public

@@ -3701,448 +3701,309 @@ L  0.390625% =  4px / 1024px
    1.5625%   = 16px / 1024px
    3.125%    = 32px / 1024px
    ------------------------- */
+.sapUiLayoutCSSGrid {
+  box-sizing: border-box;
+}
 .sapUiLayoutCSSGridBoxLayoutPolyfill > .sapUiLayoutCSSGridItem {
   display: inline-block;
   vertical-align: top;
   margin: 0 0.5rem 0.5rem 0;
 }
+.sapUiLayoutCSSGridBoxLayoutPolyfill .sapMGHLI {
+  margin-bottom: 0.5rem;
+}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS1 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 0 * 0.5rem - 0.1px) / 1);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS1 > .sapUiLayoutCSSGridItem:nth-of-type( 1n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS2 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 1 * 0.5rem - 0.1px) / 2);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS2 > .sapUiLayoutCSSGridItem:nth-of-type( 2n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS3 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 2 * 0.5rem - 0.1px) / 3);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS3 > .sapUiLayoutCSSGridItem:nth-of-type( 3n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS4 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 3 * 0.5rem - 0.1px) / 4);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS4 > .sapUiLayoutCSSGridItem:nth-of-type( 4n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS5 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 4 * 0.5rem - 0.1px) / 5);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS5 > .sapUiLayoutCSSGridItem:nth-of-type( 5n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS6 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 5 * 0.5rem - 0.1px) / 6);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS6 > .sapUiLayoutCSSGridItem:nth-of-type( 6n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS7 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 6 * 0.5rem - 0.1px) / 7);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS7 > .sapUiLayoutCSSGridItem:nth-of-type( 7n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS8 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 7 * 0.5rem - 0.1px) / 8);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS8 > .sapUiLayoutCSSGridItem:nth-of-type( 8n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS9 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 8 * 0.5rem - 0.1px) / 9);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS9 > .sapUiLayoutCSSGridItem:nth-of-type( 9n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS10 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 9 * 0.5rem - 0.1px) / 10);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS10 > .sapUiLayoutCSSGridItem:nth-of-type( 10n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS11 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 10 * 0.5rem - 0.1px) / 11);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS11 > .sapUiLayoutCSSGridItem:nth-of-type( 11n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS12 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 11 * 0.5rem - 0.1px) / 12);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS12 > .sapUiLayoutCSSGridItem:nth-of-type( 12n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM1 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 0 * 0.5rem - 0.1px) / 1);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM1 > .sapUiLayoutCSSGridItem:nth-of-type( 1n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM2 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 1 * 0.5rem - 0.1px) / 2);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM2 > .sapUiLayoutCSSGridItem:nth-of-type( 2n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM3 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 2 * 0.5rem - 0.1px) / 3);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM3 > .sapUiLayoutCSSGridItem:nth-of-type( 3n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM4 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 3 * 0.5rem - 0.1px) / 4);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM4 > .sapUiLayoutCSSGridItem:nth-of-type( 4n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM5 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 4 * 0.5rem - 0.1px) / 5);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM5 > .sapUiLayoutCSSGridItem:nth-of-type( 5n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM6 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 5 * 0.5rem - 0.1px) / 6);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM6 > .sapUiLayoutCSSGridItem:nth-of-type( 6n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM7 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 6 * 0.5rem - 0.1px) / 7);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM7 > .sapUiLayoutCSSGridItem:nth-of-type( 7n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM8 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 7 * 0.5rem - 0.1px) / 8);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM8 > .sapUiLayoutCSSGridItem:nth-of-type( 8n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM9 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 8 * 0.5rem - 0.1px) / 9);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM9 > .sapUiLayoutCSSGridItem:nth-of-type( 9n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM10 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 9 * 0.5rem - 0.1px) / 10);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM10 > .sapUiLayoutCSSGridItem:nth-of-type( 10n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM11 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 10 * 0.5rem - 0.1px) / 11);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM11 > .sapUiLayoutCSSGridItem:nth-of-type( 11n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM12 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 11 * 0.5rem - 0.1px) / 12);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM12 > .sapUiLayoutCSSGridItem:nth-of-type( 12n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL1 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 0 * 0.5rem - 0.1px) / 1);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL1 > .sapUiLayoutCSSGridItem:nth-of-type( 1n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL2 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 1 * 0.5rem - 0.1px) / 2);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL2 > .sapUiLayoutCSSGridItem:nth-of-type( 2n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL3 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 2 * 0.5rem - 0.1px) / 3);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL3 > .sapUiLayoutCSSGridItem:nth-of-type( 3n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL4 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 3 * 0.5rem - 0.1px) / 4);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL4 > .sapUiLayoutCSSGridItem:nth-of-type( 4n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL5 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 4 * 0.5rem - 0.1px) / 5);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL5 > .sapUiLayoutCSSGridItem:nth-of-type( 5n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL6 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 5 * 0.5rem - 0.1px) / 6);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL6 > .sapUiLayoutCSSGridItem:nth-of-type( 6n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL7 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 6 * 0.5rem - 0.1px) / 7);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL7 > .sapUiLayoutCSSGridItem:nth-of-type( 7n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL8 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 7 * 0.5rem - 0.1px) / 8);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL8 > .sapUiLayoutCSSGridItem:nth-of-type( 8n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL9 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 8 * 0.5rem - 0.1px) / 9);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL9 > .sapUiLayoutCSSGridItem:nth-of-type( 9n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL10 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 9 * 0.5rem - 0.1px) / 10);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL10 > .sapUiLayoutCSSGridItem:nth-of-type( 10n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL11 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 10 * 0.5rem - 0.1px) / 11);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL11 > .sapUiLayoutCSSGridItem:nth-of-type( 11n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL12 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 11 * 0.5rem - 0.1px) / 12);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL12 > .sapUiLayoutCSSGridItem:nth-of-type( 12n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL1 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 0 * 0.5rem - 0.1px) / 1);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL1 > .sapUiLayoutCSSGridItem:nth-of-type( 1n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL2 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 1 * 0.5rem - 0.1px) / 2);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL2 > .sapUiLayoutCSSGridItem:nth-of-type( 2n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL3 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 2 * 0.5rem - 0.1px) / 3);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL3 > .sapUiLayoutCSSGridItem:nth-of-type( 3n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL4 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 3 * 0.5rem - 0.1px) / 4);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL4 > .sapUiLayoutCSSGridItem:nth-of-type( 4n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL5 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 4 * 0.5rem - 0.1px) / 5);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL5 > .sapUiLayoutCSSGridItem:nth-of-type( 5n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL6 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 5 * 0.5rem - 0.1px) / 6);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL6 > .sapUiLayoutCSSGridItem:nth-of-type( 6n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL7 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 6 * 0.5rem - 0.1px) / 7);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL7 > .sapUiLayoutCSSGridItem:nth-of-type( 7n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL8 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 7 * 0.5rem - 0.1px) / 8);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL8 > .sapUiLayoutCSSGridItem:nth-of-type( 8n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL9 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 8 * 0.5rem - 0.1px) / 9);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL9 > .sapUiLayoutCSSGridItem:nth-of-type( 9n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL10 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 9 * 0.5rem - 0.1px) / 10);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL10 > .sapUiLayoutCSSGridItem:nth-of-type( 10n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL11 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 10 * 0.5rem - 0.1px) / 11);
 }
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL11 > .sapUiLayoutCSSGridItem:nth-of-type( 11n) {
-  margin-right: 0;
-}
 .sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL12 > .sapUiLayoutCSSGridItem {
   width: calc((100% - 11 * 0.5rem - 0.1px) / 12);
-}
-.sapUiLayoutCSSGridBoxLayoutPolyfill.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL12 > .sapUiLayoutCSSGridItem:nth-of-type( 12n) {
-  margin-right: 0;
 }
 .sapUiLayoutCSSGridBoxLayoutContainer {
   display: grid;
   grid-auto-rows: 1fr;
   grid-gap: 0.5rem 0.5rem;
-  margin-bottom: 0.5rem;
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS1 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 0 * 0.5rem) / 1), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 0 * 0.5rem - 1px) / 1), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS2 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 1 * 0.5rem) / 2), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 1 * 0.5rem - 1px) / 2), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS3 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 2 * 0.5rem) / 3), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 2 * 0.5rem - 1px) / 3), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS4 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 3 * 0.5rem) / 4), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 3 * 0.5rem - 1px) / 4), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS5 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 4 * 0.5rem) / 5), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 4 * 0.5rem - 1px) / 5), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS6 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 5 * 0.5rem) / 6), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 5 * 0.5rem - 1px) / 6), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS7 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 6 * 0.5rem) / 7), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 6 * 0.5rem - 1px) / 7), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS8 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 7 * 0.5rem) / 8), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 7 * 0.5rem - 1px) / 8), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS9 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 8 * 0.5rem) / 9), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 8 * 0.5rem - 1px) / 9), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS10 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 9 * 0.5rem) / 10), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 9 * 0.5rem - 1px) / 10), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS11 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 10 * 0.5rem) / 11), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 10 * 0.5rem - 1px) / 11), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeS.sapUiLayoutCSSGridBoxLayoutSpanS12 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 11 * 0.5rem) / 12), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 11 * 0.5rem - 1px) / 12), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM1 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 0 * 0.5rem) / 1), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 0 * 0.5rem - 1px) / 1), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM2 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 1 * 0.5rem) / 2), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 1 * 0.5rem - 1px) / 2), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM3 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 2 * 0.5rem) / 3), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 2 * 0.5rem - 1px) / 3), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM4 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 3 * 0.5rem) / 4), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 3 * 0.5rem - 1px) / 4), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM5 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 4 * 0.5rem) / 5), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 4 * 0.5rem - 1px) / 5), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM6 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 5 * 0.5rem) / 6), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 5 * 0.5rem - 1px) / 6), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM7 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 6 * 0.5rem) / 7), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 6 * 0.5rem - 1px) / 7), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM8 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 7 * 0.5rem) / 8), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 7 * 0.5rem - 1px) / 8), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM9 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 8 * 0.5rem) / 9), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 8 * 0.5rem - 1px) / 9), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM10 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 9 * 0.5rem) / 10), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 9 * 0.5rem - 1px) / 10), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM11 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 10 * 0.5rem) / 11), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 10 * 0.5rem - 1px) / 11), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeM.sapUiLayoutCSSGridBoxLayoutSpanM12 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 11 * 0.5rem) / 12), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 11 * 0.5rem - 1px) / 12), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL1 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 0 * 0.5rem) / 1), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 0 * 0.5rem - 1px) / 1), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL2 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 1 * 0.5rem) / 2), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 1 * 0.5rem - 1px) / 2), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL3 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 2 * 0.5rem) / 3), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 2 * 0.5rem - 1px) / 3), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL4 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 3 * 0.5rem) / 4), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 3 * 0.5rem - 1px) / 4), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL5 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 4 * 0.5rem) / 5), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 4 * 0.5rem - 1px) / 5), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL6 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 5 * 0.5rem) / 6), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 5 * 0.5rem - 1px) / 6), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL7 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 6 * 0.5rem) / 7), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 6 * 0.5rem - 1px) / 7), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL8 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 7 * 0.5rem) / 8), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 7 * 0.5rem - 1px) / 8), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL9 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 8 * 0.5rem) / 9), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 8 * 0.5rem - 1px) / 9), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL10 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 9 * 0.5rem) / 10), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 9 * 0.5rem - 1px) / 10), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL11 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 10 * 0.5rem) / 11), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 10 * 0.5rem - 1px) / 11), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeL.sapUiLayoutCSSGridBoxLayoutSpanL12 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 11 * 0.5rem) / 12), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 11 * 0.5rem - 1px) / 12), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL1 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 0 * 0.5rem) / 1), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 0 * 0.5rem - 1px) / 1), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL2 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 1 * 0.5rem) / 2), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 1 * 0.5rem - 1px) / 2), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL3 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 2 * 0.5rem) / 3), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 2 * 0.5rem - 1px) / 3), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL4 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 3 * 0.5rem) / 4), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 3 * 0.5rem - 1px) / 4), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL5 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 4 * 0.5rem) / 5), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 4 * 0.5rem - 1px) / 5), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL6 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 5 * 0.5rem) / 6), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 5 * 0.5rem - 1px) / 6), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL7 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 6 * 0.5rem) / 7), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 6 * 0.5rem - 1px) / 7), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL8 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 7 * 0.5rem) / 8), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 7 * 0.5rem - 1px) / 8), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL9 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 8 * 0.5rem) / 9), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 8 * 0.5rem - 1px) / 9), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL10 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 9 * 0.5rem) / 10), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 9 * 0.5rem - 1px) / 10), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL11 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 10 * 0.5rem) / 11), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 10 * 0.5rem - 1px) / 11), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapUiLayoutCSSGridBoxLayoutSizeXL.sapUiLayoutCSSGridBoxLayoutSpanXL12 {
-  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 11 * 0.5rem) / 12), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(calc((100% - 11 * 0.5rem - 1px) / 12), 1fr));
 }
 .sapUiLayoutCSSGridBoxLayoutContainer.sapFGridListGroup {
   grid-auto-rows: auto;
@@ -4154,6 +4015,9 @@ L  0.390625% =  4px / 1024px
 /* Mixin to generate IE breakpoints.
  * Adding -0.1px to the calculation to avoid rounding errors.
  */
+.sapUiLayoutCSSGridItem.sapUiLayoutCSSGridItemLastOnRow {
+  margin-right: 0;
+}
 /* ========================================= */
 /* CSS for control sap.ui.layout/GridLayout  */
 /* Base theme                                */
@@ -5551,4 +5415,4 @@ html[data-sap-ui-browser^="ed"].sap-desktop .sapUiLoSplitter > .sapUiLoSplitterB
 }
 
 /* Inline theming parameters */
-#sap-ui-theme-sap\.ui\.layout{background-image:url('data:text/plain;utf-8,%7B%22_sap_ui_layout_ColumnLayout_formColumnMaxXL%22%3A%224%22%2C%22_sap_ui_layout_ColumnLayout_formColumnMaxL%22%3A%223%22%2C%22_sap_ui_layout_ColumnLayout_formColumnMaxM%22%3A%222%22%2C%22_sap_ui_layout_ColumnLayout_formColumnMaxS%22%3A%221%22%2C%22_sap_ui_layout_ColumnLayout_formColumnElementCols%22%3A%2212%22%2C%22_sap_ui_layout_ColumnLayout_formColumnElementOneCol%22%3A%228.333333333333334%25%22%2C%22_sap_ui_layout_Form_FormContainerExpImageURL%22%3A%22url(%5C%22sap-icon%3A%2F%2Fexpand-group%5C%22)%22%2C%22_sap_ui_layout_Form_FormContainerColImageURL%22%3A%22url(%5C%22sap-icon%3A%2F%2Fcollapse-group%5C%22)%22%2C%22_sap_ui_layout_FormLayout_FormTitleSize%22%3A%22H4%22%2C%22_sap_ui_layout_FormLayout_FormSubTitleSize%22%3A%22H5%22%2C%22_sap_ui_layout_Grid_RespGridCols%22%3A%2212%22%2C%22_sap_ui_layout_Grid_RespGridCols-1%22%3A%2211%22%2C%22_sap_ui_layout_Grid_RespGridOneCol%22%3A%228.333333333333334%25%22%2C%22_sap_ui_layout_Grid_RespGridMediaPhone%22%3A%22sapUiRespGridMedia-Std-Phone%22%2C%22_sap_ui_layout_Grid_RespGridMediaTablet%22%3A%22sapUiRespGridMedia-Std-Tablet%22%2C%22_sap_ui_layout_Grid_RespGridMediaDesktop%22%3A%22sapUiRespGridMedia-Std-Desktop%22%2C%22_sap_ui_layout_Grid_RespGridMediaXL%22%3A%22sapUiRespGridMedia-Std-LargeDesktop%22%2C%22_sap_ui_layout_Grid_RespGridMediaPhoneSize%22%3A%22320px%22%2C%22_sap_ui_layout_Grid_RespGridMediaTabletSize%22%3A%22600px%22%2C%22_sap_ui_layout_Grid_RespGridMediaDesktopSize%22%3A%221024px%22%2C%22_sap_ui_layout_Grid_RespGridMediaXLSize%22%3A%221440px%22%2C%22_sap_ui_layout_Grid_RespGridPxInRem%22%3A%2216%22%2C%22_sap_ui_layout_Grid_RespGridVisible%22%3A%22sapUiRespGridVisible%22%2C%22_sap_ui_layout_Grid_RespGridHidden%22%3A%22sapUiRespGridHidden%22%2C%22_sap_ui_layout_BlockLayoutCell_background%22%3A%22transparent%22%7D')}
+#sap-ui-theme-sap\.ui\.layout{background-image:url('data:text/plain;utf-8,%7B%22_sap_ui_layout_ColumnLayout_formColumnMaxXL%22%3A%224%22%2C%22_sap_ui_layout_ColumnLayout_formColumnMaxL%22%3A%223%22%2C%22_sap_ui_layout_ColumnLayout_formColumnMaxM%22%3A%222%22%2C%22_sap_ui_layout_ColumnLayout_formColumnMaxS%22%3A%221%22%2C%22_sap_ui_layout_ColumnLayout_formColumnElementCols%22%3A%2212%22%2C%22_sap_ui_layout_ColumnLayout_formColumnElementOneCol%22%3A%228.333333333333334%25%22%2C%22_sap_ui_layout_Form_FormContainerExpImageURL%22%3A%22url(%5C%22sap-icon%3A%2F%2Fexpand-group%5C%22)%22%2C%22_sap_ui_layout_Form_FormContainerColImageURL%22%3A%22url(%5C%22sap-icon%3A%2F%2Fcollapse-group%5C%22)%22%2C%22_sap_ui_layout_FormLayout_FormTitleSize%22%3A%22H4%22%2C%22_sap_ui_layout_FormLayout_FormSubTitleSize%22%3A%22H5%22%2C%22_sap_ui_layout_Grid_RespGridCols%22%3A%2212%22%2C%22_sap_ui_layout_Grid_RespGridCols-1%22%3A%2211%22%2C%22_sap_ui_layout_Grid_RespGridOneCol%22%3A%228.333333333333334%25%22%2C%22_sap_ui_layout_Grid_RespGridMediaPhone%22%3A%22sapUiRespGridMedia-Std-Phone%22%2C%22_sap_ui_layout_Grid_RespGridMediaTablet%22%3A%22sapUiRespGridMedia-Std-Tablet%22%2C%22_sap_ui_layout_Grid_RespGridMediaDesktop%22%3A%22sapUiRespGridMedia-Std-Desktop%22%2C%22_sap_ui_layout_Grid_RespGridMediaXL%22%3A%22sapUiRespGridMedia-Std-LargeDesktop%22%2C%22_sap_ui_layout_Grid_RespGridMediaPhoneSize%22%3A%22320px%22%2C%22_sap_ui_layout_Grid_RespGridMediaTabletSize%22%3A%22600px%22%2C%22_sap_ui_layout_Grid_RespGridMediaDesktopSize%22%3A%221024px%22%2C%22_sap_ui_layout_Grid_RespGridMediaXLSize%22%3A%221440px%22%2C%22_sap_ui_layout_Grid_RespGridPxInRem%22%3A%2216%22%2C%22_sap_ui_layout_Grid_RespGridVisible%22%3A%22sapUiRespGridVisible%22%2C%22_sap_ui_layout_Grid_RespGridHidden%22%3A%22sapUiRespGridHidden%22%2C%22_sap_ui_layout_ResponsiveSplitter_PaginatorHeight%22%3A%222.5rem%22%2C%22_sap_ui_layout_ResponsiveSplitter_PaginatorButtonWidth%22%3A%222.5rem%22%2C%22_sap_ui_layout_ResponsiveSplitter_PaginatorButtonHeight%22%3A%222.375rem%22%2C%22_sap_ui_layout_ResponsiveSplitter_PaginatorButtonFocusWidth%22%3A%222.125rem%22%2C%22_sap_ui_layout_ResponsiveSplitter_PaginatorButtonFocusHeight%22%3A%222.125rem%22%2C%22_sap_ui_layout_BlockLayoutCell_background%22%3A%22transparent%22%2C%22_sap_ui_layout_BlockLayout_FontSizeLandXL%22%3A%221.625rem%22%7D')}

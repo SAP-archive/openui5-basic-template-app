@@ -184,7 +184,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.Model
 	 * @public
 	 * @since 1.37.0
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 */
 	var ODataModel = Model.extend("sap.ui.model.odata.v4.ODataModel",
 			/** @lends sap.ui.model.odata.v4.ODataModel.prototype */
@@ -192,9 +192,7 @@ sap.ui.define([
 				constructor : function (mParameters) {
 					var sGroupId,
 						oGroupProperties,
-						mHeaders = {
-							"Accept-Language" : sap.ui.getCore().getConfiguration().getLanguageTag()
-						},
+						sLanguageTag = sap.ui.getCore().getConfiguration().getLanguageTag(),
 						sODataVersion,
 						sParameter,
 						sServiceUrl,
@@ -267,8 +265,10 @@ sap.ui.define([
 					}
 					this.bAutoExpandSelect = mParameters.autoExpandSelect === true;
 
+					// BEWARE: do not share mHeaders between _MetadataRequestor and _Requestor!
 					this.oMetaModel = new ODataMetaModel(
-						_MetadataRequestor.create(mHeaders, sODataVersion, this.mUriParameters),
+						_MetadataRequestor.create({"Accept-Language" : sLanguageTag}, sODataVersion,
+							this.mUriParameters),
 						this.sServiceUrl + "$metadata", mParameters.annotationURI, this,
 						mParameters.supportReferences);
 					this.oRequestor = _Requestor.create(this.sServiceUrl, {
@@ -285,7 +285,7 @@ sap.ui.define([
 							},
 							reportBoundMessages : this.reportBoundMessages.bind(this),
 							reportUnboundMessages : this.reportUnboundMessages.bind(this)
-						}, mHeaders, this.mUriParameters, sODataVersion);
+						}, {"Accept-Language" : sLanguageTag}, this.mUriParameters, sODataVersion);
 					if (mParameters.earlyRequests) {
 						this.oMetaModel.fetchEntityContainer(true);
 						this.initializeSecurityToken();
@@ -454,7 +454,8 @@ sap.ui.define([
 	 * @param {boolean} [mParameters.$$patchWithoutSideEffects]
 	 *   Whether implicit loading of side effects via PATCH requests is switched off; only the value
 	 *   <code>true</code> is allowed. This requires the service to return an ETag header even for
-	 *   "204 No Content" responses (for example, if the "return=minimal" preference is used).
+	 *   "204 No Content" responses (for example, if the "return=minimal" preference is used). If
+	 *   not specified, the value of the parent binding is used.
 	 * @param {string} [mParameters.$$updateGroupId]
 	 *   The group ID to be used for <b>update</b> requests triggered by this binding;
 	 *   if not specified, either the parent binding's update group ID (if the binding is relative)
@@ -557,6 +558,11 @@ sap.ui.define([
 	 *   model's group ID is used, see {@link sap.ui.model.odata.v4.ODataModel#constructor}.
 	 *   Valid values are <code>undefined</code>, '$auto', '$auto.*', '$direct' or application group
 	 *   IDs as specified in {@link sap.ui.model.odata.v4.ODataModel}.
+	 * @param {boolean} [mParameters.$$patchWithoutSideEffects]
+	 *   Whether implicit loading of side effects via PATCH requests is switched off; only the value
+	 *   <code>true</code> is allowed. This requires the service to return an ETag header even for
+	 *   "204 No Content" responses (for example, if the "return=minimal" preference is used). If
+	 *   not specified, the value of the parent binding is used.
 	 * @param {boolean} [mParameters.$$ownRequest]
 	 *   Whether the binding always uses an own service request to read its data; only the value
 	 *   <code>true</code> is allowed.
@@ -715,7 +721,7 @@ sap.ui.define([
 							aExpandQueryOptions);
 					}
 				}
-			} else if (sOptionName === "$count" ) {
+			} else if (sOptionName === "$count") {
 				if (typeof vValue  === "boolean") {
 					if (!vValue) {
 						delete mOptions.$count;
@@ -1122,7 +1128,8 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataModel.prototype.initializeSecurityToken = function () {
-		this.oRequestor.refreshSecurityToken();
+		// a failure is not logged, only the failed request for the service document appears
+		this.oRequestor.refreshSecurityToken().catch(function () {});
 	};
 
 	/**

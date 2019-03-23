@@ -35,7 +35,7 @@ function(library, Control, coreLibrary, Text, ObjectAttributeRenderer, Log) {
 	 * <code>text</code> property is styled and acts as a link. In this case the <code>text</code>
 	 * property must also be set, as otherwise there will be no link displayed for the user.
 	 * @extends sap.ui.core.Control
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @constructor
 	 * @public
@@ -136,8 +136,6 @@ function(library, Control, coreLibrary, Text, ObjectAttributeRenderer, Log) {
 		}
 		sText = oppositeDirectionMarker + sText + oppositeDirectionMarker;
 		if (sTitle) {
-			sTitle = sTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // saniteze the sTitle in order to make it usable in regex
-			sText = sText.replace(new RegExp(sTitle + ":\\s+", "gi"), "");
 			sText = sTitle + ": " + sText;
 		}
 		oAttrAggregation.setProperty('text', sText, true);

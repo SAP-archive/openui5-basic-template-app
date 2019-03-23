@@ -20,7 +20,7 @@ sap.ui.define([
 		 * This class is only for testing purposes for support tool communication.
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.62.1
+		 * @version 1.63.0
 		 * @private
 		 * @alias sap.ui.core.support.plugins.MessageTest
 		 */

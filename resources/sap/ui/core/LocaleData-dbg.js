@@ -18,7 +18,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 * @public
 	 * @alias sap.ui.core.LocaleData
 	 */
@@ -834,6 +834,18 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 		},
 
 		/**
+		 * Get miscellaneous pattern.
+		 *
+		 * @param {string} sName the name of the misc pattern, can be "approximately", "atLeast", "atMost" or "range"
+		 * @returns {string} The pattern
+		 * @public
+		 */
+		getMiscPattern: function(sName) {
+			assert(sName == "approximately" || sName == "atLeast" || sName == "atMost" || sName == "range", "sName must be approximately, atLeast, atMost or range");
+			return this._get("miscPattern")[sName];
+		},
+
+		/**
 		 * Returns the required minimal number of days for the first week of a year.
 		 *
 		 * This is the minimal number of days of the week which must be contained in the new year
@@ -905,6 +917,30 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 		},
 
 		/**
+		 * Returns a map of custom currency codes, defined via global configuration.
+		 * @returns {object} map of custom currency codes, e.g.
+		 * {
+		 *     "AUD": "AUD",
+		 *     "BRL": "BRL",
+		 *     "EUR": "EUR",
+		 *     "GBP": "GBP",
+		 * }
+		 * @sap-restricted sap.ui.core.format.NumberFormat
+		 * @private
+		 * @since 1.63
+		 */
+		getCustomCurrencyCodes: function () {
+			var mCustomCurrencies = this._get("currency") || {},
+				mCustomCurrencyCodes = {};
+
+			Object.keys(mCustomCurrencies).forEach(function (sCurrencyKey) {
+				mCustomCurrencyCodes[sCurrencyKey] = sCurrencyKey;
+			});
+
+			return mCustomCurrencyCodes;
+		},
+
+		/**
 		 * Returns the number of digits of the specified currency.
 		 *
 		 * @param {string} sCurrency ISO 4217 currency code
@@ -944,7 +980,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 		 * @since 1.21.1
 		 */
 		getCurrencySymbol: function(sCurrency) {
-			var oCurrencySymbols = this._get("currencySymbols");
+			var oCurrencySymbols = this.getCurrencySymbols();
 			return (oCurrencySymbols && oCurrencySymbols[sCurrency]) || sCurrency;
 		},
 
@@ -967,14 +1003,36 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 		},
 
 		/**
-		 * Returns the currency symbols available for this locale
+		 * Returns the currency symbols available for this locale.
+		 * Currency symbols get accumulated by custom currency symbols.
 		 *
-		 * @returns {object} the map of all currency symbols available in this locale
+		 * @returns {object} the map of all currency symbols available in this locale, e.g.
+		 * {
+		 *     "AUD": "A$",
+		 *     "BRL": "R$",
+		 *     "EUR": "€",
+		 *     "GBP": "£",
+		 * }
 		 * @public
 		 * @since 1.60
 		 */
 		getCurrencySymbols: function() {
-			return this._get("currencySymbols");
+			// Lookup into global Config
+			var mCustomCurrencies = this._get("currency"),
+				mCustomCurrencySymbols = {},
+				sIsoCode;
+
+			for (var sCurrencyKey in mCustomCurrencies) {
+				sIsoCode = mCustomCurrencies[sCurrencyKey].isoCode;
+
+				if (mCustomCurrencies[sCurrencyKey].symbol) {
+					mCustomCurrencySymbols[sCurrencyKey] = mCustomCurrencies[sCurrencyKey].symbol;
+				} else if (sIsoCode) {
+					mCustomCurrencySymbols[sCurrencyKey] = this._get("currencySymbols")[sIsoCode];
+				}
+			}
+
+			return Object.assign({}, this._get("currencySymbols"), mCustomCurrencySymbols);
 		},
 
 		/**
@@ -2340,6 +2398,12 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 				}
 			},
 			"percentFormat": { "standard": "#,##0%"},
+			"miscPattern": {
+				"approximately": "~{0}",
+				"atLeast": "{0}+",
+				"atMost": "≤{0}",
+				"range": "{0}–{1}"
+			},
 			"symbols-latn-decimal":".",
 			"symbols-latn-group":",",
 			"symbols-latn-plusSign":"+",

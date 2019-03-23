@@ -16,8 +16,9 @@ sap.ui.define([
 	"sap/ui/base/Metadata",
 	"sap/m/library",
 	"sap/m/OverflowToolbarLayoutData",
-	"sap/ui/core/IconPool"
-], function(Metadata, library, OverflowToolbarLayoutData, IconPool) {
+	"sap/ui/core/IconPool",
+	"sap/ui/core/InvisibleText"
+], function(Metadata, library, OverflowToolbarLayoutData, IconPool, InvisibleText) {
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
@@ -35,7 +36,7 @@ sap.ui.define([
 	 * Constructor for an sap.m.semantic.SemanticConfiguration.
 	 *
 	 * @class Defines the visual properties and positioning for each supported semantic type
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 * @private
 	 * @since 1.30.0
 	 * @alias sap.m.semantic.SemanticConfiguration
@@ -461,6 +462,8 @@ sap.ui.define([
 		oTypeConfigs["sap.m.semantic.MessagesIndicator"] = {
 			position: SemanticConfiguration.prototype._PositionInPage.footerLeft,
 			getSettings: function() {
+				var sTooltipId = InvisibleText.getStaticId("sap.m", "SEMANTIC_CONTROL_MESSAGES_INDICATOR");
+
 				return {
 					icon: IconPool.getIconURI("message-popup"),
 					text: {
@@ -470,6 +473,7 @@ sap.ui.define([
 						}
 					},
 					tooltip: oBundle.getText("SEMANTIC_CONTROL_MESSAGES_INDICATOR"),
+					ariaLabelledBy: sTooltipId,
 					type: ButtonType.Emphasized,
 					visible: {
 						path: "message>/",

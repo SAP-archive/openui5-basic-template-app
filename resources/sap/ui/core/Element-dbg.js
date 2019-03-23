@@ -90,7 +90,7 @@ sap.ui.define([
 	 * @class Base Class for Elements.
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 * @public
 	 * @alias sap.ui.core.Element
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
@@ -502,8 +502,21 @@ sap.ui.define([
 		} else {
 			Log.debug("DOM is not removed on destroy of " + this);
 		}
+
+		// wrap custom data API to avoid creating new objects
+		this.data = noCustomDataAfterDestroy;
 	};
 
+	function noCustomDataAfterDestroy() {
+		// Report and ignore only write calls; read and remove calls are well-behaving
+		var argLength = arguments.length;
+		if ( argLength === 1 && arguments[0] !== null && typeof arguments[0] == "object"
+			 || argLength > 1 && argLength < 4 && arguments[1] !== null ) {
+			Log.error("Cannot create custom data on an already destroyed element '" + this + "'");
+			return this;
+		}
+		return Element.prototype.data.apply(this, arguments);
+	}
 
 	/*
 	 * Class <code>sap.ui.core.Element</code> intercepts fireEvent calls to enforce an 'id' property

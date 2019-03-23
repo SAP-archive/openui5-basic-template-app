@@ -84,7 +84,7 @@ sap.ui.define([
 		 * </ul>
 		 *
 		 * @author SAP SE
-		 * @version 1.62.1
+		 * @version 1.63.0
 		 *
 		 * @constructor
 		 * @extends sap.m.ComboBoxBase
@@ -1331,7 +1331,7 @@ sap.ui.define([
 				this.bOpenValueStateMessage = true;
 			}
 
-			if (!this.isOpen() || !this.getSelectedItem() || !this.getList().hasStyleClass("sapMListFocus")) {
+			if (this.getEnabled() && (!this.isOpen() || !this.getSelectedItem() || !this.getList().hasStyleClass("sapMListFocus"))) {
 				this.$().addClass("sapMFocus");
 			}
 		};

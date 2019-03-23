@@ -133,7 +133,7 @@ function(
 	 * </ul>
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @constructor
 	 * @extends sap.m.ComboBoxBase
@@ -201,6 +201,12 @@ function(
 
 	IconPool.insertFontFaceStyle();
 	EnabledPropagator.apply(MultiComboBox.prototype, [true]);
+
+	MultiComboBox.prototype.open = function() {
+		this._bPickerIsOpening = true;
+
+		ComboBoxBase.prototype.open.apply(this, arguments);
+	};
 
 	/* ----------------------------------------------------------- */
 	/* Keyboard handling */
@@ -409,24 +415,6 @@ function(
 	};
 
 	/**
-	 * Function calculates the available space for the tokenizer
-	 *
-	 * @private
-	 * @return {String | null} CSSSize in px
-	 */
-	MultiComboBox.prototype._calculateSpaceForTokenizer = function () {
-		if (this.getDomRef()) {
-			var iWidth = this.getDomRef().offsetWidth,
-				iArrowButtonWidth = parseInt(this.getDomRef("arrow").offsetWidth),
-				iInputWidth = parseInt(this.$().find(".sapMInputBaseInner").css("min-width")) || 0,
-				iInputPadding = parseInt(this.$().find(".sapMInputBaseInner").css("padding-right")) || 0;
-
-			return iWidth - (iArrowButtonWidth + iInputWidth + iInputPadding) + "px";
-		} else {
-			return null;
-		}
-	};
-	/**
 	 * Handle when enter is pressed.
 	 *
 	 * @param {jQuery.Event} oEvent The event object
@@ -478,9 +466,8 @@ function(
 			oFocusDomRef = oControl && oControl.getFocusDomRef(),
 			sOldValue = this.getValue();
 
-		// If focus target is outside of picker
-		if (!oPicker || !oPicker.getFocusDomRef() || !oFocusDomRef || !jQuery.contains(oPicker.getFocusDomRef(), oFocusDomRef)) {
-
+		// If focus target is outside of picker and the picker is fully opened
+		if (!this._bPickerIsOpening && (!oPicker || !oPicker.getFocusDomRef() || !oFocusDomRef || !jQuery.contains(oPicker.getFocusDomRef(), oFocusDomRef))) {
 			this.setValue(null);
 
 			// fire change event only if the value of the MCB is not empty
@@ -1041,6 +1028,8 @@ function(
 
 		oDomRef && oDomRef.setAttribute("aria-expanded", "true");
 
+		this._bPickerIsOpening = false;
+
 		// reset the initial focus back to the input
 		if (!this.isPlatformTablet()) {
 			this.getPicker().setInitialFocus(this);
@@ -1077,7 +1066,10 @@ function(
 
 		// resets or not the value of the input depending on the event (enter does not clear the value)
 		!this.isComposingCharacter() && !this._bPreventValueRemove && this.setValue("");
+
+		// clear old values
 		this._sOldValue = "";
+		this._sOldInput = "";
 
 		if (this.isPickerDialog()) {
 			// reset the value state after the dialog is closed

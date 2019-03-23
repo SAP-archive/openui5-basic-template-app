@@ -140,7 +140,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IShrinkable
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @constructor
 	 * @public
@@ -529,7 +529,6 @@ sap.ui.define([
 			var oSummaryBar = this.getAggregation("summaryBar");
 			var oText = oSummaryBar.getContent()[0];
 			oText.setText(this._getSummaryText());
-			oText.setTooltip(this._getSummaryText());
 		}
 
 		// Detach the interval timer attached in onAfterRendering
@@ -1914,6 +1913,10 @@ sap.ui.define([
 				content : [ oText ], // Text is set before rendering
 				active : this.getType() === FacetFilterType.Light ? true : false,
 				design : ToolbarDesign.Info,
+				ariaLabelledBy : [
+					InvisibleText.getStaticId("sap.m", "FACETFILTER_TITLE"),
+					oText
+				],
 				press : function(oEvent) {
 						that.openFilterDialog();
 				}

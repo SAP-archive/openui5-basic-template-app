@@ -193,10 +193,12 @@ sap.ui.define(["sap/base/assert"], function (assert) {
 			return hasExecuted(function () {
 				var key, p = sPrefix + (sIdPrefix || "");
 
-				for (var i = 0, max = oStorageImpl.length; i < max; i++) {
+				for (var i = 0, max = oStorageImpl.length; i < max;) {
 					key = oStorageImpl.key(i);
 					if (key && key.startsWith(p)) {
 						oStorageImpl.removeItem(key);
+					} else {
+						i++;
 					}
 				}
 			});
@@ -241,7 +243,7 @@ sap.ui.define(["sap/base/assert"], function (assert) {
 	 *
 	 * @enum {string}
 	 * @public
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 */
 	Storage.Type = {
 		/**

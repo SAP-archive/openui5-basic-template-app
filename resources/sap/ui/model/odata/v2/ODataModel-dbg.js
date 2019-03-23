@@ -41,7 +41,8 @@ sap.ui.define([
 	"sap/base/util/merge",
 	"sap/base/security/encodeURL",
 	"sap/ui/thirdparty/jquery",
-	"sap/base/util/isPlainObject"
+	"sap/base/util/isPlainObject",
+	"sap/base/util/each"
 ], function(
 	URI,
 	BindingMode,
@@ -70,7 +71,8 @@ sap.ui.define([
 	merge,
 	encodeURL,
 	jQuery,
-	isPlainObject
+	isPlainObject,
+	each
 ) {
 
 	"use strict";
@@ -158,7 +160,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataModel
@@ -196,6 +198,7 @@ sap.ui.define([
 				bDisableSoftStateHeader,
 				aBindableResponseHeaders,
 				sWarmupUrl,
+				bCanonicalRequests,
 				that = this;
 
 			if (typeof (sServiceUrl) === "object") {
@@ -230,8 +233,11 @@ sap.ui.define([
 				bDisableSoftStateHeader = mParameters.disableSoftStateHeader;
 				aBindableResponseHeaders = mParameters.bindableResponseHeaders;
 				sWarmupUrl = mParameters.warmupUrl;
+				bCanonicalRequests = mParameters.canonicalRequests;
 			}
-
+			this.mPathCache = {};
+			this.mInvalidatedPaths = {};
+			this.bCanonicalRequests = !!bCanonicalRequests;
 			this.sWarmupUrl = sWarmupUrl;
 			this.bWarmup = !!sWarmupUrl;
 			this.mSupportedBindingModes = {"OneWay": true, "OneTime": true, "TwoWay":true};
@@ -1329,23 +1335,36 @@ sap.ui.define([
 	 * @param {object} oData Data that should be imported
 	 * @param {map} mChangedEntities Map of changed entities
 	 * @param {object} oResponse Response where the data came from
+	 * @param {string} [sPath] The path to the data
+	 * @param {string} [sDeepPath] The deep path to the data
+	 * @param {string} [sKey] The cache key to the data if known
 	 * @return {string|string[]} Key of imported data or array of keys in case of nested entries
 	 * @private
 	 */
-	ODataModel.prototype._importData = function(oData, mChangedEntities, oResponse) {
+	ODataModel.prototype._importData = function(oData, mChangedEntities, oResponse, sPath, sDeepPath, sKey) {
 		var that = this,
-		aList, sKey, oResult, oEntry;
+			aList, oResult, oEntry;
+			sPath = sPath || "";
+			sKey = sKey || "";
+
 		if (oData.results) {
 			aList = [];
-			jQuery.each(oData.results, function(i, entry) {
-				var sKey = that._importData(entry, mChangedEntities, oResponse);
+			each(oData.results, function(i, entry) {
+				sKey = that._getKey(entry);
+				var sKey = that._importData(entry, mChangedEntities, oResponse, sPath.substr(0, sPath.lastIndexOf("/")), sDeepPath, sKey);
 				if (sKey) {
 					aList.push(sKey);
 				}
 			});
 			return aList;
 		} else {
-			sKey = this._getKey(oData);
+			// data is single entity
+			if (sKey) {
+				sPath =  "/" + sKey;
+				sDeepPath += sKey.substr(sKey.indexOf("(")); /*e.g. SalesOrder(123)/ToLineItems + (345)*/
+			} else {
+				sKey = this._getKey(oData);
+			}
 			if (!sKey) {
 				return sKey;
 			}
@@ -1354,7 +1373,7 @@ sap.ui.define([
 			oEntry = this._getEntity(sKey);
 			if (!oEntry || (oEntry.__metadata && oEntry.__metadata.invalid)) {
 				oEntry = oData;
-				this._addEntity(oEntry);
+				sKey = this._addEntity(oEntry);
 			}
 
 			// Add response headers to the metadata so they can be accessed via "__metadata/headers/" binding path
@@ -1376,12 +1395,20 @@ sap.ui.define([
 				}
 			}
 
-			jQuery.each(oData, function(sName, oProperty) {
+			each(oData, function(sName, oProperty) {
 				if (oProperty && (oProperty.__metadata && oProperty.__metadata.uri || oProperty.results) && !oProperty.__deferred) {
-					oResult = that._importData(oProperty, mChangedEntities, oResponse);
+					var sNewPath = sPath + "/" + sName;
+					var sNewDeepPath = sDeepPath + "/" + sName;
+
+					oResult = that._importData(oProperty, mChangedEntities, oResponse, sNewPath, sNewDeepPath /*, sKey is not available */);
 					if (Array.isArray(oResult)) {
 						oEntry[sName] = { __list: oResult };
 					} else {
+						if (oEntry[sName] && oEntry[sName].__ref) {
+							if (oEntry[sName].__ref !== oResult) {
+								that.mInvalidatedPaths[sPath.substr(sPath.lastIndexOf("(")) + "/" + sName] = "/" + oResult;
+							}
+						}
 						oEntry[sName] = { __ref: oResult };
 					}
 				} else if (!oProperty || !oProperty.__deferred) { //do not store deferred navprops
@@ -1393,7 +1420,37 @@ sap.ui.define([
 			oMap[sKey] = oEntry;
 			this._updateChangedEntities(oMap);
 			mChangedEntities[sKey] = true;
+
+			// if no path information available use the key. This should be the case for create/callFunction
+			sPath = sPath || '/' + sKey;
+			sDeepPath = sDeepPath || sPath;
+
+			// try to resolve/cache paths containing mutiple nav properties likes "SalesOrderItem(123)/ToProduct/ToSupplier" => Product(123)/ToSupplier
+			this._writePathCache(this.resolveFromCache(sDeepPath), "/" + sKey);
+
+			this._writePathCache(sPath, "/" + sKey);
+			this._writePathCache(sDeepPath, "/" + sKey);
+
 			return sKey;
+		}
+	};
+
+	/**
+	 * Writes a new entry into the canonical path cache.
+	 *
+	 * @param {string} sPath The path is used as cache key.
+	 * @param {string} sCanonicalPath The canoncial path addressing the same resource.
+	 * @private
+	 */
+	ODataModel.prototype._writePathCache = function(sPath, sCanonicalPath){
+		if (sPath && sCanonicalPath/* last condition checks for nav property and parameter like Product(1), Product(2)*/){
+			if (!this.mPathCache[sPath]) {
+				this.mPathCache[sPath] = {};
+			}
+			this.mPathCache[sPath].canonicalPath = sCanonicalPath;
+			if (!this.mPathCache[sPath].updateKey) {
+				this.mPathCache[sPath].updateKey = sPath.substr(sPath.lastIndexOf("("));
+			}
 		}
 	};
 
@@ -1411,12 +1468,12 @@ sap.ui.define([
 		}
 		if (oData.results) {
 			aList = [];
-			jQuery.each(oData.results, function(i, entry) {
+			each(oData.results, function(i, entry) {
 				aList.push(that._removeReferences(entry));
 			});
 			return aList;
 		} else {
-			jQuery.each(oData, function(sPropName, oCurrentEntry) {
+			each(oData, function(sPropName, oCurrentEntry) {
 				if (oCurrentEntry) {
 					if (oCurrentEntry["__ref"] || oCurrentEntry["__list"]) {
 						delete oData[sPropName];
@@ -1460,7 +1517,7 @@ sap.ui.define([
 			mVisitedEntries = {};
 		}
 
-		jQuery.each(oData, function(sPropName, oCurrentEntry) {
+		each(oData, function(sPropName, oCurrentEntry) {
 			if (oCurrentEntry) {
 				if (oCurrentEntry.__ref) {
 					sKey = oCurrentEntry.__ref;
@@ -1471,7 +1528,7 @@ sap.ui.define([
 					delete oCurrentEntry.__ref;
 				} else if (oCurrentEntry.__list) {
 					aResults = [];
-					jQuery.each(oCurrentEntry.__list, function(i, sKey) {
+					each(oCurrentEntry.__list, function(i, sKey) {
 						oChildEntry = getEntry(sKey);
 						if (oChildEntry) {
 							aResults.push(oChildEntry);
@@ -1823,7 +1880,11 @@ sap.ui.define([
 		}
 
 		// if path cannot be resolved, call the callback function and return null
-		sResolvedPath = this.resolve(sPath, oContext);
+		sResolvedPath = this.resolve(sPath, oContext, this.bCanonicalRequests);
+		if (!sResolvedPath && this.bCanonicalRequests) {
+			sResolvedPath = this.resolve(sPath, oContext);
+		}
+
 		if (!sResolvedPath) {
 			if (fnCallBack) {
 				fnCallBack(null);
@@ -1840,7 +1901,12 @@ sap.ui.define([
 
 		if (!bReload) {
 			sCanonicalPath = this.resolve(sPath, oContext, true);
-			oNewContext = this.getContext(sCanonicalPath);
+			if (sCanonicalPath) {
+				oNewContext = this.getContext(sCanonicalPath, oContext);
+				oNewContext.sDeepPath = this.resolveDeep(sPath, oContext, false);
+			} else {
+				oNewContext = null;
+			}
 			if (fnCallBack) {
 				fnCallBack(oNewContext);
 			}
@@ -1856,7 +1922,8 @@ sap.ui.define([
 			oNewContext = null;
 
 			if (sKey) {
-				oNewContext = that.getContext('/' + sKey);
+				oNewContext = that.getContext('/' + sKey, oContext);
+				oNewContext.sDeepPath = that.resolveDeep(sPath, oContext);
 				oRef = {__ref: sKey};
 			}
 			/* in case of sPath == "" or a deep path (entity(1)/entities) we
@@ -1910,6 +1977,7 @@ sap.ui.define([
 		if (mParameters && mParameters.createPreliminaryContext) {
 			sResolvedPath = this.resolve(sPath, oContext);
 			oNewContext = this.getContext(sResolvedPath);
+			oNewContext.sDeepPath = this.resolveDeep(sPath, oContext);
 			return oNewContext;
 		}
 
@@ -2250,11 +2318,13 @@ sap.ui.define([
 	 * Adds an entity to the internal cache
 	 *
 	 * @param {object} oEntity The entity object
+	 * @return {string} The normalized entity key
 	 * @private
 	 */
 	ODataModel.prototype._addEntity = function(oEntity) {
 		var sKey = this._getKey(oEntity);
 		this.oData[sKey] = oEntity;
+		return sKey;
 	};
 
 	/**
@@ -2347,7 +2417,7 @@ sap.ui.define([
 			oProperty = this.oMetadata._getPropertyMetadata(oEntityType, sName);
 			sKey += encodeURIComponent(ODataUtils.formatValue(oKeyProperties[sName], oProperty.type));
 		} else {
-			jQuery.each(oEntityType.key.propertyRef, function(i, oPropertyRef) {
+			each(oEntityType.key.propertyRef, function(i, oPropertyRef) {
 				if (i > 0) {
 					sKey += ",";
 				}
@@ -2555,9 +2625,13 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataModel.prototype._getObject = function(sPath, oContext, bOriginalValue) {
-		var oNode = this.isLegacySyntax() ? this.oData : null, oChangedNode, oOrigNode,
-			sResolvedPath = this.resolve(sPath, oContext),
+		var oNode = this.isLegacySyntax() ? this.oData : null, oChangedNode, oOrigNode, sResolvedPath,
 			iSeparator, sDataPath, sMetaPath, oMetaContext, sKey, oMetaModel;
+
+		sResolvedPath = this.resolve(sPath, oContext, this.bCanonicalRequests);
+		if (!sResolvedPath && this.bCanonicalRequests) {
+			sResolvedPath = this.resolve(sPath, oContext);
+		}
 
 		if (!sResolvedPath) {
 			return oNode;
@@ -2825,6 +2899,10 @@ sap.ui.define([
 		}
 
 		function submitWithToken() {
+			// Make sure requests not requiring a CSRF token don't send one.
+			if (that.bTokenHandling) {
+				delete oRequest.headers["x-csrf-token"];
+			}
 			// request token only if we have change operations or batch requests
 			// token needs to be set directly on request headers, as request is already created
 			readyForRequest(oRequest).then(function(sToken) {
@@ -2842,17 +2920,17 @@ sap.ui.define([
 			var oEventInfo,
 				aRequests = oRequest.eventInfo.requests;
 			if (aRequests) {
-				jQuery.each(aRequests, function(i, oRequest) {
+				each(aRequests, function(i, oRequest) {
 					if (Array.isArray(oRequest)) {
 						oRequest.forEach(function(oRequest) {
-							jQuery.each(oRequest.parts, function(i, oPart) {
+							each(oRequest.parts, function(i, oPart) {
 								oEventInfo = that._createEventInfo(oRequest.request, oPart.fnError);
 								that["fireRequest" + sType](oEventInfo);
 							});
 						});
 					} else {
 						if (oRequest.parts) {
-							jQuery.each(oRequest.parts, function(i, oPart) {
+							each(oRequest.parts, function(i, oPart) {
 								oEventInfo = that._createEventInfo(oRequest.request, oPart.fnError);
 								that["fireRequest" + sType](oEventInfo);
 							});
@@ -2962,6 +3040,7 @@ sap.ui.define([
 			}
 
 			that._processSuccess(oRequest.request, oResponse, successWrapper, mGetEntities, mChangeEntities, mEntityTypes);
+			that._invalidatePathCache();
 			that._setSessionContextIdHeader(that._getHeader("sap-contextid", oResponse.headers));
 		}
 
@@ -3058,6 +3137,7 @@ sap.ui.define([
 						oRequestObject.response = oResponse;
 					}
 				}
+				that._invalidatePathCache();
 				that.checkUpdate(false, false, mGetEntities);
 			}
 
@@ -3069,7 +3149,7 @@ sap.ui.define([
 			var bAborted = oError.message == "Request aborted";
 
 			// Call procesError for all contained requests first
-			jQuery.each(aRequests, function(i, oRequest) {
+			each(aRequests, function(i, oRequest) {
 				if (Array.isArray(oRequest)) {
 					oRequest.forEach(function(oRequest) {
 						processResponse(oRequest, oError, bAborted);
@@ -3106,7 +3186,7 @@ sap.ui.define([
 
 		var oRequestHandle = {
 			abort: function() {
-				jQuery.each(aRequests, function(i, oRequest) {
+				each(aRequests, function(i, oRequest) {
 					if (Array.isArray(oRequest)) {
 						oRequest.forEach(function(oRequest) {
 							callAbortHandler(oRequest);
@@ -3120,6 +3200,33 @@ sap.ui.define([
 		};
 
 		return oRequestHandle;
+	};
+
+
+	/**
+	 * If canoncial path changes were detected, all canonical path cache entries are checked for up-to-dateness.
+	 * @private
+	 */
+
+	ODataModel.prototype._invalidatePathCache = function(){
+		var that = this, iIndex;
+		if (Object.keys(this.mInvalidatedPaths).length > 0){
+			Object.keys(this.mPathCache).forEach(function(sKey){
+				// Search for matching key and navigation property, e.g.: (key=123)/ToProduct
+				for (var sUpdateKey in that.mInvalidatedPaths) {
+					iIndex = sKey.indexOf(sUpdateKey);
+					if (iIndex > -1) {
+						if (iIndex + sUpdateKey.length !== that.mPathCache[sKey].canonicalPath.length) {
+							var sEnd = sKey.substr(iIndex + sUpdateKey.length);
+							that.mPathCache[sKey].canonicalPath = that.mInvalidatedPaths[sUpdateKey] + sEnd;
+						} else {
+							that.mPathCache[sKey].canonicalPath = that.mInvalidatedPaths[sUpdateKey];
+						}
+					}
+				}
+			});
+		}
+		this.mInvalidatedPaths = {};
 	};
 
 	/**
@@ -3309,7 +3416,7 @@ sap.ui.define([
 		var that = this;
 
 		if (oGroup.changes) {
-			jQuery.each(oGroup.changes, function(sChangeSetId, aChangeSet){
+			each(oGroup.changes, function(sChangeSetId, aChangeSet){
 				for (var i = 0; i < aChangeSet.length; i++) {
 					if (aChangeSet[i].bRefreshAfterChange) {
 						var oRequest = aChangeSet[i].request,
@@ -3380,7 +3487,7 @@ sap.ui.define([
 
 		if (this.bUseBatch) {
 			//auto refresh for batch / for single requests we refresh after the request was successful
-			jQuery.each(mRequests, function(sRequestGroupId, oRequestGroup) {
+			each(mRequests, function(sRequestGroupId, oRequestGroup) {
 				if (sRequestGroupId === sGroupId || !sGroupId) {
 					var mChangedEntities = {},
 						mEntityTypes = {};
@@ -3393,12 +3500,12 @@ sap.ui.define([
 					}
 				}
 			});
-			jQuery.each(mRequests, function(sRequestGroupId, oRequestGroup) {
+			each(mRequests, function(sRequestGroupId, oRequestGroup) {
 				if (sRequestGroupId === sGroupId || !sGroupId) {
 					var aReadRequests = [], aBatchGroup = [], oChangeSet, aChanges;
 					var oWrappedBatchRequestHandle = wrapRequestHandle();
 					if (oRequestGroup.changes) {
-						jQuery.each(oRequestGroup.changes, function(sChangeSetId, aChangeSet){
+						each(oRequestGroup.changes, function(sChangeSetId, aChangeSet){
 							oChangeSet = {__changeRequests:[]};
 							aChanges = [];
 							for (var i = 0; i < aChangeSet.length; i++) {
@@ -3441,10 +3548,10 @@ sap.ui.define([
 				}
 			});
 		} else  {
-			jQuery.each(mRequests, function(sRequestGroupId, oRequestGroup) {
+			each(mRequests, function(sRequestGroupId, oRequestGroup) {
 				if (sRequestGroupId === sGroupId || !sGroupId) {
 					if (oRequestGroup.changes) {
-						jQuery.each(oRequestGroup.changes, function(sChangeSetId, aChangeSet){
+						each(oRequestGroup.changes, function(sChangeSetId, aChangeSet){
 							for (var i = 0; i < aChangeSet.length; i++) {
 								var oWrappedSingleRequestHandle = wrapRequestHandle();
 								//increase laundering
@@ -3486,15 +3593,12 @@ sap.ui.define([
 	 */
 	ODataModel.prototype._processRequestQueueAsync = function(mRequestQueue) {
 		var that = this;
-		if (!this.pCallAsnyc) {
-			this.pCallAsnyc = new Promise(function(resolve, reject) {
-				that.oMetadata.loaded().then(function() {
-					resolve();
+		if (!this.pCallAsync) {
+			this.pCallAsync = this.oMetadata.loaded().then(function() {
+				return Promise.resolve().then(function() {
+					that._processRequestQueue(mRequestQueue);
+					that.pCallAsync = undefined;
 				});
-			});
-			this.pCallAsnyc.then(function() {
-				that._processRequestQueue(mRequestQueue);
-				that.pCallAsnyc = undefined;
 			});
 		}
 	};
@@ -3550,7 +3654,11 @@ sap.ui.define([
 			if (!oResponse._imported && oResultData && (Array.isArray(oResultData) || typeof oResultData == 'object')) {
 				//need a deep data copy for import
 				oImportData = merge({}, oResultData);
-				that._importData(oImportData, mLocalGetEntities, oResponse);
+				if (oRequest.key || oRequest.created) {
+					that._importData(oImportData, mLocalGetEntities, oResponse);
+				} else {
+					that._importData(oImportData, mLocalGetEntities, oResponse, sPath, oRequest.deepPath);
+				}
 				oResponse._imported = true;
 			}
 
@@ -3559,13 +3667,13 @@ sap.ui.define([
 				var aResults = [];
 				var oResult = oEntity["$result"];
 				if (oResult && oResult.__list) {
-					jQuery.each(mLocalGetEntities, function(sKey) {
+					each(mLocalGetEntities, function(sKey) {
 						aResults.push(sKey);
 					});
 					oResult.__list = aResults;
 				} else if (oResult && oResult.__ref){
 					//there should be only 1 entity in mLocalGetEntities
-					jQuery.each(mLocalGetEntities, function(sKey) {
+					each(mLocalGetEntities, function(sKey) {
 						oResult.__ref = sKey;
 					});
 				}
@@ -3780,7 +3888,7 @@ sap.ui.define([
 		}
 
 		if (sMethod === "MERGE" && oEntityType && oUnModifiedEntry) {
-			jQuery.each(oPayload, function(sPropName, oPropValue) {
+			each(oPayload, function(sPropName, oPropValue) {
 				if (sPropName !== '__metadata') {
 					// remove unmodified properties and keep only modified properties for delta MERGE
 					if (deepEqual(oUnModifiedEntry[sPropName], oPropValue) && !that.isLaundering('/' + sKey + '/' + sPropName)) {
@@ -3790,7 +3898,7 @@ sap.ui.define([
 			});
 			// check if we have unit properties which were changed and if yes sent the associated unit prop also.
 			var sPath = "/" + sKey, sUnitNameProp;
-			jQuery.each(oPayload, function(sPropName, oPropValue) {
+			each(oPayload, function(sPropName, oPropValue) {
 				if (sPropName !== '__metadata') {
 					sUnitNameProp = that.getProperty(sPath + "/" + sPropName + "/#@sap:unit");
 					if (sUnitNameProp) {
@@ -3814,6 +3922,7 @@ sap.ui.define([
 		sUrl = this._createRequestUrl('/' + sKey, null, aUrlParams, this.bUseBatch);
 
 		oRequest = this._createRequest(sUrl, sMethod, mHeaders, oPayload, sETag);
+		oRequest.deepPath = that.resolveDeep(sUrl);
 
 		//for createEntry requests we need to flag request again
 		if (bCreated) {
@@ -4180,6 +4289,7 @@ sap.ui.define([
 		return this._processRequest(function(requestHandle) {
 			sUrl = that._createRequestUrl(sPath, oContext, aUrlParams, that.bUseBatch);
 			oRequest = that._createRequest(sUrl, sMethod, mHeaders, oData, sETag);
+			oRequest.deepPath = that.resolveDeep(sPath, oContext);
 
 			mRequests = that.mRequests;
 			if (sGroupId in that.mDeferredGroups) {
@@ -4247,6 +4357,8 @@ sap.ui.define([
 		return this._processRequest(function(requestHandle) {
 			sUrl = that._createRequestUrl(sPath, oContext, aUrlParams, that.bUseBatch);
 			oRequest = that._createRequest(sUrl, sMethod, mHeaders, oData, sEtag);
+			oRequest.deepPath = that.resolveDeep(sPath, oContext);
+			oRequest.created = true;
 
 			sPath = that._normalizePath(sPath, oContext);
 			oEntityMetadata = that.oMetadata._getEntityTypeByPath(sPath);
@@ -4329,6 +4441,7 @@ sap.ui.define([
 		return this._processRequest(function(requestHandle) {
 			sUrl = that._createRequestUrl(sPath, oContext, aUrlParams, that.bUseBatch);
 			oRequest = that._createRequest(sUrl, sMethod, mHeaders, undefined, sETag);
+			oRequest.deepPath = that.resolveDeep(sPath, oContext);
 
 			mRequests = that.mRequests;
 			if (sGroupId in that.mDeferredGroups) {
@@ -4398,7 +4511,7 @@ sap.ui.define([
 			sGroupId 		= mParameters.groupId || mParameters.batchGroupId;
 			sChangeSetId 	= mParameters.changeSetId;
 			sMethod			= mParameters.method ? mParameters.method : sMethod;
-			mUrlParams		= jQuery.extend({},mParameters.urlParameters);
+			mUrlParams		= Object.assign({}, mParameters.urlParameters);
 			sETag			= mParameters.eTag;
 			fnSuccess		= mParameters.success;
 			fnError			= mParameters.error;
@@ -4438,7 +4551,7 @@ sap.ui.define([
 				}
 			}
 			if (oFunctionMetadata.parameter != null) {
-				jQuery.each(oFunctionMetadata.parameter, function (iIndex, oParam) {
+				each(oFunctionMetadata.parameter, function (iIndex, oParam) {
 					oData[oParam.name] = that._createPropertyValue(oParam.type);
 					if (mUrlParams && mUrlParams[oParam.name] !== undefined) {
 						oData[oParam.name] = mUrlParams[oParam.name];
@@ -4463,14 +4576,16 @@ sap.ui.define([
 				functionImport: true
 			}};
 
-			that._addEntity(oData);
+			sKey = that._addEntity(oData);
 			oContext = that.getContext("/" + sKey);
+			that._writePathCache("/" + sKey, "/" + sKey);
 			fnResolve(oContext);
 
 			aUrlParams = ODataUtils._createUrlParamsArray(mUrlParams);
 
 			sUrl = that._createRequestUrl(sFunctionName, null, aUrlParams, that.bUseBatch);
 			oRequest = that._createRequest(sUrl, sMethod, mHeaders, undefined, sETag);
+			oRequest.deepPath = that.resolveDeep(sFunctionName, null);
 			oRequest.key = sKey;
 
 			mRequests = that.mRequests;
@@ -4500,7 +4615,7 @@ sap.ui.define([
 		}
 
 		if (oFunctionMetadata.parameter != null) {
-			jQuery.each(oFunctionMetadata.parameter, function (iIndex, oParam) {
+			each(oFunctionMetadata.parameter, function (iIndex, oParam) {
 				if (mUrlParams && mUrlParams[oParam.name] !== undefined) {
 					mUrlParams[oParam.name] = ODataUtils.formatValue(mUrlParams[oParam.name], oParam.type);
 				}
@@ -4600,8 +4715,8 @@ sap.ui.define([
 			}
 
 			sUrl = that._createRequestUrl(sPath, oContext, aUrlParams, that.bUseBatch);
-
 			oRequest = that._createRequest(sUrl, sMethod, mHeaders, null, sETag);
+			oRequest.deepPath = that.resolveDeep(sPath, oContext);
 
 			mRequests = that.mRequests;
 			if (sGroupId in that.mDeferredGroups) {
@@ -4747,7 +4862,7 @@ sap.ui.define([
 		});
 
 		return this.oMetadata._addUrl(aMetadataUrls).then(function(aParams) {
-			return Promise.all(jQuery.map(aParams, function(oParam) {
+			return Promise.all(aParams.map(function(oParam) {
 				aEntitySets = aEntitySets.concat(oParam.entitySets);
 				return that.oAnnotations.addSource({
 					type: "xml",
@@ -4830,7 +4945,7 @@ sap.ui.define([
 		mChangedEntities = merge({}, that.mChangedEntities);
 
 		this.oMetadata.loaded().then(function() {
-			jQuery.each(mChangedEntities, function(sKey, oData) {
+			each(mChangedEntities, function(sKey, oData) {
 				oGroupInfo = that._resolveGroup(sKey);
 				if (oGroupInfo.groupId === sGroupId || !sGroupId) {
 					oRequest = that._processChange(sKey, oData, sMethod || that.sDefaultUpdateMethod);
@@ -4869,6 +4984,10 @@ sap.ui.define([
 			if (bAborted) {
 				oRequestHandle.abort();
 			}
+			//call sucess handler even no changes were submitted
+			if (Array.isArray(vRequestHandleInternal) && vRequestHandleInternal.length == 0 && fnSuccess) {
+				fnSuccess({}, undefined);
+			}
 		});
 
 		oRequestHandle = {
@@ -4901,7 +5020,7 @@ sap.ui.define([
 	ODataModel.prototype._updateChangedEntities = function(mChangedEntities) {
 		var that = this, sRootPath;
 		function updateChangedEntities(oOriginalObject, oChangedObject) {
-			jQuery.each(oChangedObject,function(sKey) {
+			each(oChangedObject,function(sKey) {
 				var sActPath = sRootPath + '/' + sKey;
 				if (isPlainObject(oChangedObject[sKey]) && isPlainObject(oOriginalObject[sKey])) {
 					updateChangedEntities(oOriginalObject[sKey], oChangedObject[sKey]);
@@ -4914,7 +5033,7 @@ sap.ui.define([
 			});
 		}
 
-		jQuery.each(mChangedEntities, function(sKey, oData) {
+		each(mChangedEntities, function(sKey, oData) {
 			if (sKey in that.mChangedEntities) {
 				var oEntry = that._getObject('/' + sKey, null, true);
 				var oChangedEntry = that._getObject('/' + sKey);
@@ -4948,7 +5067,7 @@ sap.ui.define([
 		var that = this, aParts, oEntityInfo = {}, oChangeObject, oEntityMetadata;
 
 		if (aPath) {
-			jQuery.each(aPath, function(iIndex, sPath) {
+			each(aPath, function(iIndex, sPath) {
 				that.getEntityByPath(sPath, null, oEntityInfo);
 				aParts = oEntityInfo.propertyPath.split("/");
 				var sKey = oEntityInfo.key;
@@ -4984,7 +5103,7 @@ sap.ui.define([
 				}
 			});
 		} else {
-			jQuery.each(this.mChangedEntities, function(sKey, oObject) {
+			each(this.mChangedEntities, function(sKey, oObject) {
 				that.oMetadata.loaded().then(function() {
 					that.abortInternalRequest(sKey, that._resolveGroup(sKey).groupId);
 				});
@@ -5018,7 +5137,7 @@ sap.ui.define([
 			bFunction = false, that = this, bCreated;
 
 		function updateChangedEntities(oOriginalObject, oChangedObject) {
-			jQuery.each(oChangedObject,function(sKey) {
+			each(oChangedObject,function(sKey) {
 				if (isPlainObject(oChangedObject[sKey]) && isPlainObject(oOriginalObject[sKey])) {
 					updateChangedEntities(oOriginalObject[sKey], oChangedObject[sKey]);
 					if (jQuery.isEmptyObject(oChangedObject[sKey])) {
@@ -5030,7 +5149,7 @@ sap.ui.define([
 			});
 		}
 
-		sResolvedPath = this.resolve(sPath, oContext, true);
+		sResolvedPath = this.resolve(sPath, oContext);
 
 		oEntry = this.getEntityByPath(sResolvedPath, null, oEntityInfo);
 		if (!oEntry) {
@@ -5046,7 +5165,7 @@ sap.ui.define([
 		if (!this.mChangedEntities[sKey]) {
 			oEntityMetadata = oEntry.__metadata;
 			oEntry = {};
-			oEntry.__metadata = jQuery.extend({},oEntityMetadata);
+			oEntry.__metadata = Object.assign({},oEntityMetadata);
 			this.mChangedEntities[sKey] = oEntry;
 		}
 
@@ -5159,7 +5278,7 @@ sap.ui.define([
 		this.mCustomHeaders = {};
 
 		if (mHeaders) {
-			jQuery.each(mHeaders, function(sHeaderName, sHeaderValue){
+			each(mHeaders, function(sHeaderName, sHeaderValue){
 				// case sensitive check needed to make sure private headers cannot be overridden by difference in the upper/lower case (e.g. accept and Accept).
 				if (that._isHeaderPrivate(sHeaderName)){
 					Log.warning(this + " - modifying private header: '" + sHeaderName + "' not allowed!");
@@ -5181,7 +5300,7 @@ sap.ui.define([
 		var mCheckedHeaders = {},
 		that = this;
 		if (mHeaders) {
-			jQuery.each(mHeaders, function(sHeaderName, sHeaderValue){
+			each(mHeaders, function(sHeaderName, sHeaderValue){
 				// case sensitive check needed to make sure private headers cannot be overridden by difference in the upper/lower case (e.g. accept and Accept).
 				if (that._isHeaderPrivate(sHeaderName)){
 					Log.warning(this + " - modifying private header: '" + sHeaderName + "' not allowed!");
@@ -5429,11 +5548,12 @@ sap.ui.define([
 				changeSetId: sChangeSetId,
 				eTag: sETag}};
 
-			that._addEntity(merge({}, oEntity));
+			sKey = that._addEntity(merge({}, oEntity));
 			that.mChangedEntities[sKey] = oEntity;
 
 			sUrl = that._createRequestUrl(sPath, oContext, aUrlParams, that.bUseBatch);
 			oRequest = that._createRequest(sUrl, sMethod, mHeaders, oEntity, sETag);
+			oRequest.deepPath = that.resolveDeep(sPath, oContext);
 
 			oCreatedContext = that.getContext("/" + sKey); // context wants a path
 			oCreatedContext.bCreated = true;
@@ -5528,7 +5648,7 @@ sap.ui.define([
 		if (!oContext && !sPath.startsWith("/")) {
 			Log.fatal(this + " path " + sPath + " must be absolute if no Context is set");
 		}
-		return this.resolve(sPath, oContext);
+		return this.resolve(sPath, oContext, this.bCanonicalRequests) || this.resolve(sPath, oContext);
 	};
 
 	/**
@@ -5729,7 +5849,7 @@ sap.ui.define([
 	ODataModel.prototype.setDeferredGroups = function(aGroupIds) {
 		var that = this;
 		this.mDeferredGroups = {};
-		jQuery.each(aGroupIds, function(iIndex,sGroupId){
+		each(aGroupIds, function(iIndex,sGroupId){
 			that.mDeferredGroups[sGroupId] = sGroupId;
 		});
 	};
@@ -5778,7 +5898,7 @@ sap.ui.define([
 	 * @public
 	 */
 	ODataModel.prototype.setChangeBatchGroups = function(mGroups) {
-		jQuery.each(mGroups, function(sEntityName, oGroup) {
+		each(mGroups, function(sEntityName, oGroup) {
 			oGroup.groupId = oGroup.batchGroupId;
 		});
 		this.setChangeGroups(mGroups);
@@ -5967,6 +6087,55 @@ sap.ui.define([
 	};
 
 	/**
+	 * Check canonical path cache for possible shorter representations of the given path.
+	 *
+	 * @param {string} sPath Path, which is checked.
+	 * @return {string|undefined} A shorter path or undefined.
+	 *
+	 * @example
+	 * sPath = a(1)/b(2)/toC/ToD
+	 * 1. Try to match this path.
+	 * 2. If no matching cache entry was found, iteratively try to match the path shorten by one segment:
+	 *  a) a(1)/b(2)/toC
+	 *  b) a(1)/b(2)
+	 * 	...
+	 * 3. If a matching cache entry was found, recursively check also this new path for shorter matches.
+	 *  E.g. following entry found in cache: "a(1)/b(2)" => "f(123)"
+	 *	a) f(123)/toC/ToD
+	 *  b) f(123)/toC
+	 * 	...
+	 * @private
+	 */
+
+	ODataModel.prototype.resolveFromCache = function(sPath){
+		if (!this.mPathCache){
+			return undefined;
+		}
+
+		var sStartingPath,
+			sEndingPathPart = "",
+			sCanonicalPath,
+			sNextMatch,
+			iIndex;
+
+		sCanonicalPath = this.mPathCache[sPath] ? this.mPathCache[sPath].canonicalPath : undefined;
+		if (sPath && sCanonicalPath !== sPath) {
+			sStartingPath = sCanonicalPath || sPath;
+			if (!sCanonicalPath) {
+				iIndex = sStartingPath.lastIndexOf("/");
+				sEndingPathPart = sStartingPath.substr(iIndex);
+				sStartingPath = sStartingPath.substr(0, iIndex);
+			}
+			sNextMatch = this.resolveFromCache(sStartingPath);
+
+			if (sNextMatch && sNextMatch !== sStartingPath) {
+				sCanonicalPath = sNextMatch + sEndingPathPart;
+			}
+		}
+		return sCanonicalPath;
+	};
+
+	/**
 	 * Resolve the path relative to the given context.
 	 *
 	 * In addition to {@link sap.ui.model.Model#resolve resolve} a
@@ -5978,19 +6147,36 @@ sap.ui.define([
 	 * @return {string} Resolved path, canonical path or undefined
 	 */
 	ODataModel.prototype.resolve = function(sPath, oContext, bCanonical) {
-		var sResolvedPath = Model.prototype.resolve.call(this,sPath, oContext);
-		if (!this._isMetadataPath(sResolvedPath) && bCanonical) {
-			var oEntityInfo = {},
-				oEntity = this.getEntityByPath(sPath, oContext, oEntityInfo);
-			if (oEntity) {
-				if (oEntityInfo.propertyPath) {
-					return "/" + oEntityInfo.key + "/" + oEntityInfo.propertyPath;
-				} else {
-					return "/" + oEntityInfo.key;
-				}
-			} else {
-				return undefined;
+		var sResolvedPath = Model.prototype.resolve.call(this, sPath, oContext);
+
+		if (sResolvedPath && !this._isMetadataPath(sResolvedPath) && bCanonical) {
+			var sCanonicalPath = this.resolveFromCache(sResolvedPath);
+			if (!sCanonicalPath){
+				//Use metadata to calc canonical path
+				sCanonicalPath = this.oMetadata._calculateCanonicalPath(sResolvedPath);
+				sCanonicalPath = this.resolveFromCache(sCanonicalPath) || sCanonicalPath;
 			}
+
+			this._writePathCache(sResolvedPath, sCanonicalPath);
+			return sCanonicalPath;
+		}
+		return sResolvedPath;
+	};
+
+	/**
+	 * Resolve the path relative to the given context. If the context contains a parent path
+	 * (deepPath) we resolve with this deepPath instead the canonical one.
+	 *
+	 * @param {string} sPath Path to resolve
+	 * @param {sap.ui.core.Context} [oContext] Context to resolve a relative path against
+	 * @return {string} Resolved path, canonical path or undefined
+	 * @private
+	 */
+	ODataModel.prototype.resolveDeep = function(sPath, oContext) {
+		var sResolvedPath = Model.prototype.resolve.call(this, sPath, oContext);
+		if (sPath && !sPath.startsWith("/")) {
+			// if sPath is relative we resolve with the deep path of the context - else the path is absolute already
+			sResolvedPath = oContext ? oContext.sDeepPath + '/' + sPath : sResolvedPath;
 		}
 		return sResolvedPath;
 	};

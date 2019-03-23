@@ -107,7 +107,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @constructor
 	 * @public
@@ -284,6 +284,8 @@ function(
 	/* =========================================================== */
 
 	ViewSettingsDialog.prototype.init = function() {
+		var sId = this.getId();
+
 		this._rb                            = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 		this._sDialogWidth                  = "350px";
 		this._sDialogHeight                 = "434px";
@@ -298,7 +300,8 @@ function(
 		this._oContentItem                  = null;
 		this._oPreviousState                = {};
 		this._sCustomTabsButtonsIdPrefix    = '-custom-button-';
-		this._sTitleLabelId                 = this.getId() + "-title";
+		this._sTitleLabelId                 = sId + "-title";
+		this._sFilterDetailTitleLabelId     = sId + "-detailtitle";
 
 		/* setup a name map between the sortItems
 		 aggregation and an sap.m.List with items
@@ -883,9 +886,42 @@ function(
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._setFilterDetailTitle = function (oItem) {
-		this._getDetailTitleLabel().setText(
-			this._rb.getText("VIEWSETTINGS_TITLE_FILTERBY") + " "
-			+ oItem.getText());
+		var sText = this._rb.getText("VIEWSETTINGS_TITLE_FILTERBY") + " " + oItem.getText();
+		this._getDetailTitleLabel().setText(sText);
+
+		// Update the dialog's title as well, so that the new detail title can be read out by the screen reader
+		this._toggleDialogTitle(this._sFilterDetailTitleLabelId);
+	};
+
+	/**
+	 * Adds a reference to a specific title in the dialog's <code>aria-labelledby</code> attribute.
+	 *
+	 * @param {string} sNewTitleId Title's ID
+	 * @returns {sap.m.ViewSettingsDialog} this For method chaining
+	 * @private
+	 */
+	ViewSettingsDialog.prototype._toggleDialogTitle = function (sNewTitleId) {
+		var oDialog = this._getDialog(),
+			aAriaLabelledByIds = oDialog.getAriaLabelledBy(),
+			// Title options are in an array, for ease of extending this in the future.
+			aTitleOptions = [
+				this._sTitleLabelId,
+				this._sFilterDetailTitleLabelId
+			];
+
+		if (aTitleOptions.indexOf(sNewTitleId) === -1 && aAriaLabelledByIds.indexOf(sNewTitleId) > -1) {
+			// Don't do anything if the title isn't one of the options, or it's already set in the ariaLabelledBy
+			return this;
+		}
+
+		for (var sTitleOptionId in aTitleOptions) {
+			// Make sure that only the new title will be in ariaLabelledBy
+			oDialog.removeAriaLabelledBy(aTitleOptions[sTitleOptionId]);
+		}
+
+		oDialog.addAriaLabelledBy(sNewTitleId);
+
+		return this;
 	};
 
 	/**
@@ -1559,11 +1595,10 @@ function(
 
 		if (this._resetButton === undefined) {
 			this._resetButton = new sap.m.Button(this.getId() + "-resetbutton", {
-				icon : IconPool.getIconURI("clear-filter"),
 				press : function() {
 					that._onClearFilters();
 				},
-				tooltip : this._rb.getText("VIEWSETTINGS_CLEAR_FILTER_TOOLTIP")
+				text : this._rb.getText("VIEWSETTINGS_RESET")
 			});
 		}
 		return this._resetButton;
@@ -1734,11 +1769,10 @@ function(
 			});
 			oDetailResetButton = new sap.m.Button(this.getId()
 			+ "-detailresetbutton", {
-				icon : IconPool.getIconURI("clear-filter"),
 				press : function() {
 					that._onClearFilters();
 				},
-				tooltip : this._rb.getText("VIEWSETTINGS_CLEAR_FILTER_TOOLTIP")
+				text : this._rb.getText("VIEWSETTINGS_RESET")
 			});
 			oDetailHeader = new sap.m.Bar({
 				contentLeft     : [ oBackButton ],
@@ -1761,6 +1795,10 @@ function(
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._initFilterDetailItems = function(oItem) {
+		if (!(oItem instanceof sap.m.ViewSettingsFilterItem)) {
+			return;
+		}
+
 		var oListItem;
 		var bMultiSelectMode = oItem.getMultiSelect();
 		var aSubFilters = oItem.getItems();
@@ -2539,6 +2577,9 @@ function(
 			oTitleLabel.setText(this._rb.getText("VIEWSETTINGS_TITLE"));
 		}
 
+		// Reset the title, since we need the detail title only for case 3 (where it would be changed)
+		this._toggleDialogTitle(this._sTitleLabelId);
+
 		switch (vWhich) {
 			case 1: // grouping
 				oResetButton.setVisible(false);
@@ -2979,6 +3020,9 @@ function(
 					vGroupItem = sap.ui.getCore().byId(sGroupItemId);
 				}
 
+				// Reset the title on closing the dialog, since it will be needed for the next opening.
+				that._toggleDialogTitle(that._sTitleLabelId);
+
 				oSettingsState = {
 					sortItem            : sap.ui.getCore().byId(that.getSelectedSortItem()),
 					sortDescending      : that.getSortDescending(),
@@ -3010,6 +3054,9 @@ function(
 	 */
 	ViewSettingsDialog.prototype._onCancel = function(oEvent) {
 		var that = this, oDialog = this._getDialog(), fnAfterClose = function() {
+			// Reset the title on closing the dialog, since it will be needed for the next opening.
+			that._toggleDialogTitle(that._sTitleLabelId);
+
 			// reset the dialog to the previous state
 			that.setSelectedSortItem(that._oPreviousState.sortItem);
 			that.setSortDescending(that._oPreviousState.sortDescending);
@@ -3083,15 +3130,13 @@ function(
 			if (!this._getPage1().getSubHeader()) {
 				this._getPage1().setSubHeader(oSubHeader);
 			}
-			// show reset button in subheader
-			oSubHeader.addContentRight(oResetButton);
 		} else {
 			if (this._getPage1().getSubHeader()) {
 				this._getPage1().setSubHeader();
 			}
-			// show reset button in header
-			oHeader.addContentRight(oResetButton);
 		}
+		// show reset button in header
+		oHeader.addContentRight(oResetButton);
 	};
 	/* =========================================================== */
 	/* end: event handlers */

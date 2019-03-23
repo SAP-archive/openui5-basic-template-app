@@ -104,7 +104,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @constructor
 	 * @public
@@ -214,7 +214,9 @@ function(
 			},
 
 			/**
-			 * This event is fired after a carousel swipe has been completed. It is triggered both by physical swipe events and through API carousel manipulations such as calling 'next', 'previous' or 'setActivePageId' functions.
+			 * This event is fired after a carousel swipe has been completed.
+			 * It is triggered both by physical swipe events and through API carousel manipulations such as calling
+			 * 'next', 'previous' or 'setActivePageId' functions.
 			 */
 			pageChanged : {
 				parameters : {
@@ -232,6 +234,22 @@ function(
 					/**
 					 * Indexes of all active pages after the page change.
 					 * @since 1.62
+					 */
+					activePages : {type : "array"}
+				}
+			},
+
+			/**
+			 * This event is fired before a carousel swipe has been completed.
+			 * It is triggered both by physical swipe events and through API carousel manipulations such as calling
+			 * 'next', 'previous' or 'setActivePageId' functions.
+			 */
+			beforePageChanged : {
+				parameters : {
+
+					/**
+					 * Indexes of all active pages after the page change.
+					 * @since 1.63
 					 */
 					activePages : {type : "array"}
 				}
@@ -273,6 +291,9 @@ function(
 		this._aOrderOfFocusedElements = [];
 		this._aAllActivePages = [];
 		this._aAllActivePagesIndexes = [];
+
+		this._onBeforePageChangedRef = this._onBeforePageChanged.bind(this);
+		this._onAfterPageChangedRef = this._onAfterPageChanged.bind(this);
 
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
 	};
@@ -471,19 +492,11 @@ function(
 			}
 		}
 
+		this.$().on('beforeSlide', this._onBeforePageChangedRef);
+
 		//attach delegate for firing 'PageChanged' events to mobify carousel's
 		//'afterSlide'
-		this.$().on('afterSlide', jQuery.proxy(function(e, iPreviousSlide, iNextSlide) {
-			//the event might bubble up from another carousel inside of this one.
-			//in this case we ignore the event
-			if (e.target !== this.getDomRef()) {
-				return;
-			}
-
-			if (iNextSlide > 0) {
-				this._changePage(iNextSlide);
-			}
-		}, this));
+		this.$().on('afterSlide', this._onAfterPageChangedRef);
 
 		this._$InnerDiv = this.$().find(Carousel._INNER_SELECTOR)[0];
 
@@ -521,6 +534,49 @@ function(
 			}
 
 			oParent = oParent.getParent();
+		}
+	};
+
+	/**
+	 * Calls logic for updating active pages and fires 'beforePageChanged' event with the new active pages.
+	 *
+	 * @param {object} oEvent event object
+	 * @param {int} iPreviousSlide index of the previous active page
+	 * @param {int} iNextSlide index of the next active page
+	 * @private
+	 */
+	Carousel.prototype._onBeforePageChanged = function (oEvent, iPreviousSlide, iNextSlide) {
+		//the event might bubble up from another carousel inside of this one.
+		//in this case we ignore the event
+		if (oEvent.target !== this.getDomRef()) {
+			return;
+		}
+
+		var sNewActivePageId = this.getPages()[iNextSlide - 1].getId();
+		this._updateActivePages(sNewActivePageId);
+
+		this.fireBeforePageChanged({
+			activePages: this._aAllActivePagesIndexes
+		});
+	};
+
+	/**
+	 * Sets the width of the visible pages, rendered in the <code>Carousel</code> control.
+	 *
+	 * @param {object} oEvent event object
+	 * @param {int} iPreviousSlide index of the previous active page
+	 * @param {int} iNextSlide index of the next active page
+	 * @private
+	 */
+	Carousel.prototype._onAfterPageChanged = function (oEvent, iPreviousSlide, iNextSlide) {
+		//the event might bubble up from another carousel inside of this one.
+		//in this case we ignore the event
+		if (oEvent.target !== this.getDomRef()) {
+			return;
+		}
+
+		if (iNextSlide > 0) {
+			this._changePage(iNextSlide);
 		}
 	};
 
@@ -598,8 +654,6 @@ function(
 		this._adjustHUDVisibility(iNewPageIndex);
 		var sOldActivePageId = this.getActivePage();
 		var sNewActivePageId = this.getPages()[iNewPageIndex - 1].getId();
-
-		this._updateActivePages(sNewActivePageId);
 
 		this.setAssociation("activePage", sNewActivePageId, true);
 		var sTextBetweenNumbers = this._getPageIndicatorText(iNewPageIndex);

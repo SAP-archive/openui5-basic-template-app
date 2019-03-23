@@ -33,7 +33,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.CompositeType
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.DateFormat.getDateInstance DateFormat}.
@@ -85,7 +85,7 @@ sap.ui.define([
 		switch (this.getPrimitiveType(sInternalType)) {
 			case "string":
 			case "any":
-				if (!aValues[0] || !aValues[1]) {
+				if (!aValues[0] || (!aValues[1] && !this.oFormatOptions.singleIntervalValue)) {
 					return "";
 				}
 				if (this.oInputFormat) {
@@ -132,7 +132,13 @@ sap.ui.define([
 	 * @public
 	 */
 	DateInterval.prototype.parseValue = function(sValue, sInternalType) {
-		var aDates, oBundle;
+		var aDates;
+
+		function throwParseException(sName) {
+			var oBundle = sap.ui.getCore().getLibraryResourceBundle();
+			throw new ParseException(oBundle.getText(sName + ".Invalid"));
+		}
+
 		switch (this.getPrimitiveType(sInternalType)) {
 			case "string":
 				if (sValue === "") {
@@ -140,9 +146,10 @@ sap.ui.define([
 				}
 
 				aDates = this.oOutputFormat.parse(sValue);
-				if (!aDates[0] || !aDates[1]) {
-					oBundle = sap.ui.getCore().getLibraryResourceBundle();
-					throw new ParseException(oBundle.getText(this.sName + ".Invalid"));
+
+				if (!aDates[0] || (!aDates[1] && !this.oFormatOptions.singleIntervalValue)) {
+					// at least one single date should be returned
+					throwParseException(this.sName);
 				}
 
 				if (this.oInputFormat) {
@@ -179,15 +186,33 @@ sap.ui.define([
 
 			Object.keys(this.oConstraints).forEach(function(sKey) {
 				var oCompareValue = this.oConstraints[sKey];
+				var bValid = true;
+
 				switch (sKey) {
 					case "minimum":
-						if (aValues[0] < oCompareValue || aValues[1] < oCompareValue) {
+						if (this.oFormatOptions.singleIntervalValue && aValues[1] === null) {
+							if (aValues[0] < oCompareValue) {
+								bValid = false;
+							}
+						} else if (aValues[0] < oCompareValue || aValues[1] < oCompareValue) {
+							bValid = false;
+						}
+
+						if (bValid === false) {
 							aViolatedConstraints.push("minimum");
 							aMessages.push(oBundle.getText("Date.Minimum", [oCompareValue]));
 						}
 						break;
 					case "maximum":
-						if (aValues[0] > oCompareValue || aValues[1] > oCompareValue) {
+						if (this.oFormatOptions.singleIntervalValue && aValues[1] === null) {
+							if (aValues[0] > oCompareValue) {
+								bValid = false;
+							}
+						} else if (aValues[0] > oCompareValue || aValues[1] > oCompareValue) {
+							bValid = false;
+						}
+
+						if (bValid === false) {
 							aViolatedConstraints.push("maximum");
 							aMessages.push(oBundle.getText("Date.Maximum", [oCompareValue]));
 						}

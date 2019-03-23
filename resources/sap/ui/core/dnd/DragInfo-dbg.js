@@ -21,7 +21,7 @@ sap.ui.define(["./DragDropBase"],
 	 * @extends sap.ui.core.dnd.DragDropBase
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @public
 	 * @since 1.56
@@ -90,7 +90,7 @@ sap.ui.define(["./DragDropBase"],
 
 		// metadata restrictions
 		var sSourceAggregation = this.getSourceAggregation();
-		if (!DragDropBase.checkMetadata(oDragSource, sSourceAggregation, "draggable")) {
+		if (!this.checkMetadata(oDragSource, sSourceAggregation, "draggable")) {
 			return false;
 		}
 

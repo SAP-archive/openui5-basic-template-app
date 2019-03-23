@@ -217,7 +217,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 * @final
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 * @alias sap.ui.core.Core
 	 * @public
 	 * @hideconstructor
@@ -1198,8 +1198,6 @@ sap.ui.define([
 		Log.info("Initialized",null,METHOD);
 		Measurement.end("coreInit");
 
-		this.bInitialized = true;
-
 		// start the plugins
 		Log.info("Starting Plugins",null,METHOD);
 		this.startPlugins();
@@ -1207,19 +1205,21 @@ sap.ui.define([
 
 		this._createUIAreas();
 
-		this.oThemeCheck.fireThemeChangedEvent(true);
-
-		this._executeOnInit();
-
-		this._setupRootComponent();
-
 		this._setBodyAccessibilityRole();
 
-		this._executeInitListeners();
+		this.oThemeCheck.fireThemeChangedEvent(true);
 
-		if ( this.isThemeApplied() || !this.oConfiguration['xx-waitForTheme'] ) {
+		var sWaitForTheme = this.oConfiguration['xx-waitForTheme'];
+		if ( this.isThemeApplied() || !sWaitForTheme ) {
+
+			this._executeInitialization();
 			this.renderPendingUIUpdates("during Core init"); // directly render without setTimeout, so rendering is guaranteed to be finished when init() ends
-		} else {
+			Measurement.end("coreComplete");
+
+		} else if (sWaitForTheme === "rendering") {
+
+			this._executeInitialization();
+
 			oRenderLog.debug("delay initial rendering until theme has been loaded");
 			_oEventProvider.attachEventOnce(Core.M_EVENTS.ThemeChanged, function() {
 				setTimeout(
@@ -1227,9 +1227,26 @@ sap.ui.define([
 					Device.browser.safari ? 50 : 0
 				);
 			}, this);
-		}
 
-		Measurement.end("coreComplete");
+			Measurement.end("coreComplete");
+
+		} else if (sWaitForTheme === "init") {
+
+			oRenderLog.debug("delay init event and initial rendering until theme has been loaded");
+			_oEventProvider.attachEventOnce(Core.M_EVENTS.ThemeChanged, function() {
+
+				this._executeInitialization();
+
+				setTimeout(
+					this.renderPendingUIUpdates.bind(this, "after theme has been loaded"),
+					Device.browser.safari ? 50 : 0
+				);
+
+				Measurement.end("coreComplete");
+
+			}, this);
+
+		}
 	};
 
 	Core.prototype._createUIAreas = function() {
@@ -1364,6 +1381,16 @@ sap.ui.define([
 				fn();
 			});
 		}
+	};
+
+	Core.prototype._executeInitialization = function() {
+		if (this.bInitialized) {
+			return;
+		}
+		this.bInitialized = true;
+		this._executeOnInit();
+		this._setupRootComponent();
+		this._executeInitListeners();
 	};
 
 	/**
@@ -1686,11 +1713,14 @@ sap.ui.define([
 	 * @private
 	*/
 	function registerPreloadedModules(oData, sURL) {
-		var modules = oData.modules;
+		var modules = oData.modules,
+				fnUI5ToRJS = function(sName) {
+					return /^jquery\.sap\./.test(sName) ? sName : sName.replace(/\./g, "/");
+				};
 			if ( Version(oData.version || "1.0").compareTo("2.0") < 0 ) {
 				modules = {};
 				for ( var sName in oData.modules ) {
-					modules[LoaderExtensions.ui5ToRJS(sName) + ".js"] = oData.modules[sName];
+					modules[fnUI5ToRJS(sName) + ".js"] = oData.modules[sName];
 				}
 			}
 			sap.ui.require.preload(modules, oData.name, sURL);

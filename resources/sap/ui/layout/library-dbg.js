@@ -20,14 +20,14 @@ sap.ui.define([
 	 * @namespace
 	 * @name sap.ui.layout
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 * @public
 	 */
 
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.ui.layout",
-		version: "1.62.1",
+		version: "1.63.0",
 		dependencies: ["sap.ui.core"],
 		designtime: "sap/ui/layout/designtime/library.designtime",
 		types: [
@@ -478,7 +478,19 @@ sap.ui.define([
 			 *
 			 * @public
 			 */
-			ShadeD: "ShadeD"
+			ShadeD: "ShadeD",
+			/**
+			 * Shade E - available only for Fiori 3 theme
+			 *
+			 * @public
+			 */
+			ShadeE: "ShadeE",
+			/**
+			 * Shade F - available only for Fiori 3 theme
+			 *
+			 * @public
+			 */
+			ShadeF: "ShadeF"
 		};
 
 

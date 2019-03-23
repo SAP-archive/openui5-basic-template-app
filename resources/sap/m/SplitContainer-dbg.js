@@ -7,6 +7,7 @@
 // Provides control sap.m.SplitContainer.
 sap.ui.define([
 	'./library',
+	'sap/ui/base/DataType',
 	'sap/ui/core/Control',
 	'sap/ui/core/IconPool',
 	'sap/m/semantic/SemanticPage',
@@ -22,6 +23,7 @@ sap.ui.define([
 ],
 function(
 	library,
+	DataType,
 	Control,
 	IconPool,
 	SemanticPage,
@@ -62,7 +64,7 @@ function(
 	 *
 	 * NOTE: This control must be rendered as a full screen control in order to make the show/hide master area work properly.
 	 * @extends sap.ui.core.Control
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @constructor
 	 * @public
@@ -2067,6 +2069,21 @@ function(
 		return array.some(function(oArrayEntry) {
 			return oPage && (oPage === oArrayEntry);
 		});
+	};
+
+	/**
+	 * Returns the <code>backgroundColor</code> value that passed validation for type <code>sap.ui.core.CSSColor</code>
+	 * (required as the public property itself is of the more generic <code>string</code> type)
+	 *
+	 * @private
+	 * @returns {string} sValue the value that passed the check, or empty string
+	 */
+	SplitContainer.prototype._getValidatedBackgroundColor = function () {
+		var sBackgroundColor = this.getBackgroundColor();
+		if (!DataType.getType("sap.ui.core.CSSColor").isValid(sBackgroundColor)) {
+			sBackgroundColor = "";
+		}
+		return sBackgroundColor;
 	};
 
 	/**************************************************************

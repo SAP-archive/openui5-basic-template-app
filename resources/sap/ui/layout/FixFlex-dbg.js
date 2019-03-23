@@ -57,7 +57,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.62.1
+		 * @version 1.63.0
 		 *
 		 * @constructor
 		 * @public
@@ -105,7 +105,8 @@ sap.ui.define([
 					 */
 					flexContent: {type: "sap.ui.core.Control", multiple: false}
 				},
-				designtime: "sap/ui/layout/designtime/FixFlex.designtime"
+				designtime: "sap/ui/layout/designtime/FixFlex.designtime",
+				dnd: { draggable: false, droppable: true }
 			}
 		});
 

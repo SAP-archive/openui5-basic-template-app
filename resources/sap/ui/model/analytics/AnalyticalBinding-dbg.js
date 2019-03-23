@@ -2918,7 +2918,7 @@ sap.ui.define([
 			if (this.sCustomParams) {
 				aParam.push(this.sCustomParams);
 			}
-			var oRequestHandle = this.oModel.read(sPath, {
+			var oRequestHandle = this.oModel.read(sPath.replace(/ /g, "%20"), {
 				success: fnSuccess,
 				error: fnError,
 				context: this.oContext,

@@ -70,7 +70,7 @@ sap.ui.define([
 		 * The message toast has the same behavior on all devices. However, you can adjust the width of the control, for example, for use on a desktop device.
 		 *
 		 * @author SAP SE
-		 * @version 1.62.1
+		 * @version 1.63.0
 		 *
 		 * @namespace
 		 * @public

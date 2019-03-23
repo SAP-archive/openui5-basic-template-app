@@ -36,11 +36,28 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.model.CompositeType
 	 *
+	 * @example MeterType with dynamic decimals coming from the model
+	 * // defining a new custom Type as a subclass of the sap.ui.model.type.Unit type
+	 * sap.ui.require(["sap/ui/model/type/Unit"], function(UnitType) {
+	 *
+	 *  UnitType.extend("sap.ui.core.samples.MeterType", {
+	 *      constructor: function(oFormatOptions, oConstraints){
+	 *          // define the dynamic format options as the third argument
+	 *          // ‘aDynamicFormatOptionNames’
+	 *          UnitType.call(this, oFormatOptions, oConstraints, ["decimals"]);
+	 *      }
+	 *  });
+	 * });
+	 *
+	 * in the view
+	 * {parts:['energyModel>value', 'energyModel>unit', 'energyModel>decimals'],type: 'sap.ui.core.samples.MeterType'}
+	 *
+	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @public
-	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.NumberFormat#getUnitInstance NumberFormat}.
+	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.NumberFormat.getUnitInstance NumberFormat}.
 	 * @param {object} [oFormatOptions.source] Additional set of format options to be used if the property in the model is not of type <code>string</code> and needs formatting as well.
 	 * 										   If an empty object is given, the grouping is disabled and a dot is used as decimal separator.
 	 * @param {object} [oConstraints] Value constraints
@@ -60,14 +77,6 @@ sap.ui.define([
 		}
 	});
 
-	Unit.prototype._createInstance = function(oFormatArgs) {
-		//merge base format options into object
-		if (this.oFormatOptions) {
-			oFormatArgs = jQuery.extend({}, this.oFormatOptions, oFormatArgs);
-		}
-		return NumberFormat.getUnitInstance(oFormatArgs);
-	};
-
 	/**
 	 * Retrieves a new NumberFormat instance for the given dynamic format options.
 	 * If a Unit is already known during formatting, we also pass it along to construct
@@ -79,11 +88,14 @@ sap.ui.define([
 	Unit.prototype._getInstance = function(aArgs, sUnitToBeFormatted) {
 		var oFormatArgs = this.createFormatOptions(aArgs);
 
-		// If the unit is known during formatting, we resolve the unit.
+		// We resolve the unit and merge it with the bound decimals/precision in case the following is true:
+		//     1. If the unit is known during formatting
+		//     2. no custom units are given on the the Unit type's format-options
+		//     3. no custom units are given in bound the dynamic-format-options
 		// This way we ensure that the bound dynamic format options (e.g. decimals, precision)
 		// are taken into account with priority. Otherwise the format options defined for units on the Configuration
 		// might overwrite the given dynamic format options of the type.
-		if (sUnitToBeFormatted && !this.oFormatOptions.customUnits) {
+		if (sUnitToBeFormatted && !this.oFormatOptions.customUnits && !oFormatArgs.customUnits) {
 			// checks the global Configuration and CLDR for Units/UnitMappings
 			var oLocale = sap.ui.getCore().getConfiguration().getFormatSettings().getFormatLocale();
 			var oLocaleData = LocaleData.getInstance(oLocale);
@@ -100,6 +112,12 @@ sap.ui.define([
 			}
 		}
 
+		var oFormatOptionsMerged = oFormatArgs;
+		// merge the format options defined via constructor with the bound dynamic format options
+		if (this.oFormatOptions) {
+			oFormatOptionsMerged = jQuery.extend({}, this.oFormatOptions, oFormatArgs);
+		}
+
 		// Only subclasses of the Unit type use a NumberFormat instance cache.
 		// By default a new NumberFormat instance is created everytime.
 		if (this.getMetadata().getClass() !== Unit) {
@@ -107,15 +125,15 @@ sap.ui.define([
 			var oMetadata = this.getMetadata();
 			oMetadata._mTypeInstanceCache = oMetadata._mTypeInstanceCache || {};
 
-			var sHashKey = hash(JSON.stringify(oFormatArgs) || "");
+			var sHashKey = hash(JSON.stringify(oFormatOptionsMerged) || "");
 			var oHashedInstance = oMetadata._mTypeInstanceCache[sHashKey];
 			if (!oHashedInstance) {
-				oHashedInstance = this._createInstance(oFormatArgs);
+				oHashedInstance = NumberFormat.getUnitInstance(oFormatOptionsMerged);
 				oMetadata._mTypeInstanceCache[sHashKey] = oHashedInstance;
 			}
 			return oHashedInstance;
 		} else {
-			return this._createInstance(oFormatArgs);
+			return NumberFormat.getUnitInstance(oFormatOptionsMerged);
 		}
 	};
 
@@ -222,7 +240,7 @@ sap.ui.define([
 			case "string":
 				this.oOutputFormat = this._getInstance(this.aDynamicValues);
 				vResult = this.oOutputFormat.parse(vValue);
-				if (!Array.isArray(vResult)) {
+				if (!Array.isArray(vResult) || isNaN(vResult[0])) {
 					oBundle = sap.ui.getCore().getLibraryResourceBundle();
 					throw new ParseException(oBundle.getText("Unit.Invalid", [vValue]));
 				}

@@ -38,7 +38,7 @@ sap.ui.define([
 	 * Applies a sap.ui.layout.cssgrid.GridSettings to a provided DOM element or Control.
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 *
@@ -103,9 +103,16 @@ sap.ui.define([
 		for (sProp in mGridProperties) {
 			if (oProperties[sProp]) {
 				sPropValue = oGridSettings.getProperty(sProp);
+
 				if (sProp === "gridAutoFlow") {
 					sPropValue = mGridAutoFlow[sPropValue];
 				}
+
+				// If sPropValue is "" it will overwrite the corresponding gridGap value
+				if (sPropValue === "" && (sProp === "gridRowGap" || sProp === "gridColumnGap")) {
+					continue;
+				}
+
 				oElement.style.setProperty(mGridProperties[sProp], sPropValue);
 			}
 		}

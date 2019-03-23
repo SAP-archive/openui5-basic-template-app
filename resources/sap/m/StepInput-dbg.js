@@ -12,6 +12,7 @@ sap.ui.define([
 	"./InputRenderer",
 	"sap/ui/core/Control",
 	"sap/ui/core/IconPool",
+	'sap/ui/core/LabelEnablement',
 	'sap/ui/Device',
 	"sap/ui/core/library",
 	"sap/ui/core/Renderer",
@@ -27,6 +28,7 @@ function(
 	InputRenderer,
 	Control,
 	IconPool,
+	LabelEnablement,
 	Device,
 	coreLibrary,
 	Renderer,
@@ -103,7 +105,7 @@ function(
 		 * @implements sap.ui.core.IFormContent
 		 *
 		 * @author SAP SE
-		 * @version 1.62.1
+		 * @version 1.63.0
 		 *
 		 * @constructor
 		 * @public
@@ -335,7 +337,12 @@ function(
 				fMin = oStepInput.getMin(),
 				fMax = oStepInput.getMax(),
 				fNow = oStepInput.getValue(),
-				sLabeledBy = oStepInput.getAriaLabelledBy().join(" "),
+				aAriaLabelledByRefs = oStepInput.getAriaLabelledBy(),
+				// If we don't check this manually, we won't have the labels, which were referencing SI,
+				// in aria-labelledby (which normally comes out of the box). This is because writeAccessibilityState
+				// is called for NumericInput, while any labels will be for the parent StepInput.
+				aReferencingLabels = LabelEnablement.getReferencingLabels(oStepInput),
+				sLabeledBy = aAriaLabelledByRefs.concat(aReferencingLabels).join(" "),
 				sDescribedBy = oStepInput.getAriaDescribedBy().join(" ");
 
 			mAccAttributes["role"] = "spinbutton";
@@ -901,12 +908,15 @@ function(
 		};
 
 		StepInput.prototype._onmousewheel = function (oEvent) {
-			oEvent.preventDefault();
-			var oOriginalEvent = oEvent.originalEvent,
-				bDirectionPositive = oOriginalEvent.detail ? (-oOriginalEvent.detail > 0) : (oOriginalEvent.wheelDelta > 0);
+			var bIsFocused = this.getDomRef().contains(document.activeElement);
+			if (bIsFocused) {
+				oEvent.preventDefault();
+				var oOriginalEvent = oEvent.originalEvent,
+					bDirectionPositive = oOriginalEvent.detail ? (-oOriginalEvent.detail > 0) : (oOriginalEvent.wheelDelta > 0);
 
-			this._applyValue(this._calculateNewValue(1, bDirectionPositive).displayValue);
-			this._verifyValue();
+				this._applyValue(this._calculateNewValue(1, bDirectionPositive).displayValue);
+				this._verifyValue();
+			}
 		};
 
 		/**
@@ -1451,6 +1461,19 @@ function(
 				};
 
 				oBtn.addDelegate(oEvents, true);
+		};
+
+		/**
+		 * Returns the DOMNode Id to be used for the "labelFor" attribute of the label.
+		 *
+		 * By default, this is the Id of the control itself.
+		 *
+		 * @return {string} Id to be used for the <code>labelFor</code>
+		 * @public
+		 */
+		StepInput.prototype.getIdForLabel = function () {
+			// The NumericInput inherits from the InputBase
+			return this.getAggregation("_input").getIdForLabel();
 		};
 
 		/*

@@ -5,16 +5,13 @@
  */
 
 sap.ui.define([
-	"sap/ui/test/_OpaLogger",
 	"sap/ui/test/actions/Action",
-	"sap/base/Log",
 	"sap/ui/thirdparty/jquery"
-], function (_OpaLogger, Action, Log, jQueryDOM) {
+], function (Action, jQueryDOM) {
 	"use strict";
 
-	var oLogger = _OpaLogger.getLogger("sap.ui.test.actions.Press");
-
 	/**
+	 * @class
 	 * The Press action is used to simulate a press interaction on a Control's dom ref.
 	 * This will work out of the box for most of the controls (even custom controls).
 	 *
@@ -22,23 +19,22 @@ sap.ui.define([
 	 *
 	 * <ul>
 	 *     <li>sap.m.Button</li>
-	 *     <li>sap.m.Link</li>
-	 *     <li>sap.m.StandardListItem</li>
+	 *     <li>sap.m.ComboBox</li>
 	 *     <li>sap.m.IconTabFilter</li>
 	 *     <li>sap.m.Input - Value help</li>
-	 *     <li>sap.m.SearchField - Search Button</li>
-	 *     <li>sap.m.Page - Back Button</li>
-	 *     <li>sap.m.semantic.FullscreenPage - Back Button</li>
-	 *     <li>sap.m.semantic.DetailPage - Back Button</li>
+	 *     <li>sap.m.Link</li>
 	 *     <li>sap.m.List - More Button</li>
-	 *     <li>sap.m.Table - More Button</li>
-	 *     <li>sap.m.StandardTile</li>
-	 *     <li>sap.m.ComboBox</li>
 	 *     <li>sap.m.ObjectIdentifier</li>
+	 *     <li>sap.m.Page - Back Button</li>
+	 *     <li>sap.m.SearchField - Search Button</li>
+	 *     <li>sap.m.semantic.DetailPage - Back Button</li>
+	 *     <li>sap.m.semantic.FullscreenPage - Back Button</li>
+	 *     <li>sap.m.StandardListItem</li>
+	 *     <li>sap.m.StandardTile</li>
+	 *     <li>sap.m.Table - More Button</li>
 	 *     <li>sap.ui.comp.smartfilterbar.SmartFilterBar - Go Button</li>
 	 * </ul>
 	 *
-	 * @class
 	 * @extends sap.ui.test.actions.Action
 	 * @public
 	 * @name sap.ui.test.actions.Press
@@ -69,8 +65,8 @@ sap.ui.define([
 				oActionDomRef = $ActionDomRef[0];
 
 			if ($ActionDomRef.length) {
-				oLogger.timestamp("opa.actions.press");
-				Log.debug("Pressed the control " + oControl, this._sLogPrefix);
+				this.oLogger.timestamp("opa.actions.press");
+				this.oLogger.debug("Pressed the control " + oControl);
 
 				this._tryOrSimulateFocusin($ActionDomRef, oControl);
 
@@ -87,6 +83,9 @@ sap.ui.define([
 
 	/**
 	 * A map that contains the id suffixes for certain controls of the library.
+	 * @since 1.63 a control adapter can also be a function.
+	 * This is useful for controls with different modes where a different control adapter makes sense in different modes.
+	 *
 	 * When you extended a UI5 controls the adapter of the control will be taken.
 	 * If you need an adapter for your own control you can add it here. For example:
 	 * You wrote a control with the namespace my.Control it renders two buttons and you want the press action to press the second one by default.
@@ -131,16 +130,28 @@ sap.ui.define([
 	 * @type map
 	 */
 	Press.controlAdapters = {};
-	Press.controlAdapters["sap.m.Input"] = "vhi";
-	Press.controlAdapters["sap.m.SearchField"] = "search";
-	Press.controlAdapters["sap.m.ListBase"] = "trigger";
-	Press.controlAdapters["sap.m.Page"] = "navButton";
-	Press.controlAdapters["sap.m.semantic.FullscreenPage"] = "navButton";
-	Press.controlAdapters["sap.m.semantic.DetailPage"] = "navButton";
-	Press.controlAdapters["sap.m.ComboBox"] = "arrow";
-	Press.controlAdapters["sap.ui.comp.smartfilterbar.SmartFilterBar"] = "btnGo";
-	Press.controlAdapters["sap.m.ObjectAttribute"] = "text";
-	Press.controlAdapters["sap.m.ObjectIdentifier"] = "link";
+	Press.controlAdapters["sap.m.Input"] = "vhi"; // focusDomRef: <input>
+	Press.controlAdapters["sap.m.SearchField"] = "search"; // suffix is the same if refresh button is shown. focusDomRef: <input>
+	Press.controlAdapters["sap.m.ListBase"] = "trigger"; // focusDomRef: <table>
+	Press.controlAdapters["sap.m.Page"] = "navButton"; // focusDomRef: <div> -- root
+	Press.controlAdapters["sap.m.semantic.FullscreenPage"] = "navButton"; // focusDomRef: <div> -- root
+	Press.controlAdapters["sap.m.semantic.DetailPage"] = "navButton"; // focusDomRef: <div> -- root
+	Press.controlAdapters["sap.m.ComboBox"] = "arrow"; // focusDomRef: <input>
+	Press.controlAdapters["sap.ui.comp.smartfilterbar.SmartFilterBar"] = "btnGo"; // always available?
+
+	Press.controlAdapters["sap.m.ObjectAttribute"] = "text"; // suffix is the same in active state. focusDomRef: <div> -- root
+
+	Press.controlAdapters["sap.m.ObjectIdentifier"] = function (oControl) {
+		if (oControl.getTitleActive()) {
+			return "link";
+		} else if (oControl.getTitle()) {
+			return "title";
+		} else if (oControl.getText()) {
+			return "text";
+		} else {
+			return null; // focusDomRef: <div> -- root
+		}
+	};
 
 	return Press;
 

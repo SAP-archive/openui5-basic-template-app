@@ -52,7 +52,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.ClientModel
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 * @public
 	 * @alias sap.ui.model.json.JSONModel
 	 */
@@ -366,7 +366,7 @@ sap.ui.define([
 		var oNode = this.isLegacySyntax() ? this.oData : null;
 		if (oContext instanceof Context) {
 			oNode = this._getObject(oContext.getPath());
-		} else if (oContext) {
+		} else if (oContext != null) {
 			oNode = oContext;
 		}
 		if (!sPath) {

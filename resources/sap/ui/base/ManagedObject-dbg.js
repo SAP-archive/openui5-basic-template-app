@@ -23,6 +23,7 @@ sap.ui.define([
 	"sap/base/util/ObjectPath",
 	"sap/base/Log",
 	"sap/base/assert",
+	"sap/base/util/deepClone",
 	"sap/base/util/deepEqual",
 	"sap/base/util/uid",
 	"sap/ui/thirdparty/jquery"
@@ -44,6 +45,7 @@ sap.ui.define([
 	ObjectPath,
 	Log,
 	assert,
+	deepClone,
 	deepEqual,
 	uid,
 	jQuery
@@ -170,7 +172,7 @@ sap.ui.define([
 	 * <h3>Properties</h3>
 	 * Managed properties represent the state of a ManagedObject. They can store a single value of a simple data type
 	 * (like 'string' or 'int'). They have a <i>name</i> (e.g. 'size') and methods to get the current value (<code>getSize</code>),
-	 * or to set a new value (<code>setSize</code>). When a property is modified, the ManagedObject is marked as invalidated.
+	 * or to set a new value (<code>setSize</code>). When a property is modified by calling the setter, the ManagedObject is marked as invalidated.
 	 * A managed property can be bound against a property in a {@link sap.ui.model.Model} by using the {@link #bindProperty} method.
 	 * Updates to the model property will be automatically reflected in the managed property and - if TwoWay databinding is active,
 	 * changes to the managed property will be reflected in the model. An existing binding can be removed by calling {@link #unbindProperty}.
@@ -262,7 +264,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 * @public
 	 * @alias sap.ui.base.ManagedObject
 	 */
@@ -641,8 +643,20 @@ sap.ui.define([
 	 * The value can either be a simple string which then will be assumed to be the type of the new property or it can be
 	 * an object literal with the following properties
 	 * <ul>
-	 * <li><code>type: <i>string</i></code> type of the new property. Must either be one of the built-in types 'string', 'boolean', 'int', 'float', 'object' or 'any', or a
-	 *     type created and registered with {@link sap.ui.base.DataType.createType} or an array type based on one of the previous types.</li>
+	 * <li><code>type: <i>string</i></code> type of the new property. Must either be one of the built-in types 'string',
+	 *     'boolean', 'int', 'float', 'object', 'array', 'function' or 'any', or a type created and registered with
+	 *     {@link sap.ui.base.DataType.createType} or an array type based on one of the previous types.</li>
+	 * <li><code>byValue: <i>boolean<i></code> (either can be omitted or set to the boolean value <code>true</code>)
+	 *     If set to <code>true</code>, the property value will be {@link module:sap/base/util/deepClone deep cloned}
+	 *     on write and read operations to ensure that the internal value can't be modified by the outside. The property
+	 *     <code>byValue</code> is currently limited to a <code>boolean</code> value. Other types are reserved for future
+	 *     use. Class definitions must only use boolean values for the flag (or omit it), but readers of ManagedObject
+	 *     metadata should handle any truthy value as <code>true</code> to be future safe.
+	 *     Note that using <code>byValue:true</code> has a performance impact on property access and therefore should be
+	 *     used carefully. It also doesn't make sense to set this option for properties with a primitive type (they have
+	 *     value semantic anyhow) or for properties with arrays of primitive types (they have been cloned already in the
+	 *     past with a cheaper implementation). Future versions of UI5 might encourage this as a limitation during class
+	 *     definition.
 	 * <li><code>group:<i>string</i></code> a semantic grouping of the properties, intended to be used in design time tools.
 	 *     Allowed values are (case sensitive): Accessibility, Appearance, Behavior, Data, Designtime, Dimension, Identification, Misc</li>
 	 * <li><code>defaultValue: <i>any</i></code> the default value for the property or null if there is no defaultValue.</li>
@@ -1115,10 +1129,12 @@ sap.ui.define([
 			oValue = mSettings[sKey];
 			// get info object for the key
 			if ( (oKeyInfo = mValidKeys[sKey]) !== undefined ) {
-				var oBindingInfo;
+				var oBindingInfo, oType, oPrimitiveTypeName;
 				switch (oKeyInfo._iKind) {
 				case 0: // PROPERTY
-					oBindingInfo = this.extractBindingInfo(oValue, oScope);
+					oType = DataType.getType(oKeyInfo.type);
+					oPrimitiveTypeName = oType && oType.getPrimitiveType().getName();
+					oBindingInfo = this.extractBindingInfo(oValue, oScope, oPrimitiveTypeName !== "object" && oPrimitiveTypeName !== "any");
 					if (oBindingInfo && typeof oBindingInfo === "object") {
 						this.bindProperty(sKey, oBindingInfo);
 					} else {
@@ -1287,12 +1303,12 @@ sap.ui.define([
 		if (bSuppressInvalidate) {
 			//Refresh only for property changes with suppressed invalidation (others lead to rerendering and refresh is handled there)
 			ActivityDetection.refresh();
-			this.iSuppressInvalidate++;
 		}
 
 		// change the property (and invalidate if the rendering should be updated)
 		this.mProperties[sPropertyName] = oValue;
-		if (!this.isInvalidateSuppressed()) {
+
+		if (!bSuppressInvalidate) {
 			this.invalidate();
 		}
 
@@ -1310,11 +1326,6 @@ sap.ui.define([
 		}
 		if (this._observer) {
 			this._observer.propertyChange(this, sPropertyName, oOldValue, oValue);
-		}
-
-		// reset suppress invalidate flag
-		if (bSuppressInvalidate) {
-			this.iSuppressInvalidate--;
 		}
 
 		return this;
@@ -1352,6 +1363,10 @@ sap.ui.define([
 			oValue = oValue.valueOf();
 		}
 
+		if (oProperty.byValue) {
+			oValue  = deepClone(oValue);
+		}
+
 		return oValue;
 	};
 
@@ -1370,10 +1385,11 @@ sap.ui.define([
 	 * This method is called by {@link #setProperty}. In many cases, subclasses of
 	 * ManagedObject don't need to call it themselves.
 	 *
-	 * @param {string} sPropertyName the name of the property
-	 * @param {any} oValue the value
-	 * @return {any} the normalized value for the passed value or for the default value if null or undefined was passed
-	 * @throws Error if no property with the given name is found or the given value does not fit to the property type
+	 * @param {string} sPropertyName Name of the property
+	 * @param {any} oValue Value to be set
+	 * @return {any} The normalized value for the passed value or for the default value if <code>null</code> or <code>undefined</code> was passed
+	 * @throws {Error} If no property with the given name is found or the given value does not fit to the property type
+	 * @throws {TypeError} If the value for a property with value semantic (<code>byValue:true</code>) contains a non-plain object
 	 * @protected
 	 */
 	ManagedObject.prototype.validateProperty = function(sPropertyName, oValue) {
@@ -1421,7 +1437,11 @@ sap.ui.define([
 			}
 		}
 
-		// Normalize the value (if a normalizer was set using the setNormalizer method on the type)
+        if (oProperty.byValue) {
+            oValue = deepClone(oValue); // deep cloning only applies to date, object and array
+        }
+
+        // Normalize the value (if a normalizer was set using the setNormalizer method on the type)
 		if (oType && oType.normalize && typeof oType.normalize === "function") {
 			oValue = oType.normalize(oValue);
 		}
@@ -1739,8 +1759,15 @@ sap.ui.define([
 	 */
 	ManagedObject.prototype.removeAllAssociation = function(sAssociationName, bSuppressInvalidate){
 		var aIds = this.mAssociations[sAssociationName];
-		if (!aIds)	{
+		if (!aIds) {
 			return [];
+		}
+
+		delete this.mAssociations[sAssociationName];
+
+		// maybe there is no association to remove
+		if (!aIds.length) {
+			return aIds;
 		}
 
 		// set suppress invalidate flag
@@ -1748,7 +1775,6 @@ sap.ui.define([
 			this.iSuppressInvalidate++;
 		}
 
-		delete this.mAssociations[sAssociationName];
 		if (this._observer) {
 			this._observer.associationChange(this, sAssociationName, "remove", aIds);
 		}
@@ -2240,8 +2266,15 @@ sap.ui.define([
 		}
 
 		var aChildren = this.mAggregations[sAggregationName];
-		if (!aChildren)	{
+		if (!aChildren) {
 			return [];
+		}
+
+		delete this.mAggregations[sAggregationName];
+
+		// maybe there is no aggregation to remove
+		if (!aChildren.length) {
+			return aChildren;
 		}
 
 		// set suppress invalidate flag
@@ -2249,7 +2282,6 @@ sap.ui.define([
 			this.iSuppressInvalidate++;
 		}
 
-		delete this.mAggregations[sAggregationName];
 		for (var i = 0; i < aChildren.length; i++) {
 			aChildren[i].setParent(null);
 		}
@@ -2300,11 +2332,6 @@ sap.ui.define([
 			return this;
 		}
 
-		// set suppress invalidate flag
-		if (bSuppressInvalidate) {
-			this.iSuppressInvalidate++;
-		}
-
 		// Deleting the aggregation here before destroying the children is a BUG:
 		//
 		// The destroy() method on the children calls _removeChild() on this instance
@@ -2319,6 +2346,16 @@ sap.ui.define([
 		// as well, the fix has been abandoned.
 		//
 		delete this.mAggregations[sAggregationName]; //FIXME DESTROY: should be removed here
+
+		// maybe there is no aggregation to destroy
+		if (Array.isArray(aChildren) && !aChildren.length) {
+			return this;
+		}
+
+		// set suppress invalidate flag
+		if (bSuppressInvalidate) {
+			this.iSuppressInvalidate++;
+		}
 
 		if (aChildren instanceof ManagedObject) {
 			// FIXME DESTROY: this._removeChild(aChildren, sAggregationName, bSuppressInvalidate); // (optional, done by destroy())
@@ -2839,6 +2876,7 @@ sap.ui.define([
 	 *
 	 * @param {object} oValue
 	 * @param {object} oScope
+	 * @param {boolean} bDetectValue
 	 *
 	 * @returns {object} the binding info object or an unescaped string or undefined.
 	 *     If a binding info is returned, it contains at least a path property
@@ -2847,7 +2885,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	ManagedObject.prototype.extractBindingInfo = function(oValue, oScope) {
+	ManagedObject.prototype.extractBindingInfo = function(oValue, oScope, bDetectValue) {
 
 		// property:{path:"path", template:oTemplate}
 		if (oValue && typeof oValue === "object") {
@@ -2855,7 +2893,7 @@ sap.ui.define([
 				// if value contains ui5object property, this is not a binding info,
 				// remove it and not check for path or parts property
 				delete oValue.ui5object;
-			} else if (oValue.path != undefined || oValue.parts) {
+			} else if (oValue.path != undefined || oValue.parts || (bDetectValue && oValue.value != undefined)) {
 				// allow JSON syntax for templates
 				if (oValue.template) {
 					oValue.template = ManagedObject.create(oValue.template);
@@ -3324,8 +3362,6 @@ sap.ui.define([
 						oBinding.detachAggregatedDataStateChange(fnDataStateChangeHandler);
 					}
 					oBinding.detachEvents(oBindingInfo.events);
-					oBinding.destroy();
-					// TODO remove the binding from the binding info or mark it somehow as "deactivated"?
 				}
 			},
 			fnDataStateChangeHandler = function(){
@@ -3667,7 +3703,8 @@ sap.ui.define([
 
 		var oForwarder = oMetadata.getAggregationForwarder(sName);
 		if (oForwarder && oForwarder.forwardBinding) {
-			return oForwarder.getTarget(this).bindAggregation(oForwarder.targetAggregationName, oBindingInfo);
+			oForwarder.getTarget(this).bindAggregation(oForwarder.targetAggregationName, oBindingInfo);
+			return this;
 		}
 
 
@@ -3819,7 +3856,8 @@ sap.ui.define([
 	ManagedObject.prototype.unbindAggregation = function(sName, bSuppressReset){
 		var oForwarder = this.getMetadata().getAggregationForwarder(sName);
 		if (oForwarder && oForwarder.forwardBinding) {
-			return oForwarder.getTarget(this).unbindAggregation(oForwarder.targetAggregationName, bSuppressReset);
+			oForwarder.getTarget(this).unbindAggregation(oForwarder.targetAggregationName, bSuppressReset);
+			return this;
 		}
 
 		var oBindingInfo = this.mBindingInfos[sName],
@@ -4816,6 +4854,7 @@ sap.ui.define([
 			oClass = oMetadata._oClass,
 			sId = this.getId() + "-" + sIdSuffix,
 			mSettings = {},
+			oProperty,
 			mProps = this.mProperties,
 			sKey,
 			sName,
@@ -4829,13 +4868,14 @@ sap.ui.define([
 		i = aKeys.length;
 		while ( i > 0 ) {
 			sKey = aKeys[--i];
+			oProperty = oMetadata.getProperty(sKey);
 			// Only clone public properties, do not clone bound properties if bindings are cloned (property will be set by binding)
-			if (oMetadata.hasProperty(sKey) && !(this.isBound(sKey) && bCloneBindings)) {
+			if (oProperty && !(this.isBound(sKey) && bCloneBindings)) {
 				// Note: to avoid double resolution of binding expressions, we have to escape string values once again
 				if (typeof mProps[sKey] === "string") {
 					mSettings[sKey] = escape(mProps[sKey]);
 				} else {
-					mSettings[sKey] = mProps[sKey];
+					mSettings[sKey] = oProperty.byValue ? deepClone(mProps[sKey]) : mProps[sKey];
 				}
 			}
 		}

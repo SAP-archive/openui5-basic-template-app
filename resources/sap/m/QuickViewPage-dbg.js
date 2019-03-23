@@ -88,7 +88,7 @@ sap.ui.define([
 			* @extends sap.ui.core.Control
 			*
 			* @author SAP SE
-			* @version 1.62.1
+			* @version 1.63.0
 			*
 			* @constructor
 			* @public
@@ -676,8 +676,8 @@ sap.ui.define([
 					};
 				});
 
-			QuickViewPage.prototype.setProperty = function () {
-				Control.prototype.setProperty.apply(this, arguments);
+			QuickViewPage.prototype.setProperty = function (sName, oValue) {
+				Control.prototype.setProperty.call(this, sName, oValue, true);
 
 				this._updatePage();
 			};

@@ -67,7 +67,7 @@ sap.ui.define([
 	 * @alias sap.m.SuggestionsPopover
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 */
 	var SuggestionsPopover = BaseObject.extend("sap.m.SuggestionsPopover", /** @lends sap.m.SuggestionsPopover.prototype */ {
 
@@ -745,7 +745,7 @@ sap.ui.define([
 						oInput._iPopupListSelectedIndex = -1;
 						oInput.cancelPendingSuggest();
 						if (this._sTypedInValue) {
-							this._oInput.setValue(this._sTypedInValue);
+							this._oInput.setDOMValue(this._sTypedInValue);
 						}
 						this._oProposedItem = null;
 						oPopup.close();

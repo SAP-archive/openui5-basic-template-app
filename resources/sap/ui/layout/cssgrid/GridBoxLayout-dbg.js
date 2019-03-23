@@ -40,7 +40,7 @@ sap.ui.define([
 	 * Applies a sap.ui.layout.cssgrid.GridSettings to a provided DOM element or Control.
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @extends sap.ui.layout.cssgrid.GridLayoutBase
 	 *
@@ -127,6 +127,10 @@ sap.ui.define([
 		if (!this.isGridSupportedByBrowser()) {
 			this._calcWidth(oGrid);
 			this._flattenHeight(oGrid);
+
+			if (!this._hasBoxWidth()) {
+				this._applyClassForLastItem(oGrid);
+			}
 		}
 
 		if (oGrid.isA("sap.f.GridList") && oGrid.getGrowing()) { // if there is growing of the list new GridListItems are loaded and there could be changes in all GridListItems dimensions
@@ -143,6 +147,11 @@ sap.ui.define([
 							oGridItem.classList.add("sapUiLayoutCSSGridItem"); // newly loaded items don't have this class
 						}
 					});
+
+					if (!this._hasBoxWidth()) {
+						this._applyClassForLastItem(oGrid);
+					}
+
 				} else if (oGrid.isA("sap.f.GridList") && oGrid.isGrouped()) {
 					this._flattenHeight(oGrid);
 				}
@@ -185,15 +194,19 @@ sap.ui.define([
 	 * @private
 	 */
 	GridBoxLayout.prototype.onGridResize = function (oEvent) {
+		if (!this.isGridSupportedByBrowser() || (oEvent.control && oEvent.control.isA("sap.f.GridList") && oEvent.control.isGrouped())) {
+			this._flattenHeight(oEvent.control);
+		}
+
+		if (!this.isGridSupportedByBrowser() && !this._hasBoxWidth()){
+			this._applyClassForLastItem(oEvent.control);
+		}
+
 		if (oEvent) {
 			// Size class is used when no boxWidth or boxMinWidth is being set.
 			if (!this._hasBoxWidth()) {
 				this._applySizeClass(oEvent.control);
 			}
-		}
-
-		if (!this.isGridSupportedByBrowser() || (oEvent.control && oEvent.control.isA("sap.f.GridList") && oEvent.control.isGrouped())) {
-			this._flattenHeight(oEvent.control);
 		}
 	};
 
@@ -226,18 +239,61 @@ sap.ui.define([
 	GridBoxLayout.prototype._flattenHeight = function (oControl) {
 		var iMaxHeight = 0;
 
+		// We should set every item's height to auto and measure its value. If this is done on the real item this will result in flickering of the grid list.
+		// In order to avoid this we create one "hidden" container, which we will use for those measurements.
+		var $measuringContainer =  jQuery('<div style="position:absolute;top=-10000px;left=-10000px"></div>').appendTo(document.body);
+
 		this._loopOverGridItems(oControl, function (oGridItem) {
-			// Collect max height of all items
-			oGridItem.style.height = null;
-			iMaxHeight = Math.max(oGridItem.getBoundingClientRect().height, iMaxHeight);
+			// Collect max height of all items (except group headers)
+			if (!oGridItem.classList.contains("sapMGHLI")) {
+				var $oClonedItem = jQuery(jQuery.clone(oGridItem)).appendTo($measuringContainer);
+				$oClonedItem.css({
+					height: 'auto',
+					width: oGridItem.getBoundingClientRect().width
+				});
+
+				iMaxHeight = Math.max($oClonedItem.outerHeight(), iMaxHeight);
+				$oClonedItem.remove();
+			}
+		});
+
+		$measuringContainer.remove();
+
+		this._loopOverGridItems(oControl, function (oGridItem) {
+			// Apply height to all items
+			if (!oGridItem.classList.contains("sapMGHLI")) { // the item is not group header
+				oGridItem.style.height = iMaxHeight + "px";
+			}
+		});
+	};
+
+
+	GridBoxLayout.prototype._applyClassForLastItem = function (oControl) {
+		var iCurrentNumberPerRow = 0;
+		var aBoxesPerRowConfig = this.getBoxesPerRowConfig().split(" ");
+		var oRange = Device.media.getCurrentRange("StdExt", oControl.$().width());
+		var sSizeClassCode = mSizeClasses[oRange.name].substring("sapUiLayoutCSSGridBoxLayoutSize".length);
+		var iMaxNumberPerRow;
+
+		aBoxesPerRowConfig.forEach(function (element) {
+			// Check if SizeClassCode (for example "XL") is contained inside the element
+			if (element.indexOf(sSizeClassCode) != -1){
+				// This splits the layout size and the maximum number of columns from the string: Example: "XL7" -> 7
+				iMaxNumberPerRow = parseInt(element.substring(sSizeClassCode.length));
+			}
 		});
 
 		this._loopOverGridItems(oControl, function (oGridItem) {
-			// apply height to all items
-			if (oGridItem.getBoundingClientRect().height < iMaxHeight) {
-				if (!oGridItem.classList.contains("sapMGHLI")) { // the item is not group header
-					oGridItem.style.height = iMaxHeight + "px";
+			if (oGridItem.classList.contains("sapUiLayoutCSSGridItem")) { // the item is not group header
+				iCurrentNumberPerRow++;
+				if (iCurrentNumberPerRow == iMaxNumberPerRow) {
+					oGridItem.classList.add("sapUiLayoutCSSGridItemLastOnRow");
+					iCurrentNumberPerRow = 0;
+				} else {
+					oGridItem.classList.remove("sapUiLayoutCSSGridItemLastOnRow");
 				}
+			} else if (oGridItem.classList.contains("sapMGHLI")) { // the item is group header, new row is following
+				iCurrentNumberPerRow = 0;
 			}
 		});
 	};
@@ -318,7 +374,7 @@ sap.ui.define([
 			return;
 		}
 
-		if (!sSpanPattern || !sSpanPattern.lenght === 0) {
+		if (!sSpanPattern || !sSpanPattern.length === 0) {
 			aSpan = DEFAULT_SPAN_PATTERN;
 		} else {
 			aSpan = SPAN_PATTERN.exec(sSpanPattern);
@@ -388,7 +444,7 @@ sap.ui.define([
 	 */
 	GridBoxLayout.prototype._loopOverGridItems = function (oControl, fn) {
 		oControl.getGridDomRefs().forEach(function (oDomRef) {
-			if (oDomRef.children) {
+			if (oDomRef && oDomRef.children) {
 				for (var i = 0; i < oDomRef.children.length; i++) {
 					fn(oDomRef.children[i]);
 				}

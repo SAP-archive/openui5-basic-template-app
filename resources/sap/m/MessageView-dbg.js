@@ -109,7 +109,7 @@ sap.ui.define([
 	 * It also exposes an event {@link sap.m.MessageView#activeTitlePress}, which can be used for navigation from a message to the source of the issue.
 	 * <br><br>
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor

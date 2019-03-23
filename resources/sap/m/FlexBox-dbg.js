@@ -64,7 +64,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @public
 	 * @alias sap.m.FlexBox
@@ -163,7 +163,8 @@ function(
 			 */
 			items : {type : "sap.ui.core.Control", multiple : true, singularName : "item"}
 		},
-		designtime: "sap/m/designtime/FlexBox.designtime"
+		designtime: "sap/m/designtime/FlexBox.designtime",
+		dnd: { draggable: false, droppable: true }
 	}});
 
 	/**

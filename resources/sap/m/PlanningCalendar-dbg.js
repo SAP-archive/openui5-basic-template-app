@@ -172,7 +172,7 @@ sap.ui.define([
 	 * {@link sap.m.PlanningCalendarView PlanningCalendarView}'s properties.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @constructor
 	 * @public
@@ -2058,6 +2058,15 @@ sap.ui.define([
 	 */
 	PlanningCalendar.prototype._handleStartDateChange = function(oEvent){
 		var oStartDate = oEvent.oSource.getStartDate();
+
+		if (this.getViewKey() !== CalendarIntervalType.Hour) {
+			var oCurrentStartDate = this.getStartDate();
+
+			oStartDate.setHours(oCurrentStartDate.getHours());
+			oStartDate.setMinutes(oCurrentStartDate.getMinutes());
+			oStartDate.setSeconds(oCurrentStartDate.getSeconds());
+		}
+
 		this._changeStartDate(oStartDate);
 	};
 
@@ -2630,7 +2639,8 @@ sap.ui.define([
 		oRowHeader = new PlanningCalendarRowHeader(oRow.getId() + "-Head", {
 			icon : oRow.getIcon(),
 			description : oRow.getText(),
-			title : oRow.getTitle()
+			title : oRow.getTitle(),
+			tooltip : oRow.getTooltip()
 		});
 
 		oRowTimeline = new PlanningCalendarRowTimeline(oRow.getId() + "-CalRow", {
@@ -2706,6 +2716,9 @@ sap.ui.define([
 	};
 
 	PlanningCalendarRowHeaderRenderer.renderTabIndex = function(oRm, oLI) {
+	};
+
+	PlanningCalendarRowHeaderRenderer.getAriaRole = function (oRm, oLI) {
 	};
 
 	var PlanningCalendarRowTimelineRenderer = Renderer.extend(CalendarRowRenderer);

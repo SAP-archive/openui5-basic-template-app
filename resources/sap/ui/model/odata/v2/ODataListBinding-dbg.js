@@ -305,7 +305,9 @@ sap.ui.define([
 				break;
 			}
 			oContext = this.oModel.getContext('/' + sKey);
+			oContext.sDeepPath = this.oModel.resolveDeep(this.sPath, this.oContext) + sKey.substr(sKey.indexOf("("));
 			aContexts.push(oContext);
+
 		}
 
 		return aContexts;

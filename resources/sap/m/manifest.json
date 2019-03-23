@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.62.1"
+      "version": "1.63.0"
     },
     "title": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "description": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
@@ -22,13 +22,13 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.62",
+      "minUI5Version": "1.63",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.62.1"
+          "minVersion": "1.63.0"
         },
         "sap.ui.unified": {
-          "minVersion": "1.62.1",
+          "minVersion": "1.63.0",
           "lazy": true
         }
       }
@@ -48,6 +48,7 @@
           "sap.m.Breadcrumbs",
           "sap.m.Carousel",
           "sap.m.CheckBox",
+          "sap.m.ColumnHeaderPopover",
           "sap.m.ColumnListItem",
           "sap.m.ColorPalette",
           "sap.m.ColorPalettePopover",
@@ -189,6 +190,7 @@
           "sap.m.TreeItemBase",
           "sap.m.UploadCollection",
           "sap.m.UploadCollectionToolbarPlaceholder",
+          "sap.m.upload.UploadSet",
           "sap.m.VBox",
           "sap.m.ViewSettingsDialog",
           "sap.m.ViewSettingsPopover",
@@ -204,6 +206,9 @@
           "sap.m.CalendarAppointment",
           "sap.m.CarouselLayout",
           "sap.m.Column",
+          "sap.m.ColumnPopoverActionItem",
+          "sap.m.ColumnPopoverCustomItem",
+          "sap.m.ColumnPopoverItem",
           "sap.m.FlexItemData",
           "sap.m.FeedListItemAction",
           "sap.m.IconTabFilter",
@@ -238,6 +243,8 @@
           "sap.m.ToolbarLayoutData",
           "sap.m.UploadCollectionItem",
           "sap.m.UploadCollectionParameter",
+          "sap.m.upload.Uploader",
+          "sap.m.upload.UploadSetItem",
           "sap.m.ViewSettingsCustomItem",
           "sap.m.ViewSettingsCustomTab",
           "sap.m.ViewSettingsFilterItem",
@@ -333,6 +340,7 @@
           "sap.m.TimePickerMaskMode",
           "sap.m.TileSizeBehavior",
           "sap.m.ToolbarDesign",
+          "sap.m.UploadState",
           "sap.m.VerticalPlacementType",
           "sap.m.semantic.SemanticRuleSetType"
         ],

@@ -11,16 +11,17 @@ sap.ui.define([
 	"./_Helper",
 	"./_V2Requestor",
 	"sap/base/Log",
-	"sap/base/util/deepEqual",
 	"sap/ui/base/SyncPromise",
 	"sap/ui/thirdparty/jquery"
-], function (_Batch, _GroupLock, _Helper, asV2Requestor, Log, deepEqual, SyncPromise, jQuery) {
+], function (_Batch, _GroupLock, _Helper, asV2Requestor, Log, SyncPromise, jQuery) {
 	"use strict";
 
 	var mBatchHeaders = { // headers for the $batch request
 			"Accept" : "multipart/mixed"
 		},
-		_Requestor;
+		sClassName = "sap.ui.model.odata.v4.lib._Requestor",
+		_Requestor,
+		rTimeout = /^\d+$/;
 
 	/**
 	 * The getResponseHeader() method imitates the jqXHR.getResponseHeader() method for a $batch
@@ -584,20 +585,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Fetches the metadata instance for the given meta path.
-	 *
-	 * @param {string} sMetaPath
-	 *   The meta path, for example "/SalesOrderList/SO_2_BP"
-	 * @returns {sap.ui.base.SyncPromise}
-	 *   A promise that is resolved with the metadata instance for the given meta path
-	 *
-	 * @private
-	 */
-	Requestor.prototype.fetchMetadata = function (sMetaPath) {
-		return this.oModelInterface.fetchMetadata(sMetaPath);
-	};
-
-	/**
 	 * Fetches the type of the given meta path from the metadata.
 	 *
 	 * @param {string} sMetaPath
@@ -612,7 +599,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Requestor.prototype.fetchTypeForPath = function (sMetaPath, bAsName) {
-		return this.fetchMetadata(sMetaPath + (bAsName ? "/$Type" : "/"));
+		return this.oModelInterface.fetchMetadata(sMetaPath + (bAsName ? "/$Type" : "/"));
 	};
 
 	/**
@@ -876,7 +863,7 @@ sap.ui.define([
 					fnResolve();
 				}, function (jqXHR, sTextStatus, sErrorMessage) {
 					that.oSecurityTokenPromise = null;
-					fnReject(_Helper.createError(jqXHR));
+					fnReject(_Helper.createError(jqXHR, "Could not refresh security token"));
 				});
 			});
 		}
@@ -997,38 +984,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Reports the given bound OData messages via the owning model's interface.
-	 *
-	 * @param {string} sResourcePath
-	 *   The resource path
-	 * @param {object} mPathToODataMessages
-	 *   Maps a resource path with key predicates to an array of messages belonging to this path.
-	 *   The path is relative to the given <code>sResourcePath</code>.
-	 *   The messages have at least the following properties:
-	 *   {string} code - The error code
-	 *   {string} longtextUrl - The URL for the message's long text relative to the resource path
-	 *      with key predicates
-	 *   {string} message - The message text
-	 *   {number} numericSeverity - The numeric message severity (1 for "success", 2 for "info",
-	 *      3 for "warning" and 4 for "error")
-	 *   {string} target - The target for the message relative to the resource path with key
-	 *      predicates
-	 *   {boolean} transition - Whether the message is reported as <code>persistent=true</code> and
-	 *      therefore needs to be managed by the application
-	 * @param {string[]} [aCachePaths]
-	 *    An array of cache-relative paths of the entities for which non-persistent messages have to
-	 *    be removed; if the array is not given, all non-persistent messages whose target start with
-	 *    the given resource path are removed
-	 *
-	 * @private
-	 */
-	Requestor.prototype.reportBoundMessages = function (sResourcePath, mPathToODataMessages,
-			aCachePaths) {
-		this.oModelInterface.reportBoundMessages(sResourcePath, mPathToODataMessages,
-			aCachePaths);
-	};
-
-	/**
 	 * Reports unbound OData messages.
 	 *
 	 * @param {string} sResourcePath
@@ -1038,7 +993,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	Requestor.prototype.reportUnboundMessages = function (sResourcePath, sMessages) {
+	Requestor.prototype.reportUnboundMessagesAsJSON = function (sResourcePath, sMessages) {
 		this.oModelInterface.reportUnboundMessages(sResourcePath, JSON.parse(sMessages || null));
 	};
 
@@ -1156,7 +1111,7 @@ sap.ui.define([
 			jQuery.extend({}, mHeaders, this.mFinalHeaders),
 			JSON.stringify(_Requestor.cleanPayload(oPayload)), sOriginalResourcePath
 		).then(function (oResponse) {
-			that.reportUnboundMessages(oResponse.resourcePath, oResponse.messages);
+			that.reportUnboundMessagesAsJSON(oResponse.resourcePath, oResponse.messages);
 			return that.doConvertResponse(oResponse.body, sMetaPath);
 		});
 	};
@@ -1232,7 +1187,7 @@ sap.ui.define([
 					that.mHeaders["X-CSRF-Token"]
 						= jqXHR.getResponseHeader("X-CSRF-Token") || that.mHeaders["X-CSRF-Token"];
 					that.setSessionContext(jqXHR.getResponseHeader("SAP-ContextId"),
-						jqXHR.getResponseHeader("Keep-Alive"));
+						jqXHR.getResponseHeader("SAP-Http-Session-Timeout"));
 
 					fnResolve({
 						body : oResponse,
@@ -1242,7 +1197,8 @@ sap.ui.define([
 					});
 				}, function (jqXHR, sTextStatus, sErrorMessage) {
 					var sContextId = jqXHR.getResponseHeader("SAP-ContextId"),
-						sCsrfToken = jqXHR.getResponseHeader("X-CSRF-Token");
+						sCsrfToken = jqXHR.getResponseHeader("X-CSRF-Token"),
+						sMessage;
 
 					if (!bIsFreshToken && jqXHR.status === 403
 							&& sCsrfToken && sCsrfToken.toLowerCase() === "required") {
@@ -1251,16 +1207,20 @@ sap.ui.define([
 							send(true);
 						}, fnReject);
 					} else {
+						sMessage = "Communication error";
 						if (sContextId) {
 							// an error response within the session (e.g. a failed save) refreshes
 							// the session
 							that.setSessionContext(sContextId,
-								jqXHR.getResponseHeader("Keep-Alive"));
+								jqXHR.getResponseHeader("SAP-Http-Session-Timeout"));
 						} else if (jqXHR.getResponseHeader("SAP-Err-Id") === "ICMENOSESSION") {
 							// The server could not find the context ID ("ICM Error NO SESSION")
+							sMessage = "Session not found on server";
+							Log.error(sMessage, undefined, sClassName);
 							that.clearSessionContext();
 						} // else keep the session untouched
-						fnReject(_Helper.createError(jqXHR, sRequestUrl, sOriginalResourcePath));
+						fnReject(_Helper.createError(jqXHR, sMessage, sRequestUrl,
+							sOriginalResourcePath));
 					}
 				});
 			}
@@ -1274,19 +1234,18 @@ sap.ui.define([
 
 	/**
 	 * Sets the session context. Starts a keep-alive timer in case there is a session context and
-	 * a keep-alive timeout of 60 seconds or more is indicated. This timer runs for at most 15
-	 * minutes.
+	 * a timeout of 60 seconds or more is indicated. This timer runs for at most 15 minutes.
 	 *
 	 * @param {string} [sContextId] The value of the header 'SAP-ContextId'
-	 * @param {string} [sKeepAlive] The value of the header 'Keep-Alive', a comma-separated list of
-	 *   parameters, each consisting of an identifier and a value separated by the equal sign ('=');
-	 *   only the parameter "timeout" is used
+	 * @param {string} [sSAPHttpSessionTimeout] The value of the header 'SAP-Http-Session-Timeout',
+	 *   containing the timeout in seconds as integer value
 	 *
 	 * @private
 	 */
-	Requestor.prototype.setSessionContext = function (sContextId, sKeepAlive) {
-		var aMatches = /\btimeout=(\d+)/.exec(sKeepAlive),
-			iKeepAliveSeconds = aMatches && parseInt(aMatches[1]),
+	Requestor.prototype.setSessionContext = function (sContextId, sSAPHttpSessionTimeout) {
+		var iTimeoutSeconds = rTimeout.test(sSAPHttpSessionTimeout)
+				? parseInt(sSAPHttpSessionTimeout)
+				: 0,
 			iSessionTimeout = Date.now() + 15 * 60 * 1000, // 15 min
 			that = this;
 
@@ -1295,7 +1254,7 @@ sap.ui.define([
 			// start a new session and a new timer with the current header values (should be the
 			// same as before)
 			that.mHeaders["SAP-ContextId"] = sContextId;
-			if (iKeepAliveSeconds >= 60) {
+			if (iTimeoutSeconds >= 60) {
 				this.iSessionTimer = setInterval(function () {
 					if (Date.now() >= iSessionTimeout) { // 15 min have passed
 						that.clearSessionContext(); // give up
@@ -1308,14 +1267,15 @@ sap.ui.define([
 						}).fail(function (jqXHR) {
 							if (jqXHR.getResponseHeader("SAP-Err-Id") === "ICMENOSESSION") {
 								// The server could not find the context ID ("ICM Error NO SESSION")
+								Log.error("Session not found on server", undefined, sClassName);
 								that.clearSessionContext();
 							} // else keep the timer running
 						});
 					}
-				}, (iKeepAliveSeconds - 5) * 1000);
-			} else if (sKeepAlive) {
-				Log.warning("Unsupported Keep-Alive header", sKeepAlive,
-					"sap.ui.model.odata.v4.lib._Requestor");
+				}, (iTimeoutSeconds - 5) * 1000);
+			} else if (sSAPHttpSessionTimeout !== null) {
+				Log.warning("Unsupported SAP-Http-Session-Timeout header", sSAPHttpSessionTimeout,
+					sClassName);
 			}
 		}
 	};
@@ -1360,21 +1320,22 @@ sap.ui.define([
 					vRequest.$reject(oError);
 				} else if (vResponse.status >= 400) {
 					vResponse.getResponseHeader = getResponseHeader;
-					oCause = _Helper.createError(vResponse, vRequest.url, vRequest.$resourcePath);
+					oCause = _Helper.createError(vResponse, "Communication error", vRequest.url,
+						vRequest.$resourcePath);
 					reject(oCause, vRequest);
 				} else if (vResponse.responseText) {
 					oResponse = JSON.parse(vResponse.responseText);
 					try {
 						that.doCheckVersionHeader(getResponseHeader.bind(vResponse), vRequest.url,
 							true);
-						that.reportUnboundMessages(vRequest.url,
+						that.reportUnboundMessagesAsJSON(vRequest.url,
 							getResponseHeader.call(vResponse, "sap-messages"));
 						vRequest.$resolve(that.doConvertResponse(oResponse, vRequest.$metaPath));
 					} catch (oErr) {
 						vRequest.$reject(oErr);
 					}
 				} else {
-					that.reportUnboundMessages(vRequest.url,
+					that.reportUnboundMessagesAsJSON(vRequest.url,
 						getResponseHeader.call(vResponse, "sap-messages"));
 					vRequest.$resolve();
 				}

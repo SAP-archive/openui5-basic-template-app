@@ -228,7 +228,7 @@ html[data-sap-ui-browser^=ff] .sapMCbBg > input {
 		padding-left: 1.5rem;
 	}
 
-	.sapUiTableCell > .sapMCb {
+	.sapUiTableDataCell > .sapUiTableCellInner > .sapMCb {
 		margin-left: 0.25rem;
 		padding-left: 1.75rem;
 	}
@@ -242,4 +242,8 @@ html[data-sap-ui-browser^=ff] .sapMCbBg > input {
 		font-size: 0.625rem;
 		border-radius: 0;
 	}
+}
+
+html[data-sap-ui-browser^="sf"] .sapMCbBg > .sapMCbMark, .sapMCbBg.sapMCbMark > input {
+	margin: 0;
 }

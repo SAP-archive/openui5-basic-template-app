@@ -92,7 +92,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @public
 	 * @deprecated As of version 1.48, please use {@link sap.ui.model.odata.v2.ODataModel} instead.
@@ -3386,7 +3386,10 @@ sap.ui.define([
 			this.oAnnotations.detachLoaded(this.onAnnotationsLoaded);
 			this.oAnnotations.destroy();
 			delete this.oAnnotations;
+			delete this.pAnnotationsLoaded;
 		}
+
+
 
 		Model.prototype.destroy.apply(this, arguments);
 	};

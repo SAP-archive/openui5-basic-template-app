@@ -115,8 +115,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.62.1
-	 * @version 1.62.1
+	 * @version 1.63.0
+	 * @version 1.63.0
 	 *
 	 * @constructor
 	 * @public
@@ -512,7 +512,19 @@ sap.ui.define([
 		var oBinding = this.getBinding("value");
 
 		if (oBinding && oBinding.getType() instanceof sap.ui.model.type.DateInterval) {
-			aDates = oBinding.getType().parseValue(sValue, "string");
+			//The InputBase has it's own mechanism for handling parser exception that
+			//uses sap.ui.core.message.MessageMixin and MessageManager. This mechanism
+			//is triggered once the invalid value is set to the Input. In our case this
+			//was done in onChange function after parsing the value (in Binding case).
+			//When an invalid value is entered, it was causing an unhandled console error
+			//in DateRangeSelection control.
+			try {
+				aDates = oBinding.getType().parseValue(sValue, "string");
+			} catch (e) {
+				//for consistency reasons (like in the onchange method) we now return
+				//an array with two empty objects
+				return [undefined, undefined];
+			}
 			/** DateRangeSelection control uses local dates for its properties, so make sure returned values from
 			 * binding type formatter are restored to local dates if necessary.
 			 **/

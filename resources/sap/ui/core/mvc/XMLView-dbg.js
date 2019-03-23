@@ -69,7 +69,7 @@ sap.ui.define([
 	 * control's dependents aggregation or add it by using {@link sap.ui.core.mvc.XMLView#addDependent}.
 	 *
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.XMLView
@@ -794,7 +794,7 @@ sap.ui.define([
 				library: "sap.ui.core"
 			},
 			renderer: function(oRM, oControl) {
-				oRM.write(""); // onAfterRendering is only called if control produces output
+				oRM.text(""); // onAfterRendering is only called if control produces output
 			}
 		});
 

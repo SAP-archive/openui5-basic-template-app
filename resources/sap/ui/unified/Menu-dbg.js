@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IContextMenu
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -596,6 +596,8 @@ sap.ui.define([
 		oEvent.stopPropagation();
 	};
 
+	Menu.prototype.onsapnextmodifiers = Menu.prototype.onsapnext;
+
 	Menu.prototype.onsapprevious = function(oEvent){
 		//left or up (RTL: right or up)
 		if (oEvent.keyCode != KeyCodes.ARROW_UP) {
@@ -615,6 +617,8 @@ sap.ui.define([
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
 	};
+
+	Menu.prototype.onsappreviousmodifiers = Menu.prototype.onsapprevious;
 
 	Menu.prototype.onsaphome = function(oEvent){
 		//Go to the first selectable item

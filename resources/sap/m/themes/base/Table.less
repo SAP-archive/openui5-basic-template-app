@@ -74,9 +74,14 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 	display: none;
 }
 
+.sapMListTblSelCol,
+.sapMListTblCell,
+.sapMListTblNavCol {
+  vertical-align: middle;
+}
+
 .sapMListTblNavCol {
 	width: 0;
-	vertical-align: top;
 	line-height: 3rem;
 }
 
@@ -212,7 +217,6 @@ html[data-sap-ui-browser='ie11'] .sapMListTblHighlightCell > .sapMLIBHighlight {
 
 .sapMListTblCell {
 	padding: .875rem .5rem;
-	vertical-align: top;
 	font-size: @sapUiListTableTextSize;
 }
 
@@ -279,7 +283,7 @@ html[data-sap-ui-browser='ie11'] .sapMListTblHighlightCell > .sapMLIBHighlight {
 /* .sapMSticky6 denotes that the infoToolbar and column headers are sticky */
 /* .sapMSticky5 denotes that the headerToolbar and column headers are sticky */
 /* .sapMSticky4 denotes that only the column headers are sticky */
-/* top: 0 sticky conditions */
+/* top: 0 sticky conditions : 1st sticky elements */
 .sapMSticky4 .sapMTableTH,
 .sapMSticky5 > .sapMListHdr,
 .sapMSticky6 > .sapMListInfoTBarContainer,
@@ -287,36 +291,25 @@ html[data-sap-ui-browser='ie11'] .sapMListTblHighlightCell > .sapMLIBHighlight {
 	top: 0;
 }
 
-/* top: 2rem sticky conditions */
+/* top: 2rem sticky conditions : 2nd sticky elements */
 .sapMSticky6 .sapMTableTH {
 	top: 2rem;
 }
 
-/* top: 3rem sticky conditions */
+/* top: 3rem sticky conditions : 2nd sticky elements */
 .sapMSticky5 .sapMTableTH,
 .sapMSticky7 > .sapMListInfoTBarContainer {
-	top: 3rem;
+	top: @sapUiElementLineHeight;
 }
 
-/* top: 5rem conditions */
+/* top: 5rem conditions : 3rd stick elements */
 .sapMSticky7 .sapMTableTH {
-	top: 5rem;
+	top: @sapUiElementLineHeight + 2rem;
 }
 
 /* to make the focus outline visible on the all sides */
 .sapMSticky > .sapMListTbl {
 	padding: 1px 1px 0 1px;
-}
-
-/* sticky headerToolbar/headerText background color when toolbar is transparent */
-.sapMSticky > .sapMTB-Transparent-CTX,
-.sapMSticky > .sapMListHdrText {
-	background: @sapUiListHeaderBackground;
-}
-
-/* busyIndicator should not overlapped by the sticky elements */
-.sapMSticky > .sapUiLocalBusyIndicator {
-	z-index: 3;
 }
 
 /* busyIndicator should not block the toolbars if <table> is set busy */
@@ -436,7 +429,6 @@ html[data-sap-ui-browser='ie11'] .sapMListTblHighlightCell > .sapMLIBHighlight {
 .sapUiSizeCompact .sapMListTblCell {
 	padding-top: 0.25rem;
 	padding-bottom: 0.25rem;
-	vertical-align: middle;
 }
 
 .sapUiSizeCompact .sapMListTblCell.sapMListTblCellNoData {
@@ -462,7 +454,6 @@ html[data-sap-ui-browser='ie11'] .sapMListTblHighlightCell > .sapMLIBHighlight {
 /* navigation and selection columns are in the middle */
 .sapUiSizeCompact .sapMListTblNavCol,
 .sapUiSizeCompact .sapMListTblSelCol {
-	vertical-align: middle;
 	line-height: 2rem;
 	text-align: center;
 }

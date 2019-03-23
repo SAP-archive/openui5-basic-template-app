@@ -56,7 +56,7 @@ sap.ui.define([
 	 * @mixes sap.ui.model.odata.v4.ODataBinding
 	 * @public
 	 * @since 1.37.0
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
 	 * @borrows sap.ui.model.odata.v4.ODataBinding#hasPendingChanges as #hasPendingChanges
 	 * @borrows sap.ui.model.odata.v4.ODataBinding#isInitial as #isInitial
@@ -334,13 +334,6 @@ sap.ui.define([
 	 */
 	// @override
 	ODataPropertyBinding.prototype.destroy = function () {
-		// ManagedObject#_bindProperty destroys OneTime bindings on the first change event, but the
-		// control still knows the binding, so that it is destroyed a second time when the control
-		// is destroyed: Do not throw then, but log an error until this is fixed
-		if (this.getBindingMode() === BindingMode.OneTime && !this.oCachePromise) {
-			Log.error("Binding already destroyed", this.sPath, sClassName);
-			return;
-		}
 		this.deregisterChange();
 		this.oModel.bindingDestroyed(this);
 		this.oCachePromise = undefined;

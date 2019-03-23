@@ -112,7 +112,7 @@ function(
 	* @extends sap.m.Input
 	*
 	* @author SAP SE
-	* @version 1.62.1
+	* @version 1.63.0
 	*
 	* @constructor
 	* @public
@@ -310,10 +310,8 @@ function(
 	};
 
 	MultiInput.prototype._handleInnerVisibility = function () {
-		if (this._oReadOnlyPopover && !this.getEditable()) {
-			var bHideInnerInput = this._tokenizer._hasMoreIndicator();
-			this[bHideInnerInput ? "_setValueInvisible" : "_setValueVisible"].call(this);
-		}
+		var bHideInnerInput = this._tokenizer._hasMoreIndicator();
+		this[bHideInnerInput ? "_setValueInvisible" : "_setValueVisible"].call(this);
 	};
 
 	/**
@@ -357,8 +355,12 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype._onResize = function () {
+		this._deregisterResizeHandler();
+
 		this._tokenizer.setMaxWidth(this._calculateSpaceForTokenizer());
 		this._handleInnerVisibility();
+
+		this._registerResizeHandler();
 	};
 
 	MultiInput.prototype._onTokenChange = function (args) {
@@ -474,24 +476,6 @@ function(
 	 */
 	MultiInput.prototype._setValueVisible = function () {
 		this.$("inner").css("opacity", "1");
-	};
-
-	/**
-	 * Function calculates the available space for the tokenizer
-	 *
-	 * @private
-	 * @return {String | null} CSSSize in px
-	 */
-	MultiInput.prototype._calculateSpaceForTokenizer = function () {
-		if (this.getDomRef()) {
-			var iWidth = this.getDomRef().offsetWidth,
-				iValueHelpButtonWidth = this.getDomRef("vhi") ? parseInt(this.getDomRef("vhi").offsetWidth) : 0,
-				iInputWidth = parseInt(this.$().find(".sapMInputBaseInner").css("min-width")) || 0;
-
-			return iWidth - (iValueHelpButtonWidth + iInputWidth) + "px";
-		} else {
-			return null;
-		}
 	};
 
 	/**
@@ -986,14 +970,13 @@ function(
 
 		if (!bFocusIsInSelectedItemPopup && !bNewFocusIsInTokenizer) {
 			this._tokenizer._useCollapsedMode(true);
-
-			// hide the text value only if the indicator is visible
-			this._tokenizer._getIndicatorVisibility() && this._setValueInvisible();
 		}
 
 		if (this._oReadOnlyPopover && this._oReadOnlyPopover.isOpen() && !bNewFocusIsInTokenizer) {
 			this._oReadOnlyPopover.close();
 		}
+
+		this._handleInnerVisibility();
 	};
 
 	MultiInput.prototype._onDialogClose = function () {
@@ -1429,6 +1412,8 @@ function(
 				that._bShowListWithTokens = false;
 			});
 
+		this._oSuggPopover._oPopover.getCustomHeader().removeAllContentMiddle();
+		this._oSuggPopover._oPopover.destroyCustomHeader(true);
 		this._oSuggPopover._oPopover.setCustomHeader(new Bar({
 			contentMiddle: [new Title()],
 			contentRight: new Button({
@@ -1748,6 +1733,12 @@ function(
 			});
 			oItemData.data("tokenId", oToken.getId());
 			this.addToken(oToken);
+
+			this.fireTokenUpdate({
+				addedTokens: [oToken],
+				removedTokens: [],
+				type: Tokenizer.TokenUpdateType.Added
+			});
 		} else {
 			var sSelectedId = oItemData.data("tokenId");
 

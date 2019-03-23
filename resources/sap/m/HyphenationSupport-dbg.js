@@ -6,11 +6,13 @@
 
 // Provides Mixin sap.m.HyphenationSupport
 sap.ui.define([
+		"sap/ui/core/Core",
 		"./library",
 		"sap/ui/core/hyphenation/Hyphenation",
 		"sap/base/Log"
 	],
 	function (
+		Core,
 		library,
 		Hyphenation,
 		Log
@@ -103,10 +105,10 @@ sap.ui.define([
 		 * @private
 		 */
 		function shouldUseThirdParty() {
-			var sHyphenationConfig = sap.ui.getCore().getConfiguration().getHyphenation(),
+			var sHyphenationConfig = Core.getConfiguration().getHyphenation(),
 				oHyphenationInstance = Hyphenation.getInstance();
 
-			if (sHyphenationConfig === "native") {
+			if (sHyphenationConfig === "native" || sHyphenationConfig === "disable") {
 				return false;
 			}
 
@@ -127,6 +129,11 @@ sap.ui.define([
 		 * @private
 		 */
 		function shouldControlHyphenate(oControl) {
+			var sHyphenationConfig = Core.getConfiguration().getHyphenation();
+			if (sHyphenationConfig === 'disable') {
+				return false;
+			}
+
 			if (oControl.getWrappingType() === WrappingType.Hyphenated && !oControl.getWrapping()) {
 				Log.warning("[UI5 Hyphenation] The property wrappingType=Hyphenated will not take effect unless wrapping=true.", oControl.getId());
 			}
@@ -141,7 +148,7 @@ sap.ui.define([
 		 * @private
 		 */
 		function hyphenateTexts(oControl) {
-			if (!(shouldControlHyphenate(oControl) && shouldUseThirdParty())) {
+			if (!shouldControlHyphenate(oControl) || !shouldUseThirdParty()) {
 				// no hyphenation needed
 				oControl._mHyphenatedTexts = {};
 				oControl._mUnhyphenatedTexts = {};

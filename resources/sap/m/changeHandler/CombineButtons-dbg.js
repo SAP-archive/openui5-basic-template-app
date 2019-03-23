@@ -13,7 +13,7 @@ sap.ui.define(["sap/ui/fl/Utils", "sap/base/util/uid", 'sap/ui/base/ManagedObjec
 		 *
 		 * @alias sap.m.changeHandler.CombineButtons
 		 * @author SAP SE
-		 * @version 1.62.1
+		 * @version 1.63.0
 		 * @experimental Since 1.48
 		 */
 		var CombineButtons = { };
@@ -76,6 +76,10 @@ sap.ui.define(["sap/ui/fl/Utils", "sap/base/util/uid", 'sap/ui/base/ManagedObjec
 				oMenuItem.attachPress(function(oEvent) {
 					return oButton.firePress(oEvent);
 				});
+
+				oButton.getCustomData = function() {
+					return (oButton.getAggregation("customData").length) ? oButton.getAggregation("customData") : oMenuItem.getCustomData();
+				};
 
 				// observe the Button enabled property so in case it is changed the new value should be applied to the MenuItem also
 				new ManagedObjectObserver(function (oChanges) {

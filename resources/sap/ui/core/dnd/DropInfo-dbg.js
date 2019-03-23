@@ -21,7 +21,7 @@ sap.ui.define(["./DragDropBase"],
 	 * @extends sap.ui.core.dnd.DragDropBase
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @public
 	 * @since 1.56
@@ -131,7 +131,7 @@ sap.ui.define(["./DragDropBase"],
 
 		// droppable by default
 		var sTargetAggregation = this.getTargetAggregation();
-		if (!DragDropBase.checkMetadata(oDropTarget, sTargetAggregation, "droppable")) {
+		if (!this.checkMetadata(oDropTarget, sTargetAggregation, "droppable")) {
 			return false;
 		}
 

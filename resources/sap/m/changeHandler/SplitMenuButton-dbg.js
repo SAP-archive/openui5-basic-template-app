@@ -12,7 +12,7 @@ sap.ui.define(["sap/ui/fl/Utils"], function(FlexUtils) {
 		 *
 		 * @alias sap.m.changeHandler.SplitMenuButton
 		 * @author SAP SE
-		 * @version 1.62.1
+		 * @version 1.63.0
 		 * @experimental Since 1.48
 		 */
 		var SplitMenuButton = { };
@@ -113,6 +113,9 @@ sap.ui.define(["sap/ui/fl/Utils"], function(FlexUtils) {
 					aMenuItemCustomData.forEach(function (oCustomData, index) {
 						if (oModifier.getId(oCustomData) !== sCheckForId) {
 							oModifier.insertAggregation(oButton, "customData", oCustomData);
+							oButton.getCustomData = function() {
+								return oButton.getAggregation("customData");
+							};
 						}
 					});
 				}

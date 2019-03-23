@@ -735,7 +735,7 @@ html.sap-phone .sapUiCal[data-sap-ui-popup] > .sapUiCalContent > .sapUiCalYearPi
 /* ============================================== */
 .sapUiUnifiedLegend {
   color: #666666;
-  font-family: "72", Arial, Helvetica, sans-serif;
+  font-family: "72", "72full", Arial, Helvetica, sans-serif;
   font-size: 0.75rem;
   font-weight: normal;
   padding: 0.75rem;
@@ -1959,7 +1959,7 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:focus:not(:active) > .sap
   width: 100%;
   overflow: hidden;
   font-size: 0.875rem;
-  font-family: "72", Arial, Helvetica, sans-serif;
+  font-family: "72", "72full", Arial, Helvetica, sans-serif;
   line-height: normal;
 }
 .sapUiUfdCurrencyAlign {
@@ -1984,10 +1984,10 @@ html.sap-desktop .sapUiCalendarApp.sapUiCalendarAppSel:focus:not(:active) > .sap
 .sapUiUfdCurrencyNoVal .sapUiUfdCurrencyCurrency {
   display: none;
 }
-.sapUiTableCell .sapUiUfdCurrency {
+.sapUiTableDataCell .sapUiUfdCurrency {
   vertical-align: middle;
 }
-.sapUiAnalyticalTableSum .sapUiTableCell .sapUiUfdCurrency {
+.sapUiAnalyticalTableSum .sapUiTableDataCell .sapUiUfdCurrency {
   font-weight: bold;
 }
 /* ============================================ */
@@ -2163,7 +2163,7 @@ html[data-sap-ui-browser^="cr"] .sapUiFupInputMask > input {
   outline: none;
   overflow: hidden;
   padding: 1px;
-  font-family: "72", Arial, Helvetica, sans-serif;
+  font-family: "72", "72full", Arial, Helvetica, sans-serif;
   font-size: 0.875rem;
   padding: 0px;
   min-width: 5rem;
@@ -2181,7 +2181,7 @@ html[data-sap-ui-browser^="cr"] .sapUiFupInputMask > input {
   cursor: default;
   color: #333333;
   font-size: 0.875rem;
-  font-family: "72", Arial, Helvetica, sans-serif;
+  font-family: "72", "72full", Arial, Helvetica, sans-serif;
 }
 .sapUiMnuItm {
   display: block;
@@ -2289,7 +2289,7 @@ html[data-sap-ui-browser*='ie'] .sapUiMnuItm:focus::before {
 .sapUiMnuItm.sapUiMnuTfItm .sapUiMnuTfItemTf {
   box-sizing: border-box;
   vertical-align: top;
-  font-family: "72", Arial, Helvetica, sans-serif;
+  font-family: "72", "72full", Arial, Helvetica, sans-serif;
   font-size: 16px;
   -webkit-appearance: none;
   /*Needed for safari mobile*/
@@ -2445,7 +2445,7 @@ html[data-sap-ui-browser*='ie'] .sapUiMnuItm:focus::before {
   right: 0.5rem;
 }
 .sapUiMnuItm.sapUiMnuTfItm .sapUiMnuTfItemTf {
-  font-family: "72", Arial, Helvetica, sans-serif;
+  font-family: "72", "72full", Arial, Helvetica, sans-serif;
   font-size: 0.875rem;
   padding: 0.125rem 0.3125rem 0.125rem 0.3125rem;
   margin-top: 0.1875rem;
@@ -2453,7 +2453,7 @@ html[data-sap-ui-browser*='ie'] .sapUiMnuItm:focus::before {
 }
 .sapUiMnuItm.sapUiMnuTfItm .sapUiMnuTfItemLbl {
   line-height: 2rem;
-  font-family: "72", Arial, Helvetica, sans-serif;
+  font-family: "72", "72full", Arial, Helvetica, sans-serif;
   font-size: 0.875rem;
   color: #333333;
   margin-right: 0.5rem;

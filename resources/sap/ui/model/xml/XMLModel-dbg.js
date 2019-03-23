@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.ClientModel
 	 *
 	 * @author SAP SE
-	 * @version 1.62.1
+	 * @version 1.63.0
 	 *
 	 * @param {object} oData either the URL where to load the XML from or an XML
 	 * @public
