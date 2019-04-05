@@ -8,7 +8,7 @@ module.exports = function(config) {
 	config.set({
 
 		preprocessors: {
-			'{,!(test)}/*.js': ['coverage']
+			'{webapp,webapp/!(test)}/*.js': ['coverage']
 		},
 
 		coverageReporter: {
@@ -16,7 +16,7 @@ module.exports = function(config) {
 			reporters: [
 				{
 					type: 'html',
-					dir: '../coverage/'
+					dir: 'coverage'
 				},
 				{
 					type: 'text'
@@ -29,12 +29,6 @@ module.exports = function(config) {
 					functions: 70,
 					lines: 80
 				}
-			}
-		},
-
-		client: {
-			qunit: {
-				showUI: false
 			}
 		},
 
