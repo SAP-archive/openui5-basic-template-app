@@ -10,6 +10,7 @@ sap.ui.define([
 	'sap/ui/core/library',
 	'sap/ui/core/Control',
 	'sap/ui/core/IconPool',
+	'sap/ui/base/ManagedObject',
 	'sap/m/Text',
 	'sap/m/Image',
 	'sap/m/Button',
@@ -22,6 +23,7 @@ sap.ui.define([
 	coreLibrary,
 	Control,
 	IconPool,
+	ManagedObject,
 	Text,
 	Image,
 	Button,
@@ -65,7 +67,7 @@ sap.ui.define([
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/message-page/ Message Page}
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.63.0
+		 * @version 1.64.0
 		 *
 		 * @constructor
 		 * @public
@@ -339,7 +341,7 @@ sap.ui.define([
 			if (!this.getAggregation("_text")) {
 				var oText = new Text(this.getId() + "-text", {
 					id: this.getId() + "-customText",
-					text: this.getText(),
+					text: ManagedObject.escapeSettingsValue(this.getText()),
 					textAlign: TextAlign.Center,
 					textDirection: this.getTextDirection()
 				});
@@ -365,7 +367,7 @@ sap.ui.define([
 			if (!this.getAggregation("_description")) {
 				var oDescription = new Text(this.getId() + "-description", {
 					id: this.getId() + "-customDescription",
-					text: this.getDescription(),
+					text: ManagedObject.escapeSettingsValue(this.getDescription()),
 					textAlign: TextAlign.Center,
 					textDirection: this.getTextDirection()
 				});

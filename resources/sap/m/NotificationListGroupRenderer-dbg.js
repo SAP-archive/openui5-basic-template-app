@@ -117,8 +117,8 @@ sap.ui.define(["sap/ui/core/library"], function(coreLibrary) {
 		this.renderPriorityArea(oRm, oControl);
 		this.renderCloseButton(oRm, oControl);
 		this.renderTitle(oRm, oControl);
-		this.renderDetails(oRm, oControl);
 		oRm.write('</div>');
+		this.renderDetails(oRm, oControl);
 	};
 
 	/**
@@ -170,6 +170,7 @@ sap.ui.define(["sap/ui/core/library"], function(coreLibrary) {
 	 */
 	NotificationListGroupRenderer.renderDetails = function(oRm, oControl) {
 		oRm.write('<div class="' + classNameDetails + '">');
+		this.renderPriorityArea(oRm, oControl);
 		this.renderAuthorPicture(oRm, oControl);
 
 		oRm.write('<div class="' + classNameDescription + '">');

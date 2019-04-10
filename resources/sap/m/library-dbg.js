@@ -47,7 +47,7 @@ sap.ui.define([
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.m",
-		version: "1.63.0",
+		version: "1.64.0",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/m/designtime/library.designtime",
 		types: [
@@ -296,7 +296,6 @@ sap.ui.define([
 			"sap.m.WizardStep"
 		],
 		elements: [
-			"sap.m.CalendarAppointment",
 			"sap.m.CarouselLayout",
 			"sap.m.Column",
 			"sap.m.ColumnPopoverActionItem",
@@ -499,7 +498,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.m
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @public
 	 */
 	var thisLib = sap.m;
@@ -1797,16 +1796,19 @@ sap.ui.define([
 
 		/**
 		 * Inherit. In this mode the global configuration of the density mode will be applied.
+		 * @public
 		 */
 		Inherit : "Inherit",
 
 		/**
 		 * Compact. In this mode the tabs will be set explicitly to compact mode independent of what mode is applied globally.
+		 * @public
 		 */
 		Compact : "Compact",
 
 		/**
 		 * Cozy. In this mode the tabs will be set explicitly to compact mode independent of what mode is applied globally.
+		 * @public
 		 */
 		Cozy : "Cozy"
 	};
@@ -3054,19 +3056,19 @@ sap.ui.define([
 
 		/**
 		 * Action on SelectionDetailsItem level.
-		 * @private
+		 * @protected
 		 */
 		Item : "Item",
 
 		/**
 		 * Action on SelectionDetails list level.
-		 * @private
+		 * @protected
 		 */
 		List : "List",
 
 		/**
 		 * ActionGroup on SelectionDetails list level.
-		 * @private
+		 * @protected
 		 */
 		Group : "Group"
 	};

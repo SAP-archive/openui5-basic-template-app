@@ -36,9 +36,10 @@ sap.ui.define([
 	 * @public
 	 * @class
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @since 1.9.2
 	 * @alias sap.ui.core.ComponentMetadata
+	 * @extends sap.ui.base.ManagedObjectMetadata
 	 */
 	var ComponentMetadata = function(sClassName, oClassInfo) {
 

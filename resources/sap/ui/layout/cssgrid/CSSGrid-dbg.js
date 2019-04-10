@@ -97,7 +97,7 @@ sap.ui.define([
 	 * @see {@link https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Grid_Layout MDN web docs: CSS Grid Layout}
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.layout.cssgrid.IGridConfigurable
@@ -186,8 +186,9 @@ sap.ui.define([
 			/**
 			 * The items contained by the control.
 			 */
-			items: { type: "sap.ui.core.Control", multiple: true, singularName: "item" }
-		}
+			items: { type: "sap.ui.core.Control", multiple: true, singularName: "item", dnd: true }
+		},
+		dnd: { draggable: false, droppable: true }
 	}});
 
 	/**

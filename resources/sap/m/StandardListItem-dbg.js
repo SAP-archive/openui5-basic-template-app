@@ -35,7 +35,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public

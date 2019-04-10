@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @class
 	 * A View defined/constructed by JavaScript code.
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.JSView

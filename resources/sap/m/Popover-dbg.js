@@ -107,7 +107,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Control
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.63.0
+		* @version 1.64.0
 		*
 		* @public
 		* @alias sap.m.Popover
@@ -600,8 +600,9 @@ sap.ui.define([
 					//gain the focus back to popover in order to prevent the autoclose of the popover
 					oNavContent.attachEvent("afterNavigate", function (oEvent) {
 						var oDomRef = this.getDomRef();
-						if (oDomRef && !oDomRef.contains(document.activeElement)) {
-							oDomRef.focus();
+						if (oDomRef) {
+							var oFocusableElement = this.$().firstFocusableDomRef() || oDomRef;
+							oFocusableElement.focus();
 						}
 					}, this);
 				}

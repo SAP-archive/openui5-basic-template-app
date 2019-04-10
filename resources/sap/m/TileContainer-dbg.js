@@ -44,7 +44,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public
@@ -370,6 +370,7 @@ function(
 
 					if (oTile.getRemovable()) {
 						this.deleteTile(oTile);
+						oTiles = this._getVisibleTiles();
 
 						if (this._iCurrentFocusIndex === oTiles.length) {
 							if (oTiles.length !== 0) {

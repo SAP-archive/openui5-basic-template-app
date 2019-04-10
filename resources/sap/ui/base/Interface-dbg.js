@@ -31,7 +31,7 @@ sap.ui.define([], function() {
 	 * internals of the class can be accessed.
 	 *
 	 * @author Malte Wedel, Daniel Brinkmann
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @param {sap.ui.base.Object}
 	 *            oObject Object for which a facade should be created
 	 * @param {string[]}

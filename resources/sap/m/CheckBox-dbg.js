@@ -14,7 +14,9 @@ sap.ui.define([
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/library',
 	'./CheckBoxRenderer',
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/events/KeyCodes",
+	'sap/ui/core/LabelEnablement'
 ],
 	function(
 		Label,
@@ -25,7 +27,9 @@ sap.ui.define([
 		EnabledPropagator,
 		coreLibrary,
 		CheckBoxRenderer,
-		jQuery
+		jQuery,
+		KeyCodes,
+		LabelEnablement
 	) {
 	"use strict";
 
@@ -84,7 +88,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public
@@ -247,6 +251,7 @@ sap.ui.define([
 	CheckBox.prototype.init = function() {
 		this.addActiveState(this);
 		IconPool.insertFontFaceStyle();
+		this._handleReferencingLabels();
 	};
 
 	CheckBox.prototype.exit = function() {
@@ -387,17 +392,27 @@ sap.ui.define([
 	};
 
 	/**
-	 * Event handler called when the space key is pressed onto the Checkbox.
+	 * Handles the keyup event for SPACE.
 	 *
-	 * @param {jQuery.Event} oEvent The SPACE keyboard key event object
+	 * @param {jQuery.Event} oEvent The event object
 	 */
-	CheckBox.prototype.onsapspace = function(oEvent) {
-		this.ontap(oEvent);
-		// stop browsers default behavior
-		if (oEvent) {
+	CheckBox.prototype.onkeyup = function(oEvent) {
+		if (oEvent && oEvent.which === KeyCodes.SPACE && !oEvent.shiftKey) {
+			this.ontap(oEvent);
+			// stop browsers default behavior
 			oEvent.preventDefault();
 			oEvent.stopPropagation();
 		}
+	};
+
+	/**
+	 * Handles the keydown event for SPACE on which we have to prevent the browser scrolling.
+	 *
+	 * @param {jQuery.Event} oEvent The event object.
+	 * @private
+	 */
+	CheckBox.prototype.onsapspace = function(oEvent) {
+		oEvent.preventDefault();
 	};
 
 	/**
@@ -500,6 +515,32 @@ sap.ui.define([
 		return bSelected;
 	};
 
+	/**
+	 * Called when a referencing label is tapped.
+	 * @private
+	 */
+	CheckBox.prototype._fnLabelTapHandler = function () {
+		this.$().focus();
+	};
+
+	/**
+	 * Ensures clicking on external referencing labels will put the focus on the CheckBox container.
+	 * @private
+	 */
+	CheckBox.prototype._handleReferencingLabels = function () {
+		var aLabelIds = LabelEnablement.getReferencingLabels(this),
+			that = this;
+
+		if (aLabelIds.length > 0) {
+			aLabelIds.forEach(function (sLabelId) {
+				sap.ui.getCore().byId(sLabelId).addEventDelegate({
+					ontap: function () {
+						that._fnLabelTapHandler();
+					}
+				});
+			});
+		}
+	};
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo

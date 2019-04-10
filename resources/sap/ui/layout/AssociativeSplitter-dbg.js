@@ -20,7 +20,7 @@ sap.ui.define(['./Splitter', './SplitterRenderer', "sap/base/Log", "sap/ui/third
 	 * @extends sap.ui.layout.Splitter
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @private

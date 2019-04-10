@@ -22,7 +22,7 @@ sap.ui.define(['sap/m/semantic/SemanticButton', 'sap/m/library', "sap/ui/events/
 	 * @abstract
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public

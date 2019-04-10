@@ -109,7 +109,7 @@ sap.ui.define([
 	 * It also exposes an event {@link sap.m.MessageView#activeTitlePress}, which can be used for navigation from a message to the source of the issue.
 	 * <br><br>
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
@@ -749,7 +749,9 @@ sap.ui.define([
 		if (listItemType !== ListType.Navigation) {
 			oListItem.addEventDelegate({
 				onAfterRendering: function () {
-					var oItemDomRef = oListItem.getDomRef().querySelector(".sapMSLITitleDiv > div");
+					var sSelector = oListItem.getActiveTitle() ? ".sapMSLITitleDiv a" : ".sapMSLITitleDiv > div",
+						oItemDomRef = oListItem.getDomRef().querySelector(sSelector);
+
 					if (oItemDomRef.offsetWidth < oItemDomRef.scrollWidth) {
 						oListItem.setType(ListType.Navigation);
 						if (this.getItems().length === 1) {

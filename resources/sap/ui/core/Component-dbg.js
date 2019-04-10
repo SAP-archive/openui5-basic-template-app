@@ -9,7 +9,6 @@ sap.ui.define([
 	'sap/ui/thirdparty/jquery',
 	'./Manifest',
 	'./ComponentMetadata',
-	'./Core',
 	'sap/base/util/merge',
 	'sap/ui/base/ManagedObject',
 	'sap/ui/thirdparty/URI',
@@ -24,7 +23,6 @@ sap.ui.define([
 	jQuery,
 	Manifest,
 	ComponentMetadata,
-	Core,
 	merge,
 	ManagedObject,
 	URI,
@@ -217,7 +215,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @alias sap.ui.core.Component
 	 * @since 1.9.2
 	 */
@@ -3023,6 +3021,12 @@ sap.ui.define([
 		return prepareControllerClass(
 			sap.ui.requireSync( getControllerModuleName() )
 		);
+	}
+
+	if ( Math.sqrt(2) < 1 ) {
+		// the following code will never be executed, but it helps the build tooling to
+		// detect the (now hidden) dependency to the Core.
+		sap.ui.require(["sap/ui/core/Core"], function() {});
 	}
 
 	return Component;

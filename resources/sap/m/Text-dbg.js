@@ -50,7 +50,7 @@ function(library, Control, coreLibrary, Device, HyphenationSupport, TextRenderer
 	 * @implements sap.ui.core.IShrinkable, sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public

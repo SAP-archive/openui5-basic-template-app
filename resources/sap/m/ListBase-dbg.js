@@ -86,7 +86,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public
@@ -350,7 +350,7 @@ function(
 			},
 
 			/**
-			 * Fires after us"r's swipe action and before the <code>swipeContent</code> is shown. On the <code>swipe</code> event handler, <code>swipeContent</code> can be changed according to the swiped item.
+			 * Fires after user's swipe action and before the <code>swipeContent</code> is shown. On the <code>swipe</code> event handler, <code>swipeContent</code> can be changed according to the swiped item.
 			 * Calling the <code>preventDefault</code> method of the event cancels the swipe action.
 			 */
 			swipe : {allowPreventDefault : true,

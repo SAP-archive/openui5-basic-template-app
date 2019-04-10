@@ -48,7 +48,7 @@ function(
 	 * @extends sap.ui.base.ManagedObject
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @alias sap.ui.core.tmpl.Template
 	 * @since 1.15
 	 * @deprecated since 1.56, use an {@link sap.ui.core.mvc.XMLView XMLView} or {@link sap.ui.core.mvc.JSView JSView} instead.

@@ -13,7 +13,7 @@ sap.ui.define(["sap/ui/fl/Utils", "sap/base/util/uid", 'sap/ui/base/ManagedObjec
 		 *
 		 * @alias sap.m.changeHandler.CombineButtons
 		 * @author SAP SE
-		 * @version 1.63.0
+		 * @version 1.64.0
 		 * @experimental Since 1.48
 		 */
 		var CombineButtons = { };

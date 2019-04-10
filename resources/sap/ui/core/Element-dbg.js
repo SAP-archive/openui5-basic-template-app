@@ -90,7 +90,7 @@ sap.ui.define([
 	 * @class Base Class for Elements.
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @public
 	 * @alias sap.ui.core.Element
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
@@ -479,7 +479,7 @@ sap.ui.define([
 	 * Applications should call this method if they don't need the element any longer.
 	 *
 	 * @param {boolean}
-	 *            [bSuppressInvalidate] if true, the UI element is not marked for redraw
+	 *            [bSuppressInvalidate] if true, the UI element is removed from DOM synchronously and parent will not be invalidated.
 	 * @public
 	 */
 	Element.prototype.destroy = function(bSuppressInvalidate) {
@@ -487,6 +487,10 @@ sap.ui.define([
 		if (this.bIsDestroyed) {
 			return;
 		}
+
+		// determine whether parent exists or not
+		var bHasNoParent = !this.getParent();
+		var bKeepDom = (bSuppressInvalidate === "KeepDom");
 
 		// update the focus information (potentionally) stored by the central UI5 focus handling
 		Element._updateFocusInfo(this);
@@ -496,11 +500,17 @@ sap.ui.define([
 		// determine whether to remove the control from the DOM or not
 		// controls that implement marker interface sap.ui.core.PopupInterface are by contract
 		// not rendered by their parent so we cannot keep the DOM of these controls
-		if (bSuppressInvalidate !== "KeepDom" ||
-			this.getMetadata().isInstanceOf("sap.ui.core.PopupInterface")) {
+		// if parent invalidation is not possible we need to remove the DOM synchronously
+		if (bSuppressInvalidate === true || this.isA("sap.ui.core.PopupInterface") || (!bKeepDom && bHasNoParent)) {
 			this.$().remove();
-		} else {
-			Log.debug("DOM is not removed on destroy of " + this);
+		} else if (!bKeepDom) {
+			// On destroy we do not remove the control DOM synchronously and just let the invalidation happen.
+			// At the next tick of the RenderManager control DOM nodes will be removed anyway.
+			// To make this new behavior more compatible we are changing the id of
+			// the control's DOM and all child nodes that starts with the control id.
+			this.$().removeAttr("data-sap-ui-preserve").find('[id^="' + this.getId() + '-"]').andSelf().each(function(){
+				this.id = "sap-ui-destroyed-" + this.id;
+			});
 		}
 
 		// wrap custom data API to avoid creating new objects
@@ -537,26 +547,27 @@ sap.ui.define([
 		mParameters = mParameters || {};
 		mParameters.id = mParameters.id || this.getId();
 
-		if (Element._trackEvent) {
-			Element._trackEvent(sEventId, this);
+		if (Element._interceptEvent) {
+			Element._interceptEvent(sEventId, this, mParameters);
 		}
 
 		return ManagedObject.prototype.fireEvent.call(this, sEventId, mParameters, bAllowPreventDefault, bEnableEventBubbling);
 	};
 
 	/**
-	 * Tracks event. This method is meant for private usages. Apps are not supposed to used it.
+	 * Intercepts an event. This method is meant for private usages. Apps are not supposed to used it.
 	 * It is created for an experimental purpose.
-	 * Implementation should be injected by outside(i.e. sap.ui.core.delegate.UsageAnalytics).
+	 * Implementation should be injected by outside.
 	 *
 	 * @param {string} sEventId the name of the event
 	 * @param {sap.ui.core.Element} oElement the element itself
+	 * @param {object} mParameters The parameters which complement the event. Hooks must not modify the parameters.
 	 * @function
 	 * @private
 	 * @experimental Since 1.58
 	 * @ui5-restricted
 	 */
-	Element._trackEvent = undefined;
+	Element._interceptEvent = undefined;
 
 	/**
 	 * Adds a delegate that listens to the events of this element.

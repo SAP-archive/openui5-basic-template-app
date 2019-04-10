@@ -36,7 +36,7 @@ sap.ui.define([
 	 * Implementation to access oData metadata
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.ODataMetadata
@@ -61,6 +61,7 @@ sap.ui.define([
 			this.oLoadEvent = null;
 			this.oFailedEvent = null;
 			this.oMetadata = null;
+			this.bMessageScopeSupported = false;
 			this.mNamespaces = mParams.namespaces || {
 				sap:"http://www.sap.com/Protocols/SAPData",
 				m:"http://schemas.microsoft.com/ado/2007/08/dataservices/metadata",
@@ -80,8 +81,11 @@ sap.ui.define([
 				}));
 			}
 
-			function logError() {
+			function logError(oError) {
 				Log.error("[ODataMetadata] initial loading of metadata failed");
+				if (oError && oError.message) {
+					Log.error("Error: " + oError.message);
+				}
 			}
 
 			//check cache
@@ -991,6 +995,57 @@ sap.ui.define([
 	};
 
 	/**
+	 * Get dependent nav property name, entityset and key properties for given entity and property name.
+	 * If the property name is contained as key property in a referential constraint of one of
+	 * the navigation properties, return the name of the navigation property, as well as the
+	 * referenced entityset and the array of key properties.
+	 */
+	ODataMetadata.prototype._getNavPropertyRefInfo = function(oEntityType, sPropertyName) {
+		var oNavPropInfo, oAssociation, oAssociationInfo, oAssociationSet, oPrincipal, oDependent,
+			bContainsProperty, sRole, oEnd, sEntitySet, aKeys,
+			that = this;
+		each(oEntityType.navigationProperty, function(i, oNavProperty) {
+			oAssociationInfo = that._splitName(oNavProperty.relationship);
+			oAssociation = that._getObjectMetadata("association", oAssociationInfo.name, oAssociationInfo.namespace);
+			// Can't find referential info, if referentialConstraint isn't provided
+			if (!oAssociation || !oAssociation.referentialConstraint) {
+				return;
+			}
+			oDependent = oAssociation.referentialConstraint.dependent;
+			oEnd = oAssociation.end.find(function(oEnd) {
+				return oEnd.role === oDependent.role;
+			});
+			// Only if dependent role type matches entity type, look for properties
+			if (oEnd.type !== oEntityType.namespace + "." + oEntityType.name) {
+				return;
+			}
+			bContainsProperty = oDependent.propertyRef.some(function(oPropertyRef) {
+				return oPropertyRef.name === sPropertyName;
+			});
+			// If dependent doesn't contain the property return
+			if (!bContainsProperty) {
+				return;
+			}
+			oPrincipal = oAssociation.referentialConstraint.principal;
+			sRole = oPrincipal.role;
+			oAssociationSet = that._getAssociationSetByAssociation(oNavProperty.relationship);
+			oEnd = oAssociationSet.end.find(function(oEnd) {
+				return oEnd.role === sRole;
+			});
+			sEntitySet = oEnd.entitySet;
+			aKeys = oPrincipal.propertyRef.map(function(oPropertyRef) {
+				return oPropertyRef.name;
+			});
+			oNavPropInfo = {
+				name: oNavProperty.name,
+				entitySet: sEntitySet,
+				keys: aKeys
+			};
+		});
+		return oNavPropInfo;
+	};
+
+	/**
 	*  extract the property metadata of a specified property of an entity type out of the metadata document
 	*/
 	ODataMetadata.prototype._getPropertyMetadata = function(oEntityType, sProperty) {
@@ -1283,6 +1338,65 @@ sap.ui.define([
 			}
 		}
 		return sCanonicalPath;
+	};
+	/**
+	 * Returns the first AssociationSet from all EntityContainers that matches the association name
+	 *
+	 * @param {string} sAssociation The full qualified association name
+	 * @return {map|null} Retuns the AssocationSet object or null if not found
+	 */
+	ODataMetadata.prototype._getAssociationSetByAssociation = function(sAssociation) {
+		var aSchema = this.oMetadata.dataServices.schema;
+		for (var i = 0; i < aSchema.length; ++i) {
+			var aContainers = aSchema[i].entityContainer;
+			if (aContainers) {
+				for (var n = 0; n < aContainers.length; ++n) {
+					var aSets = aContainers[n].associationSet;
+					if (aSets) {
+						for (var m = 0; m < aSets.length; ++m) {
+							if (aSets[m].association === sAssociation) {
+								return aSets[m];
+							}
+						}
+					}
+				}
+			}
+		}
+		return null;
+	};
+
+	/**
+	 * Whether MessageScope is supported by service or not.
+	 *
+	 * @return {boolean} Whether MessageScope is supported
+	 * @private
+	 */
+	ODataMetadata.prototype._isMessageScopeSupported = function() {
+		var aSchema = this.oMetadata.dataServices.schema,
+			oContainer, aContainers;
+
+		if (!this.bMessageScopeSupported) {
+			for (var i = 0; i < aSchema.length; ++i) {
+				aContainers = aSchema[i].entityContainer;
+				if (aContainers) {
+					for (var n = 0; n < aContainers.length; ++n) {
+						oContainer = aContainers[n];
+						if (oContainer.extensions && Array.isArray(oContainer.extensions)) {
+							for (var m = 0; m < oContainer.extensions.length; ++m) {
+								if (oContainer.extensions[m].name === "message-scope-supported" &&
+									oContainer.extensions[m].namespace === this.mNamespaces.sap) {
+									if (oContainer.extensions[m].value === "true") {
+										this.bMessageScopeSupported = true;
+										break;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return this.bMessageScopeSupported;
 	};
 
 	return ODataMetadata;

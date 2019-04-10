@@ -798,6 +798,11 @@ html[data-sap-ui-browser*='ie'] .sapMBtnContentWithIcon {
   right: 0;
   left: auto;
 }
+.sapMBtnInner .sapMBtnIcon.sapMImg {
+  height: 2.375rem;
+  max-width: 2.375rem;
+  width: auto;
+}
 /* ------------------------------------------------ */
 /* Buttons in a Bar                                 */
 /* (add separators, remove top/bottom border)       */
@@ -854,10 +859,11 @@ html[data-sap-ui-browser*='ie'] .sapMBtnContentWithIcon {
   left: 1.875rem;
 }
 .sapUiSizeCompact .sapMBtnInner > img {
-  height: 1.500rem;
-  width: 1.500rem;
-  margin-left: 0.250rem;
-  margin-right: 0.250rem;
+  height: 1.250rem;
+  width: auto;
+  max-width: 1.250rem;
+  margin-left: 0rem;
+  margin-right: 0rem;
 }
 /* ------------------------------------------------ */
 /* Condensed size                                   */
@@ -885,7 +891,8 @@ html[data-sap-ui-browser*='ie'] .sapMBtnContentWithIcon {
 }
 .sapUiSizeCondensed .sapUiTableDataCell .sapMBtnInner > img {
   height: 1.250rem;
-  width: 1.250rem;
+  width: auto;
+  max-width: 1.250rem;
   margin-left: 0.250rem;
   margin-right: 0.250rem;
 }
@@ -2524,11 +2531,9 @@ html.sap-phone .sapMDialog > footer .sapMFooter-CTX .sapMBtn {
   flex: 1;
   min-width: 31%;
 }
+html.sap-tablet .sapMDialog,
 html.sap-desktop .sapMDialog {
   min-width: 20rem;
-}
-html.sap-tablet:not(.sap-combi) .sapMDialog {
-  min-width: 10rem;
 }
 .sapMDialog .sapMIBar {
   position: relative;
@@ -4073,9 +4078,6 @@ html.sap-phone .sapMFeedListItemActionButton + .sapMFeedListItemHeader .sapMFeed
   display: inline-block;
   max-width: 100%;
 }
-.sapMGenericTag:not(:last-child) {
-  margin-right: 0.5rem;
-}
 .sapMGenericTag:focus {
   outline: none;
 }
@@ -4096,10 +4098,10 @@ html.sap-phone .sapMFeedListItemActionButton + .sapMFeedListItemHeader .sapMFeed
 .sapMBarChild.sapMGenericTag > .sapMGenericTagWrap {
   width: 100%;
 }
-.sapMGenericTag:focus {
+html.sap-desktop .sapMGenericTag:focus {
   position: relative;
 }
-.sapMGenericTag:focus:before {
+html.sap-desktop .sapMGenericTag:focus:before {
   position: absolute;
   content: " ";
   top: 1px;
@@ -4109,7 +4111,7 @@ html.sap-phone .sapMFeedListItemActionButton + .sapMFeedListItemHeader .sapMFeed
   z-index: 2;
   pointer-events: none;
 }
-.sapMGenericTag:focus:after {
+html.sap-desktop .sapMGenericTag:focus:after {
   position: absolute;
   content: " ";
   top: 1px;
@@ -4141,6 +4143,7 @@ html[data-sap-ui-browser^="ed"].sap-desktop .sapMGenericTag:focus:after {
   min-width: 3.5625rem;
 }
 .sapMGenericTagWrap .sapMGenericTagIcon {
+  width: 1rem;
   padding-right: 0.5rem;
 }
 .sapMGenericTagError .sapMGenericTagWrap {
@@ -4161,12 +4164,16 @@ html[data-sap-ui-browser^="ed"].sap-desktop .sapMGenericTag:focus:after {
 .sapMGenericTagSuccess .sapMGenericTagWrap .sapMGenericTagIcon {
   color: #b5e7a8;
 }
-.sapMGenericTagNone .sapMGenericTagWrap,
-.sapMGenericTagHighlight .sapMGenericTagWrap {
+.sapMGenericTagInformation .sapMGenericTagWrap {
+  border-color: #ec8b46;
+}
+.sapMGenericTagInformation .sapMGenericTagWrap .sapMGenericTagIcon {
+  color: #ec8b46;
+}
+.sapMGenericTagNone .sapMGenericTagWrap {
   border-color: #ffffff;
 }
-.sapMGenericTagNone .sapMGenericTagWrap .sapMGenericTagIcon,
-.sapMGenericTagHighlight .sapMGenericTagWrap .sapMGenericTagIcon {
+.sapMGenericTagNone .sapMGenericTagWrap .sapMGenericTagIcon {
   color: #ffffff;
 }
 .sapMGenericTagWrap:hover {
@@ -4177,7 +4184,8 @@ html[data-sap-ui-browser^="ed"].sap-desktop .sapMGenericTag:focus:after {
 }
 .sapMGenericTagActive .sapMGenericTagWrap .sapMGenericTagIcon,
 .sapMGenericTagActive .sapMGenericTagWrap .sapMGenericTagText,
-.sapMGenericTagActive .sapMGenericTagWrap .sapMGenericTagValue {
+.sapMGenericTagActive .sapMGenericTagWrap .sapMGenericTagValue,
+.sapMGenericTagActive .sapMGenericTagWrap .sapMGenericTagErrorIcon {
   color: #ffffff;
 }
 .sapMGenericTagWrap .sapMGenericTagErrorIcon {
@@ -4196,14 +4204,17 @@ html[data-sap-ui-browser^="ed"].sap-desktop .sapMGenericTag:focus:after {
   flex: 1 10000 auto;
   min-width: 1.5625rem;
 }
+.sapMGenericTagWrap .sapMGenericTagErrorIcon,
 .sapMGenericTagWrap .sapMGenericTagValue {
   display: flex;
+  flex: 0 0.5 auto;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.sapMGenericTagWrap .sapMGenericTagValue {
   box-sizing: border-box;
   align-items: center;
-  flex: 0 0.5 auto;
   padding-left: 0.5rem;
 }
 .sapMGenericTagWrap .sapMGenericTagValue .sapMObjectNumberText {
@@ -4215,6 +4226,12 @@ html[data-sap-ui-browser^="ed"].sap-desktop .sapMGenericTag:focus:after {
 .sapMGenericTagWrap .sapMGenericTagValue .sapMObjectNumberUnit {
   padding-top: 0.0625rem;
   min-width: 0.75rem;
+}
+.sapUiSizeCozy .sapMGenericTag {
+  margin: 0.25rem 0;
+}
+.sapUiSizeCozy .sapMGenericTag .sapMGenericTagWrap {
+  height: 2.5rem;
 }
 /* ================================== */
 /* CSS for control sap.m/GenericTile  */
@@ -6420,6 +6437,10 @@ html.sap-desktop .sapMImageContent:focus:not([tabindex]) {
   font-weight: normal;
   white-space: nowrap;
 }
+.sapMInputSuggestionPopup .sapMListUl .sapMLIBFocusable.sapMLIB-CTX.sapMLIBShowSeparator.sapMInputFocusedHeaderGroup,
+.sapMInputSuggestionPopup .sapMListTbl .sapMLIBFocusable.sapMLIB-CTX.sapMLIBShowSeparator.sapMInputFocusedHeaderGroup {
+  background-color: #2e9cea;
+}
 .sapMInput.sapMInputWithDescription {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -6790,14 +6811,21 @@ div.sapMComboBoxBasePicker .sapMDialogScrollCont {
 /* CSS for control sap.m/ComboBox  */
 /* Base theme                      */
 /* =============================== */
-.sapMComboBoxBasePicker-CTX .sapMComboBoxList.sapMListFocus .sapMLIBSelected {
+.sapMComboBoxBasePicker-CTX .sapMComboBoxList.sapMListFocus .sapMLIBSelected,
+.sapMComboBoxBasePicker-CTX .sapMComboBoxList.sapMListFocus .sapMComboBoxBaseNonInteractiveItem.sapMLIBFocused {
   outline: 1px dotted #000000;
   outline-offset: -2px;
 }
 /* IE ignores outline-offset */
-.sapMComboBoxBasePicker-CTX .sapMComboBoxList.sapMListFocus .sapMLIBLegacyOutline.sapMLIBSelected {
+.sapMComboBoxBasePicker-CTX .sapMComboBoxList.sapMListFocus .sapMLIBLegacyOutline.sapMLIBSelected,
+.sapMComboBoxBasePicker-CTX .sapMComboBoxList.sapMListFocus .sapMLIBLegacyOutline.sapMComboBoxBaseNonInteractiveItem.sapMLIBFocused {
   outline: none;
   border: 1px dotted #000000;
+}
+.sapMListUl > .sapMLIB.sapMGHLI.sapMComboBoxBaseNonInteractiveItem.sapMComboBoxBaseSeparatorItemNoText {
+  height: 0;
+  padding: 0;
+  border: 1px solid #4f4f4f;
 }
 /* ==================================== */
 /* CSS for control sap.m/InputListItem  */
@@ -7138,6 +7166,9 @@ html[dir=rtl][data-sap-ui-browser^=ed] .sapUiFormCL.sapUiFormCLWideColumns .sapU
 .sapUiTableCell .sapMLabel {
   color: #333333;
 }
+.sapUiAnalyticalTable .sapUiTableCell .sapMLabel {
+  width: 100%;
+}
 .sapUiAnalyticalTable .sapUiAnalyticalTableSum .sapUiTableCell .sapMLabel {
   font-weight: bold;
 }
@@ -7156,6 +7187,7 @@ html[dir=rtl][data-sap-ui-browser^=ed] .sapUiFormCL.sapUiFormCLWideColumns .sapU
   border-radius: 0.25rem;
   background-color: #ffffff;
   box-shadow: 0 1.25rem 4rem 0 rgba(255, 255, 255, 0.7), 0 0 0 2px #000000;
+  outline: none;
 }
 html[data-sap-ui-browser^='sf'] .sapMLightBox {
   -webkit-transform: translateZ(0px);
@@ -8697,6 +8729,9 @@ html.sap-desktop li.sapMMultiComboBoxItemRangeSelection {
   z-index: 1;
   flex: none;
 }
+.sapUiLocalBusy .sapMMultiInput .sapMTokenizer {
+  z-index: 0;
+}
 /* Workaround for missing disabled state of sap.m.Tokenizer */
 .sapMMultiInput.sapMInputBaseDisabled {
   pointer-events: none;
@@ -9142,8 +9177,7 @@ html[data-sap-ui-animation='on'] .sapMNavItem.sapMNavItemDooring {
   box-sizing: border-box;
   cursor: pointer;
   height: auto;
-  margin-top: -1rem;
-  padding: 1rem 0 0;
+  padding: 0;
   position: absolute;
   right: 0.25rem;
   top: 0.25rem;
@@ -9221,7 +9255,7 @@ html[data-sap-ui-animation='on'] .sapMNavItem.sapMNavItemDooring {
   height: 1.625rem;
   padding: 0;
   right: 0.5rem;
-  top: 1.5rem;
+  top: 0.5rem;
   width: 1.625rem;
 }
 .sapUiSizeCompact .sapMNLB-CloseButton .sapMBtnInner {
@@ -9302,7 +9336,7 @@ html[data-sap-ui-browser^="ed"].sap-desktop .sapMNLB:focus::before {
 .sapMNLG-Header .sapMNLGTitleUnread {
   font-weight: bold;
 }
-.sapMNLG-Header .sapMNLG-Details {
+.sapMNLG-GroupHeader .sapMNLG-Details {
   padding-top: 0.375rem;
   font-family: Arial, Helvetica, sans-serif;
   font-weight: normal;
@@ -9311,11 +9345,11 @@ html[data-sap-ui-browser^="ed"].sap-desktop .sapMNLB:focus::before {
   display: flex;
   position: relative;
 }
-.sapMNLG-Header .sapMNLG-Details .sapMNLG-Description {
+.sapMNLG-GroupHeader .sapMNLG-Details .sapMNLG-Description {
   width: 100%;
   padding-top: 0.375rem;
 }
-.sapMNLG-Header .sapMNLG-Details .sapMText.sapMNLI-Text {
+.sapMNLG-GroupHeader .sapMNLG-Details .sapMText.sapMNLI-Text {
   display: inline;
 }
 /* ==========================================================================
@@ -9413,8 +9447,10 @@ html[data-sap-ui-browser*='ie'] .sapMNLG-SubHeader .sapMBtnInner {
   color: #333333;
   font-size: 1rem;
 }
-.sapMNLG .sapMNLG-Header .sapMNLG-Details {
+.sapMNLG .sapMNLG-Details {
   color: #000000;
+  padding-left: 1.25rem;
+  padding-right: 1rem;
 }
 .sapMNLG .sapMNLI {
   margin-top: 0;
@@ -9839,13 +9875,13 @@ html[dir=rtl] .sapMNCValueScr {
   color: #000000;
 }
 .sapMObjectAttributeDiv .sapMText {
-  vertical-align: middle;
+  vertical-align: top;
 }
 .sapMObjectAttributeActive {
   pointer-events: none;
 }
 .sapMObjectAttributeActive .sapMObjectAttributeColon {
-  vertical-align: middle;
+  vertical-align: top;
 }
 .sapMListTbl .sapMObjectAttributeActive .sapMText,
 .sapMObjectAttributeActive .sapMText,
@@ -9873,6 +9909,11 @@ html[dir=rtl] .sapMNCValueScr {
 }
 .sapMListTblCell .sapMObjectAttributeActive {
   white-space: normal;
+  word-break: break-word;
+}
+html[data-sap-ui-browser^='ie'] .sapMListTblCell .sapMObjectAttributeActive,
+html[data-sap-ui-browser^='ed'] .sapMListTblCell .sapMObjectAttributeActive {
+  word-break: break-all;
 }
 .sapMObjectAttributeActive .sapMObjectAttributeTitle,
 .sapMObjectAttributeActive .sapMObjectAttributeText {
@@ -9880,7 +9921,7 @@ html[dir=rtl] .sapMNCValueScr {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 50%;
-  vertical-align: middle;
+  vertical-align: top;
   /* we need this otherwise the focus get broken when the link is on more lines */
   display: inline-block;
 }
@@ -9895,10 +9936,11 @@ html[dir=rtl] .sapMNCValueScr {
   display: inline;
 }
 .sapMOH .sapMObjectAttributeText > .sapMText {
-  vertical-align: bottom;
+  vertical-align: top;
 }
 .sapMObjectAttributeDiv {
   outline: none;
+  font-size: 0.875rem;
 }
 .sapMLIBActive .sapMObjectAttributeText,
 .sapMLIBActive .sapMObjectAttributeDiv {
@@ -9931,7 +9973,7 @@ html[data-sap-ui-browser^='ed'] .sapMObjectAttributeActive:focus .sapMObjectAttr
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 50%;
-  vertical-align: middle;
+  vertical-align: top;
 }
 .sapMOHR .sapMOHRAttr .sapMObjectAttributeTitle {
   padding-right: 0.5rem;
@@ -9951,7 +9993,7 @@ html[data-sap-ui-browser^='ed'] .sapMObjectAttributeActive:focus .sapMObjectAttr
   max-width: 0.5rem;
   margin-left: -0.5rem;
   overflow: auto;
-  vertical-align: middle;
+  vertical-align: top;
 }
 .sapMOHR .sapMObjectAttributeActive .sapMObjectAttributeText {
   color: #000000;
@@ -11006,7 +11048,9 @@ html.sap-desktop .sapMOHRTitleArrow .sapUiIcon:hover {
   word-break: break-word;
   white-space: normal;
 }
+html[data-sap-ui-browser^='ed'] .sapMObjectIdentifierTitle .sapMLnk,
 html[data-sap-ui-browser^='ie'] .sapMObjectIdentifierTitle .sapMLnk,
+html[data-sap-ui-browser^='ed'] .sapMObjectIdentifierTitle .sapMText,
 html[data-sap-ui-browser^='ie'] .sapMObjectIdentifierTitle .sapMText {
   display: inline-block;
 }
@@ -14520,6 +14564,7 @@ html[data-sap-ui-browser^="ed"] .sapMSltWithArrow .sapMSltArrow {
   top: 0;
   right: 0;
   color: #000000;
+  font-size: 1rem;
 }
 .sapMSltArrow::before {
   font-family: "SAP-icons";
@@ -15317,7 +15362,7 @@ html.sap-desktop .sapMShellHeaderText {
 .sapMSinglePCStickyNavBarAndColHeaders .sapMPCHead,
 .sapMSinglePCStickyAll .sapMSinglePCColumnHeader,
 .sapMSinglePCStickyNavBarAndColHeaders .sapMSinglePCColumnHeader {
-  posititon: -webkit-sticky;
+  position: -webkit-sticky;
   position: sticky;
   z-index: 3;
 }
@@ -15408,7 +15453,7 @@ html.sap-desktop .sapMShellHeaderText {
   box-sizing: border-box;
   border: 0.0625rem solid;
   border-top-width: 0;
-  height: 4rem;
+  height: 4.3125rem;
   position: relative;
 }
 .sapMSinglePCBlockersColumn {
@@ -15501,8 +15546,11 @@ html.sap-desktop .sapMShellHeaderText {
 .sapMSinglePCAppointmentWrap.sapUiCalendarRowApps .sapUiCalendarApp .sapUiCalendarAppTitle {
   padding-top: 0.2rem;
 }
-.sapMSinglePCBlockersColumns .sapMSinglePCAppointmentWrap.sapUiCalendarRowApps .sapUiCalendarApp {
+.sapUiSizeCompact .sapMSinglePCBlockersColumns .sapMSinglePCAppointmentWrap.sapUiCalendarRowApps .sapUiCalendarApp {
   height: 1.438rem;
+}
+.sapMSinglePCBlockersColumns .sapMSinglePCAppointmentWrap.sapUiCalendarRowApps .sapUiCalendarApp {
+  height: 2rem;
 }
 .sapMSinglePCBlockersColumns .sapMSinglePCAppointmentWrap.sapUiCalendarRowApps .sapUiCalendarApp .sapUiCalendarAppTitle {
   padding-top: 0;
@@ -15532,6 +15580,10 @@ html.sap-desktop .sapMShellHeaderText {
   height: auto;
   overflow: visible;
 }
+.sapUiCalendarRowVisFilled .sapMSinglePCAppointmentWrap .sapUiCalendarApp,
+.sapUiCalendarRowVisFilled .sapMSinglePCAppointmentWrap .sapUiCalendarApp:hover:not(:active) {
+  background-color: transparent;
+}
 .sapUiSizeCompact .sapMSinglePCColumnHeader .sapUiCalItems .sapUiCalItem {
   display: flex;
   flex-direction: row-reverse;
@@ -15555,6 +15607,29 @@ html.sap-desktop .sapMShellHeaderText {
 .sapMSinglePCGrid .sapUiCalendarAppIcon {
   position: absolute;
   top: 0.2rem;
+}
+.sapMSinglePCOverlay {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  visibility: hidden;
+}
+.sapMSinglePCOverlayDragging {
+  z-index: 3;
+  visibility: visible;
+}
+.sapMSinglePCPlaceholder {
+  height: 2.15625rem;
+}
+.sapUiSizeCompact .sapMSinglePCPlaceholder {
+  height: 1.5rem;
+}
+.sapMSinglePCBlockersColumns .sapMSinglePCOverlay {
+  display: flex;
+}
+.sapMSinglePCBlockersColumns .sapMSinglePCPlaceholder {
+  flex: 1;
+  height: auto;
 }
 /* ============================= */
 /* CSS for control sap.m/Slider  */
@@ -15581,6 +15656,9 @@ html.sap-desktop .sapMShellHeaderText {
   z-index: 1;
   position: relative;
   background-repeat: no-repeat;
+}
+.sapUiLocalBusy .sapMSliderInner {
+  z-index: 0;
 }
 .sapMSliderInner,
 .sapMSliderProgress {
@@ -20449,4 +20527,4 @@ html.sap-tablet:not(.sap-desktop) .sapMVSPopover .sapMBarChild.sapMCb:focus {
 }
 
 /* Inline theming parameters */
-#sap-ui-theme-sap\.m{background-image:url('data:text/plain;utf-8,%7B%22_sap_m_Bar_AppHeight%22%3A%223333px%22%2C%22_sap_m_Bar_HeaderHeight%22%3A%2268px%22%2C%22_sap_m_Bar_MinHeightForHeader%22%3A%223401px%22%2C%22_sap_m_Carousel_PagesMarginRight%22%3A%221.25rem%22%2C%22_sap_m_Carousel_MinWidth%22%3A%2220rem%22%2C%22_sap_m_Carousel_ControlsNoArrowsHeight%22%3A%222rem%22%2C%22_sap_m_Carousel_BulletBackgroundColor%22%3A%22%23e5e5e5%22%2C%22_sap_m_Carousel_NumericIndicatorTextColor%22%3A%22%23000000%22%2C%22_sap_m_Carousel_PrevAndNextSize%22%3A%222rem%22%2C%22_sap_m_Carousel_PrevAndNextPosition%22%3A%220.625rem%22%2C%22_sap_m_Carousel_PageIndicatorContainerPadding%22%3A%221rem%22%2C%22_sap_m_Carousel_PageIndicatorWidthSizeS%22%3A%2212rem%22%2C%22_sap_m_Carousel_PageIndicatorWidthSizeM%22%3A%2216rem%22%2C%22_sap_m_Carousel_PageIndicatorWidthSizeL%22%3A%2220rem%22%2C%22_sap_m_Carousel_PageIndicatorWidthSizeXL%22%3A%2224rem%22%2C%22_sap_m_ColorPalette_SwatchesPerRow%22%3A%225%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingLeftRightCozy%22%3A%220.6875rem%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingTopBottomCozy%22%3A%220.3125rem%22%2C%22_sap_m_ColorPalette_SwatchWidthHitAreaCozy%22%3A%222.375rem%22%2C%22_sap_m_ColorPalette_SwatchWidthCozy%22%3A%221.75rem%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingLeftRightCompact%22%3A%220.8125rem%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingTopBottomCompact%22%3A%220.1875rem%22%2C%22_sap_m_ColorPalette_SwatchWidthHitAreaCompact%22%3A%221.625rem%22%2C%22_sap_m_ColorPalette_SwatchWidthCompact%22%3A%221.25rem%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingLeftRightPhone%22%3A%220.625rem%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingTopBottomPhone%22%3A%220.375rem%22%2C%22_sap_m_ColorPalette_SwatchMaxWidthPhone%22%3A%224.5rem%22%2C%22_sap_m_ColorPalette_SwatchMarginPhone%22%3A%220.375rem%22%2C%22_sap_m_Dialog_MarginHeight%22%3A%227%25%22%2C%22_sap_m_Dialog_BarHeight%22%3A%223rem%22%2C%22_sap_m_Dialog_BarCompactHeight%22%3A%222.5rem%22%2C%22_sap_m_Dialog_Padding%22%3A%221rem%22%2C%22_sap_m_Dialog_InfoDesignBarHeight%22%3A%222rem%22%2C%22sapMGenericTagBorderWidth%22%3A%220.25rem%22%2C%22sapMGenericTagPaddingLeft%22%3A%220.25rem%22%2C%22sapMGenericTagStatusIconWidth%22%3A%221rem%22%2C%22sapMGenericTagIconPaddingRight%22%3A%220.5rem%22%2C%22sapMGenericTagTextMinWidth%22%3A%221.5625rem%22%2C%22_sap_m_IconTabBar_TextColor%22%3A%22%23000000%22%2C%22_sap_m_IconTabBar_ContentArrowBorderWidth%22%3A%220.125rem%22%2C%22_sap_m_IconTabBar_ContentArrowHeight%22%3A%220.625rem%22%2C%22_sap_m_IconTabBar_InLineFilterMargin%22%3A%221rem%200%200.1875rem%200%22%2C%22_sap_m_IconTabBar_InLineTextOnlyVerticalHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_InLineTextOnlyContentArrowHeight%22%3A%220.8125rem%22%2C%22_sap_m_IconTabBar_TextOnlyTabPadding%22%3A%220.5625rem%200%200.3125rem%200%22%2C%22_sap_m_IconTabBar_TextOnlyVerticalHeight%22%3A%223.5rem%22%2C%22_sap_m_IconTabBar_NoTextFilterWidth%22%3A%223rem%22%2C%22_sap_m_IconTabBar_NoTextVerticalHeight%22%3A%224rem%22%2C%22_sap_m_IconTabBar_AllTabHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_AllTabLineHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_AllTabMarginBottom%22%3A%221rem%22%2C%22_sap_m_IconTabBar_HorizontalFilterHeight%22%3A%224rem%22%2C%22_sap_m_IconTabBar_HorizontalTabHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_HorizontalWrapperHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_HorizontalTabWidth%22%3A%223rem%22%2C%22_sap_m_IconTabBar_HorizontalCountTop%22%3A%220.4375rem%22%2C%22_sap_m_IconTabBar_HorizontalTextPaddingTop%22%3A%220.625rem%22%2C%22_sap_m_IconTabBar_HorizontalTextPaddingLeft%22%3A%220.25rem%22%2C%22_sap_m_IconTabBar_VerticalHeight%22%3A%225rem%22%2C%22_sap_m_IconTabBar_VerticalContentArrowHeight%22%3A%220.6875rem%22%2C%22_sap_m_IconTabBar_FilterIconHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_FilterIconLineHeight%22%3A%222.75rem%22%2C%22_sap_m_IconTabBar_FilterIconWidth%22%3A%223rem%22%2C%22_sap_m_IconTabBar_FilterTextLineHeight%22%3A%220.9375rem%22%2C%22_sap_m_IconTabBar_SeparatorHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_SeparatorMargin%22%3A%220%200.25rem%22%2C%22_sap_m_IconTabBar_SeparatorIconHeight%22%3A%223rem%22%2C%22__sap_m_IconTabBar_SeparatorIconLineHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_ArrowScrollPadding%22%3A%221.0625rem%200rem%22%2C%22_sap_m_IconTabBar_SplitContainerArrowScrollPadding%22%3A%221.0625rem%200.4rem%22%2C%22_sap_m_IconTabBar_Compact_NoTextContentArrowHeight%22%3A%220.625rem%22%2C%22_sap_m_IconTabBar_Compact_ContentArrowHeight%22%3A%220.75rem%22%2C%22_sap_m_IconTabBar_Compact_InLineVerticalTabHeight%22%3A%222rem%22%2C%22_sap_m_IconTabBar_Compact_InLineFilterTextMargin%22%3A%220rem%200%200.25rem%200%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyContentArrowHeight%22%3A%220.5rem%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyVerticalHeight%22%3A%222.75rem%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyTabPadding%22%3A%220%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyHeadMargin%22%3A%220.25rem%200.75rem%200%200.25rem%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyTextLineHeight%22%3A%220.875rem%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyTextPadding%22%3A%220.375rem%200%200%22%2C%22_sap_m_IconTabBar_Compact_NoTextTabWidth%22%3A%222rem%22%2C%22_sap_m_IconTabBar_Compact_NoTextVerticalHeight%22%3A%222.625rem%22%2C%22_sap_m_IconTabBar_Compact_HorizontalHeight%22%3A%222.75rem%22%2C%22_sap_m_IconTabBar_Compact_HorizontalContentArrowHeight%22%3A%220.75rem%22%2C%22_sap_m_IconTabBar_Compact_VerticalHeight%22%3A%223.625rem%22%2C%22_sap_m_IconTabBar_Compact_FilterTextPadding%22%3A%220.25rem%200%200%22%2C%22_sap_m_IconTabBar_Compact_HorizontalFocusBottom%22%3A%220%22%2C%22_sap_m_IconTabBar_Phone_HeadMargin%22%3A%221rem%200%200%22%2C%22_sap_m_IconTabBar_Phone_ContentArrowHeight%22%3A%220.45rem%22%2C%22_sap_m_IconTabBar_Phone_InLineArrowScrollPadding%22%3A%220.9375rem%200%22%2C%22_sap_m_InputBase_InnerMinWidth%22%3A%223rem%22%2C%22_sap_m_InputBase_InnerPadding%22%3A%220%200.75rem%22%2C%22_sap_m_InputBase_Height%22%3A%222.5rem%22%2C%22_sap_m_InputBase_DisabledOpacity%22%3A%220.5%22%2C%22_sap_m_InputBase_IconLineHeight%22%3A%222.375rem%22%2C%22_sap_m_InputBase_IconWidth%22%3A%222.375rem%22%2C%22_sap_m_InputBase_IconMinWidth%22%3A%222.375rem%22%2C%22_sap_m_LightBox_MinHeight%22%3A%2218rem%22%2C%22_sap_m_LightBox_FooterOneLineHeightDesktop%22%3A%222.5rem%22%2C%22_sap_m_LightBox_FooterTwoLinesHeightDesktop%22%3A%224rem%22%2C%22_sap_m_LightBox_FooterOneLineHeightMobile%22%3A%223rem%22%2C%22_sap_m_LightBox_FooterTwoLinesHeightMobile%22%3A%224.5rem%22%2C%22_sap_m_LightBox_BusyIndicatorHeight%22%3A%221rem%22%2C%22_sap_m_Message_Box_Information_Icon%22%3A%22true%22%2C%22_sap_m_NotificationListBase_ContainerPaddingLeft%22%3A%221.5rem%22%2C%22_sap_m_NotificationListBase_ContainerPadding%22%3A%221rem%22%2C%22_sap_m_NotificationListBase_CloseButtonSize%22%3A%222.5rem%22%2C%22_sap_m_NotificationListBase_CloseButtonCompactSize%22%3A%221.625rem%22%2C%22_sap_m_NotificationListBase_CloseButtonCozyPosition%22%3A%220.25rem%22%2C%22_sap_m_NotificationListBase_CloseButtonCompactPosition%22%3A%220.5rem%22%2C%22_sap_m_NotificationListBase_ItemBackground%22%3A%22%23ffffff%22%2C%22_sap_m_NotificationListBase_ItemGroupedBackground%22%3A%22%23ffffff%22%2C%22_sap_m_NotificationListGroup_ContainerPadding%22%3A%221rem%22%2C%22_sap_m_NotificationListGroup_BottomMargin%22%3A%220.5rem%22%2C%22_sap_m_NotificationListGroup_BorderRadius%22%3A%220.25rem%22%2C%22_sap_m_NotificationListItem_ContainerPadding%22%3A%221rem%22%2C%22_sap_m_NotificationListItem_ContainerPaddingLeft%22%3A%221.5rem%22%2C%22_sap_m_Page_AppHeight%22%3A%223333px%22%2C%22_sap_m_Page_HeaderHeight%22%3A%2268px%22%2C%22_sap_m_Page_MinHeightForHeader%22%3A%223401px%22%2C%22_sap_m_PlanningCalendarHeader_Background%22%3A%22%23ffffff%22%2C%22_sap_m_Popover_ForceCompactArrowOffset%22%3A%22true%22%2C%22_sap_m_QuickView_HorizontalLayoutMarginBottom%22%3A%222rem%22%2C%22_sap_m_QuickView_HorizontalLayoutIconFontSize%22%3A%222.25rem%22%2C%22_sap_m_QuickView_PagePaddingTop%22%3A%223rem%22%2C%22_sap_m_QuickView_Compact_PagePaddingTop%22%3A%222.5rem%22%2C%22_sap_m_SearchField_Height%22%3A%223rem%22%2C%22_sap_m_SearchField_FormHeight%22%3A%222.5rem%22%2C%22_sap_m_SearchField_InputHeight%22%3A%222.375rem%22%2C%22_sap_m_SearchField_ButtonSize%22%3A%222.38rem%22%2C%22_sap_m_SearchField_ButtonFontSize%22%3A%221.125rem%22%2C%22_sap_m_SearchField_NoSearchButtonPadding%22%3A%222.375rem%22%2C%22_sap_m_SearchField_Compact_FormPaddingLeft%22%3A%220.375rem%22%2C%22_sap_m_SearchField_Compact_NoSearchButtonPadding%22%3A%222rem%22%2C%22_sap_m_SearchField_ResetIcon%22%3A%22%5C%22%5C%5Ce1c7%5C%22%22%2C%22_sap_m_SltPicker_SubHeader_BarHeight%22%3A%222rem%22%2C%22_sap_m_SelectList_ItemHeight%22%3A%222.5rem%22%2C%22_sap_m_SelectList_ItemCompactHeight%22%3A%222rem%22%2C%22_sap_m_Shell_AppWidthLimit%22%3A%221280px%22%2C%22_sap_m_Shell_AppWidthLimitBy2%22%3A%22640px%22%2C%22_sap_m_Shell_AppWidthLimitPlusPadding%22%3A%221296px%22%2C%22_sap_m_Shell_AppHeight%22%3A%223333px%22%2C%22_sap_m_Shell_HeaderHeight%22%3A%2268px%22%2C%22_sap_m_Shell_MinHeightForHeader%22%3A%223401px%22%2C%22_sap_m_Shell_MinWidthForLogoAside%22%3A%221480px%22%2C%22_sap_m_Shell_MinWidthForBigLogoAside%22%3A%221680px%22%2C%22_sap_m_PlanningCalendarHeader_ActionsToolbarHeight%22%3A%223rem%22%2C%22_sap_m_SinglePlanningCalendarGrid_RowHeadersWidth%22%3A%224rem%22%2C%22_sap_m_SinglePlanningCalendarGrid_RowHeight%22%3A%224rem%22%2C%22_sap_m_SinglePlanningCalendarGrid_CompactRowHeight%22%3A%223rem%22%2C%22_sap_m_SplitContainer_AppHeight%22%3A%223333px%22%2C%22_sap_m_SplitContainer_HeaderHeight%22%3A%2268px%22%2C%22_sap_m_SplitContainer_MinHeightForHeader%22%3A%223401px%22%2C%22_sap_m_Switch_OnPosition%22%3A%22-32%22%2C%22_sap_m_Switch_OffPosition%22%3A%220%22%2C%22_sap_m_Switch_TransitionTime%22%3A%22175%22%2C%22_sap_m_Token_Sys_Cancel_Icon%22%3A%22true%22%2C%22_sap_m_Token_TokenPadding%22%3A%220.5rem%22%2C%22_sap_m_Token_TokenCompactPadding%22%3A%220.25rem%22%2C%22_sap_m_Token_TokenSize%22%3A%222rem%22%2C%22_sap_m_Token_TokenCompactSize%22%3A%221.25rem%22%2C%22_sap_m_Tokenizer_OutlineOffset%22%3A%223px%22%2C%22_sap_m_Wizard_NavHeight%22%3A%224rem%22%2C%22_sap_m_WizardProgressNavigator_NavHeight%22%3A%224rem%22%2C%22_sap_m_WizardProgressNavigator_ListHeight%22%3A%222rem%22%2C%22_sap_m_WizardProgressNavigator_StepWidth%22%3A%222rem%22%2C%22_sap_m_WizardProgressNavigator_StepPadding%22%3A%220.5rem%22%2C%22_sap_m_WizardProgressNavigator_SmallSeparator%22%3A%220.25rem%22%2C%22_sap_m_WizardProgressNavigator_StepUnderlineHeight%22%3A%220.125rem%22%2C%22_sap_m_WizardProgressNavigator_StepOverlapOnPhone%22%3A%221.75rem%22%7D')}
+#sap-ui-theme-sap\.m{background-image:url('data:text/plain;utf-8,%7B%22_sap_m_Bar_AppHeight%22%3A%223333px%22%2C%22_sap_m_Bar_HeaderHeight%22%3A%2268px%22%2C%22_sap_m_Bar_MinHeightForHeader%22%3A%223401px%22%2C%22_sap_m_Carousel_PagesMarginRight%22%3A%221.25rem%22%2C%22_sap_m_Carousel_MinWidth%22%3A%2220rem%22%2C%22_sap_m_Carousel_ControlsNoArrowsHeight%22%3A%222rem%22%2C%22_sap_m_Carousel_BulletBackgroundColor%22%3A%22%23e5e5e5%22%2C%22_sap_m_Carousel_NumericIndicatorTextColor%22%3A%22%23000000%22%2C%22_sap_m_Carousel_PrevAndNextSize%22%3A%222rem%22%2C%22_sap_m_Carousel_PrevAndNextPosition%22%3A%220.625rem%22%2C%22_sap_m_Carousel_PageIndicatorContainerPadding%22%3A%221rem%22%2C%22_sap_m_Carousel_PageIndicatorWidthSizeS%22%3A%2212rem%22%2C%22_sap_m_Carousel_PageIndicatorWidthSizeM%22%3A%2216rem%22%2C%22_sap_m_Carousel_PageIndicatorWidthSizeL%22%3A%2220rem%22%2C%22_sap_m_Carousel_PageIndicatorWidthSizeXL%22%3A%2224rem%22%2C%22_sap_m_ColorPalette_SwatchesPerRow%22%3A%225%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingLeftRightCozy%22%3A%220.6875rem%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingTopBottomCozy%22%3A%220.3125rem%22%2C%22_sap_m_ColorPalette_SwatchWidthHitAreaCozy%22%3A%222.375rem%22%2C%22_sap_m_ColorPalette_SwatchWidthCozy%22%3A%221.75rem%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingLeftRightCompact%22%3A%220.8125rem%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingTopBottomCompact%22%3A%220.1875rem%22%2C%22_sap_m_ColorPalette_SwatchWidthHitAreaCompact%22%3A%221.625rem%22%2C%22_sap_m_ColorPalette_SwatchWidthCompact%22%3A%221.25rem%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingLeftRightPhone%22%3A%220.625rem%22%2C%22_sap_m_ColorPalette_SwatchContainerPaddingTopBottomPhone%22%3A%220.375rem%22%2C%22_sap_m_ColorPalette_SwatchMaxWidthPhone%22%3A%224.5rem%22%2C%22_sap_m_ColorPalette_SwatchMarginPhone%22%3A%220.375rem%22%2C%22_sap_m_Dialog_MarginHeight%22%3A%227%25%22%2C%22_sap_m_Dialog_BarHeight%22%3A%223rem%22%2C%22_sap_m_Dialog_BarCompactHeight%22%3A%222.5rem%22%2C%22_sap_m_Dialog_Padding%22%3A%221rem%22%2C%22_sap_m_Dialog_InfoDesignBarHeight%22%3A%222rem%22%2C%22sapMGenericTagBorderWidth%22%3A%220.25rem%22%2C%22sapMGenericTagPaddingLeft%22%3A%220.25rem%22%2C%22sapMGenericTagStatusIconWidth%22%3A%221rem%22%2C%22sapMGenericTagIconPaddingRight%22%3A%220.5rem%22%2C%22sapMGenericTagTextMinWidth%22%3A%221.5625rem%22%2C%22_sap_m_IconTabBar_TextColor%22%3A%22%23000000%22%2C%22_sap_m_IconTabBar_ContentArrowBorderWidth%22%3A%220.125rem%22%2C%22_sap_m_IconTabBar_ContentArrowHeight%22%3A%220.625rem%22%2C%22_sap_m_IconTabBar_InLineFilterMargin%22%3A%221rem%200%200.1875rem%200%22%2C%22_sap_m_IconTabBar_InLineTextOnlyVerticalHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_InLineTextOnlyContentArrowHeight%22%3A%220.8125rem%22%2C%22_sap_m_IconTabBar_TextOnlyTabPadding%22%3A%220.5625rem%200%200.3125rem%200%22%2C%22_sap_m_IconTabBar_TextOnlyVerticalHeight%22%3A%223.5rem%22%2C%22_sap_m_IconTabBar_NoTextFilterWidth%22%3A%223rem%22%2C%22_sap_m_IconTabBar_NoTextVerticalHeight%22%3A%224rem%22%2C%22_sap_m_IconTabBar_AllTabHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_AllTabLineHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_AllTabMarginBottom%22%3A%221rem%22%2C%22_sap_m_IconTabBar_HorizontalFilterHeight%22%3A%224rem%22%2C%22_sap_m_IconTabBar_HorizontalTabHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_HorizontalWrapperHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_HorizontalTabWidth%22%3A%223rem%22%2C%22_sap_m_IconTabBar_HorizontalCountTop%22%3A%220.4375rem%22%2C%22_sap_m_IconTabBar_HorizontalTextPaddingTop%22%3A%220.625rem%22%2C%22_sap_m_IconTabBar_HorizontalTextPaddingLeft%22%3A%220.25rem%22%2C%22_sap_m_IconTabBar_VerticalHeight%22%3A%225rem%22%2C%22_sap_m_IconTabBar_VerticalContentArrowHeight%22%3A%220.6875rem%22%2C%22_sap_m_IconTabBar_FilterIconHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_FilterIconLineHeight%22%3A%222.75rem%22%2C%22_sap_m_IconTabBar_FilterIconWidth%22%3A%223rem%22%2C%22_sap_m_IconTabBar_FilterTextLineHeight%22%3A%220.9375rem%22%2C%22_sap_m_IconTabBar_SeparatorHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_SeparatorMargin%22%3A%220%200.25rem%22%2C%22_sap_m_IconTabBar_SeparatorIconHeight%22%3A%223rem%22%2C%22__sap_m_IconTabBar_SeparatorIconLineHeight%22%3A%223rem%22%2C%22_sap_m_IconTabBar_ArrowScrollPadding%22%3A%221.0625rem%200rem%22%2C%22_sap_m_IconTabBar_SplitContainerArrowScrollPadding%22%3A%221.0625rem%200.4rem%22%2C%22_sap_m_IconTabBar_Compact_NoTextContentArrowHeight%22%3A%220.625rem%22%2C%22_sap_m_IconTabBar_Compact_ContentArrowHeight%22%3A%220.75rem%22%2C%22_sap_m_IconTabBar_Compact_InLineVerticalTabHeight%22%3A%222rem%22%2C%22_sap_m_IconTabBar_Compact_InLineFilterTextMargin%22%3A%220rem%200%200.25rem%200%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyContentArrowHeight%22%3A%220.5rem%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyVerticalHeight%22%3A%222.75rem%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyTabPadding%22%3A%220%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyHeadMargin%22%3A%220.25rem%200.75rem%200%200.25rem%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyTextLineHeight%22%3A%220.875rem%22%2C%22_sap_m_IconTabBar_Compact_TextOnlyTextPadding%22%3A%220.375rem%200%200%22%2C%22_sap_m_IconTabBar_Compact_NoTextTabWidth%22%3A%222rem%22%2C%22_sap_m_IconTabBar_Compact_NoTextVerticalHeight%22%3A%222.625rem%22%2C%22_sap_m_IconTabBar_Compact_HorizontalHeight%22%3A%222.75rem%22%2C%22_sap_m_IconTabBar_Compact_HorizontalContentArrowHeight%22%3A%220.75rem%22%2C%22_sap_m_IconTabBar_Compact_VerticalHeight%22%3A%223.625rem%22%2C%22_sap_m_IconTabBar_Compact_FilterTextPadding%22%3A%220.25rem%200%200%22%2C%22_sap_m_IconTabBar_Compact_HorizontalFocusBottom%22%3A%220%22%2C%22_sap_m_IconTabBar_Phone_HeadMargin%22%3A%221rem%200%200%22%2C%22_sap_m_IconTabBar_Phone_ContentArrowHeight%22%3A%220.45rem%22%2C%22_sap_m_IconTabBar_Phone_InLineArrowScrollPadding%22%3A%220.9375rem%200%22%2C%22_sap_m_InputBase_InnerMinWidth%22%3A%223rem%22%2C%22_sap_m_InputBase_InnerPadding%22%3A%220%200.75rem%22%2C%22_sap_m_InputBase_Height%22%3A%222.5rem%22%2C%22_sap_m_InputBase_DisabledOpacity%22%3A%220.5%22%2C%22_sap_m_InputBase_IconLineHeight%22%3A%222.375rem%22%2C%22_sap_m_InputBase_IconWidth%22%3A%222.375rem%22%2C%22_sap_m_InputBase_IconMinWidth%22%3A%222.375rem%22%2C%22_sap_m_LightBox_MinHeight%22%3A%2218rem%22%2C%22_sap_m_LightBox_FooterOneLineHeightDesktop%22%3A%222.5rem%22%2C%22_sap_m_LightBox_FooterTwoLinesHeightDesktop%22%3A%224rem%22%2C%22_sap_m_LightBox_FooterOneLineHeightMobile%22%3A%223rem%22%2C%22_sap_m_LightBox_FooterTwoLinesHeightMobile%22%3A%224.5rem%22%2C%22_sap_m_LightBox_BusyIndicatorHeight%22%3A%221rem%22%2C%22_sap_m_Message_Box_Information_Icon%22%3A%22true%22%2C%22_sap_m_NotificationListBase_ContainerPaddingLeft%22%3A%221.5rem%22%2C%22_sap_m_NotificationListBase_ContainerPadding%22%3A%221rem%22%2C%22_sap_m_NotificationListBase_CloseButtonSize%22%3A%222.5rem%22%2C%22_sap_m_NotificationListBase_CloseButtonCompactSize%22%3A%221.625rem%22%2C%22_sap_m_NotificationListBase_CloseButtonCozyPosition%22%3A%220.25rem%22%2C%22_sap_m_NotificationListBase_CloseButtonCompactPosition%22%3A%220.5rem%22%2C%22_sap_m_NotificationListBase_SubHeaderAndFooterPadding%22%3A%220.25rem%200%200%201rem%22%2C%22_sap_m_NotificationListBase_ItemBackground%22%3A%22%23ffffff%22%2C%22_sap_m_NotificationListBase_ItemGroupedBackground%22%3A%22%23ffffff%22%2C%22_sap_m_NotificationListGroup_ContainerPadding%22%3A%221rem%22%2C%22_sap_m_NotificationListGroup_BottomMargin%22%3A%220.5rem%22%2C%22_sap_m_NotificationListGroup_BorderRadius%22%3A%220.25rem%22%2C%22_sap_m_NotificationListItem_ContainerPadding%22%3A%221rem%22%2C%22_sap_m_NotificationListItem_ContainerPaddingLeft%22%3A%221.5rem%22%2C%22_sap_m_Page_AppHeight%22%3A%223333px%22%2C%22_sap_m_Page_HeaderHeight%22%3A%2268px%22%2C%22_sap_m_Page_MinHeightForHeader%22%3A%223401px%22%2C%22_sap_m_PlanningCalendarHeader_Background%22%3A%22%23ffffff%22%2C%22_sap_m_Popover_ForceCompactArrowOffset%22%3A%22true%22%2C%22_sap_m_QuickView_HorizontalLayoutMarginBottom%22%3A%222rem%22%2C%22_sap_m_QuickView_HorizontalLayoutIconFontSize%22%3A%222.25rem%22%2C%22_sap_m_QuickView_PagePaddingTop%22%3A%223rem%22%2C%22_sap_m_QuickView_Compact_PagePaddingTop%22%3A%222.5rem%22%2C%22_sap_m_SearchField_Height%22%3A%223rem%22%2C%22_sap_m_SearchField_FormHeight%22%3A%222.5rem%22%2C%22_sap_m_SearchField_InputHeight%22%3A%222.375rem%22%2C%22_sap_m_SearchField_ButtonSize%22%3A%222.38rem%22%2C%22_sap_m_SearchField_ButtonFontSize%22%3A%221.125rem%22%2C%22_sap_m_SearchField_NoSearchButtonPadding%22%3A%222.375rem%22%2C%22_sap_m_SearchField_Compact_FormPaddingLeft%22%3A%220.375rem%22%2C%22_sap_m_SearchField_Compact_NoSearchButtonPadding%22%3A%222rem%22%2C%22_sap_m_SearchField_ResetIcon%22%3A%22%5C%22%5C%5Ce1c7%5C%22%22%2C%22_sap_m_SltPicker_SubHeader_BarHeight%22%3A%222rem%22%2C%22_sap_m_SelectList_ItemHeight%22%3A%222.5rem%22%2C%22_sap_m_SelectList_ItemCompactHeight%22%3A%222rem%22%2C%22_sap_m_Shell_AppWidthLimit%22%3A%221280px%22%2C%22_sap_m_Shell_AppWidthLimitBy2%22%3A%22640px%22%2C%22_sap_m_Shell_AppWidthLimitPlusPadding%22%3A%221296px%22%2C%22_sap_m_Shell_AppHeight%22%3A%223333px%22%2C%22_sap_m_Shell_HeaderHeight%22%3A%2268px%22%2C%22_sap_m_Shell_MinHeightForHeader%22%3A%223401px%22%2C%22_sap_m_Shell_MinWidthForLogoAside%22%3A%221480px%22%2C%22_sap_m_Shell_MinWidthForBigLogoAside%22%3A%221680px%22%2C%22_sap_m_PlanningCalendarHeader_ActionsToolbarHeight%22%3A%223rem%22%2C%22_sap_m_SinglePlanningCalendarGrid_RowHeadersWidth%22%3A%224rem%22%2C%22_sap_m_SinglePlanningCalendarGrid_RowHeight%22%3A%224.3125rem%22%2C%22_sap_m_SinglePlanningCalendarGrid_CompactRowHeight%22%3A%223rem%22%2C%22_sap_m_SplitContainer_AppHeight%22%3A%223333px%22%2C%22_sap_m_SplitContainer_HeaderHeight%22%3A%2268px%22%2C%22_sap_m_SplitContainer_MinHeightForHeader%22%3A%223401px%22%2C%22_sap_m_Switch_OnPosition%22%3A%22-32%22%2C%22_sap_m_Switch_OffPosition%22%3A%220%22%2C%22_sap_m_Switch_TransitionTime%22%3A%22175%22%2C%22_sap_m_Token_Sys_Cancel_Icon%22%3A%22true%22%2C%22_sap_m_Token_TokenPadding%22%3A%220.5rem%22%2C%22_sap_m_Token_TokenCompactPadding%22%3A%220.25rem%22%2C%22_sap_m_Token_TokenSize%22%3A%222rem%22%2C%22_sap_m_Token_TokenCompactSize%22%3A%221.25rem%22%2C%22_sap_m_Tokenizer_OutlineOffset%22%3A%223px%22%2C%22_sap_m_Wizard_NavHeight%22%3A%224rem%22%2C%22_sap_m_WizardProgressNavigator_NavHeight%22%3A%224rem%22%2C%22_sap_m_WizardProgressNavigator_ListHeight%22%3A%222rem%22%2C%22_sap_m_WizardProgressNavigator_StepWidth%22%3A%222rem%22%2C%22_sap_m_WizardProgressNavigator_StepPadding%22%3A%220.5rem%22%2C%22_sap_m_WizardProgressNavigator_SmallSeparator%22%3A%220.25rem%22%2C%22_sap_m_WizardProgressNavigator_StepUnderlineHeight%22%3A%220.125rem%22%2C%22_sap_m_WizardProgressNavigator_StepOverlapOnPhone%22%3A%221.75rem%22%7D')}

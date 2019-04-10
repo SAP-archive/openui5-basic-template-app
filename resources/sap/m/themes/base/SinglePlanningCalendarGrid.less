@@ -1,5 +1,5 @@
 @_sap_m_SinglePlanningCalendarGrid_RowHeadersWidth: 4rem;
-@_sap_m_SinglePlanningCalendarGrid_RowHeight: 4rem;
+@_sap_m_SinglePlanningCalendarGrid_RowHeight: 4.3125rem;
 @_sap_m_SinglePlanningCalendarGrid_CompactRowHeight: 3rem;
 
 /*****************
@@ -207,8 +207,14 @@
 	}
 }
 
+.sapUiSizeCompact {
+	.sapMSinglePCBlockersColumns .sapMSinglePCAppointmentWrap.sapUiCalendarRowApps .sapUiCalendarApp {
+		height: 1.438rem;
+	}
+}
+
 .sapMSinglePCBlockersColumns .sapMSinglePCAppointmentWrap.sapUiCalendarRowApps .sapUiCalendarApp {
-	height: 1.438rem;
+	height: 2rem;
 
 	.sapUiCalendarAppTitle {
 		padding-top: 0;
@@ -247,6 +253,14 @@
 	overflow: visible;
 }
 
+.sapUiCalendarRowVisFilled .sapMSinglePCAppointmentWrap {
+	// TODO: this styles will be removed when Appointments refactoring occured
+	.sapUiCalendarApp,
+	.sapUiCalendarApp:hover:not(:active) {
+		background-color: transparent;
+	}
+}
+
 .sapUiSizeCompact {
 	// TODO: Consider refactoring of the CSS of PlanningCalendar DatesRow CSS and fix the styles in one place
 	// for sapUiCalItems
@@ -280,4 +294,33 @@
 .sapMSinglePCGrid .sapUiCalendarAppIcon {
 	position: absolute;
 	top: 0.2rem;
+}
+
+.sapMSinglePCOverlay {
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	visibility: hidden;
+}
+
+.sapMSinglePCOverlayDragging {
+	z-index: 3;
+	visibility: visible;
+}
+
+.sapMSinglePCPlaceholder {
+	height: 2.15625rem;
+}
+
+.sapUiSizeCompact .sapMSinglePCPlaceholder {
+	height: 1.5rem;
+}
+
+.sapMSinglePCBlockersColumns .sapMSinglePCOverlay {
+	display: flex;
+}
+
+.sapMSinglePCBlockersColumns .sapMSinglePCPlaceholder {
+	flex: 1;
+	height: auto;
 }

@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IContextMenu
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -391,7 +391,12 @@ sap.ui.define([
 		this.bIgnoreOpenerDOMRef = false;
 
 		// Open the sap.ui.core.Popup
-		this.getPopup().open(0, my, at, of, offset || "0 0", collision || "_sapUiCommonsMenuFlip _sapUiCommonsMenuFlip", true);
+		this.getPopup().open(0, my, at, of, offset || "0 0", collision || "_sapUiCommonsMenuFlip _sapUiCommonsMenuFlip", function() {
+			var oOfDom = this.getPopup()._getOfDom(of);
+			if (!oOfDom || !jQuery(oOfDom).is(":visible")) {
+				this.close();
+			}
+		}.bind(this));
 		this.bOpen = true;
 
 		Device.resize.attachHandler(this._handleResizeChange, this);

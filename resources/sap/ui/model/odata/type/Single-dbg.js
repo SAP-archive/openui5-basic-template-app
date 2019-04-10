@@ -16,17 +16,6 @@ sap.ui.define([
 		jQuery) {
 	"use strict";
 
-	// Math.fround polyfill
-	if (!Math.fround) { // sap-ui-cover-browser msie
-		// IE 10+
-		var aArray = new window.Float32Array(1);
-
-		Math.fround = function (fValue) {
-			aArray[0] = fValue;
-			return aArray[0];
-		};
-	}
-
 	/**
 	 * Returns the locale-dependent error message for the type.
 	 *
@@ -103,7 +92,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @alias sap.ui.model.odata.type.Single
 	 * @param {object} [oFormatOptions]

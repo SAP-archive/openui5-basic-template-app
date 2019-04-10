@@ -50,9 +50,6 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	// shortcut for sap.ui.core.CalendarType
-	var CalendarType = coreLibrary.CalendarType;
-
 	/*
 	 * Inside the CalendarTimeInterval UniversalDate objects are used. But in the API JS dates are used.
 	 * So conversion must be done on API functions.
@@ -67,7 +64,7 @@ sap.ui.define([
 	 * @class
 	 * Calendar with granularity of time items displayed in one line.
 	 * @extends sap.ui.core.Control
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public
@@ -1728,7 +1725,6 @@ sap.ui.define([
 		var sAriaLabel;
 		var bShort = false;
 		var aDay;
-		var sCalendarType = CalendarType.Gregorian;
 		var bRelative = false;
 
 		if (oLocaleData.oLocale.sLanguage.toLowerCase() === "ja" || oLocaleData.oLocale.sLanguage.toLowerCase() === "zh") {
@@ -1757,7 +1753,7 @@ sap.ui.define([
 			oHeader.setTextButton1(sText);
 			oHeader.setTextButton2(this._oYearFormat.format(oStartDate, true));
 		} else {
-			oDateFormat = DateFormat.getInstance({style: "long", strictParsing: true, relative: bRelative, calendarType: sCalendarType}, oLocaleData.oLocale);
+			oDateFormat = DateFormat.getInstance({style: "long", strictParsing: true, relative: bRelative}, oLocaleData.oLocale);
 			sAriaLabel = aDay = oDateFormat.format(CalendarUtils._createLocalDate(oStartDate, true));
 			oHeader.setTextButton1(aDay);
 		}
@@ -1872,8 +1868,10 @@ sap.ui.define([
 		var oDate = CalendarUtils._createUniversalUTCDate(oSelectedDate);
 
 		oFocusedDate.setUTCFullYear(oDate.getUTCFullYear());
-		oFocusedDate.setUTCMonth(oDate.getUTCMonth());
-		oFocusedDate.setUTCDate(oDate.getUTCDate());
+
+		//setting separately month and date afterwards could lead to not needed shifting of the month
+		oFocusedDate.setUTCMonth(oDate.getUTCMonth(), oDate.getUTCDate());
+
 		_focusDate.call(this, oFocusedDate, true);
 		_closeCalendarPicker.call(this);
 	}

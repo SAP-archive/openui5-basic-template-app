@@ -21,7 +21,7 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', './library', 
 	 *
 	 * Applications could inherit from this element to add own fields.
 	 * @extends sap.ui.unified.DateTypeRange
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public

@@ -10,9 +10,10 @@ sap.ui.define([
 	'./library',
 	"./BlockLayoutCellRenderer",
 	"sap/base/Log",
+	"./BlockLayoutCellData",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(Control, Device, library, BlockLayoutCellRenderer, Log, jQuery) {
+	function(Control, Device, library, BlockLayoutCellRenderer, Log, BlockLayoutCellData, jQuery) {
 		"use strict";
 
 		/**
@@ -27,7 +28,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.63.0
+		 * @version 1.64.0
 		 *
 		 * @constructor
 		 * @public
@@ -120,6 +121,23 @@ sap.ui.define([
 			return this;
 		};
 
+		/**
+		 * Sets the Width.
+		 *
+		 * @public
+		 * @param {number} iWidth value.
+		 * @returns {sap.ui.layout.BlockLayoutCell} this BlockLayoutCell reference for chaining.
+		 */
+		BlockLayoutCell.prototype.setWidth = function (iWidth) {
+			this.setProperty("width", iWidth);
+
+			if (this.getLayoutData() && (this.getLayoutData().isA("sap.ui.layout.BlockLayoutCellData"))) {
+				this.getLayoutData().setSize(iWidth);
+			}
+
+			return this;
+		};
+
 		BlockLayoutCell.prototype.setTitleLink = function(oObject) {
 				if (oObject && oObject.getMetadata().getName() !== "sap.m.Link") {
 					Log.warning("sap.ui.layout.BlockLayoutCell " + this.getId() + ": Can't add value for titleLink aggregation different than sap.m.Link.");
@@ -135,6 +153,24 @@ sap.ui.define([
 			this._parentRowScrollable = scrollable;
 		};
 
+		BlockLayoutCell.prototype.onAfterRendering = function (oEvent) {
+
+			// fixes the issue in IE when the block layout size is auto
+			// like BlockLayout in a Dialog
+			if (Device.browser.internet_explorer) {
+				var bHasParentsThatHaveAutoHeight = false;
+				this.$().parents().toArray().forEach(function (element) {
+					if (element.style.height === "auto" || (element.className.indexOf("sapMDialogScroll") != -1)) {
+						bHasParentsThatHaveAutoHeight = true;
+					}
+				});
+
+				if (bHasParentsThatHaveAutoHeight){
+					this.$()[0].style.flex = this._flexWidth + ' 1 auto';
+				}
+			}
+		};
+
 		BlockLayoutCell.prototype._getParentRowScrollable = function () {
 			return this._parentRowScrollable;
 		};
@@ -144,13 +180,6 @@ sap.ui.define([
 		};
 
 		BlockLayoutCell.prototype._getFlexWidth = function () {
-
-			// fixes the issue in IE when the block layout size is auto
-			// like BlockLayout in a Dialog
-			if (Device.browser.internet_explorer) {
-				return this._flexWidth + ' 1 auto';
-			}
-
 			return this._flexWidth;
 		};
 

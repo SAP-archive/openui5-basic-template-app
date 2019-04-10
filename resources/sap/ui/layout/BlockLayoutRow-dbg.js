@@ -36,7 +36,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.63.0
+		 * @version 1.64.0
 		 *
 		 * @constructor
 		 * @public
@@ -109,6 +109,7 @@ sap.ui.define([
 				that = this;
 
 			aCells.forEach(function (oCell, index) {
+				that._ensureLayoutData(oCell);
 				oCell._setParentRowScrollable(that.getScrollable());
 			});
 

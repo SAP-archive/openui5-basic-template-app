@@ -16,7 +16,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.layout.changeHandler.RenameFormContainer
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @since 1.48
 	 * @private
 	 * @experimental Since 1.48. This class is experimental and provides only limited functionality. Also the API might be changed in future.

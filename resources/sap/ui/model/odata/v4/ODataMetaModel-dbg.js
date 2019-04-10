@@ -619,7 +619,7 @@ sap.ui.define([
 	 * @hideconstructor
 	 * @public
 	 * @since 1.37.0
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 */
 	var ODataMetaModel = MetaModel.extend("sap.ui.model.odata.v4.ODataMetaModel", {
 		/*
@@ -813,12 +813,17 @@ sap.ui.define([
 	 *   entity
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise which is resolved with the canonical path (for example "/EMPLOYEES('1')") in
-	 *   case of success, or rejected with an instance of <code>Error</code> in case of failure
+	 *   case of success; it is rejected if the requested metadata cannot be loaded, if the context
+	 *   path does not point to an entity, if the entity is transient, or if required key properties
+	 *   are missing
 	 *
 	 * @private
 	 */
 	ODataMetaModel.prototype.fetchCanonicalPath = function (oContext) {
 		return this.fetchUpdateData("", oContext).then(function (oResult) {
+			if (!oResult.editUrl) {
+				throw new Error(oContext.getPath() + ": No canonical path for transient entity");
+			}
 			if (oResult.propertyPath) {
 				throw new Error("Context " + oContext.getPath()
 					+ " does not point to an entity. It should be " + oResult.entityPath);
@@ -1466,17 +1471,18 @@ sap.ui.define([
 			// Then fetch mScope
 			return that.fetchEntityContainer();
 		}).then(function (mScope) {
-			var aEditUrl,        // The edit URL as array of segments (poss. with promises)
+			var aEditUrl,        // The edit URL as array of segments (encoded)
 				oEntityContainer = mScope[mScope.$EntityContainer],
 				sEntityPath,     // The absolute path to the entity for the PATCH (encoded)
 				oEntitySet,      // The entity set that starts the edit URL
 				sEntitySetName,  // The name of this entity set (decoded)
+				sFirstSegment,
 				sInstancePath,   // The absolute path to the instance currently in evaluation
 								 // (encoded; re-builds sResolvedPath)
 				sNavigationPath, // The relative meta path starting from oEntitySet (decoded)
 				//sPropertyPath, // The relative path following sEntityPath (parameter re-used -
 								 // encoded)
-				aSegments,       // The resource path split in segments
+				aSegments,       // The resource path split in segments (encoded)
 				bTransient = false, // Whether there is a transient entity -> no edit URL available
 				oType;           // The type of the data at sInstancePath
 
@@ -1486,11 +1492,10 @@ sap.ui.define([
 				return i >= 0 ? sSegment.slice(i) : "";
 			}
 
-			// Replaces the last segment in aEditUrl with a a request to append the key predicate
-			// for oType and the instance at sInstancePath. Does not calculate it yet, because it
-			// might be replaced again later.
-			function prepareKeyPredicate() {
-				aEditUrl.push({path : sInstancePath, prefix : aEditUrl.pop(), type : oType});
+			// Pushes a request to append the key predicate for oType and the instance at
+			// sInstancePath. Does not calculate it yet, because it might be replaced again later.
+			function prepareKeyPredicate(sSegment) {
+				aEditUrl.push({path : sInstancePath, prefix : sSegment, type : oType});
 			}
 
 			// Strips off the predicate from a segment
@@ -1499,11 +1504,21 @@ sap.ui.define([
 				return i >= 0 ? sSegment.slice(0, i) : sSegment;
 			}
 
+			// The segment is added to the edit URL; transient predicate is converted to real
+			// predicate
+			function pushToEditUrl(sSegment) {
+				if (sSegment.includes("($uid=")) {
+					prepareKeyPredicate(stripPredicate(sSegment));
+				} else {
+					aEditUrl.push(sSegment);
+				}
+			}
+
 			aSegments = sResolvedPath.slice(1).split("/");
-			aEditUrl = [aSegments.shift()];
-			sInstancePath = "/" + aEditUrl[0];
+			sFirstSegment = aSegments.shift();
+			sInstancePath = "/" + sFirstSegment;
 			sEntityPath = sInstancePath;
-			sEntitySetName = decodeURIComponent(stripPredicate(aEditUrl[0]));
+			sEntitySetName = decodeURIComponent(stripPredicate(sFirstSegment));
 			oEntitySet = oEntityContainer[sEntitySetName];
 			if (!oEntitySet) {
 				error("Not an entity set: " + sEntitySetName);
@@ -1511,12 +1526,14 @@ sap.ui.define([
 			oType = mScope[oEntitySet.$Type];
 			sPropertyPath = "";
 			sNavigationPath = "";
+			aEditUrl = [];
+			pushToEditUrl(sFirstSegment);
 			aSegments.forEach(function (sSegment) {
 				var oProperty, sPropertyName;
 
 				sInstancePath += "/" + sSegment;
 				if (rNumber.test(sSegment)) {
-					prepareKeyPredicate();
+					prepareKeyPredicate(aEditUrl.pop());
 					sEntityPath += "/" + sSegment;
 				} else {
 					sPropertyName = decodeURIComponent(stripPredicate(sSegment));
@@ -1539,10 +1556,10 @@ sap.ui.define([
 								// A :1 navigation property identifies the target, the set however
 								// doesn't -> add the predicate
 								// Example: EMPLOYEES('1')/EMPLOYEE_2_TEAM -> TEAMS('A')
-								prepareKeyPredicate();
+								prepareKeyPredicate(aEditUrl.pop());
 							}
 						} else {
-							aEditUrl.push(sSegment);
+							pushToEditUrl(sSegment);
 						}
 						sEntityPath = sInstancePath;
 						sPropertyPath = "";
@@ -2201,9 +2218,17 @@ sap.ui.define([
 							"/" + oCodeList.CollectionPath, null, null, null,
 							{$select : aSelect});
 						oCodeListBinding.attachChange(function () {
+							var aContexts;
+
 							try {
-								resolve(oCodeListBinding.getContexts(0, Infinity)
-									.reduce(addCustomizing, {}));
+								aContexts = oCodeListBinding.getContexts(0, Infinity);
+
+								if (!aContexts.length) {
+									Log.error("Customizing empty for ",
+										oCodeListModel.sServiceUrl + oCodeList.CollectionPath,
+										sODataMetaModel);
+								}
+								resolve(aContexts.reduce(addCustomizing, {}));
 							} catch (e) {
 								reject(e);
 							}

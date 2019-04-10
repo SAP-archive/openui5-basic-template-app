@@ -132,7 +132,7 @@ sap.ui.define([
 	 * the close event), or select Cancel.
 	 *
 	 * @extends sap.m.DateTimeField
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public
@@ -309,6 +309,17 @@ sap.ui.define([
 		oIcon.attachPress(function () {
 			this.toggleOpen(this._bShouldClosePicker);
 		}, this);
+	};
+
+	/**
+	 * Returns if the last entered value is valid.
+	 *
+	 * @returns {boolean}
+	 * @public
+	 * @since 1.64
+	 */
+	DatePicker.prototype.isValidValue = function() {
+		return this._bValid;
 	};
 
 	/**
@@ -565,6 +576,7 @@ sap.ui.define([
 			this._oMinDate = new Date(oDate.getTime());
 			var oDateValue = this.getDateValue();
 			if (oDateValue && oDateValue.getTime() < oDate.getTime()) {
+				this._bValid = false;
 				Log.warning("DateValue not in valid date range", this);
 			}
 		} else {
@@ -604,6 +616,7 @@ sap.ui.define([
 			this._oMaxDate = new Date(oDate.getTime());
 			var oDateValue = this.getDateValue();
 			if (oDateValue && oDateValue.getTime() > oDate.getTime()) {
+				this._bValid = false;
 				Log.warning("DateValue not in valid date", this);
 			}
 		} else {
@@ -643,6 +656,7 @@ sap.ui.define([
 
 		if (oDateValue &&
 			(oDateValue.getTime() < this._oMinDate.getTime() || oDateValue.getTime() > this._oMaxDate.getTime())) {
+			this._bValid = false;
 			Log.error("dateValue " + oDateValue.toString() + "(value=" + this.getValue() + ") does not match " +
 				"min/max date range(" + this._oMinDate.toString() + " - " + this._oMaxDate.toString() + "). App. " +
 				"developers should take care to maintain dateValue/value accordingly.", this);

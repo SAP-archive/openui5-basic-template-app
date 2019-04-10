@@ -217,7 +217,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 * @final
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @alias sap.ui.core.Core
 	 * @public
 	 * @hideconstructor
@@ -1930,7 +1930,7 @@ sap.ui.define([
 		assert(vUrl === undefined ||
 			typeof vUrl === 'boolean' ||
 			typeof vUrl === 'string' ||
-			typeof vUrl === 'object' && (vUrl.url == null || vUrl.url === 'string') && (vUrl.async == null || typeof vUrl.async === 'boolean'),
+			typeof vUrl === 'object' && (vUrl.url == null || typeof vUrl.url === 'string') && (vUrl.async == null || typeof vUrl.async === 'boolean'),
 			"vUrl must be empty or a string or an object with an optional property 'url' of type string and an optional boolean property 'async'");
 
 		if ( typeof vUrl === 'boolean' ) {

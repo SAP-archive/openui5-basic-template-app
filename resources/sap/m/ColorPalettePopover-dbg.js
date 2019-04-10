@@ -23,7 +23,7 @@ sap.ui.define(['sap/ui/core/Control', 'sap/ui/Device', './Button', './Responsive
 		 * A thin wrapper over {@link sap.m.ColorPalette} allowing the latter to be used in a popover.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.63.0
+		 * @version 1.64.0
 		 *
 		 * @constructor
 		 * @public

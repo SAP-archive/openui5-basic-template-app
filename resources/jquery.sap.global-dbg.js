@@ -51,7 +51,6 @@ sap.ui.define([
 
 	"use strict";
 
-
 	if ( !jQuery ) {
 		throw new Error("Loading of jQuery failed");
 	}
@@ -419,7 +418,7 @@ sap.ui.define([
 	/**
 	 * Root Namespace for the jQuery plug-in provided by SAP SE.
 	 *
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @namespace
 	 * @public
 	 * @static

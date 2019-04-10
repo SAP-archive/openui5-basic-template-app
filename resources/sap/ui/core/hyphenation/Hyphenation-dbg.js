@@ -414,7 +414,6 @@ function (jQuery, ManagedObject, Log, Locale, LocaleData) {
 	function fireError(sErrorMessage) {
 		oHyphenationInstance.fireError(sErrorMessage);
 		Log.error("[UI5 Hyphenation] " + sErrorMessage, "sap.ui.core.hyphenation.Hyphenation");
-		oHyphenationInstance.bLoading = false;
 	}
 
 	/**
@@ -464,7 +463,7 @@ function (jQuery, ManagedObject, Log, Locale, LocaleData) {
 	 * @see {@link topic:6322164936f047de941ec522b95d7b70 Hyphenation for Text Controls}
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @hideconstructor
 	 * @public
 	 * @since 1.60

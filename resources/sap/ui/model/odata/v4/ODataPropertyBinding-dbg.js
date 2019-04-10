@@ -56,7 +56,7 @@ sap.ui.define([
 	 * @mixes sap.ui.model.odata.v4.ODataBinding
 	 * @public
 	 * @since 1.37.0
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
 	 * @borrows sap.ui.model.odata.v4.ODataBinding#hasPendingChanges as #hasPendingChanges
 	 * @borrows sap.ui.model.odata.v4.ODataBinding#isInitial as #isInitial
@@ -384,6 +384,12 @@ sap.ui.define([
 	};
 
 	/**
+	 * @override
+	 * @see sap.ui.model.odata.v4.ODataBinding#getResumePromise
+	 */
+	ODataPropertyBinding.prototype.getResumePromise = function () {};
+
+	/**
 	 * Returns the path for the unit or currency of the given property path.
 	 *
 	 * @returns {string}
@@ -441,7 +447,7 @@ sap.ui.define([
 	 * @override
 	 * @see sap.ui.model.odata.v4.ODataBinding#hasPendingChangesInDependents
 	 */
-	ODataPropertyBinding.prototype.hasPendingChangesInDependents = function (oContext) {
+	ODataPropertyBinding.prototype.hasPendingChangesInDependents = function () {
 		return false;
 	};
 

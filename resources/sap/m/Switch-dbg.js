@@ -11,6 +11,7 @@ sap.ui.define([
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/IconPool',
 	'sap/ui/core/theming/Parameters',
+	'sap/ui/events/KeyCodes',
 	'./SwitchRenderer',
 	"sap/base/assert"
 ],
@@ -20,6 +21,7 @@ function(
 	EnabledPropagator,
 	IconPool,
 	Parameters,
+	KeyCodes,
 	SwitchRenderer,
 	assert
 	) {
@@ -46,7 +48,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.63.0
+		 * @version 1.64.0
 		 *
 		 * @constructor
 		 * @public
@@ -158,7 +160,7 @@ function(
 			this.getDomRef("handle").setAttribute("data-sap-ui-swt", b ? this._sOn : this._sOff);
 		};
 
-		Switch.prototype._setDomState = function(bState) {
+		Switch.prototype._setDomState = function(bState, bAnimate) {
 			var CSS_CLASS = this.getRenderer().CSS_CLASS,
 				sState = bState ? this._sOn : this._sOff,
 				oDomRef = this.getDomRef();
@@ -190,8 +192,10 @@ function(
 				oDomRef.setAttribute("aria-checked", "false");
 			}
 
-			if (sap.ui.getCore().getConfiguration().getAnimation()) {
+			if (sap.ui.getCore().getConfiguration().getAnimation() && bAnimate) {
 				$Switch.addClass(CSS_CLASS + "Trans");
+			} else {
+				$Switch.removeClass(CSS_CLASS + "Trans");
 			}
 
 			// remove inline styles
@@ -402,20 +406,16 @@ function(
 				// remove active state
 				this.$("switch").removeClass(this.getRenderer().CSS_CLASS + "Pressed");
 
+				if (this._updateStateTimeout) {
+					clearTimeout(this._updateStateTimeout);
+					this._updateStateAndNotify();
+				}
+
 				// note: update the DOM before the change event is fired for better user experience
-				this._setDomState(this._bDragging ? this._bTempState : !this.getState());
+				this._setDomState(this._bDragging ? this._bTempState : !this.getState(), true);
 
 				// fire the change event after the CSS transition is completed
-				setTimeout(function() {
-					var bState = this.getState();
-
-					// change the state
-					this.setState(this._bDragging ? this._bTempState : !bState);
-
-					if (bState !== this.getState()) {
-						this.fireChange({ state: this.getState() });
-					}
-				}.bind(this), Switch._TRANSITIONTIME);
+				this._updateStateTimeout = setTimeout(this._updateStateAndNotify.bind(this), Switch._TRANSITIONTIME);
 			}
 		};
 
@@ -433,26 +433,60 @@ function(
 		 * @param {jQuery.Event} oEvent The event object.
 		 * @private
 		 */
-		Switch.prototype.onsapselect = function(oEvent) {
-			var bState;
-
+		Switch.prototype._handleSpaceOrEnter = function(oEvent) {
 			if (this.getEnabled()) {
 
 				// mark the event for components that needs to know if the event was handled by the Switch
 				oEvent.setMarked();
 
-				// note: prevent document scrolling when space keys is pressed
-				oEvent.preventDefault();
-
-				this.setState(!this.getState());
-
-				bState = this.getState();
+				if (this._updateStateTimeout) {
+					clearTimeout(this._updateStateTimeout);
+					this._updateStateAndNotify();
+				}
+				this._setDomState(this._bDragging ? this._bTempState : !this.getState(), true);
 
 				// fire the change event after the CSS transition is completed
-				setTimeout(function() {
-					this.fireChange({ state: bState });
-				}.bind(this), Switch._TRANSITIONTIME);
+				this._updateStateTimeout = setTimeout(this._updateStateAndNotify.bind(this), Switch._TRANSITIONTIME);
 			}
+		};
+
+		/**
+		 * @private
+		 * @param {object} oEvent The fired event
+		 */
+		Switch.prototype.onsapspace = function(oEvent) {
+			// prevent scrolling on SAPCE
+			oEvent.preventDefault();
+		};
+
+		/**
+		 * Handles space key on kye up
+		 *
+		 * @private
+		*/
+		Switch.prototype.onkeyup = function (oEvent) {
+			if (oEvent.which === KeyCodes.SPACE) {
+				this._handleSpaceOrEnter(oEvent);
+			}
+		};
+
+		/**
+		 * Handles enter key
+		 *
+		 * @private
+		 */
+		Switch.prototype.onsapenter = Switch.prototype._handleSpaceOrEnter;
+
+
+		Switch.prototype._updateStateAndNotify = function() {
+			var bState = this.getState();
+			this.setState(this._bDragging ? this._bTempState : !bState);
+
+			if (bState !== this.getState()) {
+				this.fireChange({ state: this.getState() });
+			}
+			this._updateStateTimeout = null;
+			this._bDragging = false;
 		};
 
 		/* =========================================================== */

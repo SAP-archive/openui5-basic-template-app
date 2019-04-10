@@ -19,6 +19,7 @@ sap.ui.define([
 	'../model/ParseException',
 	'../model/Type',
 	'../model/ValidateException',
+	"sap/ui/base/SyncPromise",
 	"sap/ui/util/ActivityDetection",
 	"sap/base/util/ObjectPath",
 	"sap/base/Log",
@@ -41,6 +42,7 @@ sap.ui.define([
 	ParseException,
 	Type,
 	ValidateException,
+	SyncPromise,
 	ActivityDetection,
 	ObjectPath,
 	Log,
@@ -264,7 +266,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @public
 	 * @alias sap.ui.base.ManagedObject
 	 */
@@ -1073,6 +1075,13 @@ sap.ui.define([
 			}
 		}
 
+		// checks whether given type name has an object/any primitive type
+		function isObjectType(sType) {
+			var oType = DataType.getType(sType),
+				oPrimitiveTypeName = oType && oType.getPrimitiveType().getName();
+			return oPrimitiveTypeName === "object" || oPrimitiveTypeName === "any";
+		}
+
 		// call the preprocessor if it has been defined
 		preprocessor && preprocessor.call(this, mSettings); // TODO: decide whether to call for empty settings as well?
 
@@ -1129,12 +1138,10 @@ sap.ui.define([
 			oValue = mSettings[sKey];
 			// get info object for the key
 			if ( (oKeyInfo = mValidKeys[sKey]) !== undefined ) {
-				var oBindingInfo, oType, oPrimitiveTypeName;
+				var oBindingInfo;
 				switch (oKeyInfo._iKind) {
 				case 0: // PROPERTY
-					oType = DataType.getType(oKeyInfo.type);
-					oPrimitiveTypeName = oType && oType.getPrimitiveType().getName();
-					oBindingInfo = this.extractBindingInfo(oValue, oScope, oPrimitiveTypeName !== "object" && oPrimitiveTypeName !== "any");
+					oBindingInfo = this.extractBindingInfo(oValue, oScope, !isObjectType(oKeyInfo.type));
 					if (oBindingInfo && typeof oBindingInfo === "object") {
 						this.bindProperty(sKey, oBindingInfo);
 					} else {
@@ -1142,7 +1149,7 @@ sap.ui.define([
 					}
 					break;
 				case 1: // SINGLE_AGGREGATION
-					oBindingInfo = oKeyInfo.altTypes && this.extractBindingInfo(oValue, oScope);
+					oBindingInfo = oKeyInfo.altTypes && this.extractBindingInfo(oValue, oScope, !oKeyInfo.altTypes.some(isObjectType));
 					if ( oBindingInfo && typeof oBindingInfo === "object" ) {
 						this.bindProperty(sKey, oBindingInfo);
 					} else {
@@ -1308,7 +1315,7 @@ sap.ui.define([
 		// change the property (and invalidate if the rendering should be updated)
 		this.mProperties[sPropertyName] = oValue;
 
-		if (!bSuppressInvalidate) {
+		if (!bSuppressInvalidate && !this.isInvalidateSuppressed()) {
 			this.invalidate();
 		}
 
@@ -3309,6 +3316,10 @@ sap.ui.define([
 			}
 		}
 
+		//Initialize skip properties
+		oBindingInfo.skipPropertyUpdate = 0;
+		oBindingInfo.skipModelUpdate = 0;
+
 		// if property is already bound, unbind it first
 		if (this.isBound(sName)) {
 			this.unbindProperty(sName, true);
@@ -3493,37 +3504,42 @@ sap.ui.define([
 	ManagedObject.prototype.updateProperty = function(sName) {
 		var oBindingInfo = this.mBindingInfos[sName],
 			oBinding = oBindingInfo.binding,
-			oPropertyInfo = this.getMetadata().getPropertyLikeSetting(sName);
+			oPropertyInfo = this.getMetadata().getPropertyLikeSetting(sName),
+			that = this;
+
+		function handleException(oException) {
+			if (oException instanceof FormatException) {
+				that.fireFormatError({
+					element : that,
+					property : sName,
+					type : oBinding.getType(),
+					newValue : oBinding.getValue(),
+					oldValue : that[oPropertyInfo._sGetter](),
+					exception: oException,
+					message: oException.message
+				}, false, true); // bAllowPreventDefault, bEnableEventBubbling
+				oBindingInfo.skipModelUpdate++;
+				that.resetProperty(sName);
+				oBindingInfo.skipModelUpdate--;
+			} else {
+				throw oException;
+			}
+		}
 
 		// If model change was triggered by the property itself, don't call the setter again
 		if (oBindingInfo.skipPropertyUpdate) {
 			return;
 		}
 
-		try {
-			var oValue = oBinding.getExternalValue();
-			oBindingInfo.skipModelUpdate = true;
-			oPropertyInfo.set(this, oValue);
-			oBindingInfo.skipModelUpdate = false;
-		} catch (oException) {
-			oBindingInfo.skipModelUpdate = false;
-			if (oException instanceof FormatException) {
-				this.fireFormatError({
-					element : this,
-					property : sName,
-					type : oBinding.getType(),
-					newValue : oBinding.getValue(),
-					oldValue : this[oPropertyInfo._sGetter](),
-					exception: oException,
-					message: oException.message
-				}, false, true); // bAllowPreventDefault, bEnableEventBubbling
-				oBindingInfo.skipModelUpdate = true;
-				this.resetProperty(sName);
-				oBindingInfo.skipModelUpdate = false;
-			} else {
-				throw oException;
-			}
-		}
+		SyncPromise.resolve().then(function() {
+			return oBinding.getExternalValue();
+		}).then(function(oValue) {
+			oBindingInfo.skipModelUpdate++;
+			that[oPropertyInfo._sMutator](oValue);
+			oBindingInfo.skipModelUpdate--;
+		}).catch(function(oException) {
+			handleException(oException);
+		}).unwrap();
 	};
 
 	/**
@@ -3535,6 +3551,42 @@ sap.ui.define([
 	 * @private
 	 */
 	ManagedObject.prototype.updateModelProperty = function(sName, oValue, oOldValue){
+		var oBindingInfo, oBinding,
+			that = this;
+
+		function handleException(oException) {
+			var mErrorParameters = {
+				element: that,
+				property: sName,
+				type: oBinding.getType(),
+				newValue: oValue,
+				oldValue: oOldValue,
+				exception: oException,
+				message: oException.message
+			};
+			if (oException instanceof ParseException) {
+				that.fireParseError(mErrorParameters, false, true); // mParameters, bAllowPreventDefault, bEnableEventBubbling
+			} else if (oException instanceof ValidateException) {
+				that.fireValidationError(mErrorParameters, false, true); // mParameters, bAllowPreventDefault, bEnableEventBubbling
+			} else {
+				throw oException;
+			}
+		}
+
+		function handleSuccess() {
+			var mSuccessParameters = {
+				element: that,
+				property: sName,
+				type: oBinding.getType(),
+				newValue: oValue,
+				oldValue: oOldValue
+			};
+			// Only fire validation success, if a type is used
+			if (oBinding.hasValidation()) {
+				that.fireValidationSuccess(mSuccessParameters, false, true); // bAllowPreventDefault, bEnableEventBubbling
+			}
+		}
+
 		if (this.isBound(sName)) {
 			var oBindingInfo = this.mBindingInfos[sName],
 				oBinding = oBindingInfo.binding;
@@ -3544,51 +3596,23 @@ sap.ui.define([
 				return;
 			}
 
-			// only one property binding should work with two way mode...composite binding does not work with two way binding
+			// only two-way bindings allow model updates
 			if (oBinding && oBinding.getBindingMode() == BindingMode.TwoWay) {
-				try {
-					// Set flag to avoid originating property to be updated from the model
-					oBindingInfo.skipPropertyUpdate = true;
-					oBinding.setExternalValue(oValue);
-					oBindingInfo.skipPropertyUpdate = false;
-
-					// If external value differs from own value after model update,
-					// update property again
-					var oExternalValue = oBinding.getExternalValue();
+				oBindingInfo.skipPropertyUpdate++;
+				SyncPromise.resolve(oValue).then(function(oValue) {
+					return oBinding.setExternalValue(oValue);
+				}).then(function() {
+					oBindingInfo.skipPropertyUpdate--;
+					return oBinding.getExternalValue();
+				}).then(function(oExternalValue) {
 					if (oValue != oExternalValue) {
-						this.updateProperty(sName);
+						that.updateProperty(sName);
 					}
-
-					// Only fire validation success, if a type is used
-					if (oBinding.hasValidation()) {
-						this.fireValidationSuccess({
-							element: this,
-							property: sName,
-							type: oBinding.getType(),
-							newValue: oValue,
-							oldValue: oOldValue
-						}, false, true); // bAllowPreventDefault, bEnableEventBubbling
-					}
-				} catch (oException) {
-					oBindingInfo.skipPropertyUpdate = false;
-					var mErrorParameters = {
-						element: this,
-						property: sName,
-						type: oBinding.getType(),
-						newValue: oValue,
-						oldValue: oOldValue,
-						exception: oException,
-						message: oException.message
-					};
-
-					if (oException instanceof ParseException) {
-						this.fireParseError(mErrorParameters, false, true); // mParameters, bAllowPreventDefault, bEnableEventBubbling
-					} else if (oException instanceof ValidateException) {
-						this.fireValidationError(mErrorParameters, false, true); // mParameters, bAllowPreventDefault, bEnableEventBubbling
-					} else {
-						throw oException;
-					}
-				}
+					handleSuccess();
+				}).catch(function(oException) {
+					oBindingInfo.skipPropertyUpdate--;
+					handleException(oException);
+				}).unwrap();
 			}
 		}
 	};

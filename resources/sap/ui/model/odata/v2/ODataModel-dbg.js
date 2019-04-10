@@ -23,6 +23,7 @@ sap.ui.define([
 	'sap/ui/model/odata/CountMode',
 	'sap/ui/model/odata/UpdateMethod',
 	'sap/ui/model/odata/OperationMode',
+	'sap/ui/model/odata/MessageScope',
 	'./ODataContextBinding',
 	'./ODataListBinding',
 	'sap/ui/model/odata/ODataMetadata',
@@ -53,6 +54,7 @@ sap.ui.define([
 	CountMode,
 	UpdateMethod,
 	OperationMode,
+	MessageScope,
 	ODataContextBinding,
 	ODataListBinding,
 	ODataMetadata,
@@ -101,7 +103,7 @@ sap.ui.define([
 	 * @param {boolean} [mParameters.withCredentials]
 	 *            Experimental - <code>true</code> when user credentials are to be included in a
 	 *            cross-origin reques; please note that this only works if all requests are asynchronous
-	 * @param [mParameters.maxDataServiceVersion='2.0']
+	 * @param {string}[mParameters.maxDataServiceVersion='2.0']
 	 *            Please use the following string format e.g. '2.0' or '3.0'.
 	 *            OData version supported by the ODataModel: '2.0'
 	 * @param {boolean} [mParameters.useBatch=true]
@@ -154,13 +156,15 @@ sap.ui.define([
 	 *            to share an <code>SID</code> between different browser windows
 	 * @param {string[]} [mParameters.bindableResponseHeaders=null]
 	 *            Set this array to make custom response headers bindable via the entity's "__metadata/headers" property
+	 * @param {boolean} [mParameters.canonicalRequests=false]
+	 *            When setting this flag to <code>true</code> the model tries to calculate a canonical url to the data.
 	 *
 	 * @class
 	 * Model implementation based on the OData protocol.
 	 *
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataModel
@@ -235,14 +239,17 @@ sap.ui.define([
 				sWarmupUrl = mParameters.warmupUrl;
 				bCanonicalRequests = mParameters.canonicalRequests;
 			}
+
 			this.mPathCache = {};
 			this.mInvalidatedPaths = {};
 			this.bCanonicalRequests = !!bCanonicalRequests;
+			this.sMessageScope = MessageScope.RequestedObjects;
 			this.sWarmupUrl = sWarmupUrl;
 			this.bWarmup = !!sWarmupUrl;
 			this.mSupportedBindingModes = {"OneWay": true, "OneTime": true, "TwoWay":true};
 			this.mUnsupportedFilterOperators = {"Any": true, "All": true};
 			this.sDefaultBindingMode = sDefaultBindingMode || BindingMode.OneWay;
+			this.bIsMessageScopeSupported = false;
 
 			this.bJSON = bJSON !== false;
 			this.aPendingRequestHandles = [];
@@ -872,6 +879,9 @@ sap.ui.define([
 			return;
 		}
 
+		//check message scope
+		this.bIsMessageScopeSupported = this.oMetadata._isMessageScopeSupported();
+
 		var fnFire = function() {
 			this.fireMetadataLoaded({
 				metadata: this.oMetadata
@@ -1425,8 +1435,14 @@ sap.ui.define([
 			sPath = sPath || '/' + sKey;
 			sDeepPath = sDeepPath || sPath;
 
-			// try to resolve/cache paths containing mutiple nav properties likes "SalesOrderItem(123)/ToProduct/ToSupplier" => Product(123)/ToSupplier
-			this._writePathCache(this.resolveFromCache(sDeepPath), "/" + sKey);
+
+			var sCanonicalPath = this.resolveFromCache(sDeepPath);
+			// Prevents writing invalid entries into cache, like /Product(1) : /Product(2).
+			// This could occur, when a navigation target changes on the server and the old target was resolved from cache before invalidation.
+            if (sCanonicalPath === "/" + sKey || (sCanonicalPath && sCanonicalPath.split("/").length > 2)) {
+				// try to resolve/cache paths containing mutiple nav properties likes "SalesOrderItem(123)/ToProduct/ToSupplier" => Product(123)/ToSupplier
+                this._writePathCache(sCanonicalPath, "/" + sKey);
+            }
 
 			this._writePathCache(sPath, "/" + sKey);
 			this._writePathCache(sDeepPath, "/" + sKey);
@@ -1439,7 +1455,7 @@ sap.ui.define([
 	 * Writes a new entry into the canonical path cache.
 	 *
 	 * @param {string} sPath The path is used as cache key.
-	 * @param {string} sCanonicalPath The canoncial path addressing the same resource.
+	 * @param {string} sCanonicalPath The canonical path addressing the same resource.
 	 * @private
 	 */
 	ODataModel.prototype._writePathCache = function(sPath, sCanonicalPath){
@@ -1559,7 +1575,7 @@ sap.ui.define([
 	 */
 	ODataModel.prototype.initialize = function() {
 		// Call initialize on all bindings in case metadata was not available when they were created
-		var aBindings = this.aBindings.slice(0);
+		var aBindings = this.getBindings();
 		aBindings.forEach(function(oBinding) {
 			oBinding.initialize();
 		});
@@ -1667,7 +1683,7 @@ sap.ui.define([
 	 */
 	ODataModel.prototype._refresh = function(bForceUpdate, sGroupId, mChangedEntities, mEntityTypes) {
 		// Call refresh on all bindings instead of checkUpdate to properly reset cached data in bindings
-		var aBindings = this.aBindings.slice(0);
+		var aBindings = this.getBindings();
 		//the refresh calls read synchronous; we use this.sRefreshGroupId in this case
 		this.sRefreshGroupId = sGroupId;
 		aBindings.forEach(function(oBinding) {
@@ -1698,7 +1714,7 @@ sap.ui.define([
 			clearTimeout(this.sUpdateTimer);
 			this.sUpdateTimer = null;
 		}
-		var aBindings = this.aBindings.slice(0);
+		var aBindings = this.getBindings();
 		aBindings.forEach(function(oBinding) {
 			if (!bMetaModelOnly || this.isMetaModelPath(oBinding.getPath())) {
 				oBinding.checkUpdate(bForceUpdate, mChangedEntities);
@@ -1714,7 +1730,7 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataModel.prototype.checkDataState = function(mLaunderingState) {
-		var aBindings = this.aBindings.slice(0);
+		var aBindings = this.getBindings();
 		aBindings.forEach(function(oBinding) {
 			if (oBinding.checkDataState) {
 				oBinding.checkDataState(mLaunderingState);
@@ -1843,6 +1859,7 @@ sap.ui.define([
 			sCanonicalPath,
 			oNewContext,
 			sGroupId,
+			sDeepPath,
 			that = this;
 
 		// optional parameter handling
@@ -1884,6 +1901,7 @@ sap.ui.define([
 		if (!sResolvedPath && this.bCanonicalRequests) {
 			sResolvedPath = this.resolve(sPath, oContext);
 		}
+		sDeepPath = this.resolveDeep(sPath, oContext);
 
 		if (!sResolvedPath) {
 			if (fnCallBack) {
@@ -1902,8 +1920,8 @@ sap.ui.define([
 		if (!bReload) {
 			sCanonicalPath = this.resolve(sPath, oContext, true);
 			if (sCanonicalPath) {
-				oNewContext = this.getContext(sCanonicalPath, oContext);
-				oNewContext.sDeepPath = this.resolveDeep(sPath, oContext, false);
+				oNewContext = this.getContext(sCanonicalPath);
+				oNewContext.sDeepPath = sDeepPath;
 			} else {
 				oNewContext = null;
 			}
@@ -1922,8 +1940,8 @@ sap.ui.define([
 			oNewContext = null;
 
 			if (sKey) {
-				oNewContext = that.getContext('/' + sKey, oContext);
-				oNewContext.sDeepPath = that.resolveDeep(sPath, oContext);
+				oNewContext = that.getContext('/' + sKey);
+				oNewContext.sDeepPath = sDeepPath;
 				oRef = {__ref: sKey};
 			}
 			/* in case of sPath == "" or a deep path (entity(1)/entities) we
@@ -1967,8 +1985,7 @@ sap.ui.define([
 				if (mParameters && (mParameters.batchGroupId || mParameters.groupId)) {
 					sGroupId = mParameters.groupId || mParameters.batchGroupId;
 				}
-
-				this.read(sResolvedPath, {groupId: sGroupId, urlParameters: aParams, success: handleSuccess, error: handleError});
+				this.read(sPath, {groupId: sGroupId, urlParameters: aParams, success: handleSuccess, error: handleError, context: oContext});
 			} else {
 				fnCallBack(null); // error - notify to recreate contexts
 			}
@@ -1977,7 +1994,7 @@ sap.ui.define([
 		if (mParameters && mParameters.createPreliminaryContext) {
 			sResolvedPath = this.resolve(sPath, oContext);
 			oNewContext = this.getContext(sResolvedPath);
-			oNewContext.sDeepPath = this.resolveDeep(sPath, oContext);
+			oNewContext.sDeepPath = sDeepPath;
 			return oNewContext;
 		}
 
@@ -2831,7 +2848,7 @@ sap.ui.define([
 
 		function requestToken(sRequestType, fnError) {
 			// trigger a read to the service url to fetch the token
-			var oRequest = that._createRequest(sUrl, sRequestType, that._getHeaders(undefined, true), null, null, !!bAsync);
+			var oRequest = that._createRequest(sUrl, "", sRequestType, that._getHeaders(undefined, true), null, null, !!bAsync);
 			oRequest.headers["x-csrf-token"] = "Fetch";
 			return that._request(oRequest, handleSuccess, fnError, undefined, undefined, that.getServiceMetadata());
 		}
@@ -3204,7 +3221,7 @@ sap.ui.define([
 
 
 	/**
-	 * If canoncial path changes were detected, all canonical path cache entries are checked for up-to-dateness.
+	 * If canonical path changes were detected, all canonical path cache entries are checked for up-to-dateness.
 	 * @private
 	 */
 
@@ -3341,6 +3358,10 @@ sap.ui.define([
 		if (sRequestKey in oRequestGroup.map && (oRequest.key || oRequest.method === 'GET')) {
 			var oGroupEntry = oRequestGroup.map[sRequestKey];
 			var oStoredRequest = oGroupEntry.request;
+			oRequest.deepPath = oStoredRequest.deepPath;
+			if (this.bIsMessageScopeSupported && this.sMessageScope === MessageScope.BusinessObject) {
+				oRequest.headers["sap-message-scope"] = oStoredRequest.headers["sap-message-scope"];
+			}
 
 			if (oGroupEntry.bRefreshAfterChange === undefined) { // If not already defined, overwrite with new flag
 				oGroupEntry.bRefreshAfterChange = bRefreshAfterChange;
@@ -3362,6 +3383,7 @@ sap.ui.define([
 				oStoredRequest.method = oRequest.method;
 				oStoredRequest.headers = oRequest.headers;
 				oStoredRequest.data = oRequest.data;
+
 				// for POST function imports we also need to replace the URI
 				oStoredRequest.requestUri = oRequest.requestUri;
 				if (oRequest.method === "PUT") {
@@ -3830,11 +3852,11 @@ sap.ui.define([
 	 *
 	 * @param {string} sKey Key of the entity to change
 	 * @param {object} oData The entry data
-	 * @param {boolean} [sUpdateMethod] Sets <code>MERGE/PUT</code> method
+	 * @param {boolean} [sUpdateMethod] Sets <code>MERGE/PUT</code> method, defaults to <code>MERGE</code> if not provided
 	 * @returns {object} The request object
 	 * @private
 	 */
-	ODataModel.prototype._processChange = function(sKey, oData, sUpdateMethod) {
+	ODataModel.prototype._processChange = function(sKey, oData, sUpdateMethod, sDeepPath) {
 		var oPayload, oEntityType, mParams, sMethod, sETag, sUrl, bCreated, mHeaders, aUrlParams, oRequest, oUnModifiedEntry, that = this;
 
 		// delete expand properties = navigation properties
@@ -3921,8 +3943,8 @@ sap.ui.define([
 
 		sUrl = this._createRequestUrl('/' + sKey, null, aUrlParams, this.bUseBatch);
 
-		oRequest = this._createRequest(sUrl, sMethod, mHeaders, oPayload, sETag);
-		oRequest.deepPath = that.resolveDeep(sUrl);
+		oRequest = this._createRequest(sUrl, sDeepPath ,sMethod, mHeaders, oPayload, sETag);
+
 
 		//for createEntry requests we need to flag request again
 		if (bCreated) {
@@ -4127,7 +4149,7 @@ sap.ui.define([
 	 * @return {object} Request object
 	 * @private
 	 */
-	ODataModel.prototype._createRequest = function(sUrl, sMethod, mHeaders, oData, sETag, bAsync) {
+	ODataModel.prototype._createRequest = function(sUrl, sDeepPath, sMethod, mHeaders, oData, sETag, bAsync) {
 		bAsync = bAsync !== false;
 
 		if (sETag && sMethod !== "GET") {
@@ -4156,13 +4178,20 @@ sap.ui.define([
 			sMethod = "POST";
 		}
 
+		// deep path handling
+		if (sDeepPath && this.bIsMessageScopeSupported && this.sMessageScope === MessageScope.BusinessObject) {
+			var aParts = sDeepPath.split("/");
+			mHeaders["sap-message-scope"] = "/" + aParts[0] + aParts[1]; // "/" + RootEntity(123)
+		}
+
 		var oRequest = {
 			headers : mHeaders,
 			requestUri : sUrl,
 			method : sMethod,
 			user: this.sUser,
 			password: this.sPassword,
-			async: bAsync
+			async: bAsync,
+			deepPath: sDeepPath
 		};
 
 		if (oData) {
@@ -4250,7 +4279,7 @@ sap.ui.define([
 	 * @param {string} [mParameters.batchGroupId] Deprecated - use <code>groupId</code> instead
 	 * @param {string} [mParameters.groupId] ID of a request group; requests belonging to the same group will be bundled in one batch request
 	 * @param {string} [mParameters.changeSetId] ID of the <code>ChangeSet</code> that this request should belong to
-	 * @param {string} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation. See {@link #setRefreshAfterChange}
+	 * @param {boolean} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation. See {@link #setRefreshAfterChange}
 	           If given, this overrules the model-wide <code>refreshAfterChange</code> flag for this operation only.
 	 *
 	 * @return {object} An object which has an <code>abort</code> function to abort the current request.
@@ -4288,8 +4317,7 @@ sap.ui.define([
 
 		return this._processRequest(function(requestHandle) {
 			sUrl = that._createRequestUrl(sPath, oContext, aUrlParams, that.bUseBatch);
-			oRequest = that._createRequest(sUrl, sMethod, mHeaders, oData, sETag);
-			oRequest.deepPath = that.resolveDeep(sPath, oContext);
+			oRequest = that._createRequest(sUrl, that.resolveDeep(sPath, oContext), sMethod, mHeaders, oData, sETag);
 
 			mRequests = that.mRequests;
 			if (sGroupId in that.mDeferredGroups) {
@@ -4324,7 +4352,7 @@ sap.ui.define([
 	 * @param {string} [mParameters.batchGroupId] Deprecated - use <code>groupId</code> instead
 	 * @param {string} [mParameters.groupId] ID of a request group; requests belonging to the same group will be bundled in one batch request
 	 * @param {string} [mParameters.changeSetId] ID of the <code>ChangeSet</code> that this request should belong to
-	 * @param {string} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation. See {@link #setRefreshAfterChange}
+	 * @param {boolean} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation. See {@link #setRefreshAfterChange}
 	           If given, this overrules the model-wide <code>refreshAfterChange</code> flag for this operation only.
 	 * @return {object} An object which has an <code>abort</code> function to abort the current request.
 	 *
@@ -4356,8 +4384,7 @@ sap.ui.define([
 
 		return this._processRequest(function(requestHandle) {
 			sUrl = that._createRequestUrl(sPath, oContext, aUrlParams, that.bUseBatch);
-			oRequest = that._createRequest(sUrl, sMethod, mHeaders, oData, sEtag);
-			oRequest.deepPath = that.resolveDeep(sPath, oContext);
+			oRequest = that._createRequest(sUrl, that.resolveDeep(sPath, oContext), sMethod, mHeaders, oData, sEtag);
 			oRequest.created = true;
 
 			sPath = that._normalizePath(sPath, oContext);
@@ -4394,7 +4421,7 @@ sap.ui.define([
 	 * @param {string} [mParameters.batchGroupId] Deprecated - use <code>groupId</code> instead
 	 * @param {string} [mParameters.groupId] ID of a request group; requests belonging to the same group will be bundled in one batch request
 	 * @param {string} [mParameters.changeSetId] ID of the <code>ChangeSet</code> that this request should belong to
-	 * @param {string} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation. See {@link #setRefreshAfterChange}
+	 * @param {boolean} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation. See {@link #setRefreshAfterChange}
 	           If given, this overrules the model-wide <code>refreshAfterChange</code> flag for this operation only.
 	 *
 	 * @return {object} An object which has an <code>abort</code> function to abort the current request.
@@ -4440,8 +4467,7 @@ sap.ui.define([
 
 		return this._processRequest(function(requestHandle) {
 			sUrl = that._createRequestUrl(sPath, oContext, aUrlParams, that.bUseBatch);
-			oRequest = that._createRequest(sUrl, sMethod, mHeaders, undefined, sETag);
-			oRequest.deepPath = that.resolveDeep(sPath, oContext);
+			oRequest = that._createRequest(sUrl, that.resolveDeep(sPath, oContext), sMethod, mHeaders, undefined, sETag);
 
 			mRequests = that.mRequests;
 			if (sGroupId in that.mDeferredGroups) {
@@ -4475,7 +4501,7 @@ sap.ui.define([
 	 * @param {string} [mParameters.groupId] ID of a request group; requests belonging to the same group will be bundled in one batch request
 	 * @param {string} [mParameters.eTag] If the function import changes an entity, the ETag for this entity could be passed with this parameter
 	 * @param {string} [mParameters.changeSetId] ID of the <code>ChangeSet</code> that this request should belong to
-	 * @param {string} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation. See {@link #setRefreshAfterChange}
+	 * @param {boolean} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation. See {@link #setRefreshAfterChange}
 	           If given, this overrules the model-wide <code>refreshAfterChange</code> flag for this operation only.
 	 *
 	 * @return {object} An object which has a <code>contextCreated</code> function that returns a <code>Promise</code>.
@@ -4584,8 +4610,7 @@ sap.ui.define([
 			aUrlParams = ODataUtils._createUrlParamsArray(mUrlParams);
 
 			sUrl = that._createRequestUrl(sFunctionName, null, aUrlParams, that.bUseBatch);
-			oRequest = that._createRequest(sUrl, sMethod, mHeaders, undefined, sETag);
-			oRequest.deepPath = that.resolveDeep(sFunctionName, null);
+			oRequest = that._createRequest(sUrl, that.resolveDeep(sFunctionName, oContext), sMethod, mHeaders, undefined, sETag);
 			oRequest.key = sKey;
 
 			mRequests = that.mRequests;
@@ -4715,8 +4740,7 @@ sap.ui.define([
 			}
 
 			sUrl = that._createRequestUrl(sPath, oContext, aUrlParams, that.bUseBatch);
-			oRequest = that._createRequest(sUrl, sMethod, mHeaders, null, sETag);
-			oRequest.deepPath = that.resolveDeep(sPath, oContext);
+			oRequest = that._createRequest(sUrl, that.resolveDeep(sPath, oContext), sMethod, mHeaders, null, sETag);
 
 			mRequests = that.mRequests;
 			if (sGroupId in that.mDeferredGroups) {
@@ -5018,17 +5042,30 @@ sap.ui.define([
 	 * @param {map} mChangedEntities Map of changedEntities
 	 */
 	ODataModel.prototype._updateChangedEntities = function(mChangedEntities) {
-		var that = this, sRootPath;
-		function updateChangedEntities(oOriginalObject, oChangedObject) {
+		var that = this, sRootPath, oEntityType, oNavPropRefInfo;
+
+		function updateChangedEntities(oOriginalObject, oChangedObject, sCurPath) {
 			each(oChangedObject,function(sKey) {
-				var sActPath = sRootPath + '/' + sKey;
+				var sActPath = sCurPath + '/' + sKey;
 				if (isPlainObject(oChangedObject[sKey]) && isPlainObject(oOriginalObject[sKey])) {
-					updateChangedEntities(oOriginalObject[sKey], oChangedObject[sKey]);
+					updateChangedEntities(oOriginalObject[sKey], oChangedObject[sKey], sActPath);
 					if (jQuery.isEmptyObject(oChangedObject[sKey])) {
 						delete oChangedObject[sKey];
 					}
 				} else if (deepEqual(oChangedObject[sKey], oOriginalObject[sKey]) && !that.isLaundering(sActPath)) {
 					delete oChangedObject[sKey];
+					// When current object is the entity itself check for matching navigation property in changed
+					// entity data and take care of it as well
+					if (sCurPath === sRootPath) {
+						oEntityType = that.oMetadata._getEntityTypeByPath(sRootPath);
+						oNavPropRefInfo = oEntityType && that.oMetadata._getNavPropertyRefInfo(oEntityType, sKey);
+						if (oNavPropRefInfo && oChangedObject[oNavPropRefInfo.name]) {
+							// if the nav prop related to the matching property is also set, set it on original
+							// entry and remove from changed entity
+							oOriginalObject[oNavPropRefInfo.name] = oChangedObject[oNavPropRefInfo.name];
+							delete oChangedObject[oNavPropRefInfo.name];
+						}
+					}
 				}
 			});
 		}
@@ -5041,7 +5078,7 @@ sap.ui.define([
 				merge(oEntry, oData);
 
 				sRootPath = '/' + sKey;
-				updateChangedEntities(oEntry, oChangedEntry);
+				updateChangedEntities(oEntry, oChangedEntry, sRootPath);
 
 				if (jQuery.isEmptyObject(oChangedEntry)) {
 					delete that.mChangedEntities[sKey];
@@ -5134,7 +5171,8 @@ sap.ui.define([
 		var oOriginalValue, sPropertyPath, mRequests, oRequest, oOriginalEntry, oEntry,
 			sResolvedPath, aParts,	sKey, oGroupInfo, oRequestHandle, oEntityMetadata,
 			mChangedEntities = {}, oEntityInfo = {}, mParams, oChangeObject, bRefreshAfterChange,
-			bFunction = false, that = this, bCreated;
+			bFunction = false, that = this, bCreated,
+			oEntityType, oNavPropRefInfo, bIsNavPropExpanded, mKeys, oRef;
 
 		function updateChangedEntities(oOriginalObject, oChangedObject) {
 			each(oChangedObject,function(sKey) {
@@ -5182,7 +5220,27 @@ sap.ui.define([
 
 		bFunction = oOriginalEntry.__metadata.created && oOriginalEntry.__metadata.created.functionImport;
 
+		// Update property value on change object
 		oChangeObject[sPropertyPath] = oValue;
+
+		// If property is key property of ReferentialConstraint, also update the corresponding
+		// navigation property
+		oEntityType = this.oMetadata._getEntityTypeByPath(oEntityInfo.key);
+		oNavPropRefInfo = oEntityType && this.oMetadata._getNavPropertyRefInfo(oEntityType, sPropertyPath);
+		bIsNavPropExpanded = oNavPropRefInfo && oOriginalEntry[oNavPropRefInfo.name] && oOriginalEntry[oNavPropRefInfo.name].__ref;
+		if (bIsNavPropExpanded && oNavPropRefInfo.keys.length === 1) {
+			if (oValue === null) {
+				oRef = null;
+			} else {
+				mKeys = {};
+				oNavPropRefInfo.keys.forEach(function(sName) {
+					mKeys[sName] = oEntry[sName] !== undefined ? oEntry[sName] : oOriginalEntry[sName];
+				});
+				mKeys[oNavPropRefInfo.keys[0]] = oValue;
+				oRef = this.createKey(oNavPropRefInfo.entitySet, mKeys);
+			}
+			oChangeObject[oNavPropRefInfo.name] = { __ref: oRef };
+		}
 
 		//reset clone if oValue equals the original value
 		if (deepEqual(oValue, oOriginalValue) && !this.isLaundering('/' + sKey) && !bFunction) {
@@ -5212,11 +5270,12 @@ sap.ui.define([
 
 		mRequests = this.mRequests;
 
+		var sDeepPath = this.resolveDeep(sPath, oContext);
 		if (oGroupInfo.groupId in this.mDeferredGroups) {
 			mRequests = this.mDeferredRequests;
-			oRequest = this._processChange(sKey, {__metadata : oEntry.__metadata});
+			oRequest = this._processChange(sKey, {__metadata : oEntry.__metadata}, this.sDefaultUpdateMethod, sDeepPath);
 		} else {
-			oRequest = this._processChange(sKey, this._getObject('/' + sKey));
+			oRequest = this._processChange(sKey, this._getObject('/' + sKey), this.sDefaultUpdateMethod, sDeepPath);
 		}
 		oRequest.key = sKey;
 		//get params for created entries: could contain success/error handler
@@ -5462,7 +5521,7 @@ sap.ui.define([
 	 * @param {function} [mParameters.error] The error callback function
 	 * @param {map} [mParameters.headers] A map of headers
 	 * @param {map} [mParameters.urlParameters] A map of URL parameters
-	 * @param {string} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation. See {@link #setRefreshAfterChange}
+	 * @param {boolean} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation. See {@link #setRefreshAfterChange}
 	           If given, this overrules the model-wide <code>refreshAfterChange</code> flag for this operation only.
 	 *
 	 * @return {sap.ui.model.Context} A Context object that points to the new created entry.
@@ -5552,8 +5611,7 @@ sap.ui.define([
 			that.mChangedEntities[sKey] = oEntity;
 
 			sUrl = that._createRequestUrl(sPath, oContext, aUrlParams, that.bUseBatch);
-			oRequest = that._createRequest(sUrl, sMethod, mHeaders, oEntity, sETag);
-			oRequest.deepPath = that.resolveDeep(sPath, oContext);
+			oRequest = that._createRequest(sUrl, that.resolveDeep(sPath, oContext), sMethod, mHeaders, oEntity, sETag);
 
 			oCreatedContext = that.getContext("/" + sKey); // context wants a path
 			oCreatedContext.bCreated = true;
@@ -6165,7 +6223,7 @@ sap.ui.define([
 
 	/**
 	 * Resolve the path relative to the given context. If the context contains a parent path
-	 * (deepPath) we resolve with this deepPath instead the canonical one.
+	 * (deepPath), we resolve with this deepPath instead the canonical one.
 	 *
 	 * @param {string} sPath Path to resolve
 	 * @param {sap.ui.core.Context} [oContext] Context to resolve a relative path against
@@ -6363,6 +6421,18 @@ sap.ui.define([
 			}
 		}
 		return sCacheKey;
+	};
+
+	/**
+	 * Check whether the canonical requests calculation is switched on.
+	 * See 'canonicalRequests' parameter of the model constructor.
+	 *
+	 * @return {boolean} Canonical requests calculation switched on/off
+	 *
+	 * @public
+	 */
+	ODataModel.prototype.canonicalRequestsEnabled = function() {
+		return this.bCanonicalRequests;
 	};
 
 	return ODataModel;

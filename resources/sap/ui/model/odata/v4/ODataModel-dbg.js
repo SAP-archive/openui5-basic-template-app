@@ -152,8 +152,9 @@ sap.ui.define([
 	 *   "4 Resource Path" in specification "OData Version 4.0 Part 2: URL Conventions" is
 	 *   a valid data binding path within this model if a leading slash is added; for example
 	 *   "/" + "SalesOrderList('A%2FB%26C')" to access an entity instance with key "A/B&C". Note
-	 *   that appropriate URI encoding is necessary. "4.5.1 Addressing Actions" needs an operation
-	 *   binding, see {@link sap.ui.model.odata.v4.ODataContextBinding}.
+	 *   that appropriate URI encoding is necessary, see the example of
+	 *   {@link sap.ui.model.odata.v4.ODataUtils.formatLiteral}. "4.5.1 Addressing Actions" needs an
+	 *   operation binding, see {@link sap.ui.model.odata.v4.ODataContextBinding}.
 	 *
 	 *   Note that the OData V4 model has its own {@link sap.ui.model.odata.v4.Context} class.
 	 *   Bindings which are relative to such a V4 context depend on their corresponding parent
@@ -184,7 +185,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.Model
 	 * @public
 	 * @since 1.37.0
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 */
 	var ODataModel = Model.extend("sap.ui.model.odata.v4.ODataModel",
 			/** @lends sap.ui.model.odata.v4.ODataModel.prototype */
@@ -445,9 +446,8 @@ sap.ui.define([
 	 * @param {boolean} [mParameters.$$inheritExpandSelect]
 	 *   For operation bindings only: Whether $expand and $select from the parent binding are used
 	 *   in the request sent on {@link #execute}. If set to <code>true</code>, the binding must not
-	 *   set the $expand or $select parameter itself and its
-	 *   {@link sap.ui.model.odata.v4.ODataContextBinding#execute} must resolve with a return value
-	 *   context.
+	 *   set the $expand or $select parameter itself, the operation must be bound, and the return
+	 *   value and the binding parameter must belong to the same entity set.
 	 * @param {boolean} [mParameters.$$ownRequest]
 	 *   Whether the binding always uses an own service request to read its data; only the value
 	 *   <code>true</code> is allowed.
@@ -1245,8 +1245,8 @@ sap.ui.define([
 	ODataModel.prototype.refresh = function (sGroupId) {
 		this.checkGroupId(sGroupId);
 
-		// Note: aBindings contains all bindings with change listeners (owned by Model)
-		this.aBindings.slice().forEach(function (oBinding) {
+		// Note: getBindings() returns an array that contains all bindings with change listeners (owned by Model)
+		this.getBindings().forEach(function (oBinding) {
 			if (oBinding.isRoot()) {
 				// ignore the group ID for suspended bindings to avoid mismatches and errors; they
 				// refresh via resume with their own group ID anyway

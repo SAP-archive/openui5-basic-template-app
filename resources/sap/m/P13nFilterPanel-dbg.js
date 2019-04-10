@@ -23,7 +23,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class The P13nFilterPanel control is used to define filter-specific settings for table personalization.
 	 * @extends sap.m.P13nPanel
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @constructor
 	 * @public
 	 * @since 1.26.0
@@ -565,11 +565,20 @@ sap.ui.define([
 				// check if maxLength is 1 and remove contains, start and ends with operations
 				var n = aKeyFields.length;
 				if (aKeyFields[n - 1].maxLength === 1 || aKeyFields[n - 1].maxLength === "1") {
-					aKeyFields[n - 1].operations = [
-						P13nConditionOperation.EQ, P13nConditionOperation.BT, P13nConditionOperation.LT, P13nConditionOperation.LE, P13nConditionOperation.GT, P13nConditionOperation.GE
-					];
+					// Take the operations from the string type (because maxLength is only supported by type string) and remove Contains, StartsWith and EndsWith
+					// This operations array on the keyFields will overwrite the type operations which are defined by the type!
+					// We could also handle this in the P13nConditionPanel and remove all the not supported operations (e.g. Contains, StartsWith and EndsWith when maxLength == 1)
+					// BCP 1970047060
+					var oKeyField = aKeyFields[n - 1];
+					var aOperations = this._oIncludeFilterPanel.getOperations(oKeyField.type);
+					oKeyField.operations = [];
+					aOperations.forEach(function(sOperation) {
+						if ([P13nConditionOperation.Contains, P13nConditionOperation.StartsWith, P13nConditionOperation.EndsWith].indexOf(sOperation) === -1) {
+							oKeyField.operations.push(sOperation);
+						}
+					}, this);
 				}
-			});
+			}, this);
 			this.setKeyFields(aKeyFields);
 
 			var aConditions = [];

@@ -99,7 +99,7 @@ sap.ui.define([
 		 * <code>ColorPalette</code> should also load the <code>sap.ui.unified</code> library.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.63.0
+		 * @version 1.64.0
 		 *
 		 * @constructor
 		 * @public
@@ -235,6 +235,10 @@ sap.ui.define([
 		};
 
 		ColorPalette.prototype.onsapenter = ColorPalette.prototype.ontap;
+
+		ColorPalette.prototype.onsapspace = function (oEvent) {
+			oEvent.preventDefault();
+		};
 
 		ColorPalette.prototype.onkeyup = function (oEvent) {
 			if (oEvent.which === KeyCodes.SPACE) {

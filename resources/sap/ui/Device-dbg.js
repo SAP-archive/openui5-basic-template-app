@@ -11,7 +11,7 @@
  * This API is independent from any other part of the UI5 framework. This allows it to be loaded beforehand, if it is needed, to create the UI5 bootstrap
  * dynamically depending on the capabilities of the browser or device.
  *
- * @version 1.63.0
+ * @version 1.64.0
  * @namespace
  * @name sap.ui.Device
  * @public
@@ -32,7 +32,7 @@ if (typeof window.sap.ui !== "object") {
 
 	//Skip initialization if API is already available
 	if (typeof window.sap.ui.Device === "object" || typeof window.sap.ui.Device === "function") {
-		var apiVersion = "1.63.0";
+		var apiVersion = "1.64.0";
 		window.sap.ui.Device._checkAPIVersion(apiVersion);
 		return;
 	}
@@ -105,7 +105,7 @@ if (typeof window.sap.ui !== "object") {
 
 	//Only used internal to make clear when Device API is loaded in wrong version
 	Device._checkAPIVersion = function(sVersion) {
-		var v = "1.63.0";
+		var v = "1.64.0";
 		if (v != sVersion) {
 			oLogger.log(WARNING, "Device API version differs: " + v + " <-> " + sVersion);
 		}
@@ -1336,7 +1336,7 @@ if (typeof window.sap.ui !== "object") {
 	 *            [oListener] The object that wants to be notified when the event occurs (<code>this</code> context within the
 	 *                        handler function). If it is not specified, the handler function is called in the context of the <code>window</code>.
 	 * @param {string}
-	 *            sName The name of the range set to listen to. The range set must be initialized beforehand
+	 *            [sName] The name of the range set to listen to. The range set must be initialized beforehand
 	 *                  ({@link sap.ui.Device.media.initRangeSet}). If no name is provided, the
 	 *                  {@link sap.ui.Device.media.RANGESETS.SAP_STANDARD default range set} is used.
 	 *
@@ -1359,7 +1359,7 @@ if (typeof window.sap.ui !== "object") {
 	 * @param {object}
 	 *            [oListener] The object that wanted to be notified when the event occurred
 	 * @param {string}
-	 *             sName The name of the range set to listen to. If no name is provided, the
+	 *            [sName] The name of the range set to listen to. If no name is provided, the
 	 *                   {@link sap.ui.Device.media.RANGESETS.SAP_STANDARD default range set} is used.
 	 *
 	 * @name sap.ui.Device.media.detachHandler

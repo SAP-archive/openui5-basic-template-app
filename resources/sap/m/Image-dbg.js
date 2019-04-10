@@ -46,7 +46,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public
@@ -614,11 +614,6 @@ sap.ui.define([
 		// this property is used for resizing the higher resolution image when image is loaded.
 		this._iLoadImageDensity = d;
 
-		// if the currect density equals 1, simply return the src property
-		if (d === 1) {
-			return sSrc;
-		}
-
 		return this._generateSrcByDensity(sSrc, d);
 	};
 
@@ -634,11 +629,6 @@ sap.ui.define([
 
 		// this property is used for resizing the higher resolution image when image is loaded.
 		this._iLoadImageDensity = d;
-
-		// if the currect density equals 1, simply return the src property
-		if (d === 1) {
-			return sActiveSrc;
-		}
 
 		return this._generateSrcByDensity(sActiveSrc, d);
 	};
@@ -660,6 +650,7 @@ sap.ui.define([
 			return sSrc;
 		}
 
+        // if the density equals 1, simply return the src property
 		if (iDensity === 1) {
 			return sSrc;
 		}

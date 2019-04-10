@@ -25,7 +25,7 @@ sap.ui.define(['./Control'],
 	 * </code>
 	 *
 	 * @author Daniel Brinkmann
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 * @param {boolean} [bDefault=true] the value that should be used as default value for the enhancement of the control.
 	 * @param {boolean} [bLegacy=false] whether the introduced property should use the old name 'Enabled'
 	 * @public

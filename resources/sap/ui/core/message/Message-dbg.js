@@ -27,7 +27,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @param {object} [mParameters] a map which contains the following parameter properties:
 	 * @param {string} [mParameters.id] The message id: will be generated if no id is set
@@ -42,6 +42,8 @@ sap.ui.define([
 	 * @param {string} [mParameters.target] The message target: The syntax is MessageProcessor dependent. Read the documentation of the respective MessageProcessor.
 	 * @param {boolean} [mParameters.persistent=false] Sets message persistent: If persistent is set <code>true</code> the message lifecycle is controlled by the application
 	 * @param {int} [mParameters.date=Date.now()] Sets message date which can be used to remove old messages. Number of milliseconds elapsed since 1 January 1970 00:00:00 UTC
+	 * @param {string} [mParameters.fullTarget=""] Defines more detailed information about the message target. This property is currently only used by the ODataMessageParser.
+	 *
 	 *
 	 * @public
 	 * @alias sap.ui.core.message.Message
@@ -67,6 +69,7 @@ sap.ui.define([
 			this.validation = !!mParameters.validation;
 			this.date = mParameters.date || Date.now();
 			this.controlIds = [];
+			this.fullTarget = mParameters.fullTarget || "";
 		}
 	});
 

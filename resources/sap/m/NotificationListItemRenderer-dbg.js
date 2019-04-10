@@ -63,6 +63,7 @@ sap.ui.define(["sap/ui/core/library"], function(coreLibrary) {
             oRm.writeClasses();
             oRm.write('>');
 
+			this.renderCloseButton(oRm, oControl);
             this.renderPriorityArea(oRm, oControl);
             this.renderMessageStrip(oRm, oControl);
             this.renderHeader(oRm, oControl);
@@ -187,7 +188,6 @@ sap.ui.define(["sap/ui/core/library"], function(coreLibrary) {
         oRm.writeClasses();
         oRm.write('>');
 
-        this.renderCloseButton(oRm, oControl);
         this.renderTitle(oRm, oControl);
         oRm.write('</div>');
     };

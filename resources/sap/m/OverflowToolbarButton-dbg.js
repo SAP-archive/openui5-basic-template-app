@@ -24,8 +24,10 @@ sap.ui.define(['sap/m/Button', 'sap/m/ButtonRenderer'],
 	 * to have buttons that show only an icon in the toolbar, but icon and text in the overflow menu.
 	 * @extends sap.m.Button
 	 *
+	 * @implements sap.f.IShellBar
+	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public
@@ -34,6 +36,9 @@ sap.ui.define(['sap/m/Button', 'sap/m/ButtonRenderer'],
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var OverflowToolbarButton = Button.extend("sap.m.OverflowToolbarButton", /** @lends sap.m.OverflowToolbarButton.prototype */ {
+		interfaces: [
+			"sap.f.IShellBar"
+		],
 		renderer: ButtonRenderer.render
 	});
 

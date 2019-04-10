@@ -118,7 +118,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.63.0
+	 * @version 1.64.0
 	 *
 	 * @constructor
 	 * @public
@@ -1033,6 +1033,7 @@ sap.ui.define([
 		this._aMovableControls = [];
 		this._aToolbarOnlyControls = [];
 		this._aPopoverOnlyControls = [];
+		this._aAllCollections = [this._aMovableControls, this._aToolbarOnlyControls, this._aPopoverOnlyControls];
 	};
 
 	OverflowToolbar.prototype.onLayoutDataChange = function (oEvent) {
