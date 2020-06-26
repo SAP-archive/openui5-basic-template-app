@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*global Promise */// declare unusual global vars for JSLint/SAPUI5 validation
@@ -134,10 +134,11 @@ sap.ui.define(['sap/ui/core/Control', './ExportColumn', './ExportRow', './Export
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @since 1.22.0
 	 *
 	 * @public
+	 * @deprecated Since version 1.73
 	 * @alias sap.ui.core.util.Export
 	 */
 	var Export = Control.extend('sap.ui.core.util.Export', {
@@ -322,7 +323,7 @@ sap.ui.define(['sap/ui/core/Control', './ExportColumn', './ExportRow', './Export
 	 * jQuery specific Promise methods ('done', 'fail', 'always', 'pipe' and 'state') are still available but should not be used.
 	 * Please use only the standard methods 'then' and 'catch'!</b></p>
 	 *
-	 * @param {string} [sFileName] file name, defaults to 'data'
+	 * @param {string} [sFileName="data"] The file name
 	 * @return {Promise} Promise object
 	 *
 	 * @public

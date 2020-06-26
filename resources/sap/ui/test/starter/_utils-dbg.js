@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -199,7 +199,7 @@ sap.ui.define([
 	 *
 	 * The pattern is so restrictive to limit the locations where code will be loaded from.
 	 */
-	var VALID_TESTSUITE = /^test-resources\/([a-zA-Z_$\-][a-zA-Z_$0-9\-]*\/)*testsuite(?:\.[a-z][a-z0-9]*)*\.qunit$/;
+	var VALID_TESTSUITE = /^test-resources\/([a-zA-Z_$\-][a-zA-Z_$0-9\-\.]*\/)*testsuite(?:\.[a-z][a-z0-9]*)*\.qunit$/;
 	//var VALID_TEST = /^([a-zA-Z_$\-][a-zA-Z_$0-9\-]*\/)*[a-zA-Z_$\-][a-zA-Z_$0-9\-]*$/;
 
 	/**

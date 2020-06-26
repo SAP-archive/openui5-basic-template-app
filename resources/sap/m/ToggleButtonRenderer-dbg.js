@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,6 +16,8 @@ sap.ui.define(['./ButtonRenderer', 'sap/ui/core/Renderer'],
 	 */
 
 	var ToggleButtonRenderer = Renderer.extend(ButtonRenderer);
+
+	ToggleButtonRenderer.apiVersion = 2;
 
 	/**
 	 * Callback for specific rendering of accessibility attributes.
@@ -44,7 +46,7 @@ sap.ui.define(['./ButtonRenderer', 'sap/ui/core/Renderer'],
 	 */
 	ToggleButtonRenderer.renderButtonAttributes = function(oRm, oToggleButton) {
 		if (oToggleButton.getPressed() && !oToggleButton._isUnstyled()) {
-			oRm.addClass("sapMToggleBtnPressed");
+			oRm.class("sapMToggleBtnPressed");
 		}
 	};
 

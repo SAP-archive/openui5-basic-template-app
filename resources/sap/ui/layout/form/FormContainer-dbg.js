@@ -1,16 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.layout.form.FormContainer.
 sap.ui.define([
 	'sap/ui/core/Element',
+	'sap/ui/base/ManagedObjectObserver',
 	'sap/ui/core/theming/Parameters',
 	'sap/ui/layout/library',
 	"sap/base/Log"
-	], function(Element, Parameters, library, Log) {
+	], function(Element, ManagedObjectObserver, Parameters, library, Log) {
 	"use strict";
 
 
@@ -27,7 +28,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -57,7 +58,17 @@ sap.ui.define([
 			/**
 			 * If set to <code>false</code>, the <code>FormContainer</code> is not rendered.
 			 */
-			visible : {type : "boolean", group : "Misc", defaultValue : true}
+			visible : {type : "boolean", group : "Misc", defaultValue : true},
+
+			/**
+			 * Internal property for the <code>editable</code> state of the internal <code>FormContainer</code>.
+			 */
+			_editable: {
+				type: "boolean",
+				group: "Misc",
+				defaultValue: false,
+				visibility: "hidden"
+			}
 		},
 		defaultAggregation : "formElements",
 		aggregations : {
@@ -108,6 +119,13 @@ sap.ui.define([
 
 		this._rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.layout");
 
+		this._oObserver = new ManagedObjectObserver(this._observeChanges.bind(this));
+
+		this._oObserver.observe(this, {
+			properties: ["expanded", "expandable"],
+			aggregations: ["formElements"]
+		});
+
 	};
 
 	FormContainer.prototype.exit = function(){
@@ -117,11 +135,12 @@ sap.ui.define([
 		}
 		this._rb = undefined;
 
+		this._oObserver.disconnect();
+		this._oObserver = undefined;
+
 	};
 
-	FormContainer.prototype.setExpandable = function(bExpandable){
-
-		this.setProperty("expandable", bExpandable);
+	function _expandableChanged(bExpandable){
 
 		if (bExpandable) {
 			if (!this._oExpandButton) {
@@ -134,9 +153,7 @@ sap.ui.define([
 			}
 		}
 
-		return this;
-
-	};
+	}
 
 	function _expandButtonCreated(oButton) {
 
@@ -148,9 +165,7 @@ sap.ui.define([
 
 	}
 
-	FormContainer.prototype.setExpanded = function(bExpanded){
-
-		this.setProperty("expanded", bExpanded, true); // no automatic rerendering
+	function _expandedChanged(bExpanded){
 
 		_setExpanderIcon.call(this);
 
@@ -159,9 +174,7 @@ sap.ui.define([
 			oForm.toggleContainerExpanded(this);
 		}
 
-		return this;
-
-	};
+	}
 
 	FormContainer.prototype.setToolbar = function(oToolbar) {
 
@@ -281,16 +294,29 @@ sap.ui.define([
 	};
 
 	/**
-	 * Labels inside of a Form must be invalidated if "editable" changed on Form
-	 * @private
+	 * Sets the editable state of the <code>FormContainer</code>.
+	 *
+	 * This must only be called from the <code>Form</code>.
+	 *
+	 * Labels inside of a <code>Form</code> must be invalidated if <code>editable</code> changed on <code>Form</code>.
+	 *
+	 * @param {boolean} bEditable Editable state of the <code>Form</code>
+	 * @protected
+	 * @restricted sap.ui.layout.form.Form
+	 * @since 1.74.0
 	 */
-	FormContainer.prototype.invalidateLabels = function(){
+	FormContainer.prototype._setEditable = function(bEditable) {
 
-		var aFormElements = this.getFormElements();
+		var bOldEditable = this.getProperty("_editable");
+		this.setProperty("_editable", bEditable, true); // do not invalidate whole FormContainer
 
-		for (var i = 0; i < aFormElements.length; i++) {
-			var oFormElement = aFormElements[i];
-			oFormElement.invalidateLabel();
+		if (bEditable !== bOldEditable) {
+			var aFormElements = this.getFormElements();
+
+			for (var i = 0; i < aFormElements.length; i++) {
+				var oFormElement = aFormElements[i];
+				oFormElement._setEditable(bEditable);
+			}
 		}
 
 	};
@@ -343,6 +369,31 @@ sap.ui.define([
 	function _handleExpButtonPress(oEvent){
 
 		this.setExpanded(!this.getExpanded());
+
+	}
+
+	/*
+	 * handles change of FormContainer
+	 * @private
+	 */
+	FormContainer.prototype._observeChanges = function(oChanges){
+
+		if (oChanges.name == "formElements") {
+			_formElementChanged.call(this, oChanges.mutation, oChanges.child);
+		} else if (oChanges.name == "expanded") {
+			_expandedChanged.call(this, oChanges.current);
+		} else if (oChanges.name == "expandable") {
+			_expandableChanged.call(this, oChanges.current);
+		}
+
+	};
+
+	function _formElementChanged(sMutation, oFormElement) {
+
+		if (sMutation === "insert") {
+			var bEditable = this.getProperty("_editable");
+			oFormElement._setEditable(bEditable);
+		}
 
 	}
 

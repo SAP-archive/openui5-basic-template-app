@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -166,16 +166,18 @@ sap.ui.define([
 				lbp: 15,
 				led: unexpected,
 				nud: function (oToken, oParser) {
-					return UNARY.bind(null, oParser.expression(this.lbp),
-						function (x) { return !x; });
+					return UNARY.bind(null, oParser.expression(this.lbp), function (x) {
+							return !x;
+						});
 				}
 			},
 			"typeof": {
 				lbp: 15,
 				led: unexpected,
 				nud: function (oToken, oParser) {
-					return UNARY.bind(null, oParser.expression(this.lbp),
-							function (x) { return typeof x; });
+					return UNARY.bind(null, oParser.expression(this.lbp), function (x) {
+							return typeof x;
+						});
 				}
 			},
 			"?": {

@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.64.0"
+      "version": "1.79.0"
     },
     "title": "Unified controls intended for both, mobile and desktop scenarios",
     "description": "Unified controls intended for both, mobile and desktop scenarios",
@@ -22,10 +22,10 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.64",
+      "minUI5Version": "1.79",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.64.0"
+          "minVersion": "1.79.0"
         }
       }
     },
@@ -40,6 +40,7 @@
           "sap.ui.unified.calendar.MonthsRow",
           "sap.ui.unified.calendar.TimesRow",
           "sap.ui.unified.calendar.YearPicker",
+          "sap.ui.unified.calendar.YearRangePicker",
           "sap.ui.unified.Calendar",
           "sap.ui.unified.CalendarDateInterval",
           "sap.ui.unified.CalendarWeekInterval",
@@ -72,11 +73,14 @@
           "sap.ui.unified.ShellHeadUserItem"
         ],
         "types": [
+          "sap.ui.unified.CalendarAppointmentVisualization",
           "sap.ui.unified.CalendarDayType",
-          "sap.ui.unified.GroupAppointmentsMode",
-          "sap.ui.unified.ContentSwitcherAnimation",
+          "sap.ui.unified.CalendarIntervalType",
+          "sap.ui.unified.ColorPickerDisplayMode",
           "sap.ui.unified.ColorPickerMode",
-          "sap.ui.unified.ColorPickerDisplayMode"
+          "sap.ui.unified.ContentSwitcherAnimation",
+          "sap.ui.unified.GroupAppointmentsMode",
+          "sap.ui.unified.StandardCalendarLegendItem"
         ],
         "interfaces": [
           "sap.ui.unified.IProcessableBlobs"

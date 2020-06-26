@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/util/now"], function(now) {
@@ -110,6 +110,11 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	mMaxLevel = { '' : Log.Level.ERROR },
 
 	/**
+	 * Maximum amount of stored log entries
+	 */
+	iLogEntriesLimit = 3000,
+
+	/**
 	 * Registered listener to be informed about new log entries.
 	 */
 	oListener = null,
@@ -128,6 +133,27 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	}
 
 	/**
+	 * Discard 30 percent of log entries when the limit is reached
+	 */
+	function discardLogEntries() {
+		var iLogLength =  aLog.length;
+		if (iLogLength) {
+			var iEntriesToKeep = Math.min(iLogLength, Math.floor(iLogEntriesLimit * 0.7));
+
+			if (oListener) {
+				// Notify listener that entries are being discarded
+				oListener.onDiscardLogEntries(aLog.slice(0, iLogLength - iEntriesToKeep));
+			}
+
+			if (iEntriesToKeep) {
+				aLog = aLog.slice(-iEntriesToKeep, iLogLength);
+			} else {
+				aLog = [];
+			}
+		}
+	}
+
+	/**
 	 * Gets the log entry listener instance, if not present creates a new one
 	 * @returns {Object} the singleton log entry listener
 	 */
@@ -139,6 +165,13 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 					for (var i = 0; i < oListener.listeners.length; i++) {
 						if (oListener.listeners[i].onLogEntry) {
 							oListener.listeners[i].onLogEntry(oLogEntry);
+						}
+					}
+				},
+				onDiscardLogEntries: function(aDiscardedLogEntries) {
+					for (var i = 0; i < oListener.listeners.length; i++) {
+						if (oListener.listeners[i].onDiscardLogEntries) {
+							oListener.listeners[i].onDiscardLogEntries(aDiscardedLogEntries);
 						}
 					}
 				},
@@ -343,9 +376,13 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	 * (or higher than the global level, if no component is given),
 	 * then no entry is created and <code>undefined</code> is returned.
 	 *
+	 * If an <code>Error</code> is passed via <code>sDetails</code> the stack
+	 * of the <code>Error</code> will be logged as a separate parameter in
+	 * the proper <code>console</code> function for the matching log level.
+	 *
 	 * @param {module:sap/base/Log.Level} iLevel One of the log levels FATAL, ERROR, WARNING, INFO, DEBUG, TRACE
 	 * @param {string} sMessage The message to be logged
-	 * @param {string} [sDetails] The optional details for the message
+	 * @param {string|Error} [sDetails] The optional details for the message; could be an Error which will be logged with the stack to easily find the root cause of the Error
 	 * @param {string} [sComponent] The log component under which the message should be logged
 	 * @param {function} [fnSupportInfo] Callback that returns an additional support object to be logged in support mode.
 	 *   This function is only called if support info mode is turned on with <code>logSupportInfo(true)</code>.
@@ -381,7 +418,16 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 			if (bLogSupportInfo && typeof fnSupportInfo === "function") {
 				oLogEntry.supportInfo = fnSupportInfo();
 			}
-			aLog.push( oLogEntry );
+
+			if (iLogEntriesLimit) {
+				if (aLog.length >= iLogEntriesLimit) {
+					// Cap the amount of stored log messages by 30 percent
+					discardLogEntries();
+				}
+
+				aLog.push(oLogEntry);
+			}
+
 			if (oListener) {
 				oListener.onLogEntry(oLogEntry);
 			}
@@ -403,15 +449,33 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 			 */
 			/*eslint-disable no-console */
 			if (console) { // in IE and FF, console might not exist; in FF it might even disappear
-				var logText = oLogEntry.date + " " + oLogEntry.time + " " + oLogEntry.message + " - " + oLogEntry.details + " " + oLogEntry.component;
+				var isDetailsError = sDetails instanceof Error,
+					logText = oLogEntry.date + " " + oLogEntry.time + " " + oLogEntry.message + " - " + oLogEntry.details + " " + oLogEntry.component;
 				switch (iLevel) {
-				case Log.Level.FATAL:
-				case Log.Level.ERROR: console.error(logText); break;
-				case Log.Level.WARNING: console.warn(logText); break;
-				case Log.Level.INFO: console.info ? console.info(logText) : console.log(logText); break;    // info not available in iOS simulator
-				case Log.Level.DEBUG: console.debug ? console.debug(logText) : console.log(logText); break; // debug not available in IE, fallback to log
-				case Log.Level.TRACE: console.trace ? console.trace(logText) : console.log(logText); break; // trace not available in IE, fallback to log (no trace)
-				// no default
+					case Log.Level.FATAL:
+					case Log.Level.ERROR: isDetailsError ? console.error(logText, "\n", sDetails) : console.error(logText); break;
+					case Log.Level.WARNING: isDetailsError ? console.warn(logText, "\n", sDetails) : console.warn(logText); break;
+					case Log.Level.INFO:
+						if (console.info) { // info not available in iOS simulator
+							isDetailsError ? console.info(logText, "\n", sDetails) : console.info(logText);
+						} else {
+							isDetailsError ? console.log(logText, "\n", sDetails) : console.log(logText);
+						}
+						break;
+					case Log.Level.DEBUG:
+						if (console.debug) { // debug not available in IE, fallback to log
+							isDetailsError ? console.debug(logText, "\n", sDetails) : console.debug(logText);
+						} else {
+							isDetailsError ? console.log(logText, "\n", sDetails) : console.log(logText);
+						}
+						break;
+					case Log.Level.TRACE:
+						if (console.trace) { // trace not available in IE, fallback to log (no trace)
+							isDetailsError ? console.trace(logText, "\n", sDetails) : console.trace(logText);
+						} else {
+							isDetailsError ? console.log(logText, "\n", sDetails) : console.log(logText);
+						}
+						break;
 				}
 				if (console.info && oLogEntry.supportInfo) {
 					console.info(oLogEntry.supportInfo);
@@ -431,6 +495,7 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	 * <li>level {module:sap/base/Log.Level} LogLevel level of the entry
 	 * <li>message {string} message text of the entry
 	 * </ul>
+	 * The default amount of stored log entries is limited to 3000 entries.
 	 * @returns {object[]} an array containing the recorded log entries
 	 * @public
 	 * @static
@@ -440,10 +505,41 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	};
 
 	/**
+	 * Returns the maximum amount of stored log entries.
+	 *
+	 * @returns {int|Infinity} The maximum amount of stored log entries or Infinity if no limit is set
+	 * @private
+	 * @ui5-restricted
+	 */
+	Log.getLogEntriesLimit = function() {
+		return iLogEntriesLimit;
+	};
+
+	/**
+	 * Sets the limit of stored log entries
+	 *
+	 * If the new limit is lower than the current limit, the overlap of old log entries will be discarded.
+	 * If the limit is reached the amount of stored messages will be reduced by 30 percent.
+	 *
+	 * @param {int|Infinity} iLimit The maximum amount of stored log entries or Infinity for unlimited entries
+	 * @private
+	 * @ui5-restricted
+	 */
+	Log.setLogEntriesLimit = function(iLimit) {
+		if (iLimit < 0) {
+			throw new Error("The log entries limit needs to be greater than or equal to 0!");
+		}
+		iLogEntriesLimit = iLimit;
+		if (aLog.length >= iLogEntriesLimit) {
+			discardLogEntries();
+		}
+	};
+
+	/**
 	 * Allows to add a new LogListener that will be notified for new log entries.
 	 *
 	 * The given object must provide method <code>onLogEntry</code> and can also be informed
-	 * about <code>onDetachFromLog</code> and <code>onAttachToLog</code>
+	 * about <code>onDetachFromLog</code>, <code>onAttachToLog</code> and <code>onDiscardLogEntries</code>.
 	 * @param {object} oListener The new listener object that should be informed
 	 * @public
 	 * @static

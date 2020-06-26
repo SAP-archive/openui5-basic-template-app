@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,13 +17,12 @@ sap.ui.define(['./NavContainerRenderer', 'sap/ui/core/Renderer', 'sap/m/library'
 	 * App renderer.
 	 * @namespace
 	 */
-	var AppRenderer = {
-	};
-
 	var AppRenderer = Renderer.extend(NavContainerRenderer);
 
+	AppRenderer.apiVersion = 2;
+
 	AppRenderer.renderAttributes = function(rm, oControl) {
-		BackgroundHelper.addBackgroundColorStyles(rm, oControl._getValidatedBackgroundColor(), oControl.getBackgroundImage());
+		BackgroundHelper.addBackgroundColorStyles(rm, oControl.getBackgroundColor(), oControl.getBackgroundImage());
 	};
 
 	AppRenderer.renderBeforeContent = function(rm, oControl) {

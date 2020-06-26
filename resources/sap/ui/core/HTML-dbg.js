@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,7 +44,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.HTML
@@ -196,8 +196,17 @@ sap.ui.define([
 	};
 
 	HTML.prototype.onBeforeRendering = function() {
-		if (this.getPreferDOM() && this.getDomRef() && !RenderManager.isPreservedContent(this.getDomRef())) {
-			RenderManager.preserveContent(this.getDomRef(), /* bPreserveRoot */ true, /* bPreserveNodesWithId */ false);
+		if (!this.getPreferDOM()) {
+			return;
+		}
+
+		var oDomRef = this.getDomRef();
+		if (oDomRef && !RenderManager.isPreservedContent(oDomRef)) {
+			// before the re-rendering move all "to-be-preserved" nodes to the preserved area
+			for (var sId = oDomRef.id, oNextDomRef; oDomRef && oDomRef.getAttribute("data-sap-ui-preserve") == sId; oDomRef = oNextDomRef) {
+				oNextDomRef = oDomRef.nextElementSibling;
+				RenderManager.preserveContent(oDomRef, /* bPreserveRoot */ true, /* bPreserveNodesWithId */ false);
+			}
 		}
 	};
 
@@ -215,13 +224,13 @@ sap.ui.define([
 		var $oldContent = RenderManager.findPreservedContent(this.getId());
 		var $newContent;
 		var isPreservedDOM = false;
-		if ( /*this.getContent() && */ (!this.getPreferDOM() || $oldContent.size() == 0) ) {
+		if ( /*this.getContent() && */ (!this.getPreferDOM() || $oldContent.length == 0) ) {
 			// remove old, preserved content
 			$oldContent.remove();
 			// replace placeholder with content string
 			$newContent = new jQuery(this.getContent()); // TODO what if content is not HTML (e.g. #something)?
 			$placeholder.replaceWith($newContent);
-		} else if ( $oldContent.size() > 0 ) {
+		} else if ( $oldContent.length > 0 ) {
 			// replace dummy with old content
 			$placeholder.replaceWith($oldContent);
 			$newContent = $oldContent;
@@ -237,7 +246,7 @@ sap.ui.define([
 	};
 
 	HTML.prototype._postprocessNewContent = function($newContent) {
-		if ( $newContent && $newContent.size() > 0 ) {
+		if ( $newContent && $newContent.length > 0 ) {
 			if ( $newContent.length > 1 ) {
 				Log.warning("[Unsupported Feature]: " + this + " has rendered " + $newContent.length + " root nodes!");
 			} else {
@@ -247,8 +256,10 @@ sap.ui.define([
 				}
 			}
 
-			// set a marker that identifies all root nodes in $newContent as 'to-be-preserved'
-			RenderManager.markPreservableContent($newContent, this.getId());
+			if (this.getPreferDOM()) {
+				// set a marker that identifies all root nodes in $newContent as 'to-be-preserved'
+				RenderManager.markPreservableContent($newContent, this.getId());
+			}
 			// and if no node has the control id, search the first without an id and set it
 			if ( $newContent.find("#" + this.getId().replace(/(:|\.)/g,'\\$1')).length === 0 ) {
 				$newContent.filter(":not([id])").first().attr("id", this.getId());

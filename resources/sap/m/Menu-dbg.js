@@ -1,8 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
+// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
+// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
+// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
+sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 // Provides control sap.m.Menu.
 sap.ui.define([
@@ -18,8 +23,8 @@ sap.ui.define([
 	'sap/ui/unified/MenuItem',
 	'sap/ui/Device',
 	'sap/ui/core/EnabledPropagator',
-	'sap/ui/core/CustomData',
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/Popup"
 ],
 	function(
 		library,
@@ -34,10 +39,13 @@ sap.ui.define([
 		UfdMenuItem,
 		Device,
 		EnabledPropagator,
-		CustomData,
-		jQuery
+		jQuery,
+		Popup
 	) {
 		"use strict";
+
+		// shortcut for sap.ui.core.Popup.Dock
+		var Dock = Popup.Dock;
 
 		// shortcut for sap.m.ListType
 		var ListType = library.ListType;
@@ -58,7 +66,7 @@ sap.ui.define([
 		 * @implements sap.ui.core.IContextMenu
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -126,7 +134,7 @@ sap.ui.define([
 		/**
 		 * Map of all available properties in the sap.ui.unified.MenuItem.
 		 * Needed when syncs between sap.m.MenuItem and unified.MenuItem are performed.
-		 * @type {map}
+		 * @type {Object<string,Object>}
 		 * @private
 		 */
 		Menu.UNFIFIED_MENU_ITEMS_PROPS = UfdMenuItem.getMetadata().getAllProperties();
@@ -142,7 +150,7 @@ sap.ui.define([
 		/**
 		 * Map of all available properties in the sap.m.MenuListItem
 		 * Needed when syncs between sap.m.MenuItem and sap.m.MenuListItem are performed.
-		 * @type {map}
+		 * @type {Object<string,Object>}
 		 * @private
 		 */
 		Menu.MENU_LIST_ITEMS_PROPS = MenuListItem.getMetadata().getAllProperties();
@@ -219,12 +227,11 @@ sap.ui.define([
 					this._bIsInitialized = true;
 				}
 
-				var eDock = sap.ui.core.Popup.Dock;
 				if (!sDockMy) {
-					sDockMy = eDock.BeginTop;
+					sDockMy = Dock.BeginTop;
 				}
 				if (!sDockAt) {
-					sDockAt = eDock.BeginBottom;
+					sDockAt = Dock.BeginBottom;
 				}
 				if (!sOffset) {
 					sOffset = "0 -2";
@@ -262,6 +269,7 @@ sap.ui.define([
 			// remove padding for the menu on phone
 			oDialog.removeStyleClass("sapUiPopupWithPadding");
 			this.setAggregation("_dialog", oDialog, true);
+			oDialog.attachAfterClose(this._menuClosed, this);
 		};
 
 		/**
@@ -298,8 +306,8 @@ sap.ui.define([
 		 * The function is called once per MenuItem
 		 *
 		 * @param {function} fn The callback function
-		 * @protected
-		 * @sap-restricted ObjectPageLayoutABHelper
+		 * @private
+		 * @ui5-restricted ObjectPageLayoutABHelper
 		 * @returns void
 		 */
 		Menu.prototype._setCustomEnhanceAccStateFunction = function(fn) {
@@ -455,8 +463,8 @@ sap.ui.define([
 		};
 
 		Menu.prototype._createVisualMenuItemFromItem = function(oItem) {
-			var oUfdMenuItem = new UfdMenuItem({
-				id  : this._generateUnifiedMenuItemId(oItem.getId()),
+			var oUfMenuItem = new UfdMenuItem({
+				id: this._generateUnifiedMenuItemId(oItem.getId()),
 				icon: oItem.getIcon(),
 				text: oItem.getText(),
 				startsSection: oItem.getStartsSection(),
@@ -464,16 +472,14 @@ sap.ui.define([
 				visible: oItem.getVisible(),
 				enabled: oItem.getEnabled()
 			}),
+			i,
 			aCustomData = oItem.getCustomData();
 
-			aCustomData.forEach(function(oData) {
-				oUfdMenuItem.addCustomData(new CustomData({
-					key: oData.getKey(),
-					value: oData.getValue()
-				}));
-			});
+			for (i = 0; i < aCustomData.length; i++) {
+				oItem._addCustomData(oUfMenuItem, aCustomData[i]);
+			}
 
-			return oUfdMenuItem;
+			return oUfMenuItem;
 		};
 
 		Menu.prototype._addVisualMenuItemFromItem = function(oItem, oMenu, iIndex) {
@@ -808,6 +814,34 @@ sap.ui.define([
 				case 'items':
 					this._onItemsAggregationChanged(oEvent);
 					break;
+				case 'tooltip':
+					this._onTooltipAggregationChanged(oEvent);
+					break;
+			}
+		};
+
+		/**
+		 * Handle the event of changing the "tooltip" aggregation of any menu items and sub-items.
+		 * @param {object} oEvent The event data object
+		 * @private
+		 */
+		Menu.prototype._onTooltipAggregationChanged = function(oEvent) {
+			var sVisualItemId = oEvent.getSource()._getVisualControl(),
+				methodName = oEvent.getParameter("methodName"),
+				methodParams = oEvent.getParameter("methodParams"),
+				oVisualItem;
+
+			if (!sVisualItemId) {
+				return;
+			}
+
+			oVisualItem = sap.ui.getCore().byId(sVisualItemId);
+
+			if (methodName === "set") {
+				oVisualItem.setTooltip(methodParams.item);
+			}
+			if (methodName === "destroy") {
+				oVisualItem.destroyTooltip();
 			}
 		};
 
@@ -897,6 +931,7 @@ sap.ui.define([
 		 * @param {jQuery.Event | object} oEvent The event object or an object containing offsetX, offsetY
 		 * values and left, top values of the element's position
 		 * @param {object} oOpenerRef The reference of the opener
+		 * @public
 		 */
 		Menu.prototype.openAsContextMenu = function(oEvent, oOpenerRef) {
 

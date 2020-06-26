@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,7 +23,6 @@ sap.ui.define([
 	'./BatchResponseCollector',
 	'./AnalyticalVersionInfo',
 	"sap/base/util/uid",
-	"sap/base/util/deepEqual",
 	"sap/ui/thirdparty/jquery",
 	"sap/base/Log"
 ], function(
@@ -40,7 +39,6 @@ sap.ui.define([
 	BatchResponseCollector,
 	AnalyticalVersionInfo,
 	uid,
-	deepEqual,
 	jQuery,
 	Log
 ) {
@@ -404,6 +402,8 @@ sap.ui.define([
 
 			this.oDataState = null;
 			this.bApplySortersToGroups = true;
+			this.iTotalSize = -1; // invalidate last row counter
+			this._abortAllPendingRequests();
 			// resolving the path makes sure that we can safely analyze the metadata,
 			// as we have a resourcepath for the QueryResult
 			sResolvedPath = this.oModel.resolve(this.sPath, this.oContext);
@@ -483,7 +483,7 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @name sap.ui.model.analytics.AnalyticalBinding.prototype.getRootContexts
-	 * @param {map}
+	 * @param {object}
 	 *            mParameters specifying how the top-most aggregation level shall be fetched. Supported parameters are:
 	 * <ul>
 	 * <li>numberOfExpandedLevels: number of child levels that shall be fetched automatically</li>
@@ -567,7 +567,7 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @name sap.ui.model.analytics.AnalyticalBinding.prototype.getNodeContexts
-	 * @param {map}
+	 * @param {object}
 	 *            mParameters specifying the aggregation level for which contexts shall be fetched. Supported parameters are:
 	 * <ul>
 	 * <li>oContext: parent context identifying the requested group of child contexts</li>
@@ -703,7 +703,7 @@ sap.ui.define([
 	 * @name sap.ui.model.analytics.AnalyticalBinding.prototype.hasChildren
 	 * @param {sap.ui.model.Context}
 	 *            oContext the parent context identifying the requested group of child contexts.
-	 * @param {map}
+	 * @param {object}
 	 *            mParameters The only supported parameter is level as the level number of oContext (because the context might occur at multiple levels)
 	 * @return {boolean}
 	 *            true if and only if the contexts in the specified group have further children.
@@ -755,7 +755,7 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @name sap.ui.model.analytics.AnalyticalBinding.prototype.getDimensionDetails
-	 * @return {map}
+	 * @return {object}
 	 *            details for every dimension property addressed by its name. The details object provides these properties: name of the dimension,
 	 * keyPropertyName for the name of the property holding the dimension key, textPropertyName for the name of the property holding the
 	 * text for the dimension, aAttributeName listing all properties holding dimension attributes, grouped as indicator whether or not this
@@ -773,7 +773,7 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @name sap.ui.model.analytics.AnalyticalBinding.prototype.getMeasureDetails
-	 * @return {map}
+	 * @return {object}
 	 *            details for every measure property addressed by its name. The details object provides these properties: name of the measure,
 	 * rawValuePropertyName for the name of the property holding the raw value, unitPropertyName for the name of the property holding the related
 	 * value unit or currency, if any, and analyticalInfo, which contains the binding information for this measure passed from the
@@ -1134,7 +1134,8 @@ sap.ui.define([
 	 * @protected
 	 */
 	AnalyticalBinding.prototype.updateAnalyticalInfo = function(aColumns, bForceChange) {
-		var oDimensionDetails,
+		var iDiff,
+			oDimensionDetails,
 			oEntityType,
 			aHierarchyProperties,
 			that = this;
@@ -1224,21 +1225,25 @@ sap.ui.define([
 		}
 
 		// check if something has changed --> deep equal on the column info objects, only 1 level "deep"
-		if (deepEqual(this._aLastChangedAnalyticalInfo, aColumns)) {
-			if (bForceChange) {
+		iDiff = odata4analytics.helper.deepEqual(this._aLastChangedAnalyticalInfo, aColumns,
+			function (oColumn) { // only formatter changed
+				that.mAnalyticalInfoByProperty[oColumn.name].formatter = oColumn.formatter;
+			});
+		if (iDiff) {
+			// make a deep copy of the column definition, so we can ignore duplicate calls the next time, see above
+			// copy is necessary because the original analytical info will be changed and used internally, through out the binding "coding"
+			this._aLastChangedAnalyticalInfo = [];
+			for (var j = 0; j < aColumns.length; j++) {
+				this._aLastChangedAnalyticalInfo[j] = jQuery.extend({}, aColumns[j]);
+			}
+		}
+		if (iDiff < 2) {
+			if (bForceChange || iDiff) {
 				setTimeout(function () {
 					this._fireChange({reason: ChangeReason.Change});
 				}.bind(this), 0);
 			}
 			return;
-		}
-
-		oEntityType = this.oAnalyticalQueryResult.getEntityType();
-		// make a deep copy of the column definition, so we can ignore duplicate calls the next time, see above
-		// copy is necessary because the original analytical info will be changed and used internally, through out the binding "coding"
-		this._aLastChangedAnalyticalInfo = [];
-		for (var j = 0; j < aColumns.length; j++) {
-			this._aLastChangedAnalyticalInfo[j] = jQuery.extend({}, aColumns[j]);
 		}
 
 		// parameter is an array with elements whose structure is defined by sap.ui.analytics.model.AnalyticalTable.prototype._getColumnInformation()
@@ -1264,6 +1269,7 @@ sap.ui.define([
 		// nodeExternalKeyName, nodeIDName, nodeLevelName, nodeTextName}
 		this.mHierarchyDetailsByName = {}; //
 
+		oEntityType = this.oAnalyticalQueryResult.getEntityType();
 		// process column settings for dimensions and measures part of the result or visible
 		for (var i = 0; i < aColumns.length; i++) {
 			// determine requested aggregation level from columns representing dimension-related properties
@@ -1414,7 +1420,7 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @name sap.ui.model.analytics.AnalyticalBinding.prototype.loadGroups
-	 * @param {map}
+	 * @param {Object<string,array>}
 	 *            mGroupIdRanges specifies index ranges of child contexts to be loaded for multiple groups identified by their ID. A group index range is
 	 *            given by an object consisting of startIndex, length, threshold. For every group ID, the map holds an array of such range objects.
 	 *
@@ -1597,7 +1603,11 @@ sap.ui.define([
 			aContext = this._getLoadedContextsForGroup(sParentGroupId, iStartIndex, iLength, bSupressRequest);
 			bLoadContexts = false;
 			if (!bSupressRequest) {
-				oGroupSection = this._calculateRequiredGroupSection(sParentGroupId, iStartIndex, iLength, iThreshold, aContext);
+				if (this._oWatermark && sParentGroupId === this._oWatermark.groupID) {
+					// use a large value, but do not omit $top, else GW might use a small default
+					iThreshold = 10000;
+				}
+				oGroupSection = this._calculateRequiredGroupSection(sParentGroupId, iStartIndex, iLength, iThreshold);
 				var bPreloadContexts = oGroupSection.length > 0 && iLength < oGroupSection.length;
 				bLoadContexts = (aContext.length != iLength
 								 && !(this.mFinalLength[sParentGroupId] && aContext.length >= this.mLength[sParentGroupId] - iStartIndex))
@@ -1633,7 +1643,8 @@ sap.ui.define([
 							this.aBatchRequestQueue.push([ AnalyticalBinding._requestType.groupMembersAutoExpansionQuery, sParentGroupId, oGroupExpansionFirstMissingMember, missingMemberCount, iNumberOfExpandedLevels ]);
 						}
 					} else { // ! bGroupLevelAutoExpansionIsActive
-						bExecuteRequest = !this._isRequestPending(this._getRequestId(AnalyticalBinding._requestType.groupMembersQuery, {groupId: sParentGroupId}));
+						bExecuteRequest = oGroupSection.length
+							&& !this._isRequestPending(this._getRequestId(AnalyticalBinding._requestType.groupMembersQuery, {groupId: sParentGroupId}));
 						if (bExecuteRequest) {
 							this.aBatchRequestQueue.push([ AnalyticalBinding._requestType.groupMembersQuery, sParentGroupId, oGroupSection.startIndex, oGroupSection.length ]);
 							aMembersRequestId = [ this._getRequestId(AnalyticalBinding._requestType.groupMembersQuery, {groupId: sParentGroupId}) ];
@@ -1664,7 +1675,8 @@ sap.ui.define([
 							oMemberRequestDetails = this._prepareGroupMembersAutoExpansionQueryRequest(AnalyticalBinding._requestType.groupMembersAutoExpansionQuery, sParentGroupId, oGroupExpansionFirstMissingMember, missingMemberCount, iNumberOfExpandedLevels);
 						}
 					} else { // ! bGroupLevelAutoExpansionIsActive
-						bExecuteRequest = !this._isRequestPending(this._getRequestId(AnalyticalBinding._requestType.groupMembersQuery, {groupId: sParentGroupId}));
+						bExecuteRequest = oGroupSection.length
+							&& !this._isRequestPending(this._getRequestId(AnalyticalBinding._requestType.groupMembersQuery, {groupId: sParentGroupId}));
 						if (bExecuteRequest) {
 							oMemberRequestDetails = this._prepareGroupMembersQueryRequest(AnalyticalBinding._requestType.groupMembersQuery, sParentGroupId, oGroupSection.startIndex, oGroupSection.length);
 							aMembersRequestId = [ oMemberRequestDetails.sRequestId ];
@@ -1962,7 +1974,10 @@ sap.ui.define([
 		}
 
 		// (6) set sort order
-		this._addSorters(oAnalyticalQueryRequest.getSortExpression(), aGroupingSorters);
+		// Prevent sorter for grand total request
+		if (sGroupId) {
+			this._addSorters(oAnalyticalQueryRequest.getSortExpression(), aGroupingSorters);
+		}
 
 		// (7) set result page boundaries
 		if (iLength == 0) {
@@ -2194,7 +2209,8 @@ sap.ui.define([
 			// determine index range for aggregation levels included in child level
 			// (rule: take all lower levels up to and including the first grouped level; G3 in above example
 			if (that.aMaxAggregationLevel.length > 0) {
-				while (that.oDimensionDetailsSet[that.aMaxAggregationLevel[iChildGroupToLevel]].grouped == false) {
+				while (that.aMaxAggregationLevel[iChildGroupToLevel]
+						&& that.oDimensionDetailsSet[that.aMaxAggregationLevel[iChildGroupToLevel]].grouped == false) {
 					if (++iChildGroupToLevel == that.aMaxAggregationLevel.length) {
 						break;
 					}
@@ -2306,7 +2322,8 @@ sap.ui.define([
 			}
 
 			if (!that.bNoPaging) {
-				oAnalyticalQueryRequest.setResultPageBoundaries(iEffectiveStartIndex + 1, iLength);
+				oAnalyticalQueryRequest.setResultPageBoundaries(iEffectiveStartIndex + 1,
+					iEffectiveStartIndex + iLength);
 			}
 
 			return {
@@ -3300,7 +3317,7 @@ sap.ui.define([
 			}
 
 			// if we got data and the results + startindex is larger than the length we just apply this value to the length
-			if (this.mServiceLength[sGroupId] < iServiceStartIndex + iODataResultsLength) {
+			if (!(sGroupId in this.mServiceLength) || this.mServiceLength[sGroupId] < iServiceStartIndex + iODataResultsLength) {
 				this.mServiceLength[sGroupId] = iServiceStartIndex + iODataResultsLength;
 				this.mLength[sGroupId] = iStartIndex + iODataResultsLength - iDiscardedEntriesCount;
 				this.mFinalLength[sGroupId] = false;
@@ -3421,10 +3438,11 @@ sap.ui.define([
 				// pendant to bIncompleteGroupMembersSet: set the finalLength of the previous group
 				var sParentGroupId = that._getParentGroupId(oGroupMembersRequestDetails.sGroupId);
 				var iPositionInParentGroup = that._findKeyIndex(sParentGroupId, that.mEntityKey[oGroupMembersRequestDetails.sGroupId]);
-				if (iPositionInParentGroup == -1) {
+				if (iPositionInParentGroup < 0) {
 					oLogger.fatal("assertion failed: failed to determine position of " + oGroupMembersRequestDetails.sGroupId + " in group " + sParentGroupId);
-				}
-				if (iPositionInParentGroup > 0 && that._getKey(sParentGroupId, iPositionInParentGroup - 1) !== undefined) {
+				} else if (!iPositionInParentGroup) {
+					that.mFinalLength[oRequestDetails.sGroupId_Missing_AtLevel] = true;
+				} else if (that._getKey(sParentGroupId, iPositionInParentGroup - 1) !== undefined) {
 					var sPreviousGroupMemberKey = that._getKey(sParentGroupId, iPositionInParentGroup - 1);
 					var sPreviousGroupId = that._getGroupIdFromContext(that.oModel.getContext('/' + sPreviousGroupMemberKey),
 							that._getGroupIdLevel(oGroupMembersRequestDetails.sGroupId));
@@ -3564,90 +3582,42 @@ sap.ui.define([
 	/**
 	 * @private
 	 */
-	AnalyticalBinding.prototype._calculateRequiredGroupSection = function(sGroupId, iStartIndex, iLength, iThreshold, aContext) {
-		// implementation copied from ODataListBinding; name changed here, because analytical binding comprises more calculations
-		var iSectionLength, iSectionStartIndex, iPreloadedSubsequentIndex, iPreloadedPreviousIndex, iRemainingEntries, oSection = {}, fKey = this._getKeys(sGroupId), sKey;
+	AnalyticalBinding.prototype._calculateRequiredGroupSection = function (sGroupId, iStartIndex,
+			iLength, iThreshold) {
+		var fnGetKey = this._getKeys(sGroupId);
 
-		iSectionStartIndex = iStartIndex;
-		iSectionLength = 0;
-
-		// check which data exists before startindex; If all necessary data is loaded iPreloadedPreviousIndex stays undefined
-		if (!fKey) {
-			iPreloadedPreviousIndex = iStartIndex;
-			iPreloadedSubsequentIndex = iStartIndex + iLength;
+		// prefetch before start
+		if (iStartIndex >= iThreshold) {
+			iStartIndex -= iThreshold;
+			iLength += iThreshold;
 		} else {
-			for (var i = iStartIndex - 1; i >= Math.max(iStartIndex - iThreshold, 0); i--) {
-				sKey = fKey(i);
-				if (!sKey) {
-					iPreloadedPreviousIndex = i + 1;
-					break;
-				}
-			}
-			// check which data is already loaded after startindex; If all necessary data is loaded iPreloadedSubsequentIndex stays undefined
-			for (var j = iStartIndex + iLength; j < iStartIndex + iLength + iThreshold; j++) {
-				sKey = fKey(j);
-				if (!sKey) {
-					iPreloadedSubsequentIndex = j;
-					break;
-				}
-			}
+			iLength += iStartIndex;
+			iStartIndex = 0;
 		}
-		// calculate previous remaining entries
-		iRemainingEntries = iStartIndex - iPreloadedPreviousIndex;
-		if (iPreloadedPreviousIndex && iStartIndex > iThreshold && iRemainingEntries < iThreshold) {
-			if (aContext.length !== iLength) {
-				iSectionStartIndex = iStartIndex - iThreshold;
-			} else {
-				iSectionStartIndex = iPreloadedPreviousIndex - iThreshold;
+
+		// prefetch after end
+		iLength += iThreshold;
+		if (this.mFinalLength[sGroupId] && iStartIndex + iLength > this.mLength[sGroupId]) {
+			iLength = this.mLength[sGroupId] - iStartIndex;
+		}
+
+		if (fnGetKey) {
+			// search start of first gap
+			while (iLength && fnGetKey(iStartIndex)) {
+				iStartIndex += 1;
+				iLength -= 1;
 			}
 
-			iSectionLength = iThreshold;
-		}
-
-		// prevent startIndex from getting out of bounds
-		// FIX for BCP(1570041982)
-		// If the startIndex is negative, the $skip value will also be negative, and the length might also be bigger than necessary
-		iSectionStartIndex = Math.max(iSectionStartIndex, 0);
-
-		// No negative preload needed; move startindex if we already have some data
-		if (iSectionStartIndex === iStartIndex) {
-			iSectionStartIndex += aContext.length;
-		}
-
-		//read the rest of the requested data
-		if (aContext.length !== iLength) {
-			iSectionLength += iLength - aContext.length;
-		}
-
-		//calculate subsequent remaining entries
-		iRemainingEntries = iPreloadedSubsequentIndex - iStartIndex - iLength;
-
-		if (iRemainingEntries == 0) {
-			iSectionLength += iThreshold;
-		}
-
-		if (iPreloadedSubsequentIndex && iRemainingEntries < iThreshold && iRemainingEntries > 0) {
-			//check if we need to load previous entries; If not we can move the startindex
-			// changed the ">=" to ">", because a fix was not migrated, see commit #455622
-			// FIX for BCP(1570041982)
-			if (iSectionStartIndex > iStartIndex) {
-				iSectionStartIndex = iPreloadedSubsequentIndex;
-				iSectionLength += iThreshold;
+			// search end of last gap
+			while (iLength && fnGetKey(iStartIndex + iLength - 1)) {
+				iLength -= 1;
 			}
-
 		}
 
-		//check final length and adapt sectionLength if needed.
-		if (this.mFinalLength[sGroupId] && this.mLength[sGroupId] < (iSectionLength + iSectionStartIndex)) {
-			iSectionLength = this.mLength[sGroupId] - iSectionStartIndex;
-		}
-
-		oSection.startIndex = iSectionStartIndex;
-		oSection.length = iSectionLength;
-
-		// this._trace(sGroupId, "calculateSection:\tstart = " + iSectionStartIndex + "\tlength = " + iSectionLength); // DISABLED FOR PRODUCTION
-
-		return oSection;
+		return {
+			startIndex : iStartIndex,
+			length : iLength
+		};
 	};
 
 	/**
@@ -4746,6 +4716,7 @@ sap.ui.define([
 			}
 		}
 		if (bForceUpdate || bChangeDetected) {
+			this.iTotalSize = -1; // invalidate last row counter
 			this._abortAllPendingRequests();
 			this.resetData();
 			this.bNeedsUpdate = false;

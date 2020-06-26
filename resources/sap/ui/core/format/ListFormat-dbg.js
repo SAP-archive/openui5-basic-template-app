@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,13 +9,14 @@ sap.ui.define([
 	'sap/ui/core/Locale',
 	'sap/ui/core/LocaleData',
 	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
+	"sap/base/util/extend",
+	"sap/base/util/isEmptyObject"
 ],
-	function(Locale, LocaleData, Log, jQuery) {
+	function(Locale, LocaleData, Log, extend, isEmptyObject) {
 	"use strict";
 
 	/**
-	 * Constructor for ListFormat - must not be used: To get a ListFormat instance, please use getInstance.
+	 * Constructor for ListFormat - must not be used: To get a ListFormat instance, please use <code>ListFormat.getInstance()</code>.
 	 *
 	 * @class
 	 * The ListFormat is a static class for formatting and parsing an array of strings in a locale-sensitive manner according
@@ -69,7 +70,7 @@ sap.ui.define([
 		}
 		oFormat.oLocale = oLocale;
 		oFormat.oLocaleData = LocaleData.getInstance(oLocale);
-		oFormat.oOriginalFormatOptions = jQuery.extend({}, this.oDefaultListFormat, oFormatOptions);
+		oFormat.oOriginalFormatOptions = extend({}, this.oDefaultListFormat, oFormatOptions);
 
 		return oFormat;
 
@@ -96,7 +97,7 @@ sap.ui.define([
 
 		mListPatterns = this.oLocaleData.getListFormat(oOriginalFormat.type, oOriginalFormat.style);
 
-		if (jQuery.isEmptyObject(mListPatterns)) {
+		if (isEmptyObject(mListPatterns)) {
 			Log.error("No list pattern exists for the provided format options (type, style).");
 			return "";
 		}
@@ -160,7 +161,7 @@ sap.ui.define([
 				oOriginalFormat = this.oOriginalFormatOptions,
 				mListPatterns,
 				rPlaceholder = /\{[01]\}/g,
-				sEnd, sSeperatorExactNumber, sSeparatorStart, sSeparatorMiddle, sSeparatorEnd;
+				sEnd, sSeparatorExactNumber, sSeparatorStart, sSeparatorMiddle, sSeparatorEnd;
 
 		if (!oOriginalFormat) {
 			oOriginalFormat = ListFormat.oDefaultListFormat;
@@ -168,7 +169,7 @@ sap.ui.define([
 
 		mListPatterns = this.oLocaleData.getListFormat(oOriginalFormat.type, oOriginalFormat.style);
 
-		if (jQuery.isEmptyObject(mListPatterns)) {
+		if (isEmptyObject(mListPatterns)) {
 			Log.error("No list pattern exists for the provided format options (type, style).");
 			return [];
 		}
@@ -193,9 +194,9 @@ sap.ui.define([
 
 		if (aStart.length < 1 || aMiddle.length < 1 || aEnd.length < 1) {
 			// if start, middle or end pattern do not match, then test type 2 pattern
-			sSeperatorExactNumber = mListPatterns["2"].replace(rPlaceholder, "");
+			sSeparatorExactNumber = mListPatterns["2"].replace(rPlaceholder, "");
 			// parse exact number
-			aExactNumber = sValue.split(sSeperatorExactNumber);
+			aExactNumber = sValue.split(sSeparatorExactNumber);
 
 			if (aExactNumber.length === 2) {
 				return aExactNumber;

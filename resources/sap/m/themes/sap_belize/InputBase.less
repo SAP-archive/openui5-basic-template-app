@@ -10,7 +10,7 @@
 .sapMInputBaseContentWrapper {
 	border: 1px solid @sapUiFieldBorderColor;
 	background: @sapUiFieldBackground;
-	&.sapMInputBaseContentWrapperState {
+	&.sapMInputBaseContentWrapperState:not(.sapMInputBaseContentWrapperSuccess) {
 		border-width: 2px;
 		.sapMInputBaseIcon {
 			line-height: 2.25rem;
@@ -50,8 +50,8 @@
 }
 
 .sapMInputBaseContentWrapperInformation {
-	background: @sapUiFieldBackground;
-	border-color: @sapUiHighlight;
+	background: @sapUiFieldInformationBackground;
+	border-color: @sapUiFieldInformationColor;
 }
 
 .sapMInputBaseReadonlyWrapper,

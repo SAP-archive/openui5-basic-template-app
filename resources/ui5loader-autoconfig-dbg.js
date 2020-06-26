@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -144,6 +144,11 @@
 		// export resulting debug mode under legacy property
 		window["sap-ui-debug"] = vDebugInfo;
 
+		// check for optimized sources by testing variable names in a local function
+		// (check for native API ".location" to make sure that the function's source can be retrieved)
+		window["sap-ui-optimized"] = window["sap-ui-optimized"] ||
+			(/\.location/.test(_getOption) && !/oBootstrapScript/.test(_getOption));
+
 		if ( window["sap-ui-optimized"] && vDebugInfo ) {
 			// if current sources are optimized and any debug sources should be used, enable the "-dbg" suffix
 			window['sap-ui-loaddbg'] = true;
@@ -253,7 +258,7 @@
 	}
 
 	// support legacy switch 'noLoaderConflict', but 'amdLoader' has higher precedence
-	var bExposeAsAMDLoader = _getBooleanOption("amd", !_getBooleanOption("noLoaderConflict", true));
+	bExposeAsAMDLoader = _getBooleanOption("amd", !_getBooleanOption("noLoaderConflict", true));
 
 	ui5loader.config({
 		baseUrl: sBaseUrl,
@@ -468,38 +473,29 @@
 				exports: 'esprima'
 			},
 			'sap/viz/libs/canvg': {
-				amd: true,
 				deps: ['sap/viz/libs/rgbcolor']
 			},
 			'sap/viz/libs/rgbcolor': {
-				amd: true
 			},
 			'sap/viz/libs/sap-viz': {
-				amd: true,
-				deps: ['sap/ui/thirdparty/jquery', 'sap/ui/thirdparty/d3', 'sap/viz/libs/canvg']
+				deps: ['sap/viz/library', 'sap/ui/thirdparty/jquery', 'sap/ui/thirdparty/d3', 'sap/viz/libs/canvg']
 			},
 			'sap/viz/libs/sap-viz-info-charts': {
-				amd: true,
 				deps: ['sap/viz/libs/sap-viz-info-framework']
 			},
 			'sap/viz/libs/sap-viz-info-framework': {
-				amd: true,
 				deps: ['sap/ui/thirdparty/jquery', 'sap/ui/thirdparty/d3']
 			},
 			'sap/viz/ui5/container/libs/sap-viz-controls-vizcontainer': {
-				amd: true,
 				deps: ['sap/viz/libs/sap-viz', 'sap/viz/ui5/container/libs/common/libs/rgbcolor/rgbcolor_static']
 			},
 			'sap/viz/ui5/controls/libs/sap-viz-vizframe/sap-viz-vizframe': {
-				amd: true,
 				deps: ['sap/viz/libs/sap-viz-info-charts']
 			},
 			'sap/viz/ui5/controls/libs/sap-viz-vizservices/sap-viz-vizservices': {
-				amd: true,
 				deps: ['sap/viz/libs/sap-viz-info-charts']
 			},
 			'sap/viz/resources/chart/templates/standard_fiori/template': {
-				amd: true,
 				deps: ['sap/viz/libs/sap-viz-info-charts']
 			}
 		}

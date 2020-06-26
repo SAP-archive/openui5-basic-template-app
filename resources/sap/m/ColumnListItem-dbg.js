@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -87,6 +87,28 @@ sap.ui.define([
 			if (oEvent.srcControl === this || !jQuery(oEvent.target).is(":sapFocusable")) {
 				this.getParent().focus();
 			}
+		},
+
+		_onMouseEnter: function() {
+			var $this = jQuery(this),
+				$parent = $this.prev();
+
+			if (!$parent.length || !$parent.hasClass("sapMLIBHoverable") || $parent.hasClass("sapMPopinHovered")) {
+				return;
+			}
+
+			$parent.addClass("sapMPopinHovered");
+		},
+
+		_onMouseLeave: function() {
+			var $this = jQuery(this),
+				$parent = $this.prev();
+
+			if (!$parent.length || !$parent.hasClass("sapMLIBHoverable") || !$parent.hasClass("sapMPopinHovered")) {
+				return;
+			}
+
+			$parent.removeClass("sapMPopinHovered");
 		}
 	});
 
@@ -102,6 +124,11 @@ sap.ui.define([
 	ColumnListItem.prototype.onAfterRendering = function() {
 		ListItemBase.prototype.onAfterRendering.call(this);
 		this._checkTypeColumn();
+
+		var oPopin = this.hasPopin();
+		if (oPopin) {
+			this.$Popin().hover(oPopin._onMouseEnter, oPopin._onMouseLeave);
+		}
 	};
 
 	ColumnListItem.prototype.exit = function() {
@@ -143,7 +170,7 @@ sap.ui.define([
 		if (!this._oPopin) {
 			this._oPopin = new TablePopin({
 				id: this.getId() + "-sub"
-			}).addEventDelegate({
+			}).addDelegate({
 				// handle the events of pop-in
 				ontouchstart: this.ontouchstart,
 				ontouchmove: this.ontouchmove,
@@ -241,11 +268,14 @@ sap.ui.define([
 	};
 
 	ColumnListItem.prototype.onfocusin = function(oEvent) {
-		if (oEvent.isMarked() || oEvent.srcControl !== this) {
+		if (oEvent.isMarked()) {
 			return;
 		}
 
-		this.$().children(".sapMListTblCellDup").find(":sapTabbable").attr("tabindex", -1);
+		if (oEvent.srcControl === this) {
+			this.$().children(".sapMListTblCellDup").find(":sapTabbable").attr("tabindex", -1);
+		}
+
 		ListItemBase.prototype.onfocusin.apply(this, arguments);
 	};
 

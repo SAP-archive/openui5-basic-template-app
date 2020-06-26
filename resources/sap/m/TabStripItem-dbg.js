@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 // Provides control sap.m.TabStripItem.
@@ -25,7 +25,7 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 		 * @extends sap.ui.core.Item
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @private
@@ -142,6 +142,13 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 		TabStripItem.CSS_CLASS_LABEL = "sapMTabStripItemLabel";
 
 		/**
+		 * The default CSS class name of the <code>TabStripItem</code>'s modified symbol in context of <code>TabStrip</code>.
+		 *
+		 * @type {string}
+		 */
+		TabStripItem.CSS_CLASS_MODIFIED_SYMBOL = "sapMTabStripItemModifiedSymbol";
+
+		/**
 		 * The default CSS class name of the <code>TabStripItem</code>'s additional text in context of <code>TabStrip</code>.
 		 *
 		 * @type {string}
@@ -206,6 +213,7 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 			var oButton = new AccButton({
 				type: ButtonType.Transparent,
 				icon: IconPool.getIconURI("decline"),
+				tooltip: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("TABSTRIP_ITEM_CLOSE_BTN"),
 				tabIndex: "-1",
 				ariaHidden: "true"
 			}).addStyleClass(TabStripItem.CSS_CLASS_CLOSE_BUTTON);

@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the XML model implementation of a list binding
-sap.ui.define(['sap/ui/model/ClientTreeBinding', "sap/ui/thirdparty/jquery"],
-	function(ClientTreeBinding, jQuery) {
+sap.ui.define(['sap/ui/model/ClientTreeBinding', "sap/base/util/each"],
+	function(ClientTreeBinding, each) {
 	"use strict";
 
 
@@ -57,7 +57,7 @@ sap.ui.define(['sap/ui/model/ClientTreeBinding', "sap/ui/thirdparty/jquery"],
 			oNode = this.oModel._getObject(oContext.getPath()),
 			sChildPath, oChildContext;
 
-		jQuery.each(oNode[0].childNodes, function(sName, oChild) {
+		each(oNode[0].childNodes, function(sName, oChild) {
 			if (oChild.nodeType == 1) { // check if node is an element
 				if (mNodeIndices[oChild.nodeName] == undefined) {
 					mNodeIndices[oChild.nodeName] = 0;

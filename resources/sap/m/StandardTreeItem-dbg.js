@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @extends sap.m.TreeItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -75,7 +75,7 @@ sap.ui.define([
 	};
 
 	StandardTreeItem.prototype.getContentAnnouncement = function() {
-		return " "; // Labeling is done via aria-labelledby (see StandardTreeItemRenderer.getAriaLabelledBy)
+		return this.getTitle();
 	};
 
 	StandardTreeItem.prototype.exit = function() {

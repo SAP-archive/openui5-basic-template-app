@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -107,7 +107,7 @@ sap.ui.define(['./library', 'sap/ui/core/Control'],
 			var item;
 			var itemId;
 			var parentInput = sap.ui.getCore().byId(this.getParentInput());
-			var descendantAttr = "aria-activedecendant";
+			var descendantAttr = "aria-activedescendant";
 
 			// selectByIndex(null || undefined || -1) -> remove selection
 			if (isNaN(parseInt(iIndex))) {
@@ -154,6 +154,7 @@ sap.ui.define(['./library', 'sap/ui/core/Control'],
 					parentInput.$("I").attr(descendantAttr, itemId);
 				} else {
 					parentInput.$("I").removeAttr(descendantAttr);
+					parentInput.$("SuggDescr").text("");
 				}
 			}
 

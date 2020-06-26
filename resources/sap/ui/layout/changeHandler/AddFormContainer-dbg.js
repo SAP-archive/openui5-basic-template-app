@@ -1,18 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/Utils",
 	"sap/ui/fl/changeHandler/Base",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
+	"sap/base/Log",
 	"sap/ui/thirdparty/jquery"
 ], function(
-	FlexUtils,
 	Base,
 	JsControlTreeModifier,
+	Log,
 	jQuery
 ) {
 	"use strict";
@@ -21,7 +21,7 @@ sap.ui.define([
 		* Change handler for adding a form group.
 		* @alias sap.ui.layout.changeHandler.AddFormContainer
 		* @author SAP SE
-		* @version 1.64.0
+		* @version 1.79.0
 		* @experimental Since 1.48.0
 		*/
 	var AddGroup = { };
@@ -66,7 +66,7 @@ sap.ui.define([
 			oModifier.insertAggregation(oGroup, "title", oTitle, 0, oView);
 			oModifier.insertAggregation(oForm, "formContainers", oGroup, iInsertIndex, oView);
 		} else {
-			FlexUtils.log.error("Change does not contain sufficient information to be applied: [" + oChangeDefinition.layer + "]" + oChangeDefinition.namespace + "/" + oChangeDefinition.fileName + "." + oChangeDefinition.fileType);
+			Log.error("Change does not contain sufficient information to be applied: [" + oChangeDefinition.layer + "]" + oChangeDefinition.namespace + "/" + oChangeDefinition.fileName + "." + oChangeDefinition.fileType);
 			//however subsequent changes should be applied
 		}
 	};

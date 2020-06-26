@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -58,7 +58,7 @@ sap.ui.define([
 	 * This control cannot be used stand-alone, it just renders a <code>Form</code> control,
 	 * so it must be assigned to a <code>Form</code> control using the <code>layout</code> aggregation.
 	 * @extends sap.ui.layout.form.FormLayout
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -401,7 +401,7 @@ sap.ui.define([
 				oOptions.L.Size = iLabelSizeL;
 			}
 		} else {
-			var aFields = oElement.getFields();
+			var aFields = oElement.getFieldsForRendering();
 			var iFields = aFields.length;
 			var iColumnsS = iColumns;
 			var iColumnsL = iColumns - this.getEmptyCellsLarge();

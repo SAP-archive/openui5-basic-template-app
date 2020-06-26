@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,20 +13,21 @@ sap.ui.define([],
 	 * ToolbarSeparator renderer.
 	 * @namespace
 	 */
-	var ToolbarSeparatorRenderer = {};
+	var ToolbarSeparatorRenderer = {
+		apiVersion: 2
+	};
 
 	ToolbarSeparatorRenderer.render = function(rm, oControl) {
-		rm.write("<div");
-		rm.writeControlData(oControl);
-		rm.addClass("sapMTBSeparator");
+		rm.openStart("div", oControl);
+		rm.class("sapMTBSeparator");
 
 		//ARIA
-		rm.writeAccessibilityState(oControl, {
+		rm.accessibilityState(oControl, {
 			role: "separator"
 		});
 
-		rm.writeClasses();
-		rm.write("></div>");
+		rm.openEnd();
+		rm.close("div");
 	};
 
 	return ToolbarSeparatorRenderer;

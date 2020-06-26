@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,6 +19,7 @@ sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer', 'sap/ui/core/libra
 		 * @namespace
 		 */
 		var TimePickerRenderer = Renderer.extend(InputBaseRenderer);
+		TimePickerRenderer.apiVersion = 2;
 
 		TimePickerRenderer.CSS_CLASS = "sapMTimePicker";
 
@@ -30,7 +31,7 @@ sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer', 'sap/ui/core/libra
 		 * @param {sap.m.TimePicker} oControl The control that should be rendered
 		 */
 		TimePickerRenderer.addOuterClasses = function(oRm, oControl) {
-			oRm.addClass(TimePickerRenderer.CSS_CLASS);
+			oRm.class(TimePickerRenderer.CSS_CLASS);
 		};
 
 		/**
@@ -46,9 +47,12 @@ sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer', 'sap/ui/core/libra
 				sText = oRb.getText("TIMEPICKER_SCREENREADER_TAG");
 
 			// invisible span with custom role
-			oRm.write('<span id="' + oControl.getId() + '-descr" style="visibility: hidden; display: none;">');
-			oRm.writeEscaped(sText);
-			oRm.write('</span>');
+			oRm.openStart("span", oControl.getId() + "-descr");
+			oRm.style("visibility", "hidden");
+			oRm.style("display", "none");
+			oRm.openEnd();
+			oRm.text(sText);
+			oRm.close("span");
 		};
 
 		/**
@@ -60,25 +64,7 @@ sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer', 'sap/ui/core/libra
 		 * @param {sap.m.TimePicker} oControl An object representation of the control that should be rendered
 		 */
 		TimePickerRenderer.writeInnerValue = function(oRm, oControl) {
-			oRm.writeAttributeEscaped("value", oControl._formatValue(oControl.getDateValue()));
-		};
-
-		/**
-		 * Write the id of the inner input
-		 *
-		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
-		 */
-		TimePickerRenderer.writeInnerId = function(oRm, oControl) {
-			oRm.writeAttribute("id", oControl.getId() + "-" + this.getInnerSuffix());
-		};
-
-		/**
-		 * Define own inner ID suffix.
-		 * @returns {string} The own inner ID suffix
-		 */
-		TimePickerRenderer.getInnerSuffix = function() {
-			return "inner";
+			oRm.attr("value", oControl._formatValue(oControl.getDateValue()));
 		};
 
 		/**
@@ -89,6 +75,19 @@ sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer', 'sap/ui/core/libra
 		 */
 		TimePickerRenderer.getAriaRole = function () {
 			return "combobox";
+		};
+
+		/**
+		 * Returns the inner aria labelledby announcement texts for the accessibility.
+		 *
+		 * @overrides sap.m.InputBaseRenderer.getLabelledByAnnouncement
+		 * @param {sap.ui.core.Control} oControl an object representation of the control.
+		 * @returns {String}
+		 */
+		TimePickerRenderer.getLabelledByAnnouncement = function(oControl) {
+			// In the TimePicker we need to render the placeholder should be placed as
+			// hidden aria labelledby node for the accessibility
+			return oControl._getPlaceholder() || "";
 		};
 
 		/**

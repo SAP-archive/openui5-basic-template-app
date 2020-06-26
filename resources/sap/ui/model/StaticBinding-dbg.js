@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -53,13 +53,17 @@ sap.ui.define([
 	};
 
 	StaticBinding.prototype.getModel = function() {
-		assert(null, "Static Binding has no model!");
 		return null;
 	};
 
 	StaticBinding.prototype.getContext = function() {
 		assert(null, "Static Binding has no context!");
 		return null;
+	};
+
+	StaticBinding.prototype.updateRequired = function() {
+		// Static binding does never need to be updated, when models change
+		return true;
 	};
 
 	StaticBinding.prototype.getValue = function() {

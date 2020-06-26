@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.define([
 	'./BusyIndicatorUtils',
 	'./BlockLayerUtils',
 	"sap/base/Log",
+	"sap/ui/performance/trace/Interaction",
 	"sap/ui/thirdparty/jquery"
 ],
 	function(
@@ -23,6 +24,7 @@ sap.ui.define([
 		BusyIndicatorUtils,
 		BlockLayerUtils,
 		Log,
+		Interaction,
 		jQuery
 	) {
 	"use strict";
@@ -55,6 +57,7 @@ sap.ui.define([
 	 *     and event {@link #event:validateFieldGroup validateFieldGroup}.
 	 *     The term <i>field</i> was chosen as most often this feature will be used to group editable
 	 *     fields in a form.</li>
+	 *     See the documentation for {@link topic:5b0775397e394b1fb973fa207554003e Field Groups} for more details.
 	 * <li><b>custom style classes</b>: all controls allow to add custom CSS classes to their rendered DOM
 	 *     without modifying their renderer code. See methods {@link #addStyleClass addStyleClass},
 	 *     {@link #removeStyleClass removeStyleClass}, {@link #toggleStyleClass toggleStyleClass}
@@ -68,13 +71,13 @@ sap.ui.define([
 	 *     rendering or when the control is destroyed).</li>
 	 * </ul>
 	 *
-	 * See section "{@link topic:91f1703b6f4d1014b6dd926db0e91070 Developing OpenUI5/SAPUI5 Controls}"
+	 * See section "{@link topic:8dcab0011d274051808f959800cabf9f Developing Controls}"
 	 * in the documentation for an introduction to control development.
 	 *
 	 * @extends sap.ui.core.Element
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @alias sap.ui.core.Control
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
@@ -88,8 +91,12 @@ sap.ui.define([
 			properties : {
 				/**
 				 * Whether the control is currently in blocked state.
+				 *
+				 * @deprecated since version 1.69 The blocked property is deprecated.
+				 * There is no accessibility support for this property.
+				 * Blocked controls should not be used inside Controls, which rely on keyboard navigation, e.g. List controls.
 				 */
-				"blocked" : {type: "boolean", defaultValue: false, hidden: true},
+				"blocked" : {type: "boolean", defaultValue: false},
 				/**
 				 * Whether the control is currently in busy state.
 				 */
@@ -117,7 +124,7 @@ sap.ui.define([
 				 * control in the DOM of the current page. The placeholder will be hidden and have
 				 * zero dimensions (<code>display: none</code>).
 				 *
-				 * See {@link sap.ui.core.RenderManager#writeInvisiblePlaceholderData RenderManager#writeInvisiblePlaceholderData} for details.
+				 * Also see {@link module:sap/ui/core/InvisibleRenderer InvisibleRenderer}.
 				 */
 				"visible" : { type: "boolean", group : "Appearance", defaultValue: true },
 
@@ -125,12 +132,14 @@ sap.ui.define([
 				 * The IDs of a logical field group that this control belongs to.
 				 *
 				 * All fields in a logical field group should share the same <code>fieldGroupId</code>.
-				 * Once a logical field group is left, the <code>validateFieldGroup</code> event is raised.
+				 * Once a logical field group is left, the <code>validateFieldGroup</code> event is fired.
 				 *
 				 * For backward compatibility with older releases, field group IDs are syntactically not
 				 * limited, but it is suggested to use only valid {@link sap.ui.core.ID}s.
 				 *
-				 * See {@link #attachValidateFieldGroup}.
+				 * See {@link #attachValidateFieldGroup} or consult the
+				 * {@link topic:5b0775397e394b1fb973fa207554003e Field Group} documentation.
+				 *
 				 * @since 1.31
 				 */
 				"fieldGroupIds" : { type: "string[]", defaultValue: [] }
@@ -139,10 +148,14 @@ sap.ui.define([
 			events : {
 				/**
 				 * Event is fired if a logical field group defined by <code>fieldGroupIds</code> of a control was left
-				 * or the user explicitly pressed a key combination that triggers validation.
+				 * or when the user explicitly pressed the key combination that triggers validation.
+				 *
+				 * By default, the <code>RETURN</code> key without any modifier keys triggers validation,
+				 * see {@link #triggerValidateFieldGroup}.
 				 *
 				 * Listen to this event to validate data of the controls belonging to a field group.
-				 * See {@link #setFieldGroupIds}.
+				 * See {@link #setFieldGroupIds}, or consult the
+				 * {@link topic:5b0775397e394b1fb973fa207554003e Field Group} documentation.
 				 */
 				validateFieldGroup : {
 					enableEventBubbling:true,
@@ -176,6 +189,78 @@ sap.ui.define([
 
 
 	/**
+	 * Defines a new subclass of Control with the name <code>sClassName</code> and enriches it with
+	 * the information contained in <code>oClassInfo</code>.
+	 *
+	 * <code>oClassInfo</code> can contain the same information that {@link sap.ui.core.Element.extend} already accepts,
+	 * plus the following <code>renderer</code> property:
+	 *
+	 * Example:
+	 * <pre>
+	 * Control.extend("sap.mylib.MyControl", {
+	 *   metadata : {
+	 *     library : "sap.mylib",
+	 *     properties : {
+	 *       text : "string",
+	 *       width : "sap.ui.core.CSSSize"
+	 *     }
+	 *   },
+	 *   renderer: {
+	 *     apiVersion: 2,
+	 *     render: function(oRM, oControl) {
+	 *       oRM.openStart("div", oControl);
+	 *       oRM.style("width", oControl.getWidth());
+	 *       oRM.openEnd();
+	 *       oRM.text(oControl.getText());
+	 *       oRM.close("div");
+	 *     }
+	 *   }
+	 * });
+	 * </pre>
+	 *
+	 * There are multiple ways how a renderer can be specified:
+	 * <ul>
+	 * <li>As a <b>plain object</b>: The object will be used to create a new renderer by using {@link
+	 *     sap.ui.core.Renderer.extend} to extend the renderer of the base class of this control. The new renderer
+	 *     will have the same global name as this control class with the additional suffix 'Renderer'.<br>
+	 *     <b>Note:</b> The <code>Renderer.extend</code> method expects a plain object (no prototype chain).</li>
+	 * <li>As a <b>function</b>: The given function will be used as <code>render</code> function of a new renderer;
+	 *     the renderer will be created in the same way as described for the <i>plain object</i> case.</li>
+	 * <li>As a <b>ready-made renderer</b>, e.g. imported from the corresponding renderer module. As renderers
+	 *     are simple objects (not instances of a specific class), some heuristic is used to distinguish
+	 *     renderers from the <i>plain object</i> case above: An object is assumed to be a ready-made renderer
+	 *     when it has a <code>render</code> function and either is already exposed under the expected global
+	 *     name or has an <code>extend</code> method.</li>
+	 * <li>As a <b>fully qualified name</b>: The name will be looked up as a global property. If not defined, a
+	 *     module name will be derived from the global name (dots replaced by slashes), the module will be required
+	 *     and provides the renderer, either as AMD export or via the named global property.</li>
+	 * <li><b>Omitting the <code>renderer</code> property</b> or setting it to <code>undefined</code>:
+	 *     The fully qualified name of the renderer will be derived from the fully qualified name of the control
+	 *     by adding the suffix "Renderer". The renderer then is retrieved in the same way as described for the
+	 *     <i>fully qualified name</i> case.</li>
+	 * <li><b><code>null</code> or empty string</b>: The control will have no renderer, a call to
+	 *     <code>oControl.getMetadata().getRenderer()</code> will return <code>undefined</code>.</li>
+	 * </ul>
+	 *
+	 * If the resulting renderer is incomplete (has no <code>render</code> function) or if it cannot be found at all,
+	 * rendering of the control will be skipped.
+	 *
+	 * <b>Note:</b> The <code>apiVersion: 2</code> flag is required to enable in-place rendering technology.
+	 * Before setting this property, please ensure that the constraints documented in section "Contract for
+	 * Renderer.apiVersion 2" of the {@link sap.ui.core.RenderManager RenderManager} API documentation are
+	 * fulfilled.
+	 *
+	 * @param {string} sClassName fully qualified name of the class that is described by this metadata object
+	 * @param {object} oStaticInfo static info to construct the metadata from
+	 * @returns {function} Constructor of the newly created class
+	 *
+	 * @public
+	 * @static
+	 * @name sap.ui.core.Control.extend
+	 * @function
+	 */
+
+	/**
 	 * Overrides {@link sap.ui.core.Element#clone Element.clone} to clone additional
 	 * internal state.
 	 *
@@ -188,8 +273,8 @@ sap.ui.define([
 	 *
 	 * @param {string} [sIdSuffix] a suffix to be appended to the cloned element id
 	 * @param {string[]} [aLocalIds] an array of local IDs within the cloned hierarchy (internally used)
-	 * @return {sap.ui.core.Element} reference to the newly created clone
-	 * @protected
+	 * @return {sap.ui.core.Control} reference to the newly created clone
+	 * @public
 	 */
 	Control.prototype.clone = function() {
 		var oClone = Element.prototype.clone.apply(this, arguments);
@@ -219,17 +304,19 @@ sap.ui.define([
 	};
 
 	/**
-	 * Triggers rerendering of this element and its children.
+	 * Marks this control and its children for a re-rendering, usually because its state has changed and now differs
+	 * from the rendered DOM.
 	 *
-	 * As <code>sap.ui.core.Element</code> "bubbles up" the invalidate, changes to children
-	 * potentially result in rerendering of the whole sub tree.
+	 * Managed settings (properties, aggregations, associations) automatically invalidate the corresponding object.
+	 * Changing the state via the standard mutators, therefore, does not require an explicit call to <code>invalidate</code>.
 	 *
-	 * The <code>oOrigin</code> parameter was introduced to allow parent controls to limit
-	 * their rerendering to certain areas that have been invalidated by their children.
-	 * As there is no strong guideline for control developers to provide the parameter, it is
-	 * not a reliable source of information. It is therefore not recommended in general to use
-	 * it, only in scenarios where a control and its descendants know each other very well
-	 * (e.g. complex controls where parent and children have the same code owner).
+	 * By default, all invalidations are buffered and processed together (asynchronously) in a new browser task.
+	 *
+	 * The <code>oOrigin</code> parameter was introduced to allow parent controls to limit their re-rendering to
+	 * certain areas that have been invalidated by their children. As there is no strong guideline for control
+	 * developers whether or not to provide the parameter, it is not a reliable source of information. It is,
+	 * therefore, not recommended in general to use it, only in scenarios where a control and its descendants
+	 * know each other very well (e.g. complex controls where parent and children have the same code owner).
 	 *
 	 * @param {sap.ui.base.ManagedObject} [oOrigin] Child control for which the method was called
 	 * @protected
@@ -279,7 +366,18 @@ sap.ui.define([
 	};
 
 	/**
-	 * Tries to replace its DOM reference by re-rendering.
+	 * Synchronously updates the DOM of this control to reflect the current object state.
+	 *
+	 * Note that this method can only be called when the control already has a DOM representation (it has
+	 * been rendered before) and when the control still is assigned to a UIArea.
+	 *
+	 * @deprecated As of 1.70, using this method is no longer recommended, but still works. Synchronous DOM
+	 *   updates via this method have several drawbacks: they only work when the control has been rendered
+	 *   before (no initial rendering possible), multiple state changes won't be combined automatically into
+	 *   a single re-rendering, they might cause additional layout trashing, standard invalidation might
+	 *   cause another async re-rendering.
+	 *
+	 *   The recommended alternative is to rely on invalidation and standard re-rendering.
 	 * @protected
 	 */
 	Control.prototype.rerender = function() {
@@ -437,7 +535,7 @@ sap.ui.define([
 
 				if (!this._sapui_bInAfterRenderingPhase) {
 					// if control is rendered, directly call bind()
-					this.$().bind(sEventType, fnProxy);
+					this.$().on(sEventType, fnProxy);
 				}
 			}
 		}
@@ -470,7 +568,7 @@ sap.ui.define([
 						if ( oParamSet.sEventType === sEventType  && oParamSet.fnHandler === fnHandler  &&  oParamSet.oListener === oListener ) {
 							this.aBindParameters.splice(i, 1);
 							// if control is rendered, directly call unbind()
-							$.unbind(sEventType, oParamSet.fnProxy);
+							$.off(sEventType, oParamSet.fnProxy);
 						}
 					}
 				}
@@ -770,6 +868,13 @@ sap.ui.define([
 	 * The block-layer code is able to recognize that a new block-layer is not needed.
 	 */
 	function fnAddStandaloneBusyIndicator () {
+		// if there's already a busy block state, remove it first before creating a new one
+		// the existing busy block state can't be reused, because the block layer DOM is removed by the renderer. A new
+		// block layer needs to be created
+		if (this._oBusyBlockState) {
+			BlockLayerUtils.unblock(this._oBusyBlockState);
+		}
+
 		this._oBusyBlockState = BlockLayerUtils.block(this, this.getId() + "-busyIndicator", this._sBusySection);
 		BusyIndicatorUtils.addHTML(this._oBusyBlockState, this.getBusyIndicatorSize());
 	}
@@ -802,8 +907,6 @@ sap.ui.define([
 		var $this = this.$(this._sBusySection);
 
 		$this.removeClass('sapUiLocalBusy');
-		//Unset the actual DOM Element´s 'aria-busy'
-		$this.removeAttr('aria-busy');
 
 		if (this._sBlockSection === this._sBusySection) {
 			if (!this.getBlocked() && !this.getBusy()) {
@@ -828,15 +931,6 @@ sap.ui.define([
 			delete this._oBusyBlockState;
 		}
 	}
-
-	/**
-	 * Get the controls block state.
-	 *
-	 * @return {boolean} <code>true</code> when blocked
-	 * @private
-	 * @ui5-restricted sap.ui.core, sap.m, sap.viz
-	 * @name sap.ui.core.Control#getBlocked
-	 */
 
 	/**
 	 * Set the controls block state.
@@ -905,6 +999,10 @@ sap.ui.define([
 	/**
 	 * Set the controls busy state.
 	 *
+	 * <b>Note:</b> The busy state can't be set on controls (e.g. sap.m.ColumnListItem)
+	 * which renderings have the following tags as DOM root element:
+	 * area|base|br|col|embed|hr|img|input|keygen|link|menuitem|meta|param|source|track|wbr|tr
+	 *
 	 * @param {boolean} bBusy The new busy state to be set
 	 * @return {sap.ui.core.Control} <code>this</code> to allow method chaining
 	 * @public
@@ -921,6 +1019,7 @@ sap.ui.define([
 		this.setProperty("busy", bBusy, /*bSuppressInvalidate*/ true);
 
 		if (bBusy) {
+			Interaction.notifyShowBusyIndicator(this);
 			this.addDelegate(oRenderingDelegate, false, this);
 		} else {
 			this.removeDelegate(oRenderingDelegate);
@@ -944,6 +1043,7 @@ sap.ui.define([
 			}
 		} else {
 			fnRemoveBusyIndicator.call(this);
+			Interaction.notifyHideBusyIndicator(this);
 		}
 		return this;
 	};
@@ -1058,8 +1158,10 @@ sap.ui.define([
 	 * Triggers the <code>validateFieldGroup</code> event for this control.
 	 *
 	 * Called by <code>sap.ui.core.UIArea</code> if a field group should be validated after it lost
-	 * the focus or when the key combination was pressed that was configured to trigger validation
-	 * (defined in the UI area member <code>UIArea._oFieldGroupValidationKey</code>).
+	 * the focus or when the key combination was pressed that was configured to trigger validation.
+	 *
+	 * By default, the <code>RETURN</code> key without any modifier keys triggers validation.
+	 * There's no public API to change that key combination.
 	 *
 	 * See {@link #attachValidateFieldGroup}.
 	 *

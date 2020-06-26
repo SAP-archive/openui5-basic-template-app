@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -47,12 +47,13 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 * @since 1.48
 		 *
 		 * @constructor
 		 * @public
 		 * @alias sap.m.PDFViewer
+		 * @see {@link topic:cd80a8bca4ac450b86547d78f0653330 PDF Viewer}
 		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var PDFViewer = Control.extend("sap.m.PDFViewer",
@@ -76,7 +77,8 @@ sap.ui.define([
 						 * an absolute path.<br>
 						 * Optionally, this property can also be set to a data URI path or a blob URL
 						 * in all major web browsers except Internet Explorer and Microsoft Edge, provided
-						 * that this data URI or blob URL is whitelisted in advance.
+						 * that this data URI or blob URL is whitelisted in advance. For more information about
+						 * whitelisting, see {@link topic:91f3768f6f4d1014b6dd926db0e91070 URL Whitelist Filtering}.
 						 */
 						source: {type: "sap.ui.core.URI", group: "Misc", defaultValue: null},
 						/**
@@ -119,7 +121,7 @@ sap.ui.define([
 						* <li>If set to <code>Auto</code>, the appearance of the PDF viewer depends on the
 						* device being used:
 						* <ul>
-						* <li>On mobile devices (phones, tablets), the the PDF viewer appears as a toolbar with
+						* <li>On mobile devices (phones, tablets), the PDF viewer appears as a toolbar with
 						* a download button.</li>
 						* <li>On desktop devices, the PDF viewer is embedded in its parent container.</li>
 						* </ul>
@@ -498,7 +500,7 @@ sap.ui.define([
 				assert(false, "The PDF file cannot be opened with the given source. Given source: " + this.getSource());
 				return;
 			} else if (!PDFViewerRenderer._isPdfPluginEnabled()) {
-				jQuery.sap.log.warning("The PDF plug-in is not available on this device.");
+				Log.warning("The PDF plug-in is not available on this device.");
 			}
 
 			if (this._isEmbeddedModeAllowed()) {
@@ -592,7 +594,7 @@ sap.ui.define([
 		};
 
 		/**
-		 * @returns {jQuery.sap.util.ResourceBundle}
+		 * @returns {module:sap/base/i18n/ResourceBundle}
 		 * @private
 		 */
 		PDFViewer.prototype._getLibraryResourceBundle = function () {

@@ -1,16 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the default renderer for control sap.m.Label
-sap.ui.define(['sap/ui/core/Renderer', 'sap/m/library', 'sap/ui/core/library', 'sap/m/HyphenationSupport'],
-	function(Renderer, library, coreLibrary, HyphenationSupport) {
+sap.ui.define(['sap/ui/core/Renderer', 'sap/m/library', 'sap/ui/core/library', 'sap/m/HyphenationSupport', "sap/ui/core/LabelEnablement"],
+	function(Renderer, library, coreLibrary, HyphenationSupport, LabelEnablement) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
+
+	// shortcut for sap.ui.core.VerticalAlign
+	var VerticalAlign = coreLibrary.VerticalAlign;
 
 	// shortcut for sap.m.LabelDesign
 	var LabelDesign = library.LabelDesign;
@@ -21,7 +24,9 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/m/library', 'sap/ui/core/library', '
 	 * @author SAP SE
 	 * @namespace
 	 */
-	var LabelRenderer = {};
+	var LabelRenderer = {
+		apiVersion: 2
+	};
 
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
@@ -43,8 +48,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/m/library', 'sap/ui/core/library', '
 			sVerticalAlign = oLabel.getVAlign();
 		// write the HTML into the render manager
 		// for accessibility reasons when a label doesn't have a "for" attribute, pointing at a HTML element it is rendered as span
-		rm.openStart(sHtmlTagToRender);
-		rm.controlData(oLabel);
+		rm.openStart(sHtmlTagToRender, oLabel);
 
 		// styles
 		rm.class("sapMLabel");
@@ -64,10 +68,14 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/m/library', 'sap/ui/core/library', '
 		}
 
 		if (sLabelForRendering) {
-			sap.ui.core.LabelEnablement.writeLabelForAttribute(rm, oLabel);
+			LabelEnablement.writeLabelForAttribute(rm, oLabel);
 		} else if (oLabel.getParent() instanceof sap.m.Toolbar) {
 			rm.class("sapMLabelTBHeader");
 		}
+
+		rm.accessibilityState({
+			label: oLabel.getText()
+		});
 
 		// text direction
 		if (sTextDir !== TextDirection.Inherit){
@@ -97,7 +105,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/m/library', 'sap/ui/core/library', '
 			rm.class("sapMLabelDisplayOnly");
 		}
 
-		if (sVerticalAlign != sap.ui.core.VerticalAlign.Inherit) {
+		if (sVerticalAlign != VerticalAlign.Inherit) {
 			rm.style("vertical-align", sVerticalAlign.toLowerCase());
 		}
 
@@ -109,9 +117,13 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/m/library', 'sap/ui/core/library', '
 
 		rm.openEnd();
 
+		// wrap the label text
+		rm.openStart("span", oLabel.getId() + "-text");
+		rm.class("sapMLabelTextWrapper");
+		rm.openEnd();
+
 		// write the label text
-		rm.openStart("bdi");
-		rm.attr("id", oLabel.getId() + "-bdi");
+		rm.openStart("bdi", oLabel.getId() + "-bdi");
 		rm.openEnd();
 
 		if (sLabelText) {
@@ -119,18 +131,15 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/m/library', 'sap/ui/core/library', '
 			rm.text(sLabelText);
 		}
 		rm.close("bdi");
+		rm.close("span");
+
+		// shows the colon and the required asterisk
+		rm.openStart("span");
+		rm.class("sapMLabelColonAndRequired");
+		rm.openEnd();
+		rm.close("span");
 
 		rm.close(sHtmlTagToRender);
-
-		// add invisible ":" span in "display only" mode
-		if (!sLabelForRendering && oLabel.isDisplayOnly && oLabel.isDisplayOnly()) {
-			rm.openStart("span");
-			rm.attr("id", oLabel.getId() + "-colon");
-			rm.class("sapUiPseudoInvisibleText");
-			rm.openEnd();
-			rm.text(":");
-			rm.close("span");
-		}
 	};
 
 	/**

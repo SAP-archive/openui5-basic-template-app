@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,15 +44,22 @@ sap.ui.define([
 	 * The <code>Grid</code> control's width can be percentage- or pixel-based and the spacing between
 	 * its columns can be set to various predefined values.
 	 *
-	 * <b>Note:</b> The visibility of the child control does not affect the horizontal space it occupies.
-	 * This means that even if the control is not visible, its horizontal space will still exist, even if it is empty.
+	 * <b>Notes:</b>
+	 * <ul>
+	 * <li>The visibility of the child control does not affect the horizontal space it
+	 * occupies, meaning that even if the control is not visible, its horizontal space
+	 * still exists, even if it is empty.</li>
+	 * <li> If it gets wider, the content of the columns is designed to overflow outside
+	 * of its dimensions. An additional <code>sapUiRespGridOverflowHidden</code> CSS class
+	 * should be added to the control in order to hide the overflowing part of it.</li>
+	 * </ul>
 	 *
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/grid-layout/#responsive-grid Grid}
 	 *
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -349,7 +356,7 @@ sap.ui.define([
 				return undefined;
 			} else if (oLayoutData instanceof sap.ui.layout.GridData) {
 				return oLayoutData;
-			} else if (oLayoutData.getMetadata().getName() == "sap.ui.core.VariantLayoutData") {
+			} else if (oLayoutData.isA("sap.ui.core.VariantLayoutData")) {
 				// multiple LayoutData available - search here
 				var aLayoutData = oLayoutData.getMultipleLayoutData();
 				for ( var i = 0; i < aLayoutData.length; i++) {

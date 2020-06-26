@@ -1,20 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides class sap.ui.model.odata.v4.lib._Batch
 sap.ui.define([
-	"jquery.sap.script",
 	"./_Helper",
 	"sap/base/strings/escapeRegExp"
-], function (jQuery, _Helper, escapeRegExp) {
+], function (_Helper, escapeRegExp) {
 	"use strict";
 
 	var mAllowedChangeSetMethods = {"POST" : true, "PUT" : true, "PATCH" : true, "DELETE" : true},
 		oBatch,
-		rContentIdReference = /\$\d+/,
+		rContentIdReference = /^\$\d+/,
 		rHeaderParameter = /(\S*?)=(?:"(.+)"|(\S+))/;
 
 	/**
@@ -55,7 +54,7 @@ sap.ui.define([
 			aMatches;
 
 		sParameterName = sParameterName.toLowerCase();
-		for (iParamIndex = 1; iParamIndex < aHeaderParts.length; iParamIndex++) {
+		for (iParamIndex = 1; iParamIndex < aHeaderParts.length; iParamIndex += 1) {
 			// remove possible quotes via reg exp
 			// RFC7231: parameter = token "=" ( token / quoted-string )
 			aMatches = rHeaderParameter.exec(aHeaderParts[iParamIndex]);
@@ -121,7 +120,7 @@ sap.ui.define([
 			aHeaderParts,
 			aHeaders = sHeaders.split("\r\n");
 
-		for (i = 0; i < aHeaders.length; i++) {
+		for (i = 0; i < aHeaders.length; i += 1) {
 			aHeaderParts = aHeaders[i].split(":");
 
 			if (aHeaderParts[0].toLowerCase().trim() === sHeaderName) {
@@ -143,6 +142,11 @@ sap.ui.define([
 		aBatchParts = aBatchParts.slice(1, -1);
 
 		aBatchParts.forEach(function (sBatchPart) {
+			// a batch part contains 3 elements separated by a double "\r\n"
+			// 0: general batch part headers
+			// 1: HTTP response headers and status line
+			// 2: HTTP response body
+
 			var sChangeSetContentType,
 				sCharset,
 				iColonIndex,
@@ -150,28 +154,28 @@ sap.ui.define([
 				sHeaderName,
 				sHeaderValue,
 				aHttpHeaders,
+				sHttpHeaders,
+				iHttpHeadersEnd,
 				aHttpStatusInfos,
 				i,
 				sMimeHeaders,
+				iMimeHeadersEnd,
 				oResponse = {},
-				iResponseIndex,
-				aResponseParts;
+				iResponseIndex;
 
-			// aResponseParts will take 3 elements:
-			// 0: general batch part headers
-			// 1: HTTP response headers and status line
-			// 2: HTTP response body
-			aResponseParts = sBatchPart.split("\r\n\r\n");
+			iMimeHeadersEnd = sBatchPart.indexOf("\r\n\r\n");
+			sMimeHeaders = sBatchPart.slice(0, iMimeHeadersEnd);
+			iHttpHeadersEnd = sBatchPart.indexOf("\r\n\r\n", iMimeHeadersEnd + 4);
+			sHttpHeaders = sBatchPart.slice(iMimeHeadersEnd + 4, iHttpHeadersEnd);
 
-			sMimeHeaders = aResponseParts[0];
 			sChangeSetContentType = getChangeSetContentType(sMimeHeaders);
 			if (sChangeSetContentType) {
 				aResponses.push(_deserializeBatchResponse(sChangeSetContentType,
-					aResponseParts.slice(1).join("\r\n\r\n"), true));
+					sBatchPart.slice(iMimeHeadersEnd + 4), true));
 				return;
 			}
 
-			aHttpHeaders = aResponseParts[1].split("\r\n");
+			aHttpHeaders = sHttpHeaders.split("\r\n");
 			// e.g. HTTP/1.1 200 OK
 			aHttpStatusInfos = aHttpHeaders[0].split(" ");
 
@@ -180,7 +184,7 @@ sap.ui.define([
 			oResponse.headers = {};
 
 			// start with index 1 to skip status line
-			for (i = 1; i < aHttpHeaders.length; i++) {
+			for (i = 1; i < aHttpHeaders.length; i += 1) {
 				// e.g. Content-Type: application/json;odata.metadata=minimal
 				sHeader = aHttpHeaders[i];
 				iColonIndex = sHeader.indexOf(':');
@@ -197,7 +201,7 @@ sap.ui.define([
 			}
 
 			// remove \r\n sequence from the end of the response body
-			oResponse.responseText = aResponseParts[2].slice(0, -2);
+			oResponse.responseText = sBatchPart.slice(iHttpHeadersEnd + 4, -2);
 
 			if (bIsChangeSet) {
 				iResponseIndex = getChangeSetResponseIndex(sMimeHeaders);
@@ -245,7 +249,7 @@ sap.ui.define([
 	 */
 	function _serializeBatchRequest(aRequests, iChangeSetIndex) {
 		var sBatchBoundary = (iChangeSetIndex !== undefined ? "changeset_" : "batch_")
-				+ jQuery.sap.uid(),
+				+ _Helper.uid(),
 			bIsChangeSet = iChangeSetIndex !== undefined,
 			aRequestBody = [];
 
@@ -275,8 +279,11 @@ sap.ui.define([
 						". Change set must contain only POST, PUT, PATCH or DELETE requests.");
 				}
 
-				// adjust URL if it contains Content-ID reference by adding the change set index
-				sUrl = sUrl.replace(rContentIdReference, "$&." + iChangeSetIndex);
+				if (iChangeSetIndex !== undefined && sUrl[0] === "$") {
+					// adjust URL if it starts with a Content-ID reference by adding the change set
+					// index
+					sUrl = sUrl.replace(rContentIdReference, "$&." + iChangeSetIndex);
+				}
 
 				aRequestBody = aRequestBody.concat(
 					"Content-Type:application/http\r\n",

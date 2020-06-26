@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -62,7 +62,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -148,7 +148,7 @@ sap.ui.define([
 	/**
 	 * Library internationalization resource bundle.
 	 *
-	 * @type {jQuery.sap.util.ResourceBundle}
+	 * @type {module:sap/base/i18n/ResourceBundle}
 	 */
 	var oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 
@@ -561,19 +561,22 @@ sap.ui.define([
 	["getAriaLabelledBy", "addAriaLabelledBy", "removeAriaLabelledBy", "removeAllAriaLabelledBy",
 		"getAriaDescribedBy", "addAriaDescribedBy", "removeAriaDescribedBy", "removeAllAriaDescribedBy",
 		"getAccessibilityInfo"].map(function(sFn) {
+		var bChainable = /^add/.test(sFn);
 		ObjectMarker.prototype[sFn] = function() {
 			var oInnerControl = this._getInnerControl(),
 				oResult;
 			if (oInnerControl && oInnerControl[sFn]) {
 				oResult = oInnerControl[sFn].apply(oInnerControl, arguments);
 			}
-			return oResult === oInnerControl ? this : oResult;
+			return bChainable ? this : oResult;
 		};
 	});
 
 	/****************************************** CUSTOM TEXT CONTROL ****************************************************/
 
 	var CustomTextRenderer = Renderer.extend(TextRenderer);
+
+	CustomTextRenderer.apiVersion = 2;
 
 	CustomTextRenderer.renderText = function(oRm, oControl) {
 		oRm.renderControl(oControl._getIconAggregation());
@@ -598,6 +601,7 @@ sap.ui.define([
 
 		this.setProperty("icon", sIcon , bSuppressInvalidate);
 		oIcon.setSrc(sIcon);
+		return this;
 	};
 
 	/**
@@ -620,13 +624,11 @@ sap.ui.define([
 		return oIcon;
 	};
 
-	CustomText.prototype.setText = function(sText, bSuppressInvalidate) {
-		this.setProperty("text", sText , bSuppressInvalidate);
-	};
-
 	/****************************************** CUSTOM LINK CONTROL ****************************************************/
 
 	var CustomLinkRenderer = Renderer.extend(LinkRenderer);
+
+	CustomLinkRenderer.apiVersion = 2;
 
 	CustomLinkRenderer.renderText = function(oRm, oControl) {
 		oRm.renderControl(oControl._getIconAggregation());
@@ -652,6 +654,7 @@ sap.ui.define([
 
 		this.setProperty("icon", sIcon , bSuppressInvalidate);
 		oIcon.setSrc(sIcon);
+		return this;
 	};
 
 	CustomLink.prototype._getTabindex = function () {
@@ -676,10 +679,6 @@ sap.ui.define([
 		}
 
 		return oIcon;
-	};
-
-	CustomLink.prototype.setText = function(sText, bSuppressInvalidate){
-		this.setProperty("text", sText, bSuppressInvalidate);
 	};
 
 	return ObjectMarker;

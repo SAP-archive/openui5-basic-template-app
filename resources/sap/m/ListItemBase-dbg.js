@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,6 +14,7 @@ sap.ui.define([
 	"sap/ui/core/Control",
 	"sap/ui/core/IconPool",
 	"sap/ui/core/Icon",
+	"sap/ui/core/theming/Parameters",
 	"./library",
 	"./Button",
 	"./CheckBox",
@@ -33,6 +34,7 @@ function(
 	Control,
 	IconPool,
 	Icon,
+	ThemeParameters,
 	library,
 	Button,
 	CheckBox,
@@ -72,7 +74,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -132,7 +134,16 @@ function(
 			 *
 			 * @since 1.62
 			 */
-			highlightText : {type : "string", group : "Misc", defaultValue : ""}
+			highlightText : {type : "string", group : "Misc", defaultValue : ""},
+
+			/**
+			 * The navigated state of the list item.
+			 *
+			 * If set to <code>true</code>, a navigation indicator is displayed at the end of the list item.
+			 *
+			 * @since 1.72
+			 */
+			navigated : {type : "boolean", group : "Appearance", defaultValue : false}
 		},
 		associations: {
 
@@ -260,7 +271,6 @@ function(
 
 	// icon URI configuration
 	ListItemBase.prototype.DetailIconURI = IconPool.getIconURI("edit");
-	ListItemBase.prototype.DeleteIconURI = IconPool.getIconURI("sys-cancel");
 	ListItemBase.prototype.NavigationIconURI = IconPool.getIconURI("slim-arrow-right");
 
 	// defines the root tag name for rendering purposes
@@ -271,11 +281,13 @@ function(
 		this._active = false;
 		this._bGroupHeader = false;
 		this._bNeedsHighlight = false;
+		this._bNeedsNavigated = false;
 	};
 
 	ListItemBase.prototype.onAfterRendering = function() {
 		this.informList("DOMUpdate", true);
 		this._checkHighlight();
+		this._checkNavigated();
 	};
 
 	ListItemBase.prototype.invalidate = function() {
@@ -431,6 +443,10 @@ function(
 			aOutput.push(sTooltip);
 		}
 
+		if (this.getNavigated()) {
+			aOutput.push(oBundle.getText("LIST_ITEM_NAVIGATED"));
+		}
+
 		return aOutput.join(" ");
 	};
 
@@ -496,6 +512,10 @@ function(
 			return this._oDeleteControl;
 		}
 
+		if (!this.DeleteIconURI) {
+			ListItemBase.prototype.DeleteIconURI = IconPool.getIconURI(ThemeParameters.get("_sap_m_ListItemBase_DeleteIcon"));
+		}
+
 		this._oDeleteControl = new Button({
 			id: this.getId() + "-imgDel",
 			icon: this.DeleteIconURI,
@@ -508,6 +528,13 @@ function(
 		this._oDeleteControl._bExcludeFromTabChain = true;
 
 		return this._oDeleteControl;
+	};
+
+	ListItemBase.prototype.onThemeChanged = function() {
+		ListItemBase.prototype.DeleteIconURI = IconPool.getIconURI(ThemeParameters.get("_sap_m_ListItemBase_DeleteIcon"));
+		if (this._oDeleteControl) {
+			this._oDeleteControl.setIcon(this.DeleteIconURI);
+		}
 	};
 
 	/**
@@ -599,7 +626,14 @@ function(
 			id: this.getId() + "-selectMulti",
 			activeHandling: false,
 			selected: this.getSelected()
-		}).addStyleClass("sapMLIBSelectM").setParent(this, null, true).setTabIndex(-1).attachSelect(function(oEvent) {
+		}).addStyleClass("sapMLIBSelectM").setParent(this, null, true).setTabIndex(-1).addEventDelegate({
+			onkeydown: function (oEvent) {
+				this.informList("KeyDown", oEvent);
+			},
+			onkeyup: function (oEvent) {
+				this.informList("KeyUp", oEvent);
+			}
+		}, this).attachSelect(function(oEvent) {
 			var bSelected = oEvent.getParameter("selected");
 			this.setSelected(bSelected);
 			this.informList("Select", bSelected);
@@ -680,6 +714,7 @@ function(
 	ListItemBase.prototype.exit = function() {
 		this._oLastFocused = null;
 		this._checkHighlight(false);
+		this._checkNavigated(false);
 		this.setActive(false);
 		this.destroyControls([
 			"Delete",
@@ -823,6 +858,17 @@ function(
 		}
 	};
 
+	ListItemBase.prototype._checkNavigated = function(bNeedsNavigated) {
+		if (bNeedsNavigated == undefined) {
+			bNeedsNavigated = (this.getVisible() && this.getNavigated());
+		}
+
+		if (this._bNeedsNavigated != bNeedsNavigated) {
+			this._bNeedsNavigated = bNeedsNavigated;
+			this.informList("NavigatedChange", bNeedsNavigated);
+		}
+	};
+
 	/**
 	 * Determines whether item needs icon to render type or not
 	 *
@@ -963,9 +1009,7 @@ function(
 	};
 
 	ListItemBase.prototype.ontouchend = function(oEvent) {
-
-		// several fingers could be used
-		if (oEvent.targetTouches.length == 0 && this.hasActiveType()) {
+		if (this.hasActiveType()) {
 			this._timeoutIdEnd = setTimeout(function() {
 				this.setActive(false);
 			}.bind(this), 100);
@@ -974,6 +1018,9 @@ function(
 
 	// During native scrolling: Chrome sends touchcancel and no touchend thereafter
 	ListItemBase.prototype.ontouchcancel = ListItemBase.prototype.ontouchend;
+
+	// active handling should be removed when dragging an item is over
+	ListItemBase.prototype.ondragend = ListItemBase.prototype.ontouchend;
 
 	// toggle active styles for navigation items
 	ListItemBase.prototype._activeHandlingNav = function() {};
@@ -1092,7 +1139,7 @@ function(
 		} else if ($Tabbables.length) {
 			var iFocusPos = oList._iLastFocusPosOfItem || 0;
 			iFocusPos = $Tabbables[iFocusPos] ? iFocusPos : -1;
-			$Tabbables.eq(iFocusPos).focus();
+			$Tabbables.eq(iFocusPos).trigger("focus");
 		}
 
 		oEvent.preventDefault();
@@ -1130,6 +1177,36 @@ function(
 				}
 			}
 		}
+
+		if (oEvent.srcControl !== this) {
+			return;
+		}
+
+		this.informList("KeyDown", oEvent);
+	};
+
+	ListItemBase.prototype.onkeyup = function(oEvent) {
+		if (oEvent.isMarked() || oEvent.srcControl !== this) {
+			return;
+		}
+
+		this.informList("KeyUp", oEvent);
+	};
+
+	ListItemBase.prototype.onsapupmodifiers = function(oEvent) {
+		if (oEvent.isMarked() || oEvent.srcControl !== this) {
+			return;
+		}
+
+		this.informList("UpDownModifiers", oEvent, -1);
+	};
+
+	ListItemBase.prototype.onsapdownmodifiers = function(oEvent) {
+		if (oEvent.isMarked() || oEvent.srcControl !== this) {
+			return;
+		}
+
+		this.informList("UpDownModifiers", oEvent, 1);
 	};
 
 	/**

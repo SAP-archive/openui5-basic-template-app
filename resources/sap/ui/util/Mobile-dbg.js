@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -122,6 +122,8 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 			// initialize viewport
 			if (options.viewport) {
 				var sMeta;
+				var iInnerHeightBefore = Device.resize.height;
+				var iInnerWidthBefore = Device.resize.width;
 				if (bIsIOS7Safari && Device.system.phone) {
 					//if the softkeyboard is open in orientation change, we have to do this to solve the zoom bug
 					// on the phone - the phone zooms into the view although it shouldn't so these two lines will
@@ -142,7 +144,13 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 					sMeta = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
 				}
 				$head.append(jQuery('<meta name="viewport" content="' + sMeta + '">'));
+
+				// Update Device API resize info, which is necessary in some scenarios after setting the viewport info
+				if ((iInnerHeightBefore !== window.innerHeight || iInnerWidthBefore !== window.innerWidth) && Device.resize._update){
+					Device.resize._update();
+				}
 			}
+
 
 			if (options.mobileWebAppCapable === "default") {
 				if (Device.os.ios) {
@@ -276,8 +284,18 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 				}
 			});
 
-			// create favicon
-			$head.append(jQuery('<link rel="shortcut icon" href="' + oIcons["favicon"] + '" />'));
+			// for IE two DOM updates are necessary to render the favicon properly
+			if (Device.browser.msie) {
+				// create favicon w/o an href attribute for a first DOM update
+				var $link = jQuery('<link rel="shortcut icon" />');
+				$head.append($link);
+
+				// add href attribute to force a second DOM
+				$link.attr("href", oIcons["favicon"]);
+			} else {
+				// create favicon
+				$head.append(jQuery('<link rel="shortcut icon" href="' + oIcons["favicon"] + '" />'));
+			}
 		}
 
 		// mobile home screen icons

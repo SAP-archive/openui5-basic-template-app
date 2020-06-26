@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ sap.ui.define(['./Interface', './Metadata', "sap/base/Log"],
 	 * @class Base class for all SAPUI5 Objects.
 	 * @abstract
 	 * @author Malte Wedel
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @public
 	 * @alias sap.ui.base.Object
 	 * @throws {Error} When an instance of the class or its subclasses is created without the <code>new</code> operator.
@@ -204,6 +204,10 @@ sap.ui.define(['./Interface', './Metadata', "sap/base/Log"],
 	 * Should the UI5 class system in future implement additional means of associating classes
 	 * with type names (e.g. by introducing mixins), then this method might detect matches
 	 * for those names as well.
+	 *
+	 * @example
+	 * myObject.isA("sap.ui.core.Control"); // true if myObject is an instance of sap.ui.core.Control
+	 * myObject.isA(["sap.ui.core.Control", "sap.ui.core.Fragment"]); // true if myObject is an instance of sap.ui.core.Control or sap.ui.core.Fragment
 	 *
 	 * @param {string|string[]} vTypeName Type or types to check for
 	 * @returns {boolean} Whether this object is an instance of the given type or of any of the given types

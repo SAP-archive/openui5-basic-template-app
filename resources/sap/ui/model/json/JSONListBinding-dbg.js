@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,12 +8,11 @@
 sap.ui.define([
 	'sap/ui/model/ChangeReason',
 	'sap/ui/model/ClientListBinding',
-	"sap/base/util/array/diff",
 	"sap/base/util/deepEqual",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(ChangeReason, ClientListBinding, diff, deepEqual, Log, jQuery) {
+	function(ChangeReason, ClientListBinding, deepEqual, Log, jQuery) {
 	"use strict";
 
 
@@ -74,7 +73,7 @@ sap.ui.define([
 
 				//Check diff
 				if (this.aLastContextData && iStartIndex < this.iLastEndIndex) {
-					aContexts.diff = diff(this.aLastContextData, aContextData);
+					aContexts.diff = this.diffData(this.aLastContextData, aContextData);
 				}
 
 				this.iLastEndIndex = iStartIndex + iLength;

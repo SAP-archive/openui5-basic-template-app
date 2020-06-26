@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,7 +25,7 @@ sap.ui.define([
 	 * @abstract
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -149,7 +149,7 @@ sap.ui.define([
 	/**
 	 * Implementation of a commonly used function that adapts <code>sap.ui.core.Element</code>
 	 * to provide DOM reference for opening popovers.
-	 * @returns The DOM reference of the actual wrapped control
+	 * @returns {Element} The DOM reference of the actual wrapped control
 	 * @public
 	 */
 	SemanticControl.prototype.getPopupAnchorDomRef = function() {

@@ -3,8 +3,12 @@
 /* Base theme                     */
 /* ============================== */
 
-.sapMIBar.sapMTB  .sapMBarChild {
-  margin-right: 0.25rem;
+.sapMIBar.sapMTB .sapMBarChild {
+	margin: 0 0 0 0.5rem;
+}
+
+.sapMIBar.sapMTB .sapMBarChild:first-child {
+	margin-left: 0.25rem;
 }
 
 .sapMTB {
@@ -19,6 +23,12 @@
 	-ms-text-size-adjust: none;
 	height: 3rem;
 	background: @sapUiToolbarBackground;
+	padding-right: 0.25rem;
+}
+
+.sapMIBar.sapMTB .sapMTBHiddenElement {
+	position: absolute;
+	visibility: hidden;
 }
 
 .sapMTB:focus {
@@ -26,7 +36,11 @@
 }
 
 .sapMTBStandard {
-	border-bottom: 1px solid @sapUiGroupTitleBorderColor;
+	border-bottom: solid 0.0625rem @sapUiGroupTitleBorderColor;
+}
+
+.sapMTBClear {
+	border-bottom: none;
 }
 
 /* Transparent Toolbar Context */
@@ -35,15 +49,12 @@
 }
 
 /* Info Toolbar Context */
-.sapMIBar.sapMTB.sapMTB-Info-CTX > :first-child,
-.sapMIBar.sapMTB.sapMTB-Info-CTX > :last-child {
-	margin: 0;
-	padding: 0 0.5rem;
+.sapMIBar.sapMTB.sapMTB-Info-CTX {
+	padding: 0 1rem 0 0.75rem;
 }
 
-.sapMIBar.sapMTB.sapMTB-Info-CTX > :last-child.sapUiIcon {
-	padding-left: 0;
-	padding-right: 0;
+.sapMIBar.sapMTB.sapMTB-Info-CTX > .sapUiIcon:first-child {
+	padding: 1px;
 }
 
 .sapMTBActive,
@@ -80,15 +91,8 @@
 .sapUiGridHeader > .sapMTB > .sapMBarChild:first-child,
 .sapUiGridTitle > th > .sapMTB > .sapMBarChild:first-child,
 .sapUiFormResLayout.sapUiFormToolbar > .sapMTB > .sapMBarChild:first-child,
-.sapUiRLContainer > .sapMTB > .sapMBarChild:first-child{
+.sapUiRLContainer > .sapMTB > .sapMBarChild:first-child {
 	margin-left: 0;
-}
-
-.sapUiGridHeader > .sapMTB > .sapMBarChild:last-child,
-.sapUiGridTitle > th > .sapMTB > .sapMBarChild:last-child,
-.sapUiFormResLayout.sapUiFormToolbar > .sapMTB > .sapMBarChild:last-child,
-.sapUiRLContainer > .sapMTB > .sapMBarChild:last-child{
-	margin-right: 0;
 }
 
 /* Solid Toolbar Context */
@@ -100,14 +104,27 @@
 .sapMTB-Info-CTX.sapMTB {
 	background: @sapUiInfobarBackground;
 	color: contrast(@sapUiInfobarBackground, @sapUiListActiveTextColor, @sapUiListTextColor, @sapUiContentContrastTextThreshold);
-}
 
-.sapMTB-Info-CTX.sapMTBActive:hover {
-	background: @sapUiInfobarHoverBackground;
-}
+	.sapMText {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
 
-.sapMTB-Info-CTX.sapMTBActive:active {
-	background: @sapUiInfobarActiveBackground;
+	> .sapMTitle {
+		font-size: @sapMFontHeader6Size;
+		text-shadow: none;
+	}
+
+	&.sapMTBActive {
+		&:hover {
+			background: @sapUiInfobarHoverBackground;
+		}
+
+		&:active {
+			background: @sapUiInfobarActiveBackground;
+		}
+	}
 }
 
 /********** COMPACT DESIGN ************/

@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.date.Japanese
-sap.ui.define(['./UniversalDate', '../CalendarType'],
-	function(UniversalDate, CalendarType) {
+sap.ui.define(['./UniversalDate', '../CalendarType', './_Calendars'],
+	function(UniversalDate, CalendarType, _Calendars) {
 	"use strict";
 
 
@@ -236,6 +236,8 @@ sap.ui.define(['./UniversalDate', '../CalendarType'],
 	Japanese.prototype.getUTCWeek = function() {
 		return UniversalDate.getWeekByDate(this.sCalendarType, this.oDate.getUTCFullYear(), this.getUTCMonth(), this.getUTCDate());
 	};
+
+	_Calendars.set(CalendarType.Japanese, Japanese);
 
 	return Japanese;
 

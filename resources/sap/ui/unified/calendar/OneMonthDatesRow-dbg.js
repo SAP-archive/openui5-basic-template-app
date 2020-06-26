@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -34,7 +34,7 @@ sap.ui.define([
 	 * Other usages are not supported.
 	 *
 	 * @extends sap.ui.unified.calendar.DatesRow
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @private
@@ -46,6 +46,8 @@ sap.ui.define([
 			library : "sap.ui.unified"
 		}
 	});
+
+	OneMonthDatesRow.apiVersion = 2;
 
 	OneMonthDatesRow.prototype.init = function() {
 		DatesRow.prototype.init.apply(this, arguments);
@@ -66,7 +68,7 @@ sap.ui.define([
 			}
 
 			//clear or set to first of the month
-			oSelectedDates[0].setProperty('startDate', oStartDate, true);
+			oSelectedDates[0].setProperty('startDate', oStartDate);
 		}
 
 		return this;
@@ -108,6 +110,13 @@ sap.ui.define([
 		return this;
 	};
 
+	OneMonthDatesRow.prototype.getDays = function() {
+		if (this.iMode === 2) {
+			return 31;
+		} else {
+			return CalendarUtils._daysInMonth(CalendarDate.fromLocalJSDate(this.getStartDate()));
+		}
+	};
 
 	/**
 	 * Displays a given date.

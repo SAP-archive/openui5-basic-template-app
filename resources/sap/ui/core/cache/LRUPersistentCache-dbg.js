@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -190,7 +190,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 			 * @param {boolean} bDeserialize  whether to deserialize the content or not
 			 * @returns {Promise} a promise that would be resolved in case of successful operation or rejected with
 			 * value of the error message if the operation fails. When resolved the Promise will return the array of all
-			 * entries in the following format: <code>{key: <myKey>, value: <myValue>}</code>
+			 * entries in the following format: <code>{key: &lt;myKey>, value: &lt;myValue>}</code>
 			 * @private
 			 */
 			_getAll: function (bDeserialize) {
@@ -905,4 +905,4 @@ sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 		}
 
 		return LRUPersistentCache;
-	}, /* bExport= */false);
+	});

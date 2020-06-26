@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,7 +44,7 @@ sap.ui.define([
 	 * @class
 	 * A View defined using JSON.
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.JSONView
@@ -58,20 +58,20 @@ sap.ui.define([
 	/**
 	 * Creates a JSON view of the given configuration.
 	 *
-	 * @param {map} mOptions A map containing the view configuration options.
-	 * @param {string} [mOptions.id] Specifies an ID for the View instance. If no ID is given, an ID will be generated.
-	 * @param {string} [mOptions.viewName] The view name that corresponds to a JSON module that can be loaded
-	 * via the module system (viewName + suffix ".view.json").
-	 * @param {string|object} [mOptions.definition] view definition as a JSON string or an object literal
-	 * @param {sap.ui.core.mvc.Controller} [mOptions.controller] Controller instance to be used for this view.
+	 * @param {object} oOptions An object containing the view configuration options.
+	 * @param {string} [oOptions.id] Specifies an ID for the view instance. If no ID is given, an ID will be generated.
+	 * @param {string} [oOptions.viewName] The view name (in dot-notation) that corresponds to a JSON resource that can
+	 *                    be loaded via the module system (viewName + suffix ".view.json").
+	 * @param {string|object} [oOptions.definition] view definition as a JSON string or an object literal
+	 * @param {sap.ui.core.mvc.Controller} [oOptions.controller] Controller instance to be used for this view.
 	 * The given controller instance overrides the controller defined in the view definition. Sharing a controller instance
 	 * between multiple views is not supported.
 	 * @public
 	 * @static
-	 * @return {Promise} a Promise which resolves with the created JSONView instance.
+	 * @returns {Promise<sap.ui.core.mvc.JSONView>} A promise which resolves with the created <code>JSONView</code> instance.
 	 */
-	JSONView.create = function(mOptions) {
-		var mParameters = merge({}, mOptions);
+	JSONView.create = function(oOptions) {
+		var mParameters = merge({}, oOptions);
 		//remove unsupported options:
 		for (var sOption in mParameters) {
 			if (sOption === 'preprocessors') {
@@ -179,7 +179,7 @@ sap.ui.define([
 			// TODO model this as a property as soon as write-once-during-init properties become available
 			this.mProperties["viewContent"] = mSettings.viewContent;
 			if (typeof mSettings.viewContent === "string") {
-				this._oJSONView = jQuery.parseJSON(mSettings.viewContent);
+				this._oJSONView = JSON.parse(mSettings.viewContent);
 				if (!this._oJSONView) { // would lead to errors later on
 					throw new Error("error when parsing viewContent: " + mSettings.viewContent);
 				}

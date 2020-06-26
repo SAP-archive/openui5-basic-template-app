@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,7 +35,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -533,7 +533,7 @@ sap.ui.define([
 
 	FormLayout.prototype.findNextFieldOfElement = function(oElement, iStartIndex, bTabOver){
 
-		var aFields = oElement.getFields();
+		var aFields = oElement.getFieldsForRendering();
 		var iLength = aFields.length;
 		var oNewDomRef;
 
@@ -746,7 +746,7 @@ sap.ui.define([
 
 	FormLayout.prototype.findPrevFieldOfElement = function(oElement, iStartIndex, bTabOver){
 
-		var aFields = oElement.getFields();
+		var aFields = oElement.getFieldsForRendering();
 		var oNewDomRef;
 
 		for ( var i = iStartIndex; i >= 0; i--) {
@@ -778,7 +778,7 @@ sap.ui.define([
 
 		while (!oNewDomRef && i >= 0) {
 			var oElement = aElements[i];
-			var iLength = oElement.getFields().length;
+			var iLength = oElement.getFieldsForRendering().length;
 
 			if (bTabOver == true) {
 				oNewDomRef = this.findPrevFieldOfElement(oElement, iLength - 1, true);

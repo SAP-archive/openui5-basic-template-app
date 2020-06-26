@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,13 +8,12 @@
 
 // Provides class sap.ui.core.ElementMetadata
 sap.ui.define([
-	'sap/ui/thirdparty/jquery',
 	'sap/base/Log',
 	'sap/base/util/ObjectPath',
 	'sap/ui/base/ManagedObjectMetadata',
 	'sap/ui/core/Renderer'
 ],
-	function(jQuery, Log, ObjectPath, ManagedObjectMetadata, Renderer) {
+	function(Log, ObjectPath, ManagedObjectMetadata, Renderer) {
 	"use strict";
 
 
@@ -26,10 +25,11 @@ sap.ui.define([
 	 *
 	 * @class
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @since 0.8.6
 	 * @alias sap.ui.core.ElementMetadata
 	 * @extends sap.ui.base.ManagedObjectMetadata
+	 * @public
 	 */
 	var ElementMetadata = function(sClassName, oClassInfo) {
 
@@ -39,6 +39,7 @@ sap.ui.define([
 
 	//chain the prototypes
 	ElementMetadata.prototype = Object.create(ManagedObjectMetadata.prototype);
+	ElementMetadata.prototype.constructor = ElementMetadata;
 
 	/**
 	 * Calculates a new id based on a prefix.
@@ -132,7 +133,7 @@ sap.ui.define([
 			}
 
 			// try to identify fully built renderers
-			if ( typeof vRenderer === "object" ) {
+			if ( typeof vRenderer === "object" && typeof vRenderer.render === "function" ) {
 				var oRenderer = ObjectPath.get(this.getRendererName());
 				if ( oRenderer === vRenderer ) {
 					// the given renderer has been exported globally already, it can be used without further action
@@ -157,13 +158,7 @@ sap.ui.define([
 			if ( oParent instanceof ElementMetadata ) {
 				oBaseRenderer = oParent.getRenderer();
 			}
-			if (!oBaseRenderer) {
-				oBaseRenderer = Renderer;
-			}
-			var oRenderer = Object.create(oBaseRenderer);
-			jQuery.extend(oRenderer, vRenderer);
-			this._oRenderer = oRenderer;
-			ObjectPath.set(this.getRendererName(), oRenderer);
+			this._oRenderer = Renderer.extend.call(oBaseRenderer || Renderer, this.getRendererName(), vRenderer);
 		}
 	};
 
@@ -194,6 +189,7 @@ sap.ui.define([
 	}
 
 	Aggregation.prototype = Object.create(fnMetaFactoryAggregation.prototype);
+	Aggregation.prototype.constructor = Aggregation;
 	ElementMetadata.prototype.metaFactoryAggregation = Aggregation;
 
 	/**

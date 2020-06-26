@@ -1,17 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/fl/Utils",
 	"sap/ui/fl/changeHandler/ChangeHandlerMediator",
-	"sap/ui/fl/changeHandler/Base"
+	"sap/ui/fl/changeHandler/Base",
+	"sap/base/Log"
 ], function(
-	Utils,
 	ChangeHandlerMediator,
-	Base
+	Base,
+	Log
 ) {
 	"use strict";
 
@@ -24,7 +24,7 @@ sap.ui.define([
 	 *
 	 * @author SAP SE
 	 *
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @experimental Since 1.49.0 This class is experimental and provides only limited functionality. Also the API might be
 	 *               changed in future.
@@ -148,7 +148,7 @@ sap.ui.define([
 
 				return true;
 			} else {
-				Utils.log.error("Change does not contain sufficient information to be applied or ChangeHandlerMediator could not be retrieved: [" + oChangeDefinition.layer + "]"
+				Log.error("Change does not contain sufficient information to be applied or ChangeHandlerMediator could not be retrieved: [" + oChangeDefinition.layer + "]"
 					+ oChangeDefinition.namespace + "/"
 					+ oChangeDefinition.fileName + "."
 					+ oChangeDefinition.fileType);

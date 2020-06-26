@@ -33,7 +33,7 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-} 
+}
 
 .sapMGHLICounter {
 	padding-left: 0.25rem;
@@ -53,12 +53,12 @@
 	font-weight: @sapUiFontHeaderWeight;
 	color: @sapUiListTableGroupHeaderTextColor;
 	background: @sapUiListGroupHeaderBackground;
-	border-bottom: 1px solid @sapUiListTableGroupHeaderBorderColor;
+	border-bottom: @sapUiElementBorderWidth solid @sapUiListTableGroupHeaderBorderColor;
 }
 
 .sapMListUl > .sapMLIB.sapMGHLI {
 	background: @sapUiListGroupHeaderBackground;
-	height: 3rem;
+	height: @sapUiElementLineHeight;
 	line-height: 2rem;
 	padding-top: 1rem;
 }

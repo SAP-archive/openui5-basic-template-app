@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -126,7 +126,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 	/**
 	 * This method returns, whether the context is preliminary.
 	 * @private
-	 * @sap-restricted sap.suite.ui.generic
+	 * @ui5-restricted sap.suite.ui.generic
 	 * @return {boolean} the preliminary flag
 	 */
 	Context.prototype.isPreliminary = function() {
@@ -180,6 +180,27 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/util/isPlainObject"],
 	 */
 	Context.prototype.toString = function() {
 		return this.sPath;
+	};
+
+	/**
+	 * Returns messages associated with this context, that is messages belonging to the object
+	 * referred to by this context or a child object of that object. The messages are sorted by
+	 * their {@link sap.ui.core.message.Message#getType type} according to the type's severity in a
+	 * way that messages with highest severity come first.
+	 *
+	 * @returns {sap.ui.core.message.Message[]}
+	 *   The messages associated with this context sorted by severity; empty array in case no
+	 *   messages exist
+	 * @throws {Error}
+	 *   In case the context's model does not implement the method
+	 *   {@link sap.ui.model.Model#getMessages}
+	 *
+	 * @public
+	 * @see sap.ui.model.Model#getMessages
+	 * @since 1.76.0
+	 */
+	Context.prototype.getMessages = function () {
+		return this.oModel.getMessages(this);
 	};
 
 	return Context;

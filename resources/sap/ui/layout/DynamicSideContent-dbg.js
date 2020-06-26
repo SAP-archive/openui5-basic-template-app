@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,10 +9,11 @@ sap.ui.define([
 	'sap/ui/thirdparty/jquery',
 	'sap/ui/core/Control',
 	'sap/ui/core/ResizeHandler',
+	'sap/ui/core/delegate/ScrollEnablement',
 	'sap/ui/layout/library',
 	'./DynamicSideContentRenderer'
 ],
-	function(jQuery, Control, ResizeHandler, library, DynamicSideContentRenderer) {
+	function(jQuery, Control, ResizeHandler, ScrollEnablement, library, DynamicSideContentRenderer) {
 		"use strict";
 
 		// shortcut for sap.ui.layout.SideContentPosition
@@ -86,10 +87,14 @@ sap.ui.define([
 		 * side content disappears on screen widths of less than 720 px and can only be
 		 * viewed by triggering it.
 		 *
+		 * <b>Note:</b> If the control that has property sticky inside the <code>DynamicSideContent</code> the stickiness of that control will not work.
+		 * <code>DynamicSideContent</code> has the overflow: auto style definition and this prevents the sticky elements of the control from becoming fixed at the top of the viewport.
+		 * This applies for example to {@link sap.m.Table} and {@link sap.m.PlanningCalendar}.
+		 *
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -103,6 +108,9 @@ sap.ui.define([
 
 				/**
 				 * Determines whether the side content is visible or hidden.
+				 *
+				 * <b>Note:</b> If both <code>showSideContent</code> and <code>showMainContent</code> properties are set to <code>true</code>,
+				 * use the <code>toggle</code> method for showing the side content on phone.
 				 */
 				showSideContent : {type : "boolean", group : "Appearance", defaultValue : true},
 
@@ -406,7 +414,7 @@ sap.ui.define([
 				this._adjustToScreenSize();
 			} else {
 				var that = this;
-				jQuery(window).resize(function() {
+				jQuery(window).on("resize", function() {
 					that._adjustToScreenSize();
 				});
 			}
@@ -430,6 +438,50 @@ sap.ui.define([
 				this._oMCScroller.destroy();
 				this._oMCScroller = null;
 			}
+		};
+
+		/**
+		 * Returns a scroll helper object used to handle scrolling.
+		 * @public
+		 * @param {object} oControl The control instance that requested the scroll helper
+		 * @returns {sap.ui.core.delegate.ScrollEnablement} The scroll helper instance
+		 * @since 1.78
+		 */
+		DynamicSideContent.prototype.getScrollDelegate = function (oControl) {
+			var oControlInQuestion = oControl,
+				oContainerOfDSC = this.getParent(),
+				sBreakpoint = this._getBreakPointFromWidth(),
+				bMCVisible = this.getShowMainContent() && this._MCVisible,
+				bSCVisible = this.getShowSideContent() && this._SCVisible;
+
+			//for cases with main and side content - one above the other - use the scroll delegate of the parent container
+			if (sBreakpoint && sBreakpoint !== L && sBreakpoint !== XL ) {
+				// check whether the control is in visible aggregation; if not - don't get its scrollDelegate
+				if (oControlInQuestion &&
+				   ((oControlInQuestion.sParentAggregationName === "sideContent" && !bSCVisible) ||
+				   (oControlInQuestion.sParentAggregationName === "mainContent" && !bMCVisible)) ){
+					return;
+				} else {
+					while (oContainerOfDSC && (!oContainerOfDSC.getScrollDelegate || !oContainerOfDSC.getScrollDelegate())) {
+						oContainerOfDSC = oContainerOfDSC.getParent();
+					}
+					return oContainerOfDSC.getScrollDelegate();
+				}
+			}
+
+			if (this._oMCScroller && this._oSCScroller) {
+				while (oControlInQuestion && oControlInQuestion.getId() !== this.getId()) {
+					if (oControlInQuestion.sParentAggregationName === "mainContent" && bMCVisible) {
+						return this._oMCScroller;
+					}
+					if (oControlInQuestion.sParentAggregationName === "sideContent" && bSCVisible) {
+						return this._oSCScroller;
+					}
+					oControlInQuestion = oControlInQuestion.getParent();
+				}
+			}
+
+			return;
 		};
 
 		/**
@@ -543,7 +595,7 @@ sap.ui.define([
 				this._iOldWindowWidth = this._iWindowWidth;
 
 				this._oldBreakPoint = this._currentBreakpoint;
-				this._setBreakpointFromWidth(this._iWindowWidth);
+				this._currentBreakpoint = this._getBreakPointFromWidth(this._iWindowWidth);
 
 				if ((this._oldBreakPoint !== this._currentBreakpoint)
 					|| (this._currentBreakpoint === M
@@ -551,6 +603,7 @@ sap.ui.define([
 					this._setResizeData(this._currentBreakpoint, this.getEqualSplit());
 					this._changeGridState();
 				}
+				this._setBreakpointFromWidth(this._iWindowWidth);
 			}
 		};
 
@@ -702,6 +755,9 @@ sap.ui.define([
 				$mainContent.addClass(HIDDEN_CLASS);
 				$sideContent.addClass(HIDDEN_CLASS);
 			}
+
+			$mainContent.addClass("sapUiDSCM");
+			$sideContent.addClass("sapUiDSCS");
 		};
 
 		/**

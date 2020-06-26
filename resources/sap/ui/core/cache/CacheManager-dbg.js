@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,9 +9,10 @@ sap.ui.define([
 	'./CacheManagerNOP',
 	'sap/ui/Device',
 	"sap/base/Log",
-	"sap/ui/performance/Measurement"
+	"sap/ui/performance/Measurement",
+	'sap/ui/performance/trace/Interaction'
 ],
-	function(LRUPersistentCache, CacheManagerNOP, Device, Log, Measurement) {
+	function(LRUPersistentCache, CacheManagerNOP, Device, Log, Measurement, Interaction) {
 		"use strict";
 
 		/**
@@ -153,10 +154,10 @@ sap.ui.define([
 			 */
 			get: function (key) {
 				var pGet,
+					fnDone = Interaction.notifyAsyncStep(),
 					oMsr = startMeasurements("get", key);
 
 				Log.debug("Cache Manager: Getting key [" + key + "]");
-
 				pGet = this._callInstanceMethod("get", arguments).then(function callInstanceHandler(v) {
 					Log.debug("Cache Manager: Getting key [" + key + "] done");
 					oMsr.endAsync();
@@ -165,7 +166,7 @@ sap.ui.define([
 					Log.debug("Cache Manager: Getting key [" + key + "] failed. Error: " + e);
 					oMsr.endAsync();
 					throw e;
-				});
+				}).finally(fnDone);
 				oMsr.endSync();
 				return pGet;
 			},
@@ -314,12 +315,56 @@ sap.ui.define([
 						browserName: Device.browser.BROWSER.INTERNET_EXPLORER,
 						browserVersion: 11
 					});
+					aSupportedEnv.push({
+						system: Device.system.SYSTEMTYPE.DESKTOP,
+						browserName: Device.browser.BROWSER.EDGE,
+						browserVersion: 80
+					});
+					aSupportedEnv.push({
+						system: Device.system.SYSTEMTYPE.DESKTOP,
+						os: Device.os.OS.WINDOWS,
+						browserName: Device.browser.BROWSER.FIREFOX,
+						browserVersion: 74
+					});
+					aSupportedEnv.push({
+						system: Device.system.SYSTEMTYPE.DESKTOP,
+						browserName: Device.browser.BROWSER.SAFARI,
+						browserVersion: 13
+					});
+					aSupportedEnv.push({
+						system: Device.system.SYSTEMTYPE.TABLET,
+						browserName: Device.browser.BROWSER.SAFARI,
+						browserVersion: 13
+					});
+					aSupportedEnv.push({
+						system: Device.system.SYSTEMTYPE.PHONE,
+						browserName: Device.browser.BROWSER.SAFARI,
+						browserVersion: 13
+					});
+					aSupportedEnv.push({
+						system: Device.system.SYSTEMTYPE.TABLET,
+						os: Device.os.OS.ANDROID,
+						browserName: Device.browser.BROWSER.CHROME,
+						browserVersion:80
+					});
+					aSupportedEnv.push({
+						system: Device.system.SYSTEMTYPE.PHONE,
+						os: Device.os.OS.ANDROID,
+						browserName: Device.browser.BROWSER.CHROME,
+						browserVersion: 80
+					});
+
 					this._bSupportedEnvironment = aSupportedEnv.some(function (oSuppportedEnv) {
 						var bSupportedSystem = Device.system[oSuppportedEnv.system],
+							bSupportedOSName = oSuppportedEnv.os ? oSuppportedEnv.os === Device.os.name : true,
 							bSupportedBrowserName = oSuppportedEnv.browserName === Device.browser.name,
 							bSupportedBrowserVersion = Device.browser.version >= oSuppportedEnv.browserVersion;
 
-						return bSupportedSystem && bSupportedBrowserName && bSupportedBrowserVersion && window.indexedDB;
+							try {
+								return bSupportedSystem && bSupportedOSName && bSupportedBrowserName && bSupportedBrowserVersion && window.indexedDB;
+							} catch (error) {
+								return false;
+							}
 					});
 				}
 				return this._bSupportedEnvironment;
@@ -362,4 +407,4 @@ sap.ui.define([
 		}
 
 		return CacheManager;
-	}, /* bExport= */ false);
+	});

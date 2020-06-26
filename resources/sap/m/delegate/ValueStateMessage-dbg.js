@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/ui/Device',
 	'sap/ui/base/Object',
+	'sap/ui/core/Core',
 	'sap/ui/core/ValueStateSupport',
 	'sap/ui/core/Popup',
 	'sap/ui/core/library',
@@ -16,6 +17,7 @@ sap.ui.define([
 	function(
 		Device,
 		BaseObject,
+		Core,
 		ValueStateSupport,
 		Popup,
 		coreLibrary,
@@ -91,11 +93,13 @@ sap.ui.define([
 				oPopup = this.getPopup(),
 				oMessageDomRef = this.createDom(),
 				mDock = Popup.Dock,
-				$Control = jQuery(oControl.getDomRefForValueStateMessage());
+				$Control;
 
-			if (!oControl || !oPopup || !oMessageDomRef) {
+			if (!oControl || !oControl.getDomRef() || !oPopup || !oMessageDomRef) {
 				return;
 			}
+
+			$Control = jQuery(oControl.getDomRefForValueStateMessage());
 
 			oPopup.setContent(oMessageDomRef);
 			oPopup.close(0);
@@ -133,7 +137,7 @@ sap.ui.define([
 		 */
 		ValueStateMessage.prototype.close = function() {
 			var oControl = this._oControl,
-				oPopup = this.getPopup();
+				oPopup = this._oPopup;
 
 			if (oPopup) {
 				oPopup.close(0);
@@ -181,9 +185,14 @@ sap.ui.define([
 			this._oPopup.attachClosed(function() {
 				jQuery(document.getElementById(sID)).remove();
 			});
-			this._oPopup.attachOpened(function() {
-				var content = this._oPopup.getContent();
-				if (content && this._oControl) {
+			this._oPopup.attachOpened(function () {
+				var content = this._oPopup.getContent(),
+					bControlWithValueStateTextInIE = Device.browser.msie &&
+						this._oControl && this._oControl.getFormattedValueStateText && !!this._oControl.getFormattedValueStateText();
+
+				/* z-index of the popup is not calculated correctly by this._getCorrectZIndex() in IE, causing it
+				to be "under" the "blind layer" and links to be unreachable (unclickable) in IE */
+				if (content && !bControlWithValueStateTextInIE) {
 					content.style.zIndex = this._getCorrectZIndex();
 				}
 			}.bind(this));
@@ -218,27 +227,29 @@ sap.ui.define([
 				return null;
 			}
 
-			var sState = oControl.getValueState(),
-				sText = oControl.getValueStateText() || ValueStateSupport.getAdditionalText(oControl),
-				sClass = "sapMValueStateMessage sapMValueStateMessage" + sState,
-				oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			var sID = this.getId(),
+				oMessageDomRef = document.createElement("div"),
+				sState = oControl.getValueState(),
+				bIsIE = Device.browser.msie,
+				oFormattedValueState = oControl.getFormattedValueStateText ? oControl.getFormattedValueStateText() : null,
+				oTextDomRef,
+				oRB,
+				oAccDomRef,
+				sText;
 
-			if (sState === ValueState.Success || sState === ValueState.None) {
-				sClass = "sapUiInvisibleText";
-				sText = "";
-			}
-
-			var sID = this.getId();
-			var oMessageDomRef = document.createElement("div");
 			oMessageDomRef.id = sID;
-			oMessageDomRef.className = sClass;
 			oMessageDomRef.setAttribute("role", "tooltip");
 			oMessageDomRef.setAttribute("aria-live", "assertive");
 
-			var oAccDomRef = document.createElement("span");
-			oAccDomRef.id = sID + "hidden";
+			if (sState === ValueState.Success || sState === ValueState.None) {
+				oMessageDomRef.className = "sapUiInvisibleText";
+			} else {
+				oMessageDomRef.className = "sapMValueStateMessage sapMValueStateMessage" + sState;
+			}
 
-			var bIsIE = Device.browser.msie;
+			oRB = Core.getLibraryResourceBundle("sap.m");
+			oAccDomRef = document.createElement("span");
+			oAccDomRef.id = sID + "-hidden";
 
 			if (bIsIE) {
 				oAccDomRef.className = "sapUiHidden";
@@ -251,17 +262,30 @@ sap.ui.define([
 				oAccDomRef.appendChild(document.createTextNode(oRB.getText("INPUTBASE_VALUE_STATE_" + sState.toUpperCase())));
 			}
 
-			var oTextDomRef = document.createElement("span");
-			oTextDomRef.id = sID + "-text";
+			oMessageDomRef.appendChild(oAccDomRef);
 
-			if (!oControl.isA('sap.m.Select') && bIsIE) {
-				oTextDomRef.setAttribute("aria-hidden", "true");
+			if (!oFormattedValueState || !oFormattedValueState.getHtmlText()) {
+				sText = sState === ValueState.Success || sState === ValueState.None ? "" :  oControl.getValueStateText() || ValueStateSupport.getAdditionalText(oControl);
+
+				oTextDomRef = document.createElement("span");
+				oTextDomRef.id = sID + "-text";
+
+				oTextDomRef.appendChild(document.createTextNode(sText));
+				oMessageDomRef.appendChild(oTextDomRef);
+			} else if (sState !== ValueState.Success && sState !== ValueState.None) {
+				Core.getRenderManager().render(oFormattedValueState, oMessageDomRef);
+				oMessageDomRef.lastElementChild.setAttribute("id", sID + "-text");
 			}
 
-			oTextDomRef.appendChild(document.createTextNode(sText));
+			if (!oControl.isA('sap.m.Select') && bIsIE) {
+				// If ValueState Message is sap.m.FormattedText
+				if (!oTextDomRef) {
+					oMessageDomRef.lastElementChild.setAttribute("id", sID + "-text");
+				} else {
+					oTextDomRef.setAttribute("aria-hidden", "true");
+				}
+			}
 
-			oMessageDomRef.appendChild(oAccDomRef);
-			oMessageDomRef.appendChild(oTextDomRef);
 			return oMessageDomRef;
 		};
 
@@ -291,7 +315,17 @@ sap.ui.define([
 				return 1;
 			}
 
-			return parseInt(aParents.first().css('z-index')) + 1;
+			var iHighestZIndex = 0;
+
+			aParents.each(function () {
+				var iZIndex = parseInt(jQuery(this).css('z-index'));
+
+				if (iZIndex > iHighestZIndex) {
+					iHighestZIndex = iZIndex;
+				}
+			});
+
+			return iHighestZIndex + 1;
 		};
 
 		return ValueStateMessage;

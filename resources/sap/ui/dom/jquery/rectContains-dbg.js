@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/thirdparty/jquery", "sap/base/assert"], function(jQuery, assert) {
+sap.ui.define(["sap/ui/thirdparty/jquery", "sap/base/assert", "sap/ui/dom/jquery/rect"], function(jQuery, assert) { // jQuery Plugin "rect"
 	"use strict";
 
 	/**
@@ -32,6 +32,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "sap/base/assert"], function(jQuery, 
 		assert(!isNaN(iPosX), "iPosX must be a number");
 		assert(!isNaN(iPosY), "iPosY must be a number");
 
+		// jQuery Plugin "rect"
 		var oRect = this.rect();
 
 		if (oRect) {

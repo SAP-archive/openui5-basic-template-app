@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,14 +10,14 @@ sap.ui.define(function() {
 
 
 	/**
-	 * Execution option for overrides defined by a ControllerExtension
-     *
+	 * Execution option for overrides defined by a <code>ControllerExtension</code>.
+	 *
 	 * @enum {string}
 	 * @public
-	 * @alias sap.ui.core.mvc.OverrideExcecution
+	 * @alias sap.ui.core.mvc.OverrideExecution
 	 * @see sap.ui.core.mvc.ControllerExtension
 	 */
-	var OverrideExcecution = {
+	var OverrideExecution = {
 		/**
 		 * The override function gets executed after the original function
 		 *
@@ -40,6 +40,6 @@ sap.ui.define(function() {
 		Instead: "Instead"
     };
 
-	return OverrideExcecution;
+	return OverrideExecution;
 
 }, /* bExport= */ true);

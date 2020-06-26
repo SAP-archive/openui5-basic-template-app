@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -31,6 +31,7 @@ sap.ui.define([
 	 */
 	var Uploader = Element.extend("sap.m.upload.Uploader", {
 		metadata: {
+			library: "sap.m",
 			publicMethods: [
 				"uploadItem",
 				"terminateItem",
@@ -53,7 +54,7 @@ sap.ui.define([
 				uploadStarted: {
 					parameters: {
 						/**
-						 * The item that is going to be deleted.
+						 * The item that is going to be uploaded.
 						 */
 						item: {type: "sap.m.upload.UploadSetItem"}
 					}
@@ -64,7 +65,7 @@ sap.ui.define([
 				uploadProgressed: {
 					parameters: {
 						/**
-						 * The item that is going to be deleted.
+						 * The item that is being uploaded.
 						 */
 						item: {type: "sap.m.upload.UploadSetItem"},
 						/**
@@ -85,7 +86,7 @@ sap.ui.define([
 				uploadCompleted: {
 					parameters: {
 						/**
-						 * The item that is going to be deleted.
+						 * The item that was uploaded.
 						 */
 						item: {type: "sap.m.upload.UploadSetItem"}
 					}
@@ -110,10 +111,49 @@ sap.ui.define([
 	};
 
 	/**
+	 * Starts function for uploading one file object to given url. Returns promise that resolves when the upload is finished or rejects when the upload fails.
+	 *
+	 * @param {File|Blob} oFile File or Blob object to be uploaded.
+	 * @param {string} sUrl Upload Url.
+	 * @param {sap.ui.core.Item[]} [aHeaderFields] Collection of request header fields to be send along.
+	 * @returns {Promise} Promise that resolves when the upload is finished or rejects when the upload fails.
+	 * @public
+	 */
+	Uploader.uploadFile = function (oFile, sUrl, aHeaderFields) {
+		var oXhr = new window.XMLHttpRequest();
+
+		return new Promise(function(resolve, reject) {
+			oXhr.open("POST", sUrl, true);
+
+			if ((Device.browser.edge || Device.browser.internet_explorer) && oFile.type && oXhr.readyState === 1) {
+				oXhr.setRequestHeader("Content-Type", oFile.type);
+			}
+
+			if (aHeaderFields) {
+				aHeaderFields.forEach(function (oHeader) {
+					oXhr.setRequestHeader(oHeader.getKey(), oHeader.getText());
+				});
+			}
+
+			oXhr.onreadystatechange = function () {
+				if (this.readyState === window.XMLHttpRequest.DONE) {
+					if (this.status === 200) {
+						resolve(this);
+					} else {
+						reject(this);
+					}
+				}
+			};
+
+			oXhr.send(oFile);
+		});
+	};
+
+	/**
 	 * Starts the process of uploading the specified file.
 	 *
-	 * @param {UploadSetItem} oItem Item representing the file to be uploaded.
-	 * @param {Item[]} aHeaderFields Collection of request header fields to be send along.
+	 * @param {sap.m.upload.UploadSetItem} oItem Item representing the file to be uploaded.
+	 * @param {sap.ui.core.Item[]} [aHeaderFields] Collection of request header fields to be send along.
 	 * @public
 	 */
 	Uploader.prototype.uploadItem = function (oItem, aHeaderFields) {
@@ -131,9 +171,11 @@ sap.ui.define([
 			oXhr.setRequestHeader("Content-Type", oFile.type);
 		}
 
-		aHeaderFields.forEach(function (oHeader) {
-			oXhr.setRequestHeader(oHeader.getKey(), oHeader.getText());
-		});
+		if (aHeaderFields) {
+			aHeaderFields.forEach(function (oHeader) {
+				oXhr.setRequestHeader(oHeader.getKey(), oHeader.getText());
+			});
+		}
 
 		oXhr.upload.addEventListener("progress", function (oEvent) {
 			that.fireUploadProgressed({
@@ -159,7 +201,7 @@ sap.ui.define([
 	/**
 	 * Attempts to terminate the process of uploading the specified file.
 	 *
-	 * @param {UploadSetItem} oItem Item representing the file whose ongoing upload process is to be terminated.
+	 * @param {sap.m.upload.UploadSetItem} oItem Item representing the file whose ongoing upload process is to be terminated.
 	 * @public
 	 */
 	Uploader.prototype.terminateItem = function (oItem) {
@@ -177,10 +219,11 @@ sap.ui.define([
 	/**
 	 * Starts the process of downloading a file.
 	 *
-	 * @param {UploadSetItem} oItem Item representing the file to be downloaded.
+	 * @param {sap.m.upload.UploadSetItem} oItem Item representing the file to be downloaded.
 	 * @param {sap.ui.core.Item[]} aHeaderFields List of header fields to be added to the GET request.
 	 * @param {boolean} bAskForLocation True if the location to where download the file should be first queried by a browser dialog.
 	 * @return {boolean} True if the download process successfully
+	 * @public
 	 */
 	Uploader.prototype.downloadItem = function (oItem, aHeaderFields, bAskForLocation) {
 		var sUrl = this.getDownloadUrl() || oItem.getUrl();

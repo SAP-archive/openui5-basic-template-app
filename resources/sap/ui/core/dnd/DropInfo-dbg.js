@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,7 +21,7 @@ sap.ui.define(["./DragDropBase"],
 	 * @extends sap.ui.core.dnd.DragDropBase
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @public
 	 * @since 1.56
@@ -43,6 +43,8 @@ sap.ui.define(["./DragDropBase"],
 
 			/**
 			 * Defines the visual drop effect.
+			 *
+			 * In Internet Explorer, default visual drop effect is <code>Copy</code> and this property has no effect.
 			 */
 			dropEffect: {type: "sap.ui.core.dnd.DropEffect", defaultValue: "Move", invalidate: false},
 
@@ -221,4 +223,4 @@ sap.ui.define(["./DragDropBase"],
 
 	return DropInfo;
 
-}, /* bExport= */ true);
+});

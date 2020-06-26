@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -57,7 +57,7 @@ sap.ui.define([
 			 * @implements sap.ui.core.IFormContent
 			 *
 			 * @author SAP SE
-			 * @version 1.64.0
+			 * @version 1.79.0
 			 *
 			 * @constructor
 			 * @public
@@ -176,21 +176,21 @@ sap.ui.define([
 			RadioButtonGroup.prototype.onBeforeRendering = function() {
 				var aButtons = this.getButtons();
 				var iButtonCount = aButtons.length;
-				var aVisibleRBs = aButtons.filter(function (oRadioButton) {
-						oRadioButton._setEditableParent(this.getEditable());
+				var bEditable = this.getEditable();
 
-						return oRadioButton.getVisible();
-					}, this);
+				aButtons.forEach(function (oRadioButton) {
+					oRadioButton._setEditableParent(bEditable);
+				});
 
 				if (this.getSelectedIndex() > iButtonCount) {
 					Log.warning("Invalid index, set to 0");
 					this.setSelectedIndex(0);
 				}
 
-				aVisibleRBs.forEach(function (oRadioButton, iIndex) {
-					oRadioButton._setPosinset(iIndex);
-					oRadioButton._setSetsize(aVisibleRBs.length);
-				}, this);
+				if (this.aRBs){
+					var oValueState = this.getValueState();
+					this.aRBs.forEach(function (oRB) { oRB.setValueState(oValueState); });
+				}
 			};
 
 			/**
@@ -303,21 +303,16 @@ sap.ui.define([
 			 * @param {sap.m.RadioButton} oSelectedButton The item to be selected.
 			 * @returns {sap.m.RadioButtonGroup} Pointer to the control instance for chaining.
 			 */
-			RadioButtonGroup.prototype.setSelectedButton = function(oSelectedButton) {
+			RadioButtonGroup.prototype.setSelectedButton = function (oSelectedButton) {
+				if (!oSelectedButton) {
+					return this.setSelectedIndex(-1);
+				}
 
 				var aButtons = this.getButtons();
-
-				if (oSelectedButton) {
-					if (aButtons) {
-						for (var i = 0; i < aButtons.length; i++) {
-							if (oSelectedButton.getId() == aButtons[i].getId()) {
-								this.setSelectedIndex(i);
-								break;
-							}
-						}
+				for (var i = 0; i < aButtons.length; i++) {
+					if (oSelectedButton.getId() == aButtons[i].getId()) {
+						return this.setSelectedIndex(i);
 					}
-				} else {
-					this.setSelectedIndex(-1);
 				}
 
 				return this;
@@ -597,26 +592,6 @@ sap.ui.define([
 			 * @param {boolean} bEnabled Defines whether the radio buttons should be interactive.
 			 * @returns {sap.m.RadioButtonGroup} Pointer to the control instance for chaining.
 			 */
-
-			/**
-			 * Sets ValueState of all radio buttons in the group.
-			 *
-			 * @public
-			 * @param {string} sValueState The value state of the radio group - none, success, warning, error.
-			 * @returns {sap.m.RadioButtonGroup} Pointer to the control instance for chaining.
-			 */
-			RadioButtonGroup.prototype.setValueState = function(sValueState) {
-
-				this.setProperty("valueState", sValueState, false); // re-rendering to update ItemNavigation
-
-				if (this.aRBs){
-					for (var i = 0; i < this.aRBs.length; i++) {
-						this.aRBs[i].setValueState(sValueState);
-					}
-				}
-
-				return this;
-			};
 
 			/**
 			 * Handles the event that gets fired by the {@link sap.ui.core.delegate.ItemNavigation} delegate.

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["./InputRenderer","sap/ui/core/Renderer"],function(e,n){"use strict";var t=n.extend(e);t.prependInnerContent=function(e,n){e.renderControl(n._tokenizer)};t.addOuterClasses=function(n,t){e.addOuterClasses.apply(this,arguments);n.addClass("sapMMultiInput");if(t.getTokens().length>0){n.addClass("sapMMultiInputHasTokens")}};t.getAriaDescribedBy=function(n){var t=e.getAriaDescribedBy.apply(this,arguments),r=n.getAggregation("tokenizer")&&n.getAggregation("tokenizer").getTokensInfoId();if(t){t=t+" "+r}else{t=r}return t};return t},true);
+sap.ui.define(["./InputRenderer","sap/ui/core/Renderer","sap/ui/core/Core"],function(e,t,n){"use strict";var r=t.extend(e);r.apiVersion=2;r.prependInnerContent=function(e,t){e.renderControl(t.getAggregation("tokenizer"))};r.addOuterClasses=function(t,n){e.addOuterClasses.apply(this,arguments);t.class("sapMMultiInput");if(n.getTokens().length>0){t.class("sapMMultiInputHasTokens")}};r.getAriaDescribedBy=function(t){var n=e.getAriaDescribedBy.apply(this,arguments),r=t.getAggregation("tokenizer")&&t.getAggregation("tokenizer").getTokensInfoId();if(n){n=n+" "+r}else{n=r}return n};r.getAccessibilityState=function(t){var r=e.getAccessibilityState.apply(this,arguments),i=n.getLibraryResourceBundle("sap.m");r.roledescription=i.getText("MULTIINPUT_ARIA_ROLE_DESCRIPTION");return r};return r},true);

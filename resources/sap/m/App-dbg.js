@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -47,7 +47,7 @@ sap.ui.define([
 	 * @extends sap.m.NavContainer
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -136,8 +136,7 @@ sap.ui.define([
 
 			/**
 			 * Fired when the orientation (portrait/landscape) of the device is changed.
-			 * @deprecated Since version 1.20.0.
-			 * use sap.ui.Device.orientation.attachHandler(...)
+			 * @deprecated Since version 1.20.0, use {@link sap.ui.Device.orientation.attachHandler} instead.
 			 */
 			orientationChange : {deprecated: true,
 				parameters : {
@@ -162,7 +161,7 @@ sap.ui.define([
 			preventScroll: !this._debugZoomAndScroll,
 			rootId: this.getId()
 		});
-		jQuery(window).bind("resize", jQuery.proxy(this._handleOrientationChange, this));
+		jQuery(window).on("resize", jQuery.proxy(this._handleOrientationChange, this));
 	};
 
 
@@ -200,7 +199,7 @@ sap.ui.define([
 	 * @private
 	 */
 	App.prototype.exit = function() {
-		jQuery(window).unbind("resize", this._handleOrientationChange);
+		jQuery(window).off("resize", this._handleOrientationChange);
 
 		if (this._sInitTimer) {
 			clearTimeout(this._sInitTimer);
@@ -229,22 +228,6 @@ sap.ui.define([
 		this.$("BG").css("opacity", fOpacity);
 		return this.setProperty("backgroundOpacity", fOpacity, true); // no rerendering - live opacity change looks cooler
 	};
-
-	/**
-	 * Returns the <code>backgroundColor</code> value that passed validation for type <code>sap.ui.core.CSSColor</code>
-	 * (required as the public property itself is of the more generic <code>string</code> type)
-	 *
-	 * @private
-	 * @returns {string} sValue the value that passed the check, or empty string
-	 */
-	App.prototype._getValidatedBackgroundColor = function () {
-		var sBackgroundColor = this.getBackgroundColor();
-		if (!DataType.getType("sap.ui.core.CSSColor").isValid(sBackgroundColor)) {
-			sBackgroundColor = "";
-		}
-		return sBackgroundColor;
-	};
-
 
 	return App;
 

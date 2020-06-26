@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -32,10 +32,10 @@ sap.ui.define([
          */
         _generate: function (oControl, mTableSelector, mRowRelativeSelector) {
             if (mTableSelector && mRowRelativeSelector) {
-                var oRow = this._findRow(oControl);
-                var oTable = this._findTable(oRow);
+                var oRow = this._getValidationRoot(oControl);
+                var oTable = this._getAncestor(oControl);
 
-                var oTableBindingInfo = oTable.getBinding("items");
+                var oTableBindingInfo = oTable.getBindingInfo("items");
                 var sRowBindingContextPath = oRow.getBindingContextPath && oRow.getBindingContextPath();
                 var mRowSelector = {};
                 // tables may not have an items binding eg: forms as tables
@@ -59,28 +59,28 @@ sap.ui.define([
             }
         },
 
-        _getAncestors: function (oControl) {
-            var mAncestors = {};
-            var oRow = this._findRow(oControl);
+        _isAncestorRequired: function () {
+            return true;
+        },
+
+        _isValidationRootRequired: function () {
+            return true;
+        },
+
+        _getAncestor: function (oControl) {
+            var oRow = this._getValidationRoot(oControl);
             if (oRow) {
-                mAncestors.validation = oRow;
-                var oTable = this._findTable(oRow);
-                if (oTable) {
-                    mAncestors.selector = oTable;
-                    return mAncestors;
-                }
+                // there might be tables that don't have rows
+                // but they are not targeted by this selector
+                return this._findAncestor(oRow, function (oRowAncestor) {
+                    return oRowAncestor instanceof ListBase;
+                });
             }
         },
 
-        _findRow: function (oControl) {
+        _getValidationRoot: function (oControl) {
             return this._findAncestor(oControl, function (oControl) {
                 return oControl instanceof ListItemBase;
-            });
-        },
-
-        _findTable: function (oControl) {
-            return this._findAncestor(oControl, function (oControl) {
-                return oControl instanceof ListBase;
             });
         }
     });

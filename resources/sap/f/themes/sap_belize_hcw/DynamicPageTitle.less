@@ -8,7 +8,7 @@
 	box-shadow: none;
 }
 
-.sapFDynamicPageTitle.sapFDynamicPageTitleFocus {
+html.sap-desktop .sapFDynamicPageTitle.sapFDynamicPageTitleFocus {
 	outline-width: 0.125rem;
 	outline-offset: -0.25rem; // due to bottom border overlapping
 }
@@ -22,7 +22,7 @@
 }
 
 /* IE and Edge ignores outline-offset. Use an overlay: */
-/* TODO remove after 1.62 version */
+/* TODO remove after the end of support for Internet Explorer */
 html[data-sap-ui-browser^="ie"].sap-desktop,
 html[data-sap-ui-browser^="ed"].sap-desktop {
 	.sapFDynamicPageTitle.sapFDynamicPageTitleFocus {

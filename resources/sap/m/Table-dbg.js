@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,11 +15,13 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/core/ResizeHandler",
 	"sap/ui/core/util/PasteHelper",
+	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
+	"sap/m/ListBaseRenderer",
 	// jQuery custom selectors ":sapTabbable"
 	"sap/ui/dom/jquery/Selectors"
 ],
-	function(Device, library, ListBase, ListItemBase, CheckBox, TableRenderer, Log, ResizeHandler, PasteHelper, jQuery) {
+	function(Device, library, ListBase, ListItemBase, CheckBox, TableRenderer, Log, ResizeHandler, PasteHelper, KeyCodes, jQuery, ListBaseRenderer) {
 	"use strict";
 
 
@@ -45,9 +47,14 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
-	 * <code>sap.m.Table</code> control provides a set of sophisticated and convenience functions for responsive table design.
-	 * To render the <code>sap.m.Table</code> properly, the order of the <code>columns</code> aggregation should match with the order of the items <code>cells</code> aggregation (<code>sap.m.ColumnListItem</code>). Also <code>sap.m.Table</code> requires at least one visible <code>sap.m.Column</code> in <code>columns</code> aggregation.
-	 * For mobile devices, the recommended limit of table rows is 100 (based on 4 columns) to assure proper performance. To improve initial rendering on large tables, use the <code>growing</code> feature.
+	 * The <code>sap.m.Table</code> control provides a set of sophisticated and convenience functions for responsive table design.
+	 *
+	 * To render the <code>sap.m.Table</code> control properly, the order of the <code>columns</code> aggregation should match with the order of the <code>cells</code> aggregation (<code>sap.m.ColumnListItem</code>).
+	 *
+	 * The <code>sap.m.Table</code> control requires at least one visible <code>sap.m.Column</code> in the <code>columns</code> aggregation, therefore applications must avoid configuring all columns to be shown in the pop-in.
+	 * If such a conflict is detected, then the table prevents one column from moving to the pop-in.
+	 *
+	 * For mobile devices, the recommended limit of table rows is 100 (based on 4 columns) to assure proper performance. To improve initial rendering of large tables, use the <code>growing</code> feature.
 	 *
 	 * See section "{@link topic:5eb6f63e0cc547d0bdc934d3652fdc9b Creating Tables}" and "{@link topic:38855e06486f4910bfa6f4485f7c2bac Configuring Responsive Behavior of a Table}"
 	 * in the documentation for an introduction to <code>sap.m.Table</code> control.
@@ -56,12 +63,13 @@ sap.ui.define([
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.16
 	 * @alias sap.m.Table
+	 * @see {@link fiori:/responsive-table/ Responsive Table}
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var Table = ListBase.extend("sap.m.Table", /** @lends sap.m.Table.prototype */ { metadata : {
@@ -116,7 +124,44 @@ sap.ui.define([
 			 * <b>Note:</b> Only "Inherit", "Auto", and pixel-based CSS sizes (for example, 200, 200px) can be applied to the <code>contextualWidth</code> property. Due to the rendering cost, we recommend to use the valid value mentioned before except for "Auto".
 			 * @since 1.60
 			 */
-			contextualWidth : {type: "string", group: "Behavior", defaultValue: "Inherit"}
+			contextualWidth : {type: "string", group: "Behavior", defaultValue: "Inherit"},
+
+			/**
+			 * Enables the auto pop-in behavior for the table control.
+			 *
+			 * If this property is set to <code>true</code>, the table control overwrites the <code>demandPopin</code>
+			 * and the <code>minScreenWidth</code> properties of the <code>sap.m.Column</code> control.
+			 * The pop-in behavior depends on the <code>importance</code> property of the <code>sap.m.Column</code> control.
+			 * Columns configured with this property are moved to the pop-in area in the following order:
+			 *
+			 * <ul>
+			 * 	<li>With importance <code>High</code>: moved last</li>
+			 * 	<li>With importance <code>Medium</code> or <code>None</code>: moved second</li>
+			 * 	<li>With importance <code>Low</code>: moved first</li>
+			 * </ul>
+			 *
+			 * <b>Note:</b> If this property is changed from <code>true</code> to <code>false</code>,
+			 * the application must reconfigure the <code>demandPopin</code> and <code>minScreenWidth</code>
+			 * properties of the <code>sap.m.Column</code> control by itself.
+			 * There is no automatic mechanism that restores the old values if <code>autoPopinMode</code> was set
+			 * from <code>false</code> to <code>true</code> before.
+			 *
+			 * @since 1.76
+			 */
+			autoPopinMode: {type: "boolean", group: "Behavior", defaultValue: false},
+
+			/**
+			 * Defines which columns should be hidden instead of moved into the pop-in area
+			 * depending on their importance. See {@link sap.m.Column#getImportance}
+			 *
+			 * <b>Note:</b> To hide columns based on their importance, it's mandatory to set <code>demandPopin="true"</code>
+			 * for the <code>sap.m.Column</code> control or set <code>autoPopinMode="true"</code> for the <code>sap.m.Table</code> control.
+			 * See {@link topic:38855e06486f4910bfa6f4485f7c2bac Configuring Responsive Behavior of a Table}
+			 * and {@link sap.m.Table#getAutoPopinMode}.
+			 *
+			 * @since 1.77
+			 */
+			hiddenInPopin: {type: "sap.ui.core.Priority[]", group: "Behavior"}
 		},
 		aggregations : {
 
@@ -158,6 +203,23 @@ sap.ui.define([
 					 * second dimension represents the cells of the tabular data.
 					 */
 					data : {type : "string[][]"}
+				}
+			},
+			/**
+			 * Fired when the table pop-in has changed.
+			 * @since 1.77
+			 */
+			popinChanged: {
+				parameters: {
+					/**
+					 * Returns true if there are visible columns in the pop-in area
+					 */
+					hasPopin: {type: "boolean"},
+					/**
+					 * Returns array of columns that are hidden in the pop-in based on their importance.
+					 * See {@link sap.m.Column#getImportance}
+					 */
+					hiddenInPopin: {type: "sap.m.Column[]"}
 				}
 			}
 		},
@@ -202,7 +264,7 @@ sap.ui.define([
 
 		if (bWidthValidated) {
 			// set property, suppressInvalidate
-			this.setProperty("contextualWidth", sWidth);
+			this.setProperty("contextualWidth", sWidth, true);
 		} else {
 			return this;
 		}
@@ -213,10 +275,11 @@ sap.ui.define([
 		}
 
 		if (this._sContextualWidth.toLowerCase() === "auto") {
-			//if auto, register resizeHandler
+			// if auto, register resizeHandler and apply the contextual width
 			this._registerResizeHandler();
+			this._applyContextualWidth(this.$().width());
 		} else {
-			//if px value, apply contextualWidth
+			// if px value, apply contextualWidth
 			this._applyContextualWidth(this._sContextualWidth);
 		}
 
@@ -279,6 +342,13 @@ sap.ui.define([
 	Table.prototype.onBeforeRendering = function() {
 		ListBase.prototype.onBeforeRendering.call(this);
 
+		if (this.getAutoPopinMode()) {
+			this._configureAutoPopin();
+			this._bAutoPopinMode = true;
+		} else {
+			this._bAutoPopinMode = false;
+		}
+
 		// for initial contextualWidth setting
 		this._applyContextualWidth(this._sContextualWidth);
 
@@ -297,7 +367,17 @@ sap.ui.define([
 	Table.prototype.onAfterRendering = function() {
 		ListBase.prototype.onAfterRendering.call(this);
 		this.updateSelectAllCheckbox();
+		// force IE repaint in fixed layout mode
+		if (this.getFixedLayout()) {
+			this._forceStyleChange();
+		}
 		this._renderOverlay();
+		if (this._bPopinChanged) {
+			setTimeout(function() {
+				this._firePopinChangedEvent();
+			}.bind(this), 0);
+			this._bPopinChanged = false;
+		}
 	};
 
 	Table.prototype._renderOverlay = function() {
@@ -383,15 +463,9 @@ sap.ui.define([
 	 * @overwrite
 	 */
 	Table.prototype.shouldRenderItems = function() {
-		var bHasVisibleColumns = this.getColumns().some(function(oColumn) {
+		return this.getColumns().some(function(oColumn) {
 			return oColumn.getVisible();
 		});
-
-		if (!bHasVisibleColumns) {
-			Log.warning("No visible columns found in " + this);
-		}
-
-		return bHasVisibleColumns;
 	};
 
 	// this gets called when item type column requirement is changed
@@ -492,7 +566,16 @@ sap.ui.define([
 			});
 
 			if (!hasPopin) {
-				oColumn.setDisplayViaMedia(this.getTableDomRef());
+				oColumn.setDisplay(this.getTableDomRef(), !oColumn.isHidden());
+				setTimeout(function() {
+					var aHiddenInPopin = this.getHiddenInPopin() || [];
+					var bHideColumn = aHiddenInPopin.some(function(sImportance) {
+						return !!sImportance;
+					});
+					if (bHideColumn) {
+						this._firePopinChangedEvent();
+					}
+				}.bind(this), 100);
 				return;
 			}
 		}
@@ -526,6 +609,10 @@ sap.ui.define([
 			return;
 		}
 
+		if (!this.shouldRenderItems()) {
+			return this.invalidate();
+		}
+
 		// find first visible column
 		var $headRow = this.$("tblHeader"),
 			bHeaderVisible = !$headRow.hasClass("sapMListTblHeaderNone"),
@@ -543,8 +630,8 @@ sap.ui.define([
 		}
 
 		// update the visible column count and colspan
-		// highlight and navigation columns are getting rendered always
-		this._colCount = aVisibleColumns.length + 2 + !!sap.m.ListBaseRenderer.ModeOrder[this.getMode()];
+		// highlight, navigation and navigated indicator columns are getting rendered always
+		this._colCount = aVisibleColumns.length + 3 + !!ListBaseRenderer.ModeOrder[this.getMode()];
 		this.$("tblBody").find(".sapMGHLICell").attr("colspan", this.getColSpan());
 		this.$("nodata-text").attr("colspan", this.getColCount());
 
@@ -555,7 +642,7 @@ sap.ui.define([
 
 		// remove or show column header row(thead) according to column visibility value
 		if (!bColVisible && bHeaderVisible) {
-			$headRow[0].className = "sapMListTblRow sapMListTblHeader";
+			$headRow[0].className = "sapMListTblRow sapMLIBFocusable sapMListTblHeader";
 			this._headerHidden = false;
 		} else if (bColVisible && !bHeaderVisible && !aVisibleColumns.length) {
 			$headRow[0].className = "sapMListTblHeaderNone";
@@ -565,7 +652,7 @@ sap.ui.define([
 
 	// force IE to repaint
 	Table.prototype._forceStyleChange = function() {
-		if (Device.browser.msie) {
+		if (Device.browser.msie || Device.browser.edge) {
 			var oTableStyle = this.getTableDomRef().style;
 			oTableStyle.listStyleType = "circle";
 			window.setTimeout(function() { oTableStyle.listStyleType = "none"; }, 0);
@@ -592,6 +679,10 @@ sap.ui.define([
 	 * @return {sap.m.CheckBox} reference to the internal select all checkbox
 	 */
 	Table.prototype._getSelectAllCheckbox = function() {
+		if (this.bPreventMassSelection) {
+			return;
+		}
+
 		return this._selectAllCheckBox || (this._selectAllCheckBox = new CheckBox({
 			id: this.getId("sa"),
 			activeHandling: false
@@ -642,12 +733,12 @@ sap.ui.define([
 	};
 
 	/*
-	 * Returns colspan for all columns except navigation
-	 * Because we render navigation always even it is empty
+	 * Returns colspan for all columns except navigation and navigation indicator
+	 * Because we render these columns always even it is empty
 	 * @protected
 	 */
 	Table.prototype.getColSpan = function() {
-		return (this._colCount || 1 ) - 1;
+		return (this._colCount || 1 ) - 2;
 	};
 
 	/*
@@ -687,11 +778,6 @@ sap.ui.define([
 	// returns accessibility role
 	Table.prototype.getAccessibilityType = function() {
 		return sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_TABLE");
-	};
-
-	// custom footer text announcement is only for tables
-	Table.prototype.getAccessibilityDescription = function() {
-		return ListBase.prototype.getAccessibilityDescription.call(this) + " " + this.getFooterText();
 	};
 
 	Table.prototype._setHeaderAnnouncement = function() {
@@ -746,11 +832,15 @@ sap.ui.define([
 			return;
 		}
 
-		// toggle select all header checkbox and fire its event
-		if (this._selectAllCheckBox && oEvent.target === this.getDomRef("tblHeader")) {
-			this._selectAllCheckBox.setSelected(!this._selectAllCheckBox.getSelected()).fireSelect();
+		if (oEvent.target.id == this.getId("tblHeader")) {
+			// prevent from scrolling
 			oEvent.preventDefault();
-			oEvent.setMarked();
+
+			// toggle select all header checkbox and fire its event
+			if (this._selectAllCheckBox) {
+				this._selectAllCheckBox.setSelected(!this._selectAllCheckBox.getSelected()).fireSelect();
+				oEvent.setMarked();
+			}
 		}
 	};
 
@@ -802,7 +892,7 @@ sap.ui.define([
 		}
 
 		if (this._bThemeChanged) {
-			// force IE to repaint if theme changed
+			// force IE/Edge to repaint if theme changed
 			this._bThemeChanged = false;
 			this._forceStyleChange();
 		}
@@ -832,7 +922,7 @@ sap.ui.define([
 	/**
 	 * Handles paste event and fires Paste event of the Table, so that it can be used in the application
 	 * @private
-	 * @param oEvent -browser paste event that occurs when a user pastes the data from the clipboard into the table
+	 * @param oEvent - browser paste event that occurs when a user pastes the data from the clipboard into the table
 	 */
 	Table.prototype.onpaste = function(oEvent) {
 
@@ -851,6 +941,19 @@ sap.ui.define([
 		this.firePaste({data: aData});
 	};
 
+	/**
+	 * Handles key down CTRL+v event and calls onpaste event that fires Paste event of the Table.
+	 * It is a workaround for IE browser as it allows browser paste event on input controls only
+	 * @private
+	 * @param oEvent - browser key down event
+	 */
+	Table.prototype.onkeydown = function(oEvent) {
+		ListBase.prototype.onkeydown.apply(this, arguments);
+		if (Device.browser.msie && oEvent.ctrlKey && oEvent.which === KeyCodes.V) {
+			this.onpaste(oEvent);
+		}
+	};
+
 	Table.prototype.ondragenter = function(oEvent) {
 		var oDragSession = oEvent.dragSession;
 		if (!oDragSession || !oDragSession.getDropControl() || !oDragSession.getDropControl().isA("sap.m.Column")) {
@@ -859,6 +962,190 @@ sap.ui.define([
 
 		oDragSession.setIndicatorConfig({
 			height: this.getTableDomRef().clientHeight
+		});
+	};
+
+	Table.prototype.onColumnRecalculateAutoPopin = function(oColumn, bRecalculate) {
+		if (this.getAutoPopinMode()) {
+			this._configureAutoPopin(bRecalculate);
+		}
+	};
+
+	/**
+	 * Returns a boolean indicating whether recalcultation is necessary for the auto pop-in mode.
+	 *
+	 * @param {Array} aVisibleColumns visible columns
+	 * @returns {boolean} returns true if recalculation if necessary else false
+	 * @private
+	 */
+	Table.prototype._requireAutoPopinRecalculation = function(aVisibleColumns) {
+		var bAutoPopinMode = this.getAutoPopinMode();
+
+		if (this._bAutoPopinMode !== bAutoPopinMode) {
+			this._bAutoPopinMode = bAutoPopinMode;
+			return true;
+		}
+
+		if (aVisibleColumns.length !== this._aVisibleColumns.length) {
+			return true;
+		}
+
+		for (var i = 0; i < aVisibleColumns.length; i++) {
+			if (aVisibleColumns[i] !== this._aVisibleColumns[i]) {
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	/**
+	 * Function for configuring the autoPopinMode of the table control.
+	 *
+	 * @param {boolean} bRecalculate Recalculation for the auto pop-in mode
+	 * @function
+	 * @name _configureAutoPopin
+	 * @private
+	 */
+	Table.prototype._configureAutoPopin = function(bRecalculate) {
+		var aVisibleColumns = this.getColumns(true).filter(function(oColumn) {
+			return oColumn.getVisible();
+		});
+
+		if (!aVisibleColumns.length) {
+			return;
+		}
+
+		if (!this._aVisibleColumns || !bRecalculate && this._requireAutoPopinRecalculation(aVisibleColumns)) {
+			this._aVisibleColumns = aVisibleColumns;
+			if (!bRecalculate) {
+				bRecalculate = true;
+			}
+		}
+
+		if (bRecalculate) {
+			var aItems = this.getItems();
+			var aHighCols = [];
+			var aMedCols = [];
+			var aLowCols = [];
+
+			// divide table columns by importance
+			for (var i = 0; i < aVisibleColumns.length; i++) {
+				var sImportance = aVisibleColumns[i].getImportance();
+				if (sImportance === "Medium" || sImportance === "None") {
+					aMedCols.push(aVisibleColumns[i]);
+				} else if (sImportance === "High") {
+					aHighCols.push(aVisibleColumns[i]);
+				} else {
+					aLowCols.push(aVisibleColumns[i]);
+				}
+			}
+
+			// 6.5 is a fallback in case items are not found initially
+			// selectionControl + navCol + HighlightCol + NavigatedIndicatorCol = ~6.5rem
+			var fAccumulatedWidth = this._getInitialAccumulatedWidth(aItems) || 6.5;
+			fAccumulatedWidth = Table._updateAccumulatedWidth(aHighCols, aHighCols.length > 0, fAccumulatedWidth);
+			fAccumulatedWidth = Table._updateAccumulatedWidth(aMedCols, aHighCols.length === 0 && aMedCols.length > 0, fAccumulatedWidth);
+			Table._updateAccumulatedWidth(aLowCols, aHighCols.length === 0 && aMedCols.length === 0 && aLowCols.length > 0, fAccumulatedWidth);
+		}
+	};
+
+	/**
+	 * By side of the autoPopinWidth property of the column also the technical columns like highlights, selection, navigation
+	 * and navigated should be taken into consideration for the minScreenWidth calculation to get better results.
+	 * This function checks, based on the table and its items settings, which of the above columns will be visible and
+	 * calculates the initial accumulated width.
+	 *
+	 * @function
+	 * @name _getInitialAccumulatedWidth
+	 * @param {array} aItems - sap.m.ListItemBase[]
+	 * @returns {float} initial accumulated width
+	 * @private
+	 */
+	Table.prototype._getInitialAccumulatedWidth = function(aItems) {
+		// check if highlight is available
+		var oItemWithHighlight = aItems.find(function(oItem) {
+			return oItem.getHighlight() !== "None";
+		});
+		var iHighlightWidth = oItemWithHighlight ? 0.375 : 0;
+
+		// check if selection control is available
+		var iSelectionWidth = this.getMode() === "MultiSelect" || this.getMode() === "Delete" ? 3 : 0;
+
+		// check if actions are available on the item
+		var oItemIsActionable = aItems.find(function(oItem) {
+			var sType = oItem.getType();
+			return sType === "Detail" || sType === "DetailAndActive" || oItem.getType() === "Navigation";
+		});
+		var iActionWidth = oItemIsActionable ? 3 : 0;
+
+		// check for naivgated state
+		var oItemIsNavigated = aItems.find(function(oItem) {
+			return oItem.getNavigated();
+		});
+		var iNavigatedWidth = oItemIsNavigated ? 0.1875 : 0;
+
+		return iHighlightWidth + iSelectionWidth + iActionWidth + iNavigatedWidth;
+	};
+
+	/**
+	 * Recalculate and returns import parameter fAccumulatedWidth.
+	 * Overwrites column property minScreenWidth based on import parameter bSkipPopinForFirst
+	 * and the column width property.
+	 *
+	 * @function
+	 * @name _updateAccumulatedWidth
+	 * @param {array} aCols - Array of sap.m.Column[] all with the same importance
+	 * @param {boolean} bSkipPopinForFirst - skip demandPopin for first aCols[]
+	 * @param {float} fAccumulatedWidth - start point for the new  calculated fAccumulatedWidth
+	 * @returns {float} new calculated fAccumulatedWidth
+	 * @private
+	 */
+	Table._updateAccumulatedWidth = function(aCols, bSkipPopinForFirst, fAccumulatedWidth) {
+		var fAutoPopinWidth = fAccumulatedWidth;
+		for (var i = 0; i < aCols.length; i++) {
+			aCols[i].setDemandPopin(!(bSkipPopinForFirst && i === 0));
+			var sWidth = aCols[i].getWidth();
+			var sUnit = sWidth.replace(/[^a-z]/ig, "");
+			var sBaseFontSize = parseFloat(library.BaseFontSize) || 16;
+
+			// check for column width unit
+			if (sUnit === "" || sUnit === "auto") {
+				// column has a flexible width, such as % or auto, so we use autoPopinWidth property for the calculation
+				fAutoPopinWidth = fAutoPopinWidth + aCols[i].getAutoPopinWidth();
+			} else if (sUnit === "px") {
+				// column has a fixed width -> convert column width from px into float rem value
+				fAutoPopinWidth = fAutoPopinWidth + parseFloat((parseFloat(sWidth).toFixed(2) / sBaseFontSize).toFixed(2));
+			} else if (sUnit === "em" || sUnit === "rem") {
+				// column has a fixed width -> convert to float in any case to get only the column width value
+				fAutoPopinWidth = fAutoPopinWidth + parseFloat(sWidth);
+			}
+
+			// overwrite column minScreenWidth property only if demandPopin is set to true
+			if (aCols[i].getDemandPopin()) {
+				aCols[i].setMinScreenWidth(fAutoPopinWidth + "rem");
+			}
+		}
+		return fAutoPopinWidth;
+	};
+
+	Table.prototype._getHiddenInPopin = function() {
+		var aVisiblePopinColumns = this.getColumns().filter(function(oColumn) {
+			return oColumn.getVisible() && oColumn.getDemandPopin();
+		});
+
+		var aHiddenPopinColumns = aVisiblePopinColumns.filter(function(oVisibleColumn) {
+			return oVisibleColumn._media && !oVisibleColumn._media.matches && !oVisibleColumn.isPopin();
+		});
+
+		this._iHiddenPopinColumns = aHiddenPopinColumns.length;
+		return aHiddenPopinColumns;
+	};
+
+	Table.prototype._firePopinChangedEvent = function() {
+		this.fireEvent("popinChanged", {
+			hasPopin: this.hasPopin(),
+			hiddenInPopin: this._getHiddenInPopin()
 		});
 	};
 

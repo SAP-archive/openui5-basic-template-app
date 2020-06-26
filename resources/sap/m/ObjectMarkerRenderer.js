@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var e={};e.render=function(e,r){e.write("<span ");e.writeControlData(r);e.addClass("sapMObjectMarker");if(r._isIconVisible()){e.addClass("sapMObjectMarkerIcon")}if(r._isTextVisible()){e.addClass("sapMObjectMarkerText")}e.writeClasses();e.write(">");e.renderControl(r._getInnerControl());e.write("</span>")};return e},true);
+sap.ui.define([],function(){"use strict";var n={apiVersion:2};n.render=function(n,e){n.openStart("span",e);n.class("sapMObjectMarker");n.openEnd();n.renderControl(e._getInnerControl());n.close("span")};return n},true);

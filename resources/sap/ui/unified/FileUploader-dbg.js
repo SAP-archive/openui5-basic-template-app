@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent, sap.ui.unified.IProcessableBlobs
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -99,33 +99,46 @@ sap.ui.define([
 			width : {type : "sap.ui.core.CSSSize", group : "Misc", defaultValue : ''},
 
 			/**
-			 * If set to "true", the upload immediately starts after file selection. With the default setting, the upload needs to be explicitly triggered.
+			 * If set to "true", the upload immediately starts after file selection.
+			 * With the default setting, the upload needs to be explicitly triggered.
 			 */
 			uploadOnChange : {type : "boolean", group : "Behavior", defaultValue : false},
 
 			/**
-			 * Additional data that is sent to the back end service. Data will be transmitted as value of a hidden input where the name is derived from the name property with suffix -data.
+			 * Additional data that is sent to the back end service.
+			 *
+			 * Data will be transmitted as value of a hidden input where the name is derived from the
+			 * <code>name</code> property with suffix "-data".
 			 */
 			additionalData : {type : "string", group : "Data", defaultValue : null},
 
 			/**
-			 * If the FileUploader is configured to upload the file directly after the file is selected it is not allowed to upload a file with the same name again. If a user should be allowed to upload a file with the same name again this parameter has to be "true". A typical use case would be if the files have different paths.
+			 * If the FileUploader is configured to upload the file directly after the file is selected,
+			 * it is not allowed to upload a file with the same name again. If a user should be allowed
+			 * to upload a file with the same name again this parameter has to be "true".
+			 *
+			 * A typical use case would be if the files have different paths.
 			 */
 			sameFilenameAllowed : {type : "boolean", group : "Behavior", defaultValue : false},
 
 			/**
-			 * The Button text can be overwritten using this property.
+			 * The button's text can be overwritten using this property.
 			 */
 			buttonText : {type : "string", group : "Misc", defaultValue : null},
 
 			/**
-			 * The chosen files will be checked against an array of file types. If at least one file does not fit the file type restriction the upload is prevented.
-			 * Example: ["jpg", "png", "bmp"].
+			 * The chosen files will be checked against an array of file types.
+			 *
+			 * If at least one file does not fit the file type restriction, the upload is prevented.
+			 * <b>Note:</b> This property is not supported by Microsoft Edge.
+			 *
+			 * Example: <code>["jpg", "png", "bmp"]</code>.
 			 */
 			fileType : {type : "string[]", group : "Data", defaultValue : null},
 
 			/**
 			 * Allows multiple files to be chosen and uploaded from the same folder.
+			 *
 			 * This property is not supported by Internet Explorer 9.
 			 *
 			 * <b>Note:</b> Keep in mind that the various operating systems for mobile devices
@@ -135,19 +148,26 @@ sap.ui.define([
 			multiple : {type : "boolean", group : "Behavior", defaultValue : false},
 
 			/**
-			 * A file size limit in megabytes which prevents the upload if at least one file exceeds it. This property is not supported by Internet Explorer 9.
+			 * A file size limit in megabytes which prevents the upload if at least one file exceeds it.
+			 *
+			 * This property is not supported by Internet Explorer 9.
 			 */
 			maximumFileSize : {type : "float", group : "Data", defaultValue : null},
 
 			/**
-			 * The chosen files will be checked against an array of mime types. If at least one file does not fit the mime type restriction the upload is prevented.
-			 * <b>Note:</b> This property is not supported by Internet Explorer & Edge.
-			 * Example: mimeType ["image/png", "image/jpeg"].
+			 * The chosen files will be checked against an array of mime types.
+			 *
+			 * If at least one file does not fit the mime type restriction, the upload is prevented.
+			 * <b>Note:</b> This property is not supported by Internet Explorer & Microsoft Edge.
+			 *
+			 * Example: <code>["image/png", "image/jpeg"]</code>.
 			 */
 			mimeType : {type : "string[]", group : "Data", defaultValue : null},
 
 			/**
-			 * If set to "true", the request will be sent as XHR request instead of a form submit. This property is not supported by Internet Explorer 9.
+			 * If set to "true", the request will be sent as XHR request instead of a form submit.
+			 *
+			 * This property is not supported by Internet Explorer 9.
 			 */
 			sendXHR : {type : "boolean", group : "Behavior", defaultValue : false},
 
@@ -157,28 +177,38 @@ sap.ui.define([
 			placeholder : {type : "string", group : "Appearance", defaultValue : null},
 
 			/**
-			 * Style of the button. "Transparent, "Accept", "Reject", or "Emphasized" is allowed.
+			 * Style of the button.
+			 *
+			 * Values "Transparent, "Accept", "Reject", or "Emphasized" are allowed.
 			 */
 			style : {type : "string", group : "Appearance", defaultValue : null},
 
 			/**
-			 * If set to "true", the FileUploader will be rendered as Button only, without showing the InputField.
+			 * If set to "true", the <code>FileUploader</code> will be rendered as Button only,
+			 * without showing the input field.
 			 */
 			buttonOnly : {type : "boolean", group : "Appearance", defaultValue : false},
 
 			/**
-			 * If set to "false", the request will be sent as file only request instead of a multipart/form-data request. Only one file could be uploaded using this type of request. Required for sending such a request is to set the property "sendXHR" to "true". This property is not supported by Internet Explorer 9.
+			 * If set to "false", the request will be sent as file only request instead of a multipart/form-data request.
+			 *
+			 * Only one file could be uploaded using this type of request. Required for sending such a request is
+			 * to set the property <code>sendXHR</code> to "true". This property is not supported by Internet Explorer 9.
 			 */
 			useMultipart : {type : "boolean", group : "Behavior", defaultValue : true},
 
 			/**
-			 * The maximum length of a filename which the FileUploader will accept. If the maximum filename length is exceeded, the corresponding Event 'filenameLengthExceed' is fired.
+			 * The maximum length of a filename which the <code>FileUploader</code> will accept.
+			 *
+			 * If the maximum filename length is exceeded, the corresponding event <code>filenameLengthExceed</code> is fired.
 			 * @since 1.24.0
 			 */
 			maximumFilenameLength : {type : "int", group : "Data", defaultValue : null},
 
 			/**
-			 * Visualizes warnings or errors related to the text field. Possible values: Warning, Error, Success, None.
+			 * Visualizes warnings or errors related to the text field.
+			 *
+			 * Possible values: Warning, Error, Success, None.
 			 * @since 1.24.0
 			 */
 			valueState : {type : "sap.ui.core.ValueState", group : "Data", defaultValue : ValueState.None},
@@ -193,21 +223,24 @@ sap.ui.define([
 
 			/**
 			 * Icon to be displayed as graphical element within the button.
+			 *
 			 * This can be a URI to an image or an icon font URI.
 			 * @since 1.26.0
 			 */
 			icon : {type : "sap.ui.core.URI", group : "Appearance", defaultValue : ''},
 
 			/**
-			 * Icon to be displayed as graphical element within the button when it is hovered (only if also a base icon was specified). If not specified the base icon is used.
-			 * If an icon font icon is used, this property is ignored.
+			 * Icon to be displayed as graphical element within the button when it is hovered (only if also a base icon was specified).
+			 *
+			 * If not specified, the base icon is used. If an icon font icon is used, this property is ignored.
 			 * @since 1.26.0
 			 */
 			iconHovered : {type : "sap.ui.core.URI", group : "Appearance", defaultValue : ''},
 
 			/**
-			 * Icon to be displayed as graphical element within the button when it is selected (only if also a base icon was specified). If not specified the base or hovered icon is used.
-			 * If an icon font icon is used, this property is ignored.
+			 * Icon to be displayed as graphical element within the button when it is selected (only if also a base icon was specified).
+			 *
+			 * If not specified, the base or hovered icon is used. If an icon font icon is used, this property is ignored.
 			 * @since 1.26.0
 			 */
 			iconSelected : {type : "sap.ui.core.URI", group : "Appearance", defaultValue : ''},
@@ -227,13 +260,14 @@ sap.ui.define([
 		aggregations : {
 
 			/**
-			 * The parameters for the FileUploader which are rendered as a hidden inputfield.
+			 * The parameters for the <code>FileUploader</code> which are rendered as a hidden input field.
 			 * @since 1.12.2
 			 */
 			parameters : {type : "sap.ui.unified.FileUploaderParameter", multiple : true, singularName : "parameter"},
 
 			/**
-			 * The header parameters for the FileUploader which are only submitted with XHR requests. Header parameters are not supported by Internet Explorer 9.
+			 * The header parameters for the <code>FileUploader</code> which are only submitted with XHR requests.
+			 * Header parameters are not supported by Internet Explorer 9.
 			 */
 			headerParameters : {type : "sap.ui.unified.FileUploaderParameter", multiple : true, singularName : "headerParameter"},
 
@@ -247,12 +281,12 @@ sap.ui.define([
 		associations : {
 
 			/**
-			 * Association to controls / IDs which describe this control (see WAI-ARIA attribute aria-describedby).
+			 * Association to controls / IDs which describe this control (see WAI-ARIA attribute <code>aria-describedby</code>).
 			 */
 			ariaDescribedBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaDescribedBy"},
 
 			/**
-			 * Association to controls / IDs which label this control (see WAI-ARIA attribute aria-labelledby).
+			 * Association to controls / IDs which label this control (see WAI-ARIA attribute <code>aria-labelledby</code>).
 			 */
 			ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
 		},
@@ -260,6 +294,10 @@ sap.ui.define([
 
 			/**
 			 * Event is fired when the value of the file path has been changed.
+			 *
+			 * <b>Note:</b> Keep in mind that because of the HTML input element of type file, the
+			 * event is also fired in Chrome browser when the Cancel button of the
+			 * uploads window is pressed.
 			 */
 			change : {
 				parameters : {
@@ -277,9 +315,12 @@ sap.ui.define([
 			},
 
 			/**
-			 * Event is fired as soon as the upload request is completed (either successful or unsuccessful). To see if the upload request was successful, check the 'state' parameter for a value 2xx.
-			 * The uploads actual progress can be retrieved via the 'uploadProgress' Event.
-			 * However this covers only the client side of the Upload process and does not give any success status from the server.
+			 * Event is fired as soon as the upload request is completed (either successful or unsuccessful).
+			 *
+			 * To see if the upload request was successful, check the <code>status</code> parameter for a value 2xx.
+			 * The actual progress of the upload can be monitored by listening to the <code>uploadProgress</code> event.
+			 * However, this covers only the client side of the upload process and does not give any success status
+			 * from the server.
 			 */
 			uploadComplete : {
 				parameters : {
@@ -290,42 +331,62 @@ sap.ui.define([
 					fileName : {type : "string"},
 
 					/**
-					 * Response message which comes from the server. On the server side this response has to be put within the &quot;body&quot; tags of the response document of the iFrame.
-					 * It can consist of a return code and an optional message. This does not work in cross-domain scenarios.
+					 * Response message which comes from the server.
+					 *
+					 * On the server side this response has to be put within the &quot;body&quot; tags of the response
+					 * document of the iFrame. It can consist of a return code and an optional message. This does not
+					 * work in cross-domain scenarios.
 					 */
 					response : {type : "string"},
 
 					/**
-					 * ReadyState of the XHR request. Required for receiving a readyState is to set the property "sendXHR" to "true". This property is not supported by Internet Explorer 9.
+					 * ReadyState of the XHR request.
+					 *
+					 * Required for receiving a <code>readyStateXHR</code> is to set the property <code>sendXHR</code>
+					 * to true. This property is not supported by Internet Explorer 9.
 					 */
 					readyStateXHR : {type : "string"},
 
 					/**
-					 * Status of the XHR request. Required for receiving a status is to set the property "sendXHR" to "true". This property is not supported by Internet Explorer 9.
+					 * Status of the XHR request.
+					 *
+					 * Required for receiving a <code>status</code> is to set the property <code>sendXHR</code> to true.
+					 * This property is not supported by Internet Explorer 9.
 					 */
 					status : {type : "string"},
 
 					/**
-					 * Http-Response which comes from the server. Required for receiving "responseRaw" is to set the property "sendXHR" to true. This property is not supported by Internet Explorer 9.
+					 * Http-Response which comes from the server.
+					 *
+					 * Required for receiving <code>responseRaw</code> is to set the property <code>sendXHR</code> to true.
+					 *
+					 * This property is not supported by Internet Explorer 9.
 					 */
 					responseRaw : {type : "string"},
 
 					/**
-					 * Http-Response-Headers which come from the server. provided as a JSON-map, i.e. each header-field is reflected by a property in the header-object, with the property value reflecting the header-field's content.
-					 * Required for receiving "header" is to set the property "sendXHR" to true.
+					 * Http-Response-Headers which come from the server.
+					 *
+					 * Provided as a JSON-map, i.e. each header-field is reflected by a property in the <code>headers</code>
+					 * object, with the property value reflecting the header-field's content.
+					 *
+					 * Required for receiving <code>headers</code> is to set the property <code>sendXHR</code> to true.
 					 * This property is not supported by Internet Explorer 9.
 					 */
 					headers : {type : "object"},
 
 					/**
-					 * Http-Request-Headers. Required for receiving "header" is to set the property "sendXHR" to true. This property is not supported by Internet Explorer 9.
+					 * Http-Request-Headers.
+					 *
+					 * Required for receiving <code>requestHeaders</code> is to set the property <code>sendXHR</code> to true.
+					 * This property is not supported by Internet Explorer 9.
 					 */
 					requestHeaders : {type : "object[]"}
 				}
 			},
 
 			/**
-			 * Event is fired when the type of a file does not match the mimeType or fileType property.
+			 * Event is fired when the type of a file does not match the <code>mimeType</code> or <code>fileType</code> property.
 			 */
 			typeMissmatch : {
 				parameters : {
@@ -348,8 +409,9 @@ sap.ui.define([
 			},
 
 			/**
-			 * Event is fired when the size of a file is above the maximumFileSize property.
-			 * This event is not supported by Internet Explorer 9 (same restriction as for the property maximumFileSize).
+			 * Event is fired when the size of a file is above the <code>maximumFileSize</code> property.
+			 * This event is not supported by Internet Explorer 9 (same restriction as for the property
+			 * <code>maximumFileSize</code>).
 			 */
 			fileSizeExceed : {
 				parameters : {
@@ -367,14 +429,32 @@ sap.ui.define([
 			},
 
 			/**
+			 * Event is fired when the size of the file is 0
+			 */
+			fileEmpty : {
+				parameters : {
+
+					/**
+					 * The name of the file to be uploaded.
+					 */
+					fileName: {type : "string"}
+				}
+			},
+
+			/**
 			 * Event is fired when the file is allowed for upload on client side.
 			 */
 			fileAllowed : {},
 
 			/**
-			 * Event is fired after the upload has started and before the upload is completed and contains progress information related to the running upload.
-			 * Depending on file size, band width and used browser the event is fired once or multiple times.
-			 * This is event is only supported with property sendXHR set to true, i.e. the event is not supported in Internet Explorer 9.
+			 * Event is fired after the upload has started and before the upload is completed.
+			 *
+			 * It contains progress information related to the running upload. Depending on file size, band width
+			 * and used browser the event is fired once or multiple times.
+			 *
+			 * This event is only supported with property <code>sendXHR</code> set to true, i.e. the event is not
+			 * supported in Internet Explorer 9.
+			 *
 			 * @since 1.24.0
 			 */
 			uploadProgress : {
@@ -386,12 +466,12 @@ sap.ui.define([
 					lengthComputable : {type : "boolean"},
 
 					/**
-					 * The number of bytes of the file which have been uploaded by to the time the event was fired.
+					 * The number of bytes of the file which have been uploaded by the time the event was fired.
 					 */
 					loaded : {type : "float"},
 
 					/**
-					 * The total size of the file to be uploaded in byte.
+					 * The total size of the file to be uploaded in bytes.
 					 */
 					total : {type : "float"},
 
@@ -401,7 +481,9 @@ sap.ui.define([
 					fileName : {type : "string"},
 
 					/**
-					 * Http-Request-Headers. Required for receiving "header" is to set the property "sendXHR" to true.
+					 * Http-Request-Headers.
+					 *
+					 * Required for receiving <code>requestHeaders</code> is to set the property <code>sendXHR</code> to true.
 					 * This property is not supported by Internet Explorer 9.
 					 */
 					requestHeaders : {type : "object[]"}
@@ -410,7 +492,9 @@ sap.ui.define([
 
 			/**
 			 * Event is fired after the current upload has been aborted.
-			 * This is event is only supported with property sendXHR set to true, i.e. the event is not supported in Internet Explorer 9.
+			 *
+			 * This event is only supported with property <code>sendXHR</code> set to true, i.e. the event is not supported
+			 * in Internet Explorer 9.
 			 * @since 1.24.0
 			 */
 			uploadAborted : {
@@ -422,7 +506,9 @@ sap.ui.define([
 					fileName : {type : "string"},
 
 					/**
-					 * Http-Request-Headers. Required for receiving "header" is to set the property "sendXHR" to true.
+					 * Http-Request-Headers.
+					 *
+					 * Required for receiving <code>requestHeader</code> is to set the property <code>sendXHR</code> to true.
 					 * This property is not supported by Internet Explorer 9.
 					 */
 					requestHeaders : {type : "object[]"}
@@ -430,14 +516,15 @@ sap.ui.define([
 			},
 
 			/**
-			 * Event is fired, if the filename of a chosen file is longer than the value specified with the maximumFilenameLength property.
+			 * Event is fired, if the filename of a chosen file is longer than the value specified with the
+			 * <code>maximumFilenameLength</code> property.
 			 * @since 1.24.0
 			 */
 			filenameLengthExceed : {
 				parameters : {
 
 					/**
-					 * The filename, which is longer than specified by the value of the property maximumFilenameLength.
+					 * The filename, which is longer than specified by the value of the property <code>maximumFilenameLength</code>.
 					 */
 					fileName : {type : "string"}
 				}
@@ -456,8 +543,10 @@ sap.ui.define([
 					fileName : {type : "string"},
 
 					/**
-					 * Http-Request-Headers. Required for receiving "header" is to set the property "sendXHR" to true.
-					 * This property is not supported by Internet Explorer 9.
+					 * Http-Request-Headers.
+					 *
+					 * Required for receiving <code>requestHeaders</code> is to set the property <code>sendXHR</code>
+					 * to true. This property is not supported by Internet Explorer 9.
 					 */
 					requestHeaders : {type : "object[]"}
 				}
@@ -481,7 +570,7 @@ sap.ui.define([
 				}
 			}
 		});
-		this.oBrowse = library.FileUploaderHelper.createButton();
+		this.oBrowse = library.FileUploaderHelper.createButton(this.getId() + "-fu_button");
 		this.oFilePath.setParent(this);
 		this.oBrowse.setParent(this);
 
@@ -506,6 +595,7 @@ sap.ui.define([
 				this.oBrowse.addAriaDescribedBy(this.getId() + "-AccDescr");
 			}
 		}
+		this._submitAfterRendering = false;
 
 	};
 
@@ -591,6 +681,7 @@ sap.ui.define([
 	FileUploader.prototype.setFileType = function(vTypes) {
 		// Compatibility issue: converting the given types to an array in case it is a string
 		var aTypes = this._convertTypesToArray(vTypes);
+		this._bShouldBeRebuilded = true;
 		this.setProperty("fileType", aTypes, false);
 		return this;
 	};
@@ -598,6 +689,7 @@ sap.ui.define([
 	FileUploader.prototype.setMimeType = function(vTypes) {
 		// Compatibility issue: converting the given types to an array in case it is a string
 		var aTypes = this._convertTypesToArray(vTypes);
+		this._bShouldBeRebuilded = true;
 		this.setProperty("mimeType", aTypes, false);
 		return this;
 	};
@@ -608,28 +700,117 @@ sap.ui.define([
 
 		this._refreshTooltipBaseDelegate(oTooltip);
 		this.setAggregation("tooltip", oTooltip, true);
+		this._updateAccDescription();
 
 		if (this.oFileUpload) {
-			if (typeof oTooltip  === "string") {
-				sTooltip = this.getTooltip_AsString();
-				sapUiFupInputMaskDOM = this.$().find(".sapUiFupInputMask")[0];
+			sTooltip = this.getTooltip_AsString();
+			sapUiFupInputMaskDOM = this.$().find(".sapUiFupInputMask")[0];
 
-				if (sTooltip) {
-					this.oFileUpload.setAttribute("title", sTooltip);
-					sapUiFupInputMaskDOM && sapUiFupInputMaskDOM.setAttribute("title", sTooltip);
-				} else {
-					this.oFileUpload.removeAttribute("title");
-					sapUiFupInputMaskDOM && sapUiFupInputMaskDOM.removeAttribute("title");
-				}
+			if (sTooltip) {
+				this.oFileUpload.setAttribute("title", sTooltip);
+				sapUiFupInputMaskDOM && sapUiFupInputMaskDOM.setAttribute("title", sTooltip);
+			} else {
+				this.oFileUpload.removeAttribute("title");
+				sapUiFupInputMaskDOM && sapUiFupInputMaskDOM.removeAttribute("title");
 			}
 		}
 		return this;
 	};
 
-	FileUploader.prototype.setXhrSettings = function (oXhrSettings) {
-		this.setAggregation("xhrSettings", oXhrSettings, true);
+	FileUploader.prototype.addAriaLabelledBy = function(sID) {
+		this.addAssociation("ariaLabelledBy", sID);
+		this.oBrowse.addAriaLabelledBy(sID);
 
 		return this;
+	};
+
+	FileUploader.prototype.removeAriaLabelledBy = function(sID) {
+		var sLabelId = this.removeAssociation("ariaLabelledBy", sID);
+		this.oBrowse.removeAriaLabelledBy(sLabelId);
+
+		return sLabelId;
+	};
+
+	FileUploader.prototype.removeAllAriaLabelledBy = function() {
+		var aLabelIds = this.removeAllAssociation("ariaLabelledBy"),
+			aButtonLabels = this.oBrowse.getAriaLabelledBy();
+
+		// We make sure to leave any sap.m.Label in the button's ariaLabelledBy
+		aLabelIds.forEach(function(sLabelId) {
+			if (aButtonLabels.indexOf(sLabelId) >= 0) {
+				this.oBrowse.removeAriaLabelledBy(sLabelId);
+			}
+		}.bind(this));
+
+		return aLabelIds;
+	};
+
+	FileUploader.prototype.addAriaDescribedBy = function(sID) {
+		this.addAssociation("ariaDescribedBy", sID);
+		this.oBrowse.addAriaDescribedBy(sID);
+
+		return this;
+	};
+
+	FileUploader.prototype.removeAriaDescribedBy = function(sID) {
+		var sDescriptionId = this.removeAssociation("ariaDescribedBy", sID);
+		this.oBrowse.removeAriaDescribedBy(sDescriptionId);
+
+		return sDescriptionId;
+	};
+
+	FileUploader.prototype.removeAllAriaDescribedBy = function() {
+		var aDescriptionIds = this.removeAllAssociation("ariaDescribedBy"),
+			aButtonDescriptionIds = this.oBrowse.getAriaDescribedBy();
+
+		// Keep the default accessibility description in the -AccDescr element
+		aDescriptionIds.forEach(function(sLabelId) {
+			if (aButtonDescriptionIds.indexOf(sLabelId) >= 0) {
+				this.oBrowse.removeAriaDescribedBy(sLabelId);
+			}
+		}.bind(this));
+
+		return aDescriptionIds;
+	};
+
+	/*
+	 * Generates the text, which would be placed as an accessibility description,
+	 * based on the current FileUploader's placeholder, value and tooltip.
+	 */
+	FileUploader.prototype._generateAccDescriptionText = function () {
+		var sTooltip = this.getTooltip_AsString(),
+			sPlaceholder = this.getPlaceholder(),
+			sValue = this.getValue(),
+			sAccDescription = "";
+
+		if (sTooltip) {
+			sAccDescription += sTooltip + " ";
+		}
+
+		if (sValue) {
+			sAccDescription += sValue + " ";
+		} else if (sPlaceholder) {
+			sAccDescription += sPlaceholder + " ";
+		}
+
+		sAccDescription += this._sAccText;
+
+		return sAccDescription;
+	};
+
+	/*
+	 * Updates the hidden element's text, which holds the accessibility description.
+	 * This method should be called whenever the placeholder/value/tooltip update.
+	 * Otherwise screen readers will simply read a description, which doesn't match
+	 * what's visible on the screen.
+	 */
+	FileUploader.prototype._updateAccDescription = function () {
+		var oAccDescriptionHolder = document.getElementById(this.getId() + "-AccDescr"),
+			sNewDescription = this._generateAccDescriptionText();
+
+		if (oAccDescriptionHolder) {
+			oAccDescriptionHolder.innerHTML = encodeXML(sNewDescription);
+		}
 	};
 
 	/**
@@ -662,7 +843,7 @@ sap.ui.define([
 
 		// remove the IFRAME
 		if (this.oIFrameRef) {
-			jQuery(this.oIFrameRef).unbind();
+			jQuery(this.oIFrameRef).off();
 			sap.ui.getCore().getStaticAreaRef().removeChild(this.oIFrameRef);
 			this.oIFrameRef = null;
 		}
@@ -680,7 +861,7 @@ sap.ui.define([
 		jQuery(this.oFileUpload).appendTo(oStaticArea);
 
 		// unbind the custom event handlers
-		jQuery(this.oFileUpload).unbind();
+		jQuery(this.oFileUpload).off();
 
 	};
 
@@ -697,7 +878,7 @@ sap.ui.define([
 		this._addLabelFeaturesToBrowse();
 
 		// event listener registration for change event
-		jQuery(this.oFileUpload).change(jQuery.proxy(this.handlechange, this));
+		jQuery(this.oFileUpload).on("change", jQuery.proxy(this.handlechange, this));
 
 		if (!this.bMobileLib) {
 			this.oFilePath.$().attr("tabindex", "-1");
@@ -720,6 +901,11 @@ sap.ui.define([
 
 		if (this.getValueState() == ValueState.Error) {
 			this.oBrowse.$().attr("aria-invalid", "true");
+		}
+
+		if (this._submitAfterRendering) {
+			this._submitAndResetValue();
+			this._submitAfterRendering = false;
 		}
 
 	};
@@ -816,11 +1002,10 @@ sap.ui.define([
 	FileUploader.prototype.setEnabled = function(bEnabled){
 		var $oFileUpload = jQuery(this.oFileUpload);
 
-		this.setProperty("enabled", bEnabled, true);
+		this.setProperty("enabled", bEnabled);
 		this.oFilePath.setEnabled(bEnabled);
 		this.oBrowse.setEnabled(bEnabled);
 		bEnabled ? $oFileUpload.removeAttr('disabled') : $oFileUpload.attr('disabled', 'disabled');
-		this.$().toggleClass("sapUiFupDisabled", !bEnabled);
 
 		return this;
 	};
@@ -869,16 +1054,12 @@ sap.ui.define([
 		return this.setProperty("valueStateText", sValueStateText, true);
 	};
 
-	FileUploader.prototype.setUploadUrl = function(sValue, bFireEvent) {
-		this.setProperty("uploadUrl", sValue, true);
-		var $uploadForm = this.$("fu_form");
-		$uploadForm.attr("action", this.getUploadUrl());
-		return this;
-	};
-
 	FileUploader.prototype.setPlaceholder = function(sPlaceholder) {
 		this.setProperty("placeholder", sPlaceholder, true);
 		this.oFilePath.setPlaceholder(sPlaceholder);
+
+		this._updateAccDescription();
+
 		return this;
 	};
 
@@ -1127,7 +1308,9 @@ sap.ui.define([
 		if (!this.getEnabled()) {
 			return;
 		}
-		var uploadForm = this.getDomRef("fu_form");
+		var uploadForm = this.getDomRef("fu_form"),
+			sActionAttr;
+
 		try {
 			this._bUploading = true;
 			if (this.getSendXHR() && window.File) {
@@ -1138,12 +1321,26 @@ sap.ui.define([
 					this._sendFilesWithXHR(aFiles);
 				}
 			} else if (uploadForm) {
-				uploadForm.submit();
-				this._resetValueAfterUploadStart();
+				// In order to do the submit, the action DOM attribute of the inner form should be accurate.
+				// If there is a change in the passed to the uploadUrl property string, we must ensure that it is
+				// applied in the DOM and the submit is performed after there is new rendering.
+				sActionAttr = uploadForm.getAttribute("action");
+				if (sActionAttr !== this.getUploadUrl()) {
+					this._submitAfterRendering = true;
+				} else {
+					this._submitAndResetValue();
+				}
 			}
 		} catch (oException) {
 			Log.error("File upload failed:\n" + oException.message);
 		}
+	};
+
+	FileUploader.prototype._submitAndResetValue = function() {
+		var uploadForm = this.getDomRef("fu_form");
+
+		uploadForm.submit();
+		this._resetValueAfterUploadStart();
 	};
 
 	/**
@@ -1215,7 +1412,7 @@ sap.ui.define([
 			this.setValue("", true);
 		}
 		//refocus the Button, except bSupressFocus is set
-		if (this.oBrowse.getDomRef() && containsOrEquals(this.getDomRef(), document.activeElement)) {
+		if (this.oBrowse.getDomRef() && (Device.browser.safari || containsOrEquals(this.getDomRef(), document.activeElement))) {
 			this.oBrowse.focus();
 		}
 	};
@@ -1515,11 +1712,17 @@ sap.ui.define([
 			if (fMaxSize && (fSize > fMaxSize)) {
 				Log.info("File: " + sName + " is of size " + fSize + " MB which exceeds the file size limit of " + fMaxSize + " MB.");
 				this.fireFileSizeExceed({
-					fileName:sName,
-					fileSize:fSize
+					fileName: sName,
+					fileSize: fSize
 				});
 
 				return false;
+			}
+			if (fSize === 0){
+				Log.info("File: " + sName + " is empty!");
+				this.fireFileEmpty({
+					fileName: sName
+				});
 			}
 			//check if the filename is too long and fire the corresponding event if necessary
 			if (this._isFilenameTooLong(sName)) {
@@ -1633,7 +1836,7 @@ sap.ui.define([
 	 */
 	FileUploader.prototype.prepareFileUploadAndIFrame = function() {
 
-		if (!this.oFileUpload) {
+		if (!this.oFileUpload || this._bShouldBeRebuilded) {
 
 			// create the file uploader markup
 			var aFileUpload = [];
@@ -1644,10 +1847,10 @@ sap.ui.define([
 				if (this.getMultiple()) {
 					//multiple is not supported in IE <= 9
 					if (!(Device.browser.internet_explorer && Device.browser.version <= 9)) {
-						aFileUpload.push('name="' + this.getName() + '[]" ');
+						aFileUpload.push('name="' + encodeXML(this.getName()) + '[]" ');
 					}
 				} else {
-					aFileUpload.push('name="' + this.getName() + '" ');
+					aFileUpload.push('name="' + encodeXML(this.getName()) + '" ');
 				}
 			} else {
 				if (this.getMultiple()) {
@@ -1685,19 +1888,14 @@ sap.ui.define([
 				}
 			}
 			if ((this.getMimeType() || this.getFileType()) && window.File) {
-				var aMimeTypes = this.getMimeType() || [];
-				var aFileTypes = this.getFileType() || [];
-				aFileTypes = aFileTypes.map(function(item) {
-					return item.indexOf(".") === 0 ? item : "." + item;
-				});
-				var sAcceptedTypes = aFileTypes.concat(aMimeTypes).join(",");
-				aFileUpload.push('accept="' + sAcceptedTypes + '" ');
+				var sAcceptedTypes = this._getAcceptedTypes();
+				aFileUpload.push('accept="' + encodeXML(sAcceptedTypes) + '" ');
 			}
 			aFileUpload.push('>');
 
 			// add it into the control markup
 			this.oFileUpload = jQuery(aFileUpload.join("")).prependTo(this.$().find(".sapUiFupInputMask")).get(0);
-
+			this._bShouldBeRebuilded = false;
 		} else {
 
 			// move the file uploader from the static area to the control markup
@@ -1718,7 +1916,7 @@ sap.ui.define([
 			// sink the load event of the upload iframe
 			var that = this;
 			this._bUploading = false; // flag for uploading
-			jQuery(oIFrameRef).load(function(oEvent) {
+			jQuery(oIFrameRef).on( "load", function(oEvent) {
 				if (that._bUploading) {
 					Log.info("File uploaded to " + that.getUploadUrl());
 					var sResponse;
@@ -1757,6 +1955,15 @@ sap.ui.define([
 
 	};
 
+	FileUploader.prototype._getAcceptedTypes = function() {
+		var aMimeTypes = this.getMimeType() || [],
+			aFileTypes = this.getFileType() || [];
+		aFileTypes = aFileTypes.map(function(item) {
+			return item.indexOf(".") === 0 ? item : "." + item;
+		});
+		return aFileTypes.concat(aMimeTypes).join(",");
+	};
+
 	FileUploader.prototype._resetValueAfterUploadStart = function () {
 		Log.info("File uploading to " + this.getUploadUrl());
 		if (this.getSameFilenameAllowed() && this.getUploadOnChange() && this.getUseMultipart()) {
@@ -1772,7 +1979,7 @@ sap.ui.define([
 		if (this.oBrowse &&  this.oBrowse.$().length) {
 			$browse = this.oBrowse.$();
 			$browse.attr("type', 'button"); // The default type of button is submit that's why on click of label there are submit of the form. This way we are avoiding the submit of form.
-			$browse.click(function(e) {
+			$browse.on("click", function(e) {
 				e.preventDefault();
 				this.FUEl.click(); // The default behaviour on click on label is to open "open file" dialog. The only way to attach click event that is transferred from the label to the button is this way. AttachPress and attachTap don't work in this case.
 			}.bind(this));

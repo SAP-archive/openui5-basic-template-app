@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,8 +12,9 @@ sap.ui.define([
 	'sap/ui/test/_OpaLogger',
 	'sap/ui/test/_ParameterValidator',
 	'sap/ui/test/_UsageReport',
-	'sap/ui/test/_OpaUriParameterParser'
-], function(Device, $, _LogCollector, _OpaLogger, _ParameterValidator, _UsageReport, _OpaUriParameterParser) {
+	'sap/ui/test/_OpaUriParameterParser',
+	'sap/ui/test/_ValidationParameters'
+], function(Device, $, _LogCollector, _OpaLogger, _ParameterValidator, _UsageReport, _OpaUriParameterParser, _ValidationParameters) {
 	"use strict";
 
 	///////////////////////////////
@@ -339,9 +340,7 @@ sap.ui.define([
 	// I don't have a proper explanation for this.
 	var executionDelayDefault = 0;
 
-	// phantom is flagged as safari but actually we do not want to set the tiemout higher in phantomjs
-	var bIsSafariButNotPhantom = Device.browser.safari && !Device.browser.phantomJS;
-	if (Device.browser.msie || Device.browser.edge || bIsSafariButNotPhantom) {
+	if (Device.browser.msie || Device.browser.edge || Device.browser.safari) {
 		executionDelayDefault = 50;
 	}
 
@@ -523,8 +522,11 @@ sap.ui.define([
 		 * @param {string} [options.errorMessage] Will be displayed as an errorMessage depending on your unit test framework.
 		 * Currently the only adapter for Opa is QUnit.
 		 * This message is displayed there if Opa has reached its timeout but QUnit has not yet reached it.
-		 * @returns {jQuery.promise} A promise that gets resolved on success.
-		 * If an error occurs, the promise is rejected with the options object. A detailed error message containing the stack trace and Opa logs is available in options.errorMessage.
+		 *
+		 * @returns {object} an object extending a jQuery promise.
+		 * The object is essentially a jQuery promise with an additional "and" method that can be used for chaining waitFor statements.
+		 * The promise is resolved when the waitFor completes successfully.
+		 * The promise is rejected with the options object, if an error occurs. In this case, options.errorMessage will contain a detailed error message containing the stack trace and Opa logs.
 		 */
 		waitFor : function (options) {
 			var deferred = $.Deferred(),
@@ -647,7 +649,7 @@ sap.ui.define([
 
 		_validateWaitFor: function (oParameters) {
 			oValidator.validate({
-				validationInfo: Opa._validationInfo,
+				validationInfo: _ValidationParameters.OPA_WAITFOR,
 				inputToValidate: oParameters
 			});
 		}
@@ -690,19 +692,6 @@ sap.ui.define([
 		"_stackDropCount",
 		"asyncPolling"
 	];
-
-	/* all config values  that will be used in waitFor */
-	Opa._validationInfo = {
-		error: "func",
-		check: "func",
-		success: "func",
-		timeout: "numeric",
-		debugTimeout: "numeric",
-		pollingInterval: "numeric",
-		_stackDropCount: "numeric",
-		errorMessage: "string",
-		asyncPolling: "bool"
-	};
 
 
 	return Opa;

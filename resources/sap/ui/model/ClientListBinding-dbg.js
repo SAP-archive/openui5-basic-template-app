@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,7 +13,7 @@ sap.ui.define([
 	'./FilterProcessor',
 	'./Sorter',
 	'./SorterProcessor',
-	"sap/ui/thirdparty/jquery"
+	"sap/base/util/each"
 ],
 	function(
 		ChangeReason,
@@ -23,7 +23,7 @@ sap.ui.define([
 		FilterProcessor,
 		Sorter,
 		SorterProcessor,
-		jQuery
+		each
 	) {
 	"use strict";
 
@@ -53,6 +53,7 @@ sap.ui.define([
 		constructor : function(oModel, sPath, oContext, aSorters, aFilters, mParameters){
 			ListBinding.apply(this, arguments);
 
+			this.mNormalizeCache = {};
 			this.oModel.checkFilterOperation(this.aApplicationFilters);
 			this.oCombinedFilter = FilterProcessor.combineFilters(this.aFilters, this.aApplicationFilters);
 
@@ -264,7 +265,7 @@ sap.ui.define([
 
 		this.aIndices = FilterProcessor.apply(this.aIndices, this.oCombinedFilter, function(vRef, sPath) {
 			return that.oModel.getProperty(sPath, that.oList[vRef]);
-		});
+		}, this.mNormalizeCache);
 
 		this.iLength = this.aIndices.length;
 	};
@@ -277,7 +278,7 @@ sap.ui.define([
 			oMap = {},
 			sValue,
 			that = this;
-		jQuery.each(this.oList, function(i, oContext) {
+		each(this.oList, function(i, oContext) {
 			sValue = that.oModel.getProperty(sPath, oContext);
 			if (!oMap[sValue]) {
 				oMap[sValue] = true;

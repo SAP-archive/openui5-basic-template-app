@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IContextMenu
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -175,8 +175,8 @@ sap.ui.define([
 	 * The function is called once per MenuItem.
 	 *
 	 * @param {function} fn The callback function
-	 * @protected
-	 * @sap-restricted sap.m.Menu
+	 * @private
+	 * @ui5-restricted sap.m.Menu
 	 * @returns void
 	 */
 	Menu.prototype._setCustomEnhanceAccStateFunction = function(fn) {
@@ -209,7 +209,7 @@ sap.ui.define([
 
 		ControlEvents.unbindAnyEvent(this.fAnyEventHandlerProxy);
 		if (this._bOrientationChangeBound) {
-			jQuery(window).unbind("orientationchange", this.fOrientationChangeHandler);
+			jQuery(window).off("orientationchange", this.fOrientationChangeHandler);
 			this._bOrientationChangeBound = false;
 		}
 
@@ -237,6 +237,7 @@ sap.ui.define([
 	 */
 	Menu.prototype.onBeforeRendering = function() {
 		this._resetDelayedRerenderItems();
+		this.$().off("mousemove");
 	};
 
 	/**
@@ -263,6 +264,30 @@ sap.ui.define([
 		}
 
 		checkAndLimitHeight(this);
+		this.$().on("mousemove", this._focusMenuItem.bind(this));
+	};
+
+	/**
+	 * Called when mouse cursor is moved over the menu items
+	 * @private
+	 */
+	Menu.prototype._focusMenuItem = function(oEvent) {
+		if (!Device.system.desktop) {
+			return;
+		}
+		var oItem = this.getItemByDomRef(oEvent.target);
+		if (!this.bOpen || !oItem) {
+			return;
+		}
+
+		if (this.oOpenedSubMenu && containsOrEquals(this.oOpenedSubMenu.getDomRef(), oEvent.target)) {
+			return;
+		}
+
+		this.setHoveredItem(oItem);
+		oItem && oItem.focus(this);
+
+		this._openSubMenuDelayed(oItem);
 	};
 
 	/**
@@ -278,10 +303,6 @@ sap.ui.define([
 
 
 	//****** API Methods ******
-
-	Menu.prototype.setPageSize = function(iSize){
-		return this.setProperty("pageSize", iSize, true); /*No rerendering required*/
-	};
 
 	Menu.prototype.addItem = function(oItem){
 		this.addAggregation("items", oItem, !!this.getDomRef());
@@ -368,10 +389,10 @@ sap.ui.define([
 	 * See {@link sap.ui.core.Popup#open Popup#open} for further details about popup positioning.
 	 *
 	 * @param {boolean} bWithKeyboard Indicates whether or not the first item shall be highlighted when the menu is opened (keyboard case)
-	 * @param {sap.ui.core.Element|DOMRef} oOpenerRef The element which will get the focus back again after the menu was closed
+	 * @param {sap.ui.core.Element|Element} oOpenerRef The element which will get the focus back again after the menu was closed
 	 * @param {sap.ui.core.Dock} my The reference docking location of the menu for positioning the menu on the screen
 	 * @param {sap.ui.core.Dock} at The 'of' element's reference docking location for positioning the menu on the screen
-	 * @param {sap.ui.core.Element|DOMRef} of The menu is positioned relatively to this element based on the given dock locations
+	 * @param {sap.ui.core.Element|Element} of The menu is positioned relatively to this element based on the given dock locations
 	 * @param {string} [offset] The offset relative to the docking point, specified as a string with space-separated pixel values (e.g. "10 0" to move the popup 10 pixels to the right)
 	 * @param {sap.ui.core.Collision} [collision] The collision defines how the position of the menu should be adjusted in case it overflows the window in some direction
 	 *
@@ -380,6 +401,8 @@ sap.ui.define([
 	 * @ui5-metamodel This method will also be described in the UI5 (legacy) design time meta model
 	 */
 	Menu.prototype.open = function(bWithKeyboard, oOpenerRef, my, at, of, offset, collision){
+		var oNextSelectableItem;
+
 		if (this.bOpen) {
 			return;
 		}
@@ -391,10 +414,15 @@ sap.ui.define([
 		this.bIgnoreOpenerDOMRef = false;
 
 		// Open the sap.ui.core.Popup
-		this.getPopup().open(0, my, at, of, offset || "0 0", collision || "_sapUiCommonsMenuFlip _sapUiCommonsMenuFlip", function() {
+		this.getPopup().open(0, my, at, of, offset || "0 0", collision || "flipfit flipfit", function(oPopupPosition) {
 			var oOfDom = this.getPopup()._getOfDom(of);
-			if (!oOfDom || !jQuery(oOfDom).is(":visible")) {
+			if (!oOfDom || !jQuery(oOfDom).is(":visible") || !_isElementInViewport(oOfDom)) {
+				// close the menu if the opener is not visible or not in the viewport anymore
 				this.close();
+			} else {
+				// else the Menu should follow the opener
+				// for example in ObjectPage, where we have scrolling, but the opener button is sticked
+				this.getPopup()._applyPosition(oPopupPosition.lastPosition);
 			}
 		}.bind(this));
 		this.bOpen = true;
@@ -403,18 +431,16 @@ sap.ui.define([
 		// mark that the resize handler is attach so we know to detach it later on
 		this._hasResizeListener = true;
 
-		// Set the tab index of the menu and focus
-		var oDomRef = this.getDomRef();
-		jQuery(oDomRef).attr("tabIndex", 0).focus();
-
 		// Mark the first item when using the keyboard
-		if (bWithKeyboard) {
-			this.setHoveredItem(this.getNextSelectableItem(-1));
+		if (bWithKeyboard || this.getRootMenu().getId() === this.getId()) {
+			oNextSelectableItem = this.getNextSelectableItem(-1);
+			this.setHoveredItem(oNextSelectableItem);
+			oNextSelectableItem && oNextSelectableItem.focus(this);
 		}
 
 		ControlEvents.bindAnyEvent(this.fAnyEventHandlerProxy);
 		if (Device.support.orientation && this.getRootMenu() === this) {
-			jQuery(window).bind("orientationchange", this.fOrientationChangeHandler);
+			jQuery(window).on("orientationchange", this.fOrientationChangeHandler);
 			this._bOrientationChangeBound = true;
 		}
 	};
@@ -428,6 +454,7 @@ sap.ui.define([
 	 * @param {jQuery.Event | object} oEvent The event object or an object containing offsetX, offsetY
 	 * values and left, top values of the element's position
 	 * @param {sap.ui.core.Element|HTMLElement} oOpenerRef - Might be UI5 Element or DOM Element
+	 * @public
 	 */
 	Menu.prototype.openAsContextMenu = function(oEvent, oOpenerRef) {
 			var iOffsetX, iOffsetY, bRTL, eDock, oOpenerRefOffset;
@@ -501,7 +528,7 @@ sap.ui.define([
 		// set the flag to initial state as same menu could be used as a context menu or a normal menu
 		this._bOpenedAsContextMenu = false;
 
-		bRecalculate && this.oPopup.setPosition("begin top", "begin top", $Window, iCalcedX + " " + iCalcedY, "flip");
+		bRecalculate && this.oPopup.setPosition("begin top", "begin top", $Window, iCalcedX + " " + iCalcedY, "flipfit");
 	};
 
 	/**
@@ -511,7 +538,7 @@ sap.ui.define([
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	Menu.prototype.close = function() {
+	Menu.prototype.close = function(bWithKeyboard) {
 		if (!this.bOpen || Menu._dbg /*Avoid closing for debugging purposes*/) {
 			return;
 		}
@@ -525,7 +552,7 @@ sap.ui.define([
 
 		ControlEvents.unbindAnyEvent(this.fAnyEventHandlerProxy);
 		if (this._bOrientationChangeBound) {
-			jQuery(window).unbind("orientationchange", this.fOrientationChangeHandler);
+			jQuery(window).off("orientationchange", this.fOrientationChangeHandler);
 			this._bOrientationChangeBound = false;
 		}
 
@@ -536,9 +563,9 @@ sap.ui.define([
 		// Reset the hover state
 		this.setHoveredItem();
 
-		// Reset the tab index of the menu and focus the opener (if there is any)
-		jQuery(this.getDomRef()).attr("tabIndex", -1);
-
+		if (!bWithKeyboard) {
+			this.bIgnoreOpenerDOMRef = true;
+		}
 		// Close the sap.ui.core.Popup
 		this.getPopup().close(0);
 
@@ -584,18 +611,34 @@ sap.ui.define([
 
 
 	Menu.prototype.onsapnext = function(oEvent){
+		var iIdx,
+			oNextSelectableItem,
+			oSubMenu = this.oHoveredItem ? this.oHoveredItem.getSubmenu() : undefined;
+
 		//right or down (RTL: left or down)
 		if (oEvent.keyCode != KeyCodes.ARROW_DOWN) {
 			//Go to sub menu if available
-			if (this.oHoveredItem && this.oHoveredItem.getSubmenu() && this.checkEnabled(this.oHoveredItem)) {
-				this.openSubmenu(this.oHoveredItem, true);
+			if (oSubMenu && this.checkEnabled(this.oHoveredItem)) {
+				if (oSubMenu.bOpen) {
+					oNextSelectableItem = oSubMenu.getNextSelectableItem(-1);
+					oSubMenu.setHoveredItem(oNextSelectableItem);
+					oNextSelectableItem && oNextSelectableItem.focus(this);
+				} else {
+					this.openSubmenu(this.oHoveredItem, true);
+				}
 			}
 			return;
 		}
 
+		if (oSubMenu && oSubMenu.bOpen) {
+			this.closeSubmenu(false, true);
+		}
+
 		//Go to the next selectable item
-		var iIdx = this.oHoveredItem ? this.indexOfAggregation("items", this.oHoveredItem) : -1;
-		this.setHoveredItem(this.getNextSelectableItem(iIdx));
+		iIdx = this.oHoveredItem ? this.indexOfAggregation("items", this.oHoveredItem) : -1;
+		oNextSelectableItem = this.getNextSelectableItem(iIdx);
+		this.setHoveredItem(oNextSelectableItem);
+		oNextSelectableItem && oNextSelectableItem.focus(this);
 
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
@@ -604,20 +647,28 @@ sap.ui.define([
 	Menu.prototype.onsapnextmodifiers = Menu.prototype.onsapnext;
 
 	Menu.prototype.onsapprevious = function(oEvent){
+		var iIdx = this.oHoveredItem ? this.indexOfAggregation("items", this.oHoveredItem) : -1,
+			oPrevSelectableItem = this.getPreviousSelectableItem(iIdx),
+			oSubMenu = this.oHoveredItem ? this.oHoveredItem.getSubmenu() : null;
+
 		//left or up (RTL: right or up)
 		if (oEvent.keyCode != KeyCodes.ARROW_UP) {
 			//Go to parent menu if this is a sub menu
 			if (this.isSubMenu()) {
-				this.close();
+				this.close(true);
 			}
 			oEvent.preventDefault();
 			oEvent.stopPropagation();
 			return;
 		}
 
+		if (oSubMenu && oSubMenu.bOpen) {
+			this.closeSubmenu(false, true);
+		}
+
 		//Go to the previous selectable item
-		var iIdx = this.oHoveredItem ? this.indexOfAggregation("items", this.oHoveredItem) : -1;
-		this.setHoveredItem(this.getPreviousSelectableItem(iIdx));
+		this.setHoveredItem(oPrevSelectableItem);
+		oPrevSelectableItem && oPrevSelectableItem.focus(this);
 
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
@@ -626,52 +677,64 @@ sap.ui.define([
 	Menu.prototype.onsappreviousmodifiers = Menu.prototype.onsapprevious;
 
 	Menu.prototype.onsaphome = function(oEvent){
+		var oNextSelectableItem = this.getNextSelectableItem(-1);
 		//Go to the first selectable item
-		this.setHoveredItem(this.getNextSelectableItem(-1));
+		this.setHoveredItem(oNextSelectableItem);
+		oNextSelectableItem && oNextSelectableItem.focus(this);
 
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
 	};
 
 	Menu.prototype.onsapend = function(oEvent){
+		var oPrevSelectableItem = this.getPreviousSelectableItem(this.getItems().length);
+
 		//Go to the last selectable item
-		this.setHoveredItem(this.getPreviousSelectableItem(this.getItems().length));
+		this.setHoveredItem(oPrevSelectableItem);
+		oPrevSelectableItem && oPrevSelectableItem.focus(this);
 
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
 	};
 
 	Menu.prototype.onsappagedown = function(oEvent) {
+		var iIdx = this.oHoveredItem ? this.indexOfAggregation("items", this.oHoveredItem) : -1,
+			oNextSelectableItem;
+
 		if (this.getPageSize() < 1) {
 			this.onsapend(oEvent);
 			return;
 		}
-		var iIdx = this.oHoveredItem ? this.indexOfAggregation("items", this.oHoveredItem) : -1;
 		iIdx += this.getPageSize();
-
 		if (iIdx >= this.getItems().length) {
 			this.onsapend(oEvent);
 			return;
 		}
-		this.setHoveredItem(this.getNextSelectableItem(iIdx - 1)); //subtract 1 to preserve computed page offset because getNextSelectableItem already offsets 1 item down
+		oNextSelectableItem = this.getNextSelectableItem(iIdx - 1);
+		this.setHoveredItem(oNextSelectableItem); //subtract 1 to preserve computed page offset because getNextSelectableItem already offsets 1 item down
+		oNextSelectableItem && oNextSelectableItem.focus(this);
 
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
 	};
 
 	Menu.prototype.onsappageup = function(oEvent) {
+		var iIdx = this.oHoveredItem ? this.indexOfAggregation("items", this.oHoveredItem) : -1,
+			oPrevSelectableItem;
+
 		if (this.getPageSize() < 1) {
 			this.onsaphome(oEvent);
 			return;
 		}
-
-		var iIdx = this.oHoveredItem ? this.indexOfAggregation("items", this.oHoveredItem) : -1;
 		iIdx -= this.getPageSize();
 		if (iIdx < 0) {
 			this.onsaphome(oEvent);
 			return;
 		}
-		this.setHoveredItem(this.getPreviousSelectableItem(iIdx + 1)); //add 1 to preserve computed page offset because getPreviousSelectableItem already offsets one item up
+
+		oPrevSelectableItem = this.getPreviousSelectableItem(iIdx + 1);
+		this.setHoveredItem(oPrevSelectableItem); //add 1 to preserve computed page offset because getPreviousSelectableItem already offsets one item up
+		oPrevSelectableItem && oPrevSelectableItem.focus(this);
 
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
@@ -687,7 +750,7 @@ sap.ui.define([
 		// focus menuItems
 		if (this.oHoveredItem && (jQuery(oEvent.target).prop("tagName") != "INPUT")) {
 			var oDomRef = this.oHoveredItem.getDomRef();
-			jQuery(oDomRef).attr("tabIndex", 0).focus();
+			jQuery(oDomRef).trigger("focus");
 		}
 
 		//like sapselect but on keyup:
@@ -696,12 +759,13 @@ sap.ui.define([
 		//the keyup is fired on the caller (in case of a button a click event is fired there in FF -> Bad!)
 		//The attribute _sapSelectOnKeyDown is used to avoid the problem the other way round (Space is pressed
 		//on Button which opens the menu and the space keyup immediately selects the first item)
-		if (!this._sapSelectOnKeyDown) {
+		//The device checks are made, because of the new functionality of iOS13, that brings desktop view on tablet
+		if (!this._sapSelectOnKeyDown && ( oEvent.key !== KeyCodes.Space || (!sap.ui.Device.os.macintosh && window.navigator.maxTouchPoints <= 1))) {
 			return;
 		} else {
 			this._sapSelectOnKeyDown = false;
 		}
-		if (!PseudoEvents.events.sapselect.fnCheck(oEvent)) {
+		if (!PseudoEvents.events.sapselect.fnCheck(oEvent) && oEvent.key !== "Enter") {
 			return;
 		}
 		this.selectItem(this.oHoveredItem, true, false);
@@ -717,44 +781,20 @@ sap.ui.define([
 	Menu.prototype.onsapbackspacemodifiers = Menu.prototype.onsapbackspace;
 
 	Menu.prototype.onsapescape = function(oEvent){
-		this.close();
+		this.close(true);
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
 	};
 
-	Menu.prototype.onsaptabnext = Menu.prototype.onsapescape;
-	Menu.prototype.onsaptabprevious = Menu.prototype.onsapescape;
-
-	Menu.prototype.onmouseover = function(oEvent){
-		if (!Device.system.desktop) {
-			return;
+	Menu.prototype.onsaptabnext = function(oEvent){
+		if (this.isSubMenu()){
+			oEvent.preventDefault();
 		}
-		var oItem = this.getItemByDomRef(oEvent.target);
-		if (!this.bOpen || !oItem) {
-			return;
-		}
-
-		if (this.oOpenedSubMenu && containsOrEquals(this.oOpenedSubMenu.getDomRef(), oEvent.target)) {
-			return;
-		}
-
-		this.setHoveredItem(oItem);
-
-		if (checkMouseEnterOrLeave(oEvent, this.getDomRef())) {
-			/* TODO remove after 1.62 version */
-			if (!Device.browser.msie && !Device.browser.edge) { //for IE & Edge skip it, otherwise it will move the focus out of the hovered item set before
-				this.getDomRef().focus();
-			}
-		}
-
-		/* TODO remove after 1.62 version */
-		if (Device.browser.msie) {
-			this.getDomRef().focus();
-		}
-
-		this._openSubMenuDelayed(oItem);
-
+		this.close(true);
+		oEvent.stopPropagation();
 	};
+
+	Menu.prototype.onsaptabprevious = Menu.prototype.onsaptabnext;
 
 	Menu.prototype._openSubMenuDelayed = function(oItem){
 		if (!oItem) {
@@ -762,13 +802,13 @@ sap.ui.define([
 		}
 		this._discardOpenSubMenuDelayed();
 		this._delayedSubMenuTimer = setTimeout(function(){
-			this.closeSubmenu();
-			if (!oItem.getSubmenu() || !this.checkEnabled(oItem)) {
-				return;
+			this.checkEnabled(oItem) && this.closeSubmenu(false, true);
+			if (this.checkEnabled(oItem) && oItem.getSubmenu()) {
+				this.setHoveredItem(oItem);
+				oItem && oItem.focus(this);
+				this.openSubmenu(oItem, false, true);
 			}
-			this.setHoveredItem(oItem);
-			this.openSubmenu(oItem, false, true);
-	}.bind(this), oItem.getSubmenu() && this.checkEnabled(oItem) ? Menu._DELAY_SUBMENU_TIMER : Menu._DELAY_SUBMENU_TIMER_EXT);
+		}.bind(this), oItem.getSubmenu() && this.checkEnabled(oItem) ? Menu._DELAY_SUBMENU_TIMER : Menu._DELAY_SUBMENU_TIMER_EXT);
 	};
 
 	Menu.prototype._discardOpenSubMenuDelayed = function(oItem){
@@ -785,7 +825,8 @@ sap.ui.define([
 
 		if (checkMouseEnterOrLeave(oEvent, this.getDomRef())) {
 			if (!this.oOpenedSubMenu || !(this.oOpenedSubMenu.getParent() === this.oHoveredItem)) {
-				this.setHoveredItem(null);
+				this.setHoveredItem(this.oHoveredItem);
+
 			}
 			this._discardOpenSubMenuDelayed();
 		}
@@ -875,10 +916,11 @@ sap.ui.define([
 		}
 
 		var oSubMenu = oItem.getSubmenu();
-
 		if (!oSubMenu) {
 			// This is a normal item -> Close all menus and fire event.
-			this.getRootMenu().close();
+			// Call Menu.prototype.close with argument value equal to "true"
+			// in order not to ignore the opener DOM reference
+			this.getRootMenu().close(true);
 		} else {
 			if (!Device.system.desktop && this.oOpenedSubMenu === oSubMenu) {
 				this.closeSubmenu();
@@ -932,28 +974,13 @@ sap.ui.define([
 
 		if (!oItem) {
 			this.oHoveredItem = null;
-			jQuery(this.getDomRef()).removeAttr("aria-activedescendant");
 			return;
 		}
 
 		this.oHoveredItem = oItem;
 		oItem.hover(true, this);
-		this._setActiveDescendant(this.oHoveredItem);
 
 		this.scrollToItem(this.oHoveredItem);
-	};
-
-	Menu.prototype._setActiveDescendant = function(oItem){
-		if (sap.ui.getCore().getConfiguration().getAccessibility() && oItem) {
-			var that = this;
-			that.$().removeAttr("aria-activedescendant");
-			setTimeout(function(){
-				//Setting active descendant must be a bit delayed. Otherwise the screenreader does not announce it.
-				if (that.oHoveredItem === oItem) {
-					that.$().attr("aria-activedescendant", that.oHoveredItem.getId());
-				}
-			}, 10);
-		}
 	};
 
 	/**
@@ -989,7 +1016,7 @@ sap.ui.define([
 			// Open the sub menu
 			this.oOpenedSubMenu = oSubMenu;
 			var eDock = Popup.Dock;
-			oSubMenu.open(bWithKeyboard, this, eDock.BeginTop, eDock.EndTop, oItem, "0 0");
+			oSubMenu.open(bWithKeyboard, oItem, eDock.BeginTop, eDock.EndTop, oItem, "-4 4");
 		}
 	};
 
@@ -1129,7 +1156,6 @@ sap.ui.define([
 	Menu.prototype.focus = function(){
 		if (this.bOpen) {
 			Control.prototype.focus.apply(this, arguments);
-			this._setActiveDescendant(this.oHoveredItem);
 		}
 	};
 
@@ -1201,227 +1227,26 @@ sap.ui.define([
 		}
 	}
 
-	//**********************************************
+	function _isElementInViewport(oDomElement) {
+		var mRect;
 
-	/*!
-	 * The following code is taken from
-	 * jQuery UI 1.10.3 - 2013-11-18
-	 * jquery.ui.position.js
-	 *
-	 * http://jqueryui.com
-	 * Copyright 2013 jQuery Foundation and other contributors; Licensed MIT
-	 */
+		if (!oDomElement) {
+			return false;
+		}
 
-	//TODO: Get rid of this coding when jQuery UI 1.8 is no longer supported and the framework was switched to jQuery UI 1.9 ff.
+		if (oDomElement instanceof jQuery) {
+			oDomElement = oDomElement.get(0);
+		}
 
-	function _migrateDataTojQueryUI110(data){
-		var withinElement = jQuery(window);
-		data.within = {
-			element: withinElement,
-			isWindow: true,
-			offset: withinElement.offset() || { left: 0, top: 0 },
-			scrollLeft: withinElement.scrollLeft(),
-			scrollTop: withinElement.scrollTop(),
-			width: withinElement.width(),
-			height: withinElement.height()
-		};
-		data.collisionPosition = {
-			marginLeft: 0,
-			marginTop: 0
-		};
-		return data;
+		mRect = oDomElement.getBoundingClientRect();
+
+		return (
+			mRect.top >= 0 &&
+			mRect.left >= 0 &&
+			mRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+			mRect.right <= (window.innerWidth || document.documentElement.clientWidth)
+		);
 	}
-
-	var _pos_jQueryUI110 = {
-		fit: {
-			left: function( position, data ) {
-				var within = data.within,
-					withinOffset = within.isWindow ? within.scrollLeft : within.offset.left,
-					outerWidth = within.width,
-					collisionPosLeft = position.left - data.collisionPosition.marginLeft,
-					overLeft = withinOffset - collisionPosLeft,
-					overRight = collisionPosLeft + data.collisionWidth - outerWidth - withinOffset,
-					newOverRight;
-
-				// element is wider than within
-				if ( data.collisionWidth > outerWidth ) {
-					// element is initially over the left side of within
-					if ( overLeft > 0 && overRight <= 0 ) {
-						newOverRight = position.left + overLeft + data.collisionWidth - outerWidth - withinOffset;
-						position.left += overLeft - newOverRight;
-					// element is initially over right side of within
-					} else if ( overRight > 0 && overLeft <= 0 ) {
-						position.left = withinOffset;
-					// element is initially over both left and right sides of within
-					} else {
-						if ( overLeft > overRight ) {
-							position.left = withinOffset + outerWidth - data.collisionWidth;
-						} else {
-							position.left = withinOffset;
-						}
-					}
-				// too far left -> align with left edge
-				} else if ( overLeft > 0 ) {
-					position.left += overLeft;
-				// too far right -> align with right edge
-				} else if ( overRight > 0 ) {
-					position.left -= overRight;
-				// adjust based on position and margin
-				} else {
-					position.left = Math.max( position.left - collisionPosLeft, position.left );
-				}
-			},
-			top: function( position, data ) {
-				var within = data.within,
-					withinOffset = within.isWindow ? within.scrollTop : within.offset.top,
-					outerHeight = data.within.height,
-					collisionPosTop = position.top - data.collisionPosition.marginTop,
-					overTop = withinOffset - collisionPosTop,
-					overBottom = collisionPosTop + data.collisionHeight - outerHeight - withinOffset,
-					newOverBottom;
-
-				// element is taller than within
-				if ( data.collisionHeight > outerHeight ) {
-					// element is initially over the top of within
-					if ( overTop > 0 && overBottom <= 0 ) {
-						newOverBottom = position.top + overTop + data.collisionHeight - outerHeight - withinOffset;
-						position.top += overTop - newOverBottom;
-					// element is initially over bottom of within
-					} else if ( overBottom > 0 && overTop <= 0 ) {
-						position.top = withinOffset;
-					// element is initially over both top and bottom of within
-					} else {
-						if ( overTop > overBottom ) {
-							position.top = withinOffset + outerHeight - data.collisionHeight;
-						} else {
-							position.top = withinOffset;
-						}
-					}
-				// too far up -> align with top
-				} else if ( overTop > 0 ) {
-					position.top += overTop;
-				// too far down -> align with bottom edge
-				} else if ( overBottom > 0 ) {
-					position.top -= overBottom;
-				// adjust based on position and margin
-				} else {
-					position.top = Math.max( position.top - collisionPosTop, position.top );
-				}
-			}
-		},
-		flip: {
-			left: function( position, data ) {
-				var within = data.within,
-					withinOffset = within.offset.left + within.scrollLeft,
-					outerWidth = within.width,
-					offsetLeft = within.isWindow ? within.scrollLeft : within.offset.left,
-					collisionPosLeft = position.left - data.collisionPosition.marginLeft,
-					overLeft = collisionPosLeft - offsetLeft,
-					overRight = collisionPosLeft + data.collisionWidth - outerWidth - offsetLeft,
-					/*eslint-disable no-nested-ternary */
-					myOffset = data.my[ 0 ] === "left" ?
-						-data.elemWidth :
-						data.my[ 0 ] === "right" ?
-							data.elemWidth :
-							0,
-					atOffset = data.at[ 0 ] === "left" ?
-						data.targetWidth :
-						data.at[ 0 ] === "right" ?
-							-data.targetWidth :
-							0,
-					/*eslint-enable no-nested-ternary */
-					offset = -2 * data.offset[ 0 ],
-					newOverRight,
-					newOverLeft;
-
-				if ( overLeft < 0 ) {
-					newOverRight = position.left + myOffset + atOffset + offset + data.collisionWidth - outerWidth - withinOffset;
-					if ( newOverRight < 0 || newOverRight < Math.abs( overLeft ) ) {
-						position.left += myOffset + atOffset + offset;
-					}
-				} else if ( overRight > 0 ) {
-					newOverLeft = position.left - data.collisionPosition.marginLeft + myOffset + atOffset + offset - offsetLeft;
-					if ( newOverLeft > 0 || Math.abs( newOverLeft ) < overRight ) {
-						position.left += myOffset + atOffset + offset;
-					}
-				}
-			},
-			top: function( position, data ) {
-				var within = data.within,
-					withinOffset = within.offset.top + within.scrollTop,
-					outerHeight = within.height,
-					offsetTop = within.isWindow ? within.scrollTop : within.offset.top,
-					collisionPosTop = position.top - data.collisionPosition.marginTop,
-					overTop = collisionPosTop - offsetTop,
-					overBottom = collisionPosTop + data.collisionHeight - outerHeight - offsetTop,
-					top = data.my[ 1 ] === "top",
-					/*eslint-disable no-nested-ternary */
-					myOffset = top ?
-						-data.elemHeight :
-						data.my[ 1 ] === "bottom" ?
-							data.elemHeight :
-							0,
-					atOffset = data.at[ 1 ] === "top" ?
-						data.targetHeight :
-						data.at[ 1 ] === "bottom" ?
-							-data.targetHeight :
-							0,
-					/*eslint-enable no-nested-ternary */
-					offset = -2 * data.offset[ 1 ],
-					newOverTop,
-					newOverBottom;
-				if ( overTop < 0 ) {
-					newOverBottom = position.top + myOffset + atOffset + offset + data.collisionHeight - outerHeight - withinOffset;
-					if ( ( position.top + myOffset + atOffset + offset) > overTop && ( newOverBottom < 0 || newOverBottom < Math.abs( overTop ) ) ) {
-						position.top += myOffset + atOffset + offset;
-					}
-				} else if ( overBottom > 0 ) {
-					newOverTop = position.top -  data.collisionPosition.marginTop + myOffset + atOffset + offset - offsetTop;
-					if ( ( position.top + myOffset + atOffset + offset) > overBottom && ( newOverTop > 0 || Math.abs( newOverTop ) < overBottom ) ) {
-						position.top += myOffset + atOffset + offset;
-					}
-				}
-			}
-		},
-		flipfit: {
-			left: function() {
-				_pos_jQueryUI110.flip.left.apply( this, arguments );
-				_pos_jQueryUI110.fit.left.apply( this, arguments );
-			},
-			top: function() {
-				_pos_jQueryUI110.flip.top.apply( this, arguments );
-				_pos_jQueryUI110.fit.top.apply( this, arguments );
-			}
-		}
-	};
-
-	jQuery.ui.position._sapUiCommonsMenuFlip = {
-		left: function(position, data){
-
-			if (jQuery.ui.position.flipfit) { //jQuery UI 1.9 ff.
-				jQuery.ui.position.flipfit.left.apply(this, arguments);
-				return;
-			}
-
-			//jQuery UI 1.8
-			data = _migrateDataTojQueryUI110(data);
-			_pos_jQueryUI110.flipfit.left.apply(this, arguments);
-		},
-		top: function(position, data){
-
-			if (jQuery.ui.position.flipfit) { //jQuery UI 1.9 ff.
-				jQuery.ui.position.flipfit.top.apply(this, arguments);
-				return;
-			}
-
-			//jQuery UI 1.8
-			data = _migrateDataTojQueryUI110(data);
-			_pos_jQueryUI110.flipfit.top.apply(this, arguments);
-		}
-	};
-
-	//******************** jQuery UI 1.10.3 End **************************
-
 
 	})(window);
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -39,7 +39,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -456,7 +456,7 @@ sap.ui.define([
 						var tPercentage = percW;
 
 						oRm.renderControl(oCont.control);
-						oRm.write("</div>");
+						oRm.close("div");
 
 						/*
 						 * Render all following elements that should wrap with the
@@ -490,16 +490,16 @@ sap.ui.define([
 							oRm.writeHeader(sHeaderId, oStyles, aClasses);
 
 							oRm.renderControl(oCont.breakWith[jj].control);
-							oRm.write("</div>");
+							oRm.close("div");
 						}
 					} else {
 						oRm.renderControl(oCont.control);
 					}
-					oRm.write("</div>"); // content
+					oRm.close("div"); // content
 
-					oRm.write("</div>"); // container
+					oRm.close("div"); // container
 				}
-				oRm.write("</div>"); // row
+				oRm.close("div"); // row
 
 				this._iRowCounter++;
 			}
@@ -516,7 +516,7 @@ sap.ui.define([
 
 				if (this._rows) {
 					for (var i = 0; i < this._rows.length; i++) {
-						var $Row = this._$DomRef.find("#" + sId + "-row" + i);
+						var $Row = jQuery(document.getElementById(sId + "-row" + i));
 
 						var oTargetWrapping = getTargetWrapping(this._rows[i], iInnerWidth);
 						var oCurrentWrapping = getCurrentWrapping(this._rows[i], $Row, this);
@@ -660,6 +660,7 @@ sap.ui.define([
 				this._IntervalCall = undefined;
 			}
 			this.addAggregation("content", oContent);
+			return this;
 		};
 
 		/**
@@ -679,6 +680,7 @@ sap.ui.define([
 				this._IntervalCall = undefined;
 			}
 			this.insertAggregation("content", oContent, iIndex);
+			return this;
 		};
 
 		/**
@@ -750,27 +752,22 @@ sap.ui.define([
 		ResponsiveFlowLayout.prototype._getRenderManager = function () {
 			if (!this.oRm) {
 				this.oRm = sap.ui.getCore().createRenderManager();
-				this.oRm.writeStylesAndClasses = function() {
-					this.writeStyles();
-					this.writeClasses();
-				};
 				this.oRm.writeHeader = function(sId, oStyles, aClasses) {
-					this.write('<div id="' + sId + '"');
+					this.openStart("div", sId);
 
 					if (oStyles) {
 						for ( var key in oStyles) {
 							if (key === "width" && oStyles[key] === "100%") {
-								this.addClass("sapUiRFLFullLength");
+								this.class("sapUiRFLFullLength");
 							}
-							this.addStyle(key, oStyles[key]);
+							this.style(key, oStyles[key]);
 						}
 					}
 					for (var i = 0; i < aClasses.length; i++) {
-						this.addClass(aClasses[i]);
+						this.class(aClasses[i]);
 					}
 
-					this.writeStylesAndClasses();
-					this.write(">");
+					this.openEnd();
 				};
 			}
 			return this.oRm;

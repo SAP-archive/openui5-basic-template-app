@@ -1,8 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
+// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
+// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
+// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
+sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 // Provides control sap.m.SinglePlanningCalendar.
 sap.ui.define([
@@ -11,18 +16,17 @@ sap.ui.define([
 	'./SegmentedButtonItem',
 	"./SinglePlanningCalendarWeekView",
 	'./SinglePlanningCalendarGrid',
+	'./SinglePlanningCalendarMonthGrid',
 	'./SinglePlanningCalendarRenderer',
 	'sap/base/Log',
 	'sap/ui/core/Control',
-	'sap/ui/core/Locale',
-	'sap/ui/core/LocaleData',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/ResizeHandler',
-	'sap/ui/core/date/UniversalDate',
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/unified/calendar/CalendarDate',
-	'sap/ui/unified/calendar/CalendarUtils',
-	'sap/ui/unified/DateRange'
+	'sap/ui/unified/DateRange',
+	'sap/ui/base/ManagedObjectObserver',
+	"sap/ui/thirdparty/jquery"
 ],
 function(
 	library,
@@ -30,23 +34,24 @@ function(
 	SegmentedButtonItem,
 	SinglePlanningCalendarWeekView,
 	SinglePlanningCalendarGrid,
+	SinglePlanningCalendarMonthGrid,
 	SinglePlanningCalendarRenderer,
 	Log,
 	Control,
-	Locale,
-	LocaleData,
 	InvisibleText,
 	ResizeHandler,
-	UniversalDate,
 	DateFormat,
 	CalendarDate,
-	CalendarUtils,
-	DateRange
+	DateRange,
+	ManagedObjectObserver,
+	jQuery
 ) {
 	"use strict";
 
 	var PlanningCalendarStickyMode = library.PlanningCalendarStickyMode;
 	var HEADER_RESIZE_HANDLER_ID = "_sHeaderResizeHandlerId";
+	var MAX_NUMBER_OF_VIEWS_IN_SEGMENTED_BUTTON = 4;
+	var SEGMENTEDBUTTONITEM__SUFFIX = "--item";
 
 	/**
 	 * Constructor for a new <code>SinglePlanningCalendar</code>.
@@ -56,9 +61,9 @@ function(
 	 *
 	 * @class
 	 *
-	 * <h3>Overview</h3>
-	 *
 	 * Displays a calendar of a single entity (such as person, resource) for the selected time interval.
+	 *
+	 * <h3>Overview</h3>
 	 *
 	 * <b>Note:</b> The <code>SinglePlanningCalendar</code> uses parts of the <code>sap.ui.unified</code> library.
 	 * This library will be loaded after the <code>SinglePlanningCalendar</code>, if it wasn't previously loaded.
@@ -66,27 +71,37 @@ function(
 	 * To prevent this, apps using the <code>SinglePlanningCalendar</code> must also load the
 	 * <code>sap.ui.unified</code> library.
 	 *
-	 * <b>Disclaimer</b>: This control is in a beta state - incompatible API changes may be done before its official public
-	 * release. Use at your own discretion.
-	 *
-	 * <h3>Usage</h3>
-	 *
 	 * The <code>SinglePlanningCalendar</code> has the following structure:
 	 *
 	 * <ul>
 	 *     <li>A <code>PlanningCalendarHeader</code> at the top. It contains the <code>title</code> set from the
 	 *     corresponding property, the <code>SegmentedButton</code>, which facilitates navigation through the views,
 	 *     controls, passed to the <code>actions</code> aggregation and the navigation, assisting the user in
-	 *     choosing the desired time period. The views can be configured and passed through the <code>views</code>
-	 *     aggregation.</li>
-	 *     <li>A <code>SinglePlanningCalendarGrid</code>, which displays the appointments, set to the visual time range.
+	 *     choosing the desired time period. The views, either custom or not, can be configured and passed through the
+	 *     <code>views</code> aggregation.
+	 *
+	 *     To create custom views, extend the <code>SinglePlanningCalendarView</code> basic view class. It defines three
+	 *     methods that should be overwritten: <code>getEntityCount</code>, <code>getScrollEntityCount</code> and
+	 *     <code>calculateStartDate</code>
+	 *     <ul>
+	 *         <li><code>getEntityCount</code> - returns number of columns to be displayed</li>
+	 *         <li><code>getScrollEntityCount</code> - used when next and previous arrows in the calendar are used.
+	 *         For example, in work week view, the <code>getEntityCount</code> returns 5 (5 columns from Monday to
+	 *         Friday), but when next arrow is selected, the control navigates 7 days ahead and
+	 *         <code>getScrollEntityCount</code> returns 7.</li>
+	 *         <li><code>calculateStartDate</code> - calculates the first day displayed in the calendar based on the
+	 *         <code>startDate</code> property of the <code>SinglePlanningCalendar</code>. For example, it returns the
+	 *         first date of a month or a week to display the first 10 days of the month.</li>
+	 *     </ul>
+	 *
+	 *     <li>A <code>SinglePlanningCalendarGrid</code> or <code>SinglePlanningCalendarMonthGrid</code>, which displays the appointments, set to the visual time range.
 	 *     An all-day appointment is an appointment which starts at 00:00 and ends in 00:00 on any day in the future.
 	 * </ul>
 	 *
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -112,6 +127,26 @@ function(
 			startDate: { type : "object", group : "Data" },
 
 			/**
+			 * Determines the start hour of the grid to be shown if the <code>fullDay</code> property is set to
+			 * <code>false</code>. Otherwise the previous hours are displayed as non-working. The passed hour is
+			 * considered as 24-hour based.
+			 */
+			startHour: {type: "int", group: "Data", defaultValue: 0},
+
+			/**
+			 * Determines the end hour of the grid to be shown if the <code>fullDay</code> property is set to
+			 * <code>false</code>. Otherwise the next hours are displayed as non-working. The passed hour is
+			 * considered as 24-hour based.
+			 */
+			endHour: {type: "int", group: "Data", defaultValue: 24},
+
+			/**
+			 * Determines if all of the hours in a day are displayed. If set to <code>false</code>, the hours shown are
+			 * between the <code>startHour</code> and <code>endHour</code>.
+			 */
+			fullDay: {type: "boolean", group: "Data", defaultValue: true},
+
+			/**
 			 * Determines which part of the control will remain fixed at the top of the page during vertical scrolling
 			 * as long as the control is in the viewport.
 			 *
@@ -134,7 +169,29 @@ function(
 			 *
 			 * @since 1.64
 			 */
-			enableAppointmentsDragAndDrop : {type : "boolean", group : "Misc", defaultValue : false}
+			enableAppointmentsDragAndDrop: { type: "boolean", group: "Misc", defaultValue: false },
+
+			/**
+			 * Determines whether the appointments are resizable.
+			 *
+			 * The resize interaction is visualized by making the appointment transparent.
+			 *
+			 * The appointment snaps on every interval
+			 * of 30 minutes. After the resize is finished, the {@link #event:appointmentResize appointmentResize} event is fired, containing
+			 * the new start and end JavaScript date objects.
+			 *
+			 * @since 1.65
+			 */
+			enableAppointmentsResize: { type: "boolean", group: "Misc", defaultValue: false },
+
+			/**
+			 * Determines whether the appointments can be created by dragging on empty cells.
+			 *
+			 * See {@link #property:enableAppointmentsResize enableAppointmentsResize} for the specific points for events snapping
+			 *
+			 * @since 1.65
+			 */
+			enableAppointmentsCreate: { type: "boolean", group: "Misc", defaultValue: false }
 		},
 
 		aggregations : {
@@ -162,7 +219,7 @@ function(
 				multiple: true,
 				singularName: "appointment",
 				forwarding: {
-					getter: "_getGrid",
+					getter: "_getCurrentGrid",
 					aggregation: "appointments"
 				}
 			},
@@ -175,7 +232,21 @@ function(
 			views : {type : "sap.m.SinglePlanningCalendarView", multiple : true, singularName : "view"},
 
 			/**
-			 * Hidden, for internal use only.
+			 * Special days in the header visualized as a date range with type.
+			 *
+			 * <b>Note:</b> If one day is assigned to more than one type, only the first type is used.
+			 * @since 1.66
+			 */
+			specialDates : {type : "sap.ui.unified.DateTypeRange",
+							multiple : true,
+							singularName : "specialDate",
+							forwarding: {
+								getter: "_getCurrentGrid",
+								aggregation: "specialDates"
+							}
+			},
+
+			/**
 			 * The header part of the <code>SinglePlanningCalendar</code>.
 			 *
 			 * @private
@@ -183,12 +254,18 @@ function(
 			_header : { type : "sap.m.PlanningCalendarHeader", multiple : false, visibility : "hidden" },
 
 			/**
-			 * Hidden, for internal use only.
-			 * The gid part of the <code>SinglePlanningCalendar</code>.
+			 * The grid part of the <code>SinglePlanningCalendar</code>.
 			 *
 			 * @private
 			 */
-			_grid : { type : "sap.m.SinglePlanningCalendarGrid", multiple : false, visibility : "hidden" }
+			_grid: { type: "sap.ui.core.Control", multiple: false, visibility: "hidden" },
+
+			/**
+			 * The grid part of the <code>SinglePlanningCalendar</code>.
+			 *
+			 * @private
+			 */
+			_mvgrid: { type: "sap.ui.core.Control", multiple: false, visibility: "hidden" }
 
 		},
 
@@ -197,22 +274,35 @@ function(
 			/**
 			 * Corresponds to the currently selected view.
 			 */
-			selectedView: { type: "sap.m.SinglePlanningCalendarView", multiple: false }
+			selectedView: { type: "sap.m.SinglePlanningCalendarView", multiple: false },
+
+			/**
+			 * Association to the <code>PlanningCalendarLegend</code> explaining the colors of the <code>Appointments</code>.
+			 *
+			 * <b>Note:</b> The legend does not have to be rendered but must exist and all required types must be assigned.
+			 * @since 1.65.0
+			 */
+			legend: { type: "sap.m.PlanningCalendarLegend", multiple: false}
 
 		},
 
 		events: {
 
 			/**
-			 * Fired if an appointment is selected.
+			 * Fired when the selected state of an appointment is changed.
 			 */
 			appointmentSelect: {
 				parameters: {
 
 					/**
-					 * The selected appointment.
+					 * The appointment on which the event was triggered.
 					 */
-					appointment: {type: "sap.ui.unified.CalendarAppointment"}
+					appointment: {type: "sap.ui.unified.CalendarAppointment"},
+					/**
+					 * All appointments with changed selected state.
+					 * @since 1.67.0
+					 */
+					appointments : {type : "sap.ui.unified.CalendarAppointment[]"}
 
 				}
 			},
@@ -246,6 +336,47 @@ function(
 			},
 
 			/**
+			 * Fired when an appointment is resized.
+			 * @since 1.65
+			 */
+			appointmentResize: {
+				parameters: {
+					/**
+					 * The resized appointment.
+					 */
+					appointment: { type: "sap.ui.unified.CalendarAppointment" },
+
+					/**
+					 * Start date of the resized appointment, as a JavaScript date object.
+					 */
+					startDate: { type: "object" },
+
+					/**
+					 * End date of the resized appointment, as a JavaScript date object.
+					 */
+					endDate: { type: "object" }
+				}
+			},
+
+			/**
+			 * Fired if an appointment is created.
+			 * @since 1.65
+			 */
+			appointmentCreate: {
+				parameters: {
+					/**
+					 * Start date of the created appointment, as a JavaScript date object.
+					 */
+					startDate: {type: "object"},
+
+					/**
+					 * End date of the created appointment, as a JavaScript date object.
+					 */
+					endDate: {type: "object"}
+				}
+			},
+
+			/**
 			 * Fired if a date is selected in the calendar header.
 			 */
 			headerDateSelect: {
@@ -271,7 +402,46 @@ function(
 					date: {type: "object"}
 
 				}
-			}
+			},
+
+			/**
+			 * Fired when a grid cell is focused.
+			 * @since 1.65
+			 */
+			cellPress: {
+				parameters: {
+					/**
+					 * The start date as a JavaScript date object of the focused grid cell.
+					 */
+					startDate: {type: "object"},
+					/**
+					 * The end date as a JavaScript date object of the focused grid cell.
+					 */
+					endDate: {type: "object"}
+				}
+			},
+
+			/**
+			 * Fired when a 'more' button is pressed.
+			 * <b>Note:</b> The 'more' button appears in a month view cell
+			 * when multiple appointments exist and the available space
+			 * is not sufficient to display all of them.
+			 */
+			moreLinkPress: {
+				parameters: {
+					/**
+					 * The date as a JavaScript date object of the cell with the
+					 * pressed more link.
+					 */
+					date: { type: "object" }
+				}
+			},
+
+			/**
+			 * The view was changed by user interaction.
+			 * @since 1.71.0
+			 */
+			viewChange : {}
 		}
 
 	}});
@@ -287,10 +457,13 @@ function(
 		this.setAssociation("selectedView", this._oDefaultView);
 
 		this.setAggregation("_header", this._createHeader());
+
 		this.setAggregation("_grid", new SinglePlanningCalendarGrid(sOPCId + "-Grid"));
+		this.setAggregation("_mvgrid", new SinglePlanningCalendarMonthGrid(sOPCId + "-GridMV"));
 
 		this._attachHeaderEvents();
 		this._attachGridEvents();
+		this._attachDelegates();
 		this.setStartDate(new Date());
 	};
 
@@ -328,6 +501,11 @@ function(
 			this._oDefaultView = null;
 		}
 
+		if (this._afterRenderFocusCell) {
+			this.removeDelegate(this._afterRenderFocusCell);
+			this._afterRenderFocusCell = null;
+		}
+
 		this._deRegisterResizeHandler(HEADER_RESIZE_HANDLER_ID);
 	};
 
@@ -362,20 +540,54 @@ function(
 	SinglePlanningCalendar.prototype.setTitle = function (sTitle) {
 		this._getHeader().setTitle(sTitle);
 
-		return this.setProperty("title", sTitle, true);
+		return this.setProperty("title", sTitle);
 	};
 
 	SinglePlanningCalendar.prototype.setStartDate = function (oDate) {
-		this.setProperty("startDate", oDate, true /*Suppressing because _alignColumns will do the rendering.*/ );
+		this.setProperty("startDate", oDate);
 		this._alignColumns();
 
 		return this;
 	};
 
+	SinglePlanningCalendar.prototype.setStartHour = function (iHour) {
+		this.getAggregation("_grid").setStartHour(iHour);
+		this.setProperty("startHour", iHour);
+
+		return this;
+	};
+
+	SinglePlanningCalendar.prototype.setEndHour = function (iHour) {
+		this.getAggregation("_grid").setEndHour(iHour);
+		this.setProperty("endHour", iHour);
+
+		return this;
+	};
+
+	SinglePlanningCalendar.prototype.setFullDay = function (bFullDay) {
+		this.getAggregation("_grid").setFullDay(bFullDay);
+		this.setProperty("fullDay", bFullDay);
+
+		return this;
+	};
+
 	SinglePlanningCalendar.prototype.setEnableAppointmentsDragAndDrop = function (bEnabled) {
-		this._getGrid().setEnableAppointmentsDragAndDrop(bEnabled);
+		this.getAggregation("_grid").setEnableAppointmentsDragAndDrop(bEnabled);
+		this.getAggregation("_mvgrid").setEnableAppointmentsDragAndDrop(bEnabled);
 
 		return this.setProperty("enableAppointmentsDragAndDrop", bEnabled, true);
+	};
+
+	SinglePlanningCalendar.prototype.setEnableAppointmentsResize = function(bEnabled) {
+		this.getAggregation("_grid").setEnableAppointmentsResize(bEnabled);
+
+		return this.setProperty("enableAppointmentsResize", bEnabled, true);
+	};
+
+	SinglePlanningCalendar.prototype.setEnableAppointmentsCreate = function(bEnabled) {
+		this.getAggregation("_grid").setEnableAppointmentsCreate(bEnabled);
+
+		return this.setProperty("enableAppointmentsCreate", bEnabled, true);
 	};
 
 	/**
@@ -402,9 +614,9 @@ function(
 	 */
 	SinglePlanningCalendar.prototype._adjustColumnHeadersTopOffset = function () {
 		var sStickyMode = this.getStickyMode(),
-			oGrid = this._getGrid(),
+			oGrid = this.getAggregation("_grid"),
 			oColumnHeaders = oGrid && oGrid._getColumnHeaders(),
-			sTop;
+			iTop;
 
 		// Make sure that the columnHeaders are rendered
 		if (!oColumnHeaders || !oColumnHeaders.getDomRef()) {
@@ -414,25 +626,30 @@ function(
 		switch (sStickyMode) {
 			case PlanningCalendarStickyMode.All:
 				// Since the whole header will be visible, columnHeaders should be offset by its whole height.
-				sTop = this._getHeader().$().outerHeight();
+				iTop = this._getHeader().$().outerHeight();
 				break;
 			case PlanningCalendarStickyMode.NavBarAndColHeaders:
 				// Since the action toolbar will be hidden, columnHeaders should be
-				sTop = this._getHeader()._getNavigationToolbar().$().outerHeight();
+				// with top position the height of the navigation toolbar
+				iTop = this._getHeader()._getNavigationToolbar().$().outerHeight();
 				break;
 			default:
 				// Reset to default, if not in sticky mode
-				sTop = "auto";
+				iTop = "auto";
 				break;
 		}
 
-		oColumnHeaders.$().css("top", sTop);
+		oColumnHeaders.$().css("top", iTop);
+		oColumnHeaders._setTopPosition(iTop);
 
 		return this;
 	};
 
 	SinglePlanningCalendar.prototype.addView = function (oView) {
-		var oViewsButton;
+		var oViewsButton,
+			oHeader = this._getHeader(),
+			sSegmentedButtonItemId = oView.getId() + SEGMENTEDBUTTONITEM__SUFFIX,
+			oSegmentedButtonItem;
 
 		if (!oView) {
 			return this;
@@ -440,26 +657,37 @@ function(
 
 		if (this._isViewKeyExisting(oView.getKey())) {
 			Log.error("There is an existing view with the same key.", this);
-			return;
+			return this;
 		}
 
 		this.addAggregation("views", oView);
 
-		oViewsButton = this._getHeader()._getOrCreateViewSwitch();
-		oViewsButton.addItem(new SegmentedButtonItem({
+		oViewsButton = oHeader._getOrCreateViewSwitch();
+
+		oSegmentedButtonItem = new SegmentedButtonItem(sSegmentedButtonItemId, {
 			key: oView.getKey(),
 			text: oView.getTitle()
-		}));
+		});
+		oViewsButton.addItem(oSegmentedButtonItem);
+
+		this._observeViewTitle(oView);
+
 		if (this._getSelectedView().getKey() === this._oDefaultView.getKey()) {
 			this.setAssociation("selectedView", oView);
 		}
 		this._alignView();
+		if (this.getViews().length > MAX_NUMBER_OF_VIEWS_IN_SEGMENTED_BUTTON) {
+			oHeader._convertViewSwitchToSelect();
+		}
 
 		return this;
 	};
 
 	SinglePlanningCalendar.prototype.insertView = function (oView, iPos) {
-		var oViewsButton;
+		var oViewsButton,
+			oHeader = this._getHeader(),
+			sSegmentedButtonItemId = oView.getId() + SEGMENTEDBUTTONITEM__SUFFIX,
+			oSegmentedButtonItem;
 
 		if (!oView) {
 			return this;
@@ -467,20 +695,28 @@ function(
 
 		if (this._isViewKeyExisting(oView.getKey())) {
 			Log.error("There is an existing view with the same key.", this);
-			return;
+			return this;
 		}
 
 		this.insertAggregation("views", oView, iPos);
 
-		oViewsButton = this._getHeader()._getOrCreateViewSwitch();
-		oViewsButton.insertItem(new SegmentedButtonItem({
+		oViewsButton = oHeader._getOrCreateViewSwitch();
+
+		oSegmentedButtonItem = new SegmentedButtonItem(sSegmentedButtonItemId, {
 			key: oView.getKey(),
 			text: oView.getTitle()
-		}), iPos);
+		});
+		oViewsButton.insertItem(oSegmentedButtonItem, iPos);
+
+		this._observeViewTitle(oView);
+
 		if (this._getSelectedView().getKey() === this._oDefaultView.getKey()) {
 			this.setAssociation("selectedView", oView);
 		}
 		this._alignView();
+		if (this.getViews().length > MAX_NUMBER_OF_VIEWS_IN_SEGMENTED_BUTTON) {
+			oHeader._convertViewSwitchToSelect();
+		}
 
 		return this;
 	};
@@ -491,12 +727,21 @@ function(
 			return this;
 		}
 
-		var oViewsButton = this._getHeader()._getOrCreateViewSwitch(),
+		var oHeader = this._getHeader(),
+			oViewsButton = oHeader._getOrCreateViewSwitch(),
 			oViewsButtonItems = oViewsButton.getItems(),
 			oCurrentlySelectedView = this._getSelectedView(),
 			oViewToRemoveKey = oView.getKey(),
 			oCurrentItem,
 			i;
+
+		if (this.getViews().length === 1) {
+			this._disconnectAndDestroyViewsObserver();
+		} else {
+			this._oViewsObserver.unobserve(oView, {
+				properties: ["title"]
+			});
+		}
 
 		for (i = 0; i < oViewsButtonItems.length; i++) {
 			oCurrentItem = oViewsButtonItems[i];
@@ -515,12 +760,17 @@ function(
 		}
 
 		this._alignView();
+		if (this.getViews().length <= MAX_NUMBER_OF_VIEWS_IN_SEGMENTED_BUTTON) {
+			oHeader._convertViewSwitchToSegmentedButton();
+		}
 
 		return this;
 	};
 
 	SinglePlanningCalendar.prototype.removeAllViews = function () {
 		var oViewsButton = this._getHeader()._getOrCreateViewSwitch();
+
+		this._disconnectAndDestroyViewsObserver();
 
 		oViewsButton.removeAllItems();
 		this.setAssociation("selectedView", this._oDefaultView);
@@ -532,11 +782,83 @@ function(
 	SinglePlanningCalendar.prototype.destroyViews = function () {
 		var oViewsButton = this._getHeader()._getOrCreateViewSwitch();
 
+		this._disconnectAndDestroyViewsObserver();
+
 		oViewsButton.destroyItems();
 		this.setAssociation("selectedView", this._oDefaultView);
 		this._alignView();
 
 		return this.destroyAggregation("views");
+	};
+
+	/**
+	 * Sets the text property of the SegmentedButton view item
+	 *
+	 * @param {object} oChanges the detected from the ManagedObjectObserver changes
+	 * @private
+	 */
+	SinglePlanningCalendar.prototype._viewsObserverCallbackFunction = function (oChanges) {
+		sap.ui.getCore().byId(oChanges.object.getId() + SEGMENTEDBUTTONITEM__SUFFIX).setText(oChanges.current);
+	};
+
+	/**
+	 * Returns the ManagedObjectObserver for the views
+	 *
+	 * @return {sap.ui.base.ManagedObjectObserver} the views observer object
+	 * @private
+	 */
+	SinglePlanningCalendar.prototype._getViewsObserver = function () {
+		if (!this._oViewsObserver) {
+			this._oViewsObserver = new ManagedObjectObserver(this._viewsObserverCallbackFunction);
+		}
+		return this._oViewsObserver;
+	};
+
+	/**
+	 * Observes the title property of the passed view
+	 *
+	 * @param {sap.m.SinglePlanningCalendarView} oView the view, which property will be observed
+	 * @private
+	 */
+	SinglePlanningCalendar.prototype._observeViewTitle = function (oView) {
+		this._getViewsObserver().observe(oView, {
+			properties: ["title"]
+		});
+	};
+
+	/**
+	 * Disconnects and destroys the ManagedObjectObserver observing the used views
+	 *
+	 * @private
+	 */
+	SinglePlanningCalendar.prototype._disconnectAndDestroyViewsObserver = function () {
+		if (this._oViewsObserver) {
+			this._oViewsObserver.disconnect();
+			this._oViewsObserver.destroy();
+			this._oViewsObserver = null;
+		}
+	};
+
+	SinglePlanningCalendar.prototype.setSelectedView = function(vView) {
+		// first check if vView is string (ID), or object with getKey method
+		if (typeof vView === "string") {
+			// it is string, try to find corresponding view
+			vView = this._getViewById(vView);
+		} else if (vView.isA("sap.m.SinglePlanningCalendarView") && !this._isViewKeyExisting(vView.getKey())) {
+			// non-existing view
+			vView = null;
+		}
+
+		if (!vView) {
+			// view is missing
+			Log.error("There is no such view.", this);
+			return this;
+		}
+
+		// view is found
+		this._setupNewView(vView);
+		this._getHeader()._getOrCreateViewSwitch().setSelectedKey(vView.getKey());
+		return this;
 	};
 
 	/**
@@ -547,7 +869,36 @@ function(
 	 * @public
 	 */
 	SinglePlanningCalendar.prototype.getSelectedAppointments = function() {
-		return this._getGrid().getSelectedAppointments();
+		return this.getAggregation("_grid").getSelectedAppointments();
+	};
+
+	SinglePlanningCalendar.prototype.setLegend = function (vLegend) {
+		var oLegendDestroyObserver,
+			sLegend,
+			oLegend;
+
+		this.setAssociation("legend", vLegend);
+		this.getAggregation("_grid").setAssociation("legend", vLegend);
+		this.getAggregation("_mvgrid").setAssociation("legend", vLegend);
+
+		sLegend = this.getLegend();
+
+		if (sLegend) {
+			this.getAggregation("_grid")._sLegendId = sLegend;
+			this.getAggregation("_mvgrid")._sLegendId = sLegend;
+			oLegend = sap.ui.getCore().byId(sLegend);
+		}
+
+		if (oLegend) { //destroy of the associated legend should rerender the SPC
+			oLegendDestroyObserver = new ManagedObjectObserver(function(oChanges) {
+				this.invalidate();
+			}.bind(this));
+			oLegendDestroyObserver.observe(oLegend, {
+				destroy: true
+			});
+		}
+
+		return this;
 	};
 
 	/**
@@ -592,6 +943,41 @@ function(
 		return this.getViews().some(function (oView) {
 			return oView.getKey() === sKey;
 		});
+	};
+
+	/**
+	 * Finds the view object by given key
+	 * @param {String} sKey The key of the view
+	 * @public
+	 * @since 1.75
+	 * @returns {sap.m.SinglePlanningCalendarView} the view object matched the given sKey, of null if there is no such view
+	 */
+	SinglePlanningCalendar.prototype.getViewByKey = function (sKey) {
+		var aViews = this.getViews(),
+			i;
+		for (i = 0; i < aViews.length; i++) {
+			if (aViews[i].getKey() === sKey) {
+				return aViews[i];
+			}
+		}
+		return null;
+	};
+
+	/**
+	 * Finds the view object by given ID
+	 * @param {String} sId The ID of the view
+	 * @private
+	 * @returns {sap.m.SinglePlanningCalendarView} the view object matched the given sId, of null if there is no such view
+	 */
+	SinglePlanningCalendar.prototype._getViewById = function (sId) {
+		var aViews = this.getViews(),
+			i;
+		for (i = 0; i < aViews.length; i++) {
+				if (aViews[i].getId() === sId) {
+				return aViews[i];
+			}
+		}
+		return null;
 	};
 
 	/**
@@ -640,13 +1026,32 @@ function(
 	SinglePlanningCalendar.prototype._attachHeaderEvents = function () {
 		var oHeader = this._getHeader();
 
+		oHeader.attachEvent("viewChange", this._handleViewChange, this);
 		oHeader.attachEvent("pressPrevious", this._handlePressArrow, this);
 		oHeader.attachEvent("pressToday", this._handlePressToday, this);
 		oHeader.attachEvent("pressNext", this._handlePressArrow, this);
 		oHeader.attachEvent("dateSelect", this._handleCalendarPickerDateSelect, this);
-		oHeader._getOrCreateViewSwitch().attachEvent("selectionChange", this._handleViewSwitchChange, this);
 
 		return this;
+	};
+
+	/**
+	 * Attaches delegates to the events in the _grid aggregation.
+	 *
+	 * @private
+	 */
+	SinglePlanningCalendar.prototype._attachDelegates = function() {
+			// After the grid renders apply the focus on the cell
+			this._afterRenderFocusCell = {
+				onAfterRendering: function() {
+					if (this._sGridCellFocusSelector) {
+						jQuery(this._sGridCellFocusSelector).trigger("focus");
+						this._sGridCellFocusSelector = null;
+					}
+				}.bind(this)
+			};
+		this.getAggregation("_grid").addDelegate(this._afterRenderFocusCell);
+		this.getAggregation("_mvgrid").addDelegate(this._afterRenderFocusCell);
 	};
 
 	/**
@@ -656,30 +1061,119 @@ function(
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._attachGridEvents = function () {
-		var oGrid = this._getGrid();
+		var oGrid = this.getAggregation("_grid"),
+			oGridMV = this.getAggregation("_mvgrid");
 
-		oGrid._getColumnHeaders().attachEvent("select", function (oEvent) {
+		var fnHandleHeadersSelect = function(oEvent) {
 			this.fireHeaderDateSelect({
 				date: oEvent.getSource().getDate()
 			});
-		}, this);
-
-		oGrid.attachEvent("appointmentSelect", function (oEvent) {
+		};
+		var fnHandleAppointmentSelect = function(oEvent) {
 			this.fireAppointmentSelect({
-				appointment: oEvent.getParameter("appointment")
+				appointment: oEvent.getParameter("appointment"),
+				appointments: oEvent.getParameter("appointments")
 			});
-		}, this);
-
-		oGrid.attachEvent("appointmentDrop", function (oEvent) {
+		};
+		var fnHandleAppointmentDrop = function(oEvent) {
 			this.fireAppointmentDrop({
 				appointment: oEvent.getParameter("appointment"),
 				startDate: oEvent.getParameter("startDate"),
 				endDate: oEvent.getParameter("endDate"),
 				copy: oEvent.getParameter("copy")
 			});
-		}, this);
+		};
+		var fnHandleAppointmentResize = function(oEvent) {
+			this.fireAppointmentResize({
+				appointment: oEvent.getParameter("appointment"),
+				startDate: oEvent.getParameter("startDate"),
+				endDate: oEvent.getParameter("endDate")
+			});
+		};
+		var fnHandleAppointmentCreate = function(oEvent) {
+			this.fireAppointmentCreate({
+				startDate: oEvent.getParameter("startDate"),
+				endDate: oEvent.getParameter("endDate")
+			});
+		};
+		var fnHandleCellPress = function(oEvent) {
+			this.fireEvent("cellPress", {
+				startDate: oEvent.getParameter("startDate"),
+				endDate: oEvent.getParameter("endDate")
+			});
+		};
+		var fnHandleMoreLinkPress = function(oEvent) {
+			this.fireEvent("moreLinkPress", {
+				date: oEvent.getParameter("date")
+			});
+		};
+		var fnHandleBorderReached = function(oEvent) {
+			var oGrid = this.getAggregation("_grid"),
+				oFormat = oGrid._getDateFormatter(),
+				iNavDelta = this._getSelectedView().getScrollEntityCount() - oGrid._getColumns() + 1,
+				oCellStartDate = new Date(oEvent.getParameter("startDate")),
+				bFullDay = oEvent.getParameter("fullDay"),
+				oNavDate = this.getStartDate();
+
+			if (oEvent.getParameter("next")) {
+				oCellStartDate.setDate(oCellStartDate.getDate() + iNavDelta);
+				oNavDate = new Date(oNavDate.setDate(oNavDate.getDate() + this._getSelectedView().getScrollEntityCount()));
+				this.setStartDate(oNavDate);
+			} else {
+				oCellStartDate.setDate(oCellStartDate.getDate() - iNavDelta);
+				oNavDate = new Date(oNavDate.setDate(oNavDate.getDate() - this._getSelectedView().getScrollEntityCount()));
+				this.setStartDate(oNavDate);
+			}
+
+			this._sGridCellFocusSelector = bFullDay ?
+				"[data-sap-start-date='" + oFormat.format(oCellStartDate) + "'].sapMSinglePCBlockersColumn" :
+				"[data-sap-start-date='" + oFormat.format(oCellStartDate) + "'].sapMSinglePCRow";
+		};
+		var fnHandleBorderReachedMonthView = function(oEvent) {
+			var oDate = new Date(oEvent.getParameter("startDate")),
+				oCalNextDate = CalendarDate.fromLocalJSDate(oDate),
+				oNextDate;
+
+			oCalNextDate.setDate(oCalNextDate.getDate() + oEvent.getParameter("offset"));
+			oNextDate = oCalNextDate.toLocalJSDate();
+
+			this.setStartDate(oNextDate);
+
+			this._sGridCellFocusSelector =
+				"[sap-ui-date='" + oCalNextDate.valueOf() + "'].sapMSPCMonthDay";
+		};
+
+		oGrid._getColumnHeaders().attachEvent("select", fnHandleHeadersSelect, this);
+
+		oGrid.attachEvent("appointmentSelect", fnHandleAppointmentSelect, this);
+		oGridMV.attachEvent("appointmentSelect", fnHandleAppointmentSelect, this);
+
+		oGrid.attachEvent("appointmentDrop", fnHandleAppointmentDrop, this);
+		oGridMV.attachEvent("appointmentDrop", fnHandleAppointmentDrop, this);
+
+		oGrid.attachEvent("appointmentResize", fnHandleAppointmentResize, this);
+
+		oGrid.attachEvent("appointmentCreate", fnHandleAppointmentCreate, this);
+
+		oGrid.attachEvent("cellPress", fnHandleCellPress, this);
+		oGridMV.attachEvent("cellPress", fnHandleCellPress, this);
+		oGridMV.attachEvent("moreLinkPress", fnHandleMoreLinkPress, this);
+
+		oGrid.attachEvent("borderReached", fnHandleBorderReached, this);
+		oGridMV.attachEvent("borderReached", fnHandleBorderReachedMonthView, this);
 
 		return this;
+	};
+
+	/**
+	 * Handler for the viewChange event in the _header aggregation.
+	 * @private
+	 */
+	SinglePlanningCalendar.prototype._handleViewChange = function (oEvent) {
+		var sNewViewKey = oEvent.getParameter("item").getProperty("key"),
+			oNewView = this.getViewByKey(sNewViewKey);
+		this._setupNewView(oNewView);
+		this.fireViewChange();
 	};
 
 	/**
@@ -689,6 +1183,7 @@ function(
 	 */
 	SinglePlanningCalendar.prototype._handlePressArrow = function (oEvent) {
 		this._applyArrowsLogic(oEvent.getId() === "pressPrevious");
+		this._adjustColumnHeadersTopOffset();
 	};
 
 	/**
@@ -702,16 +1197,42 @@ function(
 		this.fireStartDateChange({
 			date: oStartDate
 		});
+		this._adjustColumnHeadersTopOffset();
 	};
 
 	/**
-	 * Handler for the selectionChange event in the _header aggregation.
-	 * @param {Date} oEvent The triggered event
+	 * Sets given view in the selectedView association and then prepares the calendar
+	 * for the new view.
+	 * @param {Object | String} vView The new view
 	 * @private
 	 */
-	SinglePlanningCalendar.prototype._handleViewSwitchChange = function (oEvent) {
-		this.setAssociation("selectedView", oEvent.getParameter("item"));
+	SinglePlanningCalendar.prototype._setupNewView = function(vView) {
+		var oPreviousGrid = this._getCurrentGrid();
+		this.setAssociation("selectedView", vView);
+		this._transferAggregations(oPreviousGrid);
 		this._alignColumns();
+		this._adjustColumnHeadersTopOffset();
+	};
+
+	SinglePlanningCalendar.prototype._transferAggregations = function(oPreviousGrid) {
+		var oNextGrid = this._getCurrentGrid(),
+			aApps,
+			aSpecialDates,
+			i;
+
+		if (oPreviousGrid.getId() !== oNextGrid.getId()) {
+			aApps = oPreviousGrid.removeAllAggregation("appointments", true);
+
+			for (i = 0; i < aApps.length; i++) {
+				oNextGrid.addAggregation("appointments", aApps[i], true);
+			}
+
+			aSpecialDates = oPreviousGrid.removeAllAggregation("specialDates", true);
+
+			for (i = 0; i < aSpecialDates.length; i++) {
+				oNextGrid.addAggregation("specialDates", aSpecialDates[i], true);
+			}
+		}
 	};
 
 	/**
@@ -719,13 +1240,18 @@ function(
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._handleCalendarPickerDateSelect = function () {
-		var oStartDate = this._getHeader().getStartDate();
+		var oStartDate = this._getHeader().getStartDate(),
+			oSPCStartDate;
 
-		oStartDate = this._getSelectedView().calculateStartDate(new Date(oStartDate.getTime()));
-		this.setStartDate(oStartDate);
+		oSPCStartDate = this._getSelectedView().calculateStartDate(new Date(oStartDate.getTime()));
+		this.setStartDate(oSPCStartDate);
+		if (!this._getSelectedView().isA("sap.m.SinglePlanningCalendarMonthView")) {
+			this.getAggregation("_grid")._getColumnHeaders().setDate(oStartDate);
+		}
 		this.fireStartDateChange({
-			date: oStartDate
+			date: oSPCStartDate
 		});
+		this._adjustColumnHeadersTopOffset();
 	};
 
 	/**
@@ -756,7 +1282,7 @@ function(
 		var oRangeDates = this._getFirstAndLastRangeDate(),
 			oStartDate = oRangeDates.oStartDate.toLocalJSDate(),
 			oEndDate = oRangeDates.oEndDate.toLocalJSDate(),
-			oLongDateFormat = DateFormat.getDateInstance({style: "long"}),
+			oLongDateFormat = DateFormat.getDateInstance({format: "yMMMMd"}),
 			oResult = oLongDateFormat.format(oStartDate);
 
 		if (oStartDate.getTime() !== oEndDate.getTime()) {
@@ -773,7 +1299,8 @@ function(
 	 */
 	SinglePlanningCalendar.prototype._applyArrowsLogic = function (bBackwards) {
 		var oCalStartDate = CalendarDate.fromLocalJSDate(this.getStartDate() || new Date()),
-			iNumberToAdd = this._getSelectedView().getScrollEntityCount(),
+			iOffset = bBackwards ? -1 : 1,
+			iNumberToAdd = this._getSelectedView().getScrollEntityCount(this.getStartDate(), iOffset),
 			oStartDate;
 
 		if (bBackwards) {
@@ -818,7 +1345,8 @@ function(
 	 */
 	SinglePlanningCalendar.prototype._alignColumns = function () {
 		var oHeader = this._getHeader(),
-			oGrid = this._getGrid(),
+			oGrid = this.getAggregation("_grid"),
+			oGridMV = this.getAggregation("_mvgrid"),
 			oView = this._getSelectedView(),
 			oDate = this.getStartDate() || new Date(),
 			oViewStartDate = oView.calculateStartDate(new Date(oDate.getTime())),
@@ -828,6 +1356,7 @@ function(
 		oHeader.setPickerText(this._formatPickerText(oCalViewDate));
 		this._updateCalendarPickerSelection();
 		oGrid.setStartDate(oViewStartDate);
+		oGridMV.setStartDate(oViewStartDate);
 		oGrid._setColumns(oView.getEntityCount());
 
 		this._setColumnHeaderVisibility();
@@ -839,10 +1368,17 @@ function(
 	 * Otherwise, they are displayed in the _grid.
 	 * @private
 	 */
-	SinglePlanningCalendar.prototype._setColumnHeaderVisibility = function () {
-		var bVisible = !this._getSelectedView().isA("sap.m.SinglePlanningCalendarDayView");
+	SinglePlanningCalendar.prototype._setColumnHeaderVisibility = function() {
+		var bVisible;
 
-		this._getGrid()._getColumnHeaders().setVisible(bVisible);
+		if (this._getSelectedView().isA("sap.m.SinglePlanningCalendarMonthView")) {
+			return;
+		}
+
+		bVisible = !this._getSelectedView().isA("sap.m.SinglePlanningCalendarDayView");
+
+		this.getAggregation("_grid")._getColumnHeaders().setVisible(bVisible);
+		this.toggleStyleClass("sapMSinglePCHiddenColHeaders", !bVisible);
 	};
 
 	/**
@@ -859,8 +1395,12 @@ function(
 	 * @returns {object} The _grid object
 	 * @private
 	 */
-	SinglePlanningCalendar.prototype._getGrid = function () {
-		return this.getAggregation("_grid");
+	SinglePlanningCalendar.prototype._getCurrentGrid = function() {
+		if (this._getSelectedView().isA("sap.m.SinglePlanningCalendarMonthView")) {
+			return this.getAggregation("_mvgrid");
+		} else {
+			return this.getAggregation("_grid");
+		}
 	};
 
 	/**

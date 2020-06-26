@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,17 +14,17 @@ sap.ui.define([
 	'sap/ui/base/ManagedObjectMetadata',
 	'sap/ui/Device',
 	'./Popover',
-	'./Button',
-	'./ToggleButton',
 	'./List',
 	'./Title',
 	'./Bar',
 	'./Toolbar',
+	'./StandardListItem',
 	'sap/ui/core/ResizeHandler',
 	'sap/ui/core/IconPool',
 	'./MultiInputRenderer',
 	"sap/ui/dom/containsOrEquals",
 	"sap/ui/events/KeyCodes",
+	'sap/ui/core/InvisibleText',
 	"sap/ui/thirdparty/jquery",
 	// jQuery Plugin "cursorPos"
 	"sap/ui/dom/jquery/cursorPos",
@@ -40,17 +40,17 @@ function(
 	ManagedObjectMetadata,
 	Device,
 	Popover,
-	Button,
-	ToggleButton,
 	List,
 	Title,
 	Bar,
 	Toolbar,
+	StandardListItem,
 	ResizeHandler,
 	IconPool,
 	MultiInputRenderer,
 	containsOrEquals,
 	KeyCodes,
+	InvisibleText,
 	jQuery
 ) {
 		"use strict";
@@ -70,12 +70,14 @@ function(
 	* A multi-input field allows the user to enter multiple values, which are displayed as {@link sap.m.Token tokens}.
 	* You can enable auto-complete suggestions or value help to help the user choose the correct entry. You can define
 	* validator functions to define what token values are accepted.
+	*
 	* <b>Notes:</b>
 	* <ul>
 	* <li> New valid tokens are created, when the user presses Enter, selects a value from the suggestions drop-down, or when the focus leaves the field.</li>
 	* <li> When multiple values are copied and pasted in the field, separate tokens are created for each of them.</li>
 	* <li> When a single value is copied and pasted in the field, it is shown as a text value, as further editing might be required before it is converted into a token.</li>
 	* <li> Provide meaningful labels for all input fields. Do not use the placeholder as a replacement for the label.</li>
+	* <li> The <code>showValueHelp</code> property is overwritten and after initialization of the control, its value becomes <code>truthy</code>.</li>
 	* </ul>
 	* <h3>Usage</h3>
 	* <h4>When to use:</h4>
@@ -112,7 +114,7 @@ function(
 	* @extends sap.m.Input
 	*
 	* @author SAP SE
-	* @version 1.64.0
+	* @version 1.79.0
 	*
 	* @constructor
 	* @public
@@ -169,7 +171,7 @@ function(
 						/**
 						 * Type of tokenChange event.
 						 * There are four TokenChange types: "added", "removed", "removedAll", "tokensChanged".
-						 * Use Tokenizer.TokenChangeType.Added for "added",    Tokenizer.TokenChangeType.Removed for "removed", Tokenizer.TokenChangeType.RemovedAll for "removedAll" and Tokenizer.TokenChangeType.TokensChanged for "tokensChanged".
+						 * Use sap.m.Tokenizer.TokenChangeType.Added for "added", sap.m.Tokenizer.TokenChangeType.Removed for "removed", sap.m.Tokenizer.TokenChangeType.RemovedAll for "removedAll" and sap.m.Tokenizer.TokenChangeType.TokensChanged for "tokensChanged".
 						 */
 						type: {type: "string"},
 
@@ -201,6 +203,7 @@ function(
 
 				/**
 				 * Fired when the tokens aggregation changed due to a user interaction (add / remove token)
+				 * @since 1.46
 				 */
 				tokenUpdate: {
 					allowPreventDefault : true,
@@ -208,7 +211,7 @@ function(
 						/**
 						 * Type of tokenChange event.
 						 * There are two TokenUpdate types: "added", "removed"
-						 * Use Tokenizer.TokenUpdateType.Added for "added" and Tokenizer.TokenUpdateType.Removed for "removed".
+						 * Use sap.m.Tokenizer.TokenUpdateType.Added for "added" and sap.m.Tokenizer.TokenUpdateType.Removed for "removed".
 						 */
 						type: {type: "string"},
 
@@ -225,7 +228,8 @@ function(
 						removedTokens: {type: "sap.m.Token[]"}
 					}
 				}
-			}
+			},
+			dnd: { draggable: false, droppable: true }
 		}
 	});
 
@@ -241,15 +245,15 @@ function(
 		Input.prototype.init.call(this);
 
 		this._bIsValidating = false;
-		this._tokenizer = new Tokenizer();
-		this._tokenizer._setAdjustable(true);
+		this.setAggregation("tokenizer", new Tokenizer());
+		var oTokenizer = this.getAggregation("tokenizer");
 
-		this.setAggregation("tokenizer", this._tokenizer);
-		this._tokenizer.attachTokenChange(this._onTokenChange, this);
-		this._tokenizer.attachTokenUpdate(this._onTokenUpdate, this);
-		this._tokenizer._handleNMoreIndicatorPress(this._handleIndicatorPress.bind(this));
+		oTokenizer._setAdjustable(true);
+		oTokenizer.attachTokenChange(this._onTokenChange, this);
+		oTokenizer.attachTokenUpdate(this._onTokenUpdate, this);
+		oTokenizer._handleNMoreIndicatorPress(this._handleIndicatorPress.bind(this));
 
-		this._tokenizer.addEventDelegate({
+		oTokenizer.addEventDelegate({
 			onThemeChanged: this._handleInnerVisibility.bind(this)
 		}, this);
 
@@ -260,13 +264,11 @@ function(
 
 		this.attachLiveChange(this._onLiveChange, this);
 
-		this.attachValueHelpRequest(function () {
-			// Register the click on value help.
-			this._bValueHelpOpen = true;
-		}, this);
+		this.attachValueHelpRequest(this._onValueHelpRequested, this);
 
 		this._getValueHelpIcon().setProperty("visible", true, true);
 		this._modifySuggestionPicker();
+		this._onResize = this._onResize.bind(this);
 	};
 
 	/**
@@ -275,6 +277,8 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype.exit = function () {
+		this._deregisterResizeHandler();
+		this._deregisterTokenizerResizeHandler();
 		Input.prototype.exit.call(this);
 
 		if (this._oSelectedItemPicker) {
@@ -293,8 +297,8 @@ function(
 			oReadOnlyPopover = null;
 		}
 
-		this._deregisterResizeHandler();
 	};
+
 
 	/**
 	 * Called after the control is rendered.
@@ -302,16 +306,22 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype.onAfterRendering = function () {
-		this._tokenizer.scrollToEnd();
+		var oTokenizer = this.getAggregation("tokenizer");
+		this._bTokenIsValidated = false;
+
+		oTokenizer.scrollToEnd();
 		this._registerResizeHandler();
-		this._tokenizer.setMaxWidth(this._calculateSpaceForTokenizer());
+		this._registerTokenizerResizeHandler();
+		oTokenizer.setMaxWidth(this._calculateSpaceForTokenizer());
+		this._handleNMoreAccessibility();
 		this._handleInnerVisibility();
+		this._syncInputWidth(oTokenizer);
 		Input.prototype.onAfterRendering.apply(this, arguments);
 	};
 
 	MultiInput.prototype._handleInnerVisibility = function () {
-		var bHideInnerInput = this._tokenizer._hasMoreIndicator();
-		this[bHideInnerInput ? "_setValueInvisible" : "_setValueVisible"].call(this);
+		var bHideInnerInput = this.getAggregation("tokenizer")._hasMoreIndicator();
+		this._setValueVisible(!bHideInnerInput);
 	};
 
 	/**
@@ -322,6 +332,13 @@ function(
 	 */
 	MultiInput.prototype.oninput = function(oEvent) {
 		Input.prototype.oninput.call(this, oEvent);
+
+		// IE fires input event in different scenarios - check InputBase
+		if (oEvent.isMarked("invalid") || !this.getEditable()) {
+			return;
+		}
+
+		this._setValueVisible(true);
 		this._manageListsVisibility(false);
 		this._getSelectedItemsPicker().close();
 	};
@@ -333,7 +350,7 @@ function(
 	 */
 	MultiInput.prototype._registerResizeHandler = function () {
 		if (!this._iResizeHandlerId) {
-			this._iResizeHandlerId = ResizeHandler.register(this, this._onResize.bind(this));
+			this._iResizeHandlerId = ResizeHandler.register(this, this._onResize);
 		}
 	};
 
@@ -350,56 +367,79 @@ function(
 	};
 
 	/**
+	 * Registers Tokenizer's resize handler
+	 *
+	 * @private
+	 */
+	MultiInput.prototype._registerTokenizerResizeHandler = function () {
+		if (!this._iTokenizerResizeHandler) {
+			this._iTokenizerResizeHandler = ResizeHandler.register(this.getAggregation("tokenizer"), this._onResize);
+		}
+	};
+
+	/**
+	 * Deregisters Tokenizer's resize handler
+	 *
+	 * @private
+	 */
+	MultiInput.prototype._deregisterTokenizerResizeHandler = function () {
+		if (this._iTokenizerResizeHandler) {
+			ResizeHandler.deregister(this._iTokenizerResizeHandler);
+			this._iTokenizerResizeHandler = null;
+		}
+	};
+
+	/**
 	 * Handler for resizing
 	 *
 	 * @private
 	 */
 	MultiInput.prototype._onResize = function () {
-		this._deregisterResizeHandler();
+		var oTokenizer = this.getAggregation("tokenizer");
 
-		this._tokenizer.setMaxWidth(this._calculateSpaceForTokenizer());
+		oTokenizer.setMaxWidth(this._calculateSpaceForTokenizer());
 		this._handleInnerVisibility();
-
-		this._registerResizeHandler();
+		this._syncInputWidth(oTokenizer);
+		this._handleNMoreAccessibility();
 	};
 
 	MultiInput.prototype._onTokenChange = function (args) {
 		this.fireTokenChange(args.getParameters());
 		this.invalidate();
 
-		// check if active element is part of MultiInput
-		var bFocusOnMultiInput = containsOrEquals(this.getDomRef(), document.activeElement);
-		if (args.getParameter("type") === "tokensChanged" && args.getParameter("removedTokens").length > 0 && bFocusOnMultiInput) {
-			this.focus();
+		if (args.getParameter("type") === "removed") {
+			this.getAggregation("tokenizer")._useCollapsedMode(false);
 		}
 
-		if (args.getParameter("type") === "removed") {
-			this._tokenizer._useCollapsedMode(false);
-			this.focus();
+		if ((this._getIsSuggestionPopupOpen()) || this.isMobileDevice()) {
+			this._fillList();
+		}
+
+		// on mobile the list with the tokens should be updated and shown
+		if (this.isMobileDevice()) {
+			this._manageListsVisibility(true/*show list with tokens*/);
 		}
 	};
 
 	MultiInput.prototype._onTokenUpdate = function (args) {
 		var eventResult = this.fireTokenUpdate(args.getParameters());
 
+		if (!this.getTokens().length) {
+			this.$().find("input").trigger("focus");
+		}
+
 		if (!eventResult) {
 			args.preventDefault();
 		} else {
 			this.invalidate();
 		}
-
-		// on mobile the list with the tokens should be updated and shown
-		if (this._bUseDialog) {
-			this._fillList();
-			this._manageListsVisibility(true/*show list with tokens*/);
-		}
 	};
 
 	MultiInput.prototype._onSuggestionItemSelected = function (eventArgs) {
-		var item = null,
+		var oTokenizer = this.getAggregation("tokenizer"),
+			item = null,
 			token = null,
-			that = this,
-			iOldLength = this._tokenizer.getTokens().length; //length of tokens before validating
+			iOldLength = oTokenizer.getTokens().length; //length of tokens before validating
 
 		// Tokenizer is "full" or ValueHelp is open.
 		if (this.getMaxTokens() && iOldLength >= this.getMaxTokens() || this._bValueHelpOpen) {
@@ -417,24 +457,20 @@ function(
 				});
 			}
 		}
-
-		if (item) {
+		// If item is selected and no token was already created on sapfocusleave
+		if (item && !this._bTokenIsAdded) {
 			var text = this.getValue();
-			this._tokenizer._addValidateToken({
+			oTokenizer._addValidateToken({
 				text: text,
 				token: token,
 				suggestionObject: item,
-				validationCallback: function (validated) {
-					if (validated) {
-						that.setValue("");
-					}
-				}
+				validationCallback: this._validationCallback.bind(this, iOldLength)
 			});
 		}
 
 		//dialog opens
-		if (this._bUseDialog) {
-			var iNewLength = this._tokenizer.getTokens().length;
+		if (this.isMobileDevice()) {
+			var iNewLength = oTokenizer.getTokens().length;
 			if (iOldLength < iNewLength) {
 				this.setValue("");
 			}
@@ -446,50 +482,35 @@ function(
 				this._getSuggestionsList().destroyItems();
 			}
 
-			var oScroll = this._oSuggestionPopup.getScrollDelegate();
+			var oScroll = this._getSuggestionsPopoverPopup().getScrollDelegate();
 			if (oScroll) {
 				oScroll.scrollTo(0, 0, 0);
 			}
 
-			this._oSuggPopover._oPopupInput.focus();
+			this._getSuggestionsPopoverInstance()._oPopupInput.focus();
 		}
+		this._bTokenIsAdded = false;
+	};
+
+	MultiInput.prototype._onValueHelpRequested = function () {
+		// Register the click on value help.
+		this._bValueHelpOpen = true;
 	};
 
 	MultiInput.prototype._onLiveChange = function (eventArgs) {
-		this._tokenizer._removeSelectedTokens();
-	};
-	/**
-	 * Set value in input field invisible.
-	 *
-	 * @since 1.38
-	 * @private
-	 */
-	MultiInput.prototype._setValueInvisible = function () {
-		this.$("inner").css("opacity", "0");
+		this.getAggregation("tokenizer")._removeSelectedTokens();
 	};
 
 	/**
 	 * Show value in input field
 	 *
 	 * @since 1.38
+	 * @param {boolean} bVisible Determines if the value should be visible or not
 	 * @private
 	 */
-	MultiInput.prototype._setValueVisible = function () {
-		this.$("inner").css("opacity", "1");
-	};
-
-	/**
-	 * Setter for property <code>enableMultiLineMode</code>.
-	 * @param {boolean} bMultiLineMode Property value
-	 * @returns {sap.m.MultiInput} Pointer to the control instance for chaining
-	 * @since 1.28
-	 * @public
-	 * @deprecated Since version 1.58.
-	 */
-	MultiInput.prototype.setEnableMultiLineMode = function (bMultiLineMode) {
-		// the multiline functionality is deprecated
-		// the method is left for backwards compatibility
-		return this.setProperty("enableMultiLineMode", bMultiLineMode, true);
+	MultiInput.prototype._setValueVisible = function (bVisible) {
+		var sVisibility = bVisible ? "1" : "0";
+		this.$("inner").css("opacity", sVisibility);
 	};
 
 	MultiInput.prototype.onmousedown = function (e) {
@@ -528,13 +549,20 @@ function(
 		// the method is left for backwards compatibility
 	};
 
+	MultiInput.prototype.showItems = function () {
+		Input.prototype.showItems.apply(this, arguments);
+
+		// All items list should always be visible when calling showItems
+		this._manageListsVisibility(false);
+	};
+
 	/**
 	 * Returns the sap.ui.core.ScrollEnablement delegate which is used with this control.
 	 * @returns {sap.ui.core.ScrollEnablement} The scroll delegate
 	 * @private
 	 */
 	MultiInput.prototype.getScrollDelegate = function () {
-		return this._tokenizer._oScroller;
+		return this.getAggregation("tokenizer")._oScroller;
 	};
 
 	/**
@@ -543,34 +571,41 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype.onBeforeRendering = function () {
-		var oTokenizer = this.getAggregation("tokenizer");
-
-		if (oTokenizer) {
-			oTokenizer.toggleStyleClass("sapMTokenizerEmpty", oTokenizer.getTokens().length === 0);
-		}
-
 		Input.prototype.onBeforeRendering.apply(this, arguments);
-
+		this.getAggregation("tokenizer").setProperty("enabled", this.getEnabled(), true);
 		this._deregisterResizeHandler();
+		this._deregisterTokenizerResizeHandler();
 	};
+
 	/**
-	 * Function adds a validation callback called before any new token gets added to the tokens aggregation
+	 * A validation callback called before any new token gets added to the tokens aggregation.
 	 *
-	 * @param {function} fValidator The validation callback
+	 * @callback sap.m.MultiInput.fnValidator
+	 * @param {string} text The source text
+	 * @param {sap.m.Token} suggestedToken Suggested token
+	 * @param {object} suggestionObject Any object used to find the suggested token. This property is available when the <code>MultiInput</code> has a list or tabular suggestions.
+	 * @param {function} asyncCallback Callback which accepts {sap.m.Token} as a parameter and gets called after validation has finished.
 	 * @public
 	 */
-	MultiInput.prototype.addValidator = function (fValidator) {
-		this._tokenizer.addValidator(fValidator);
+
+	/**
+	 * Function adds a validation callback called before any new token gets added to the tokens aggregation.
+	 *
+	 * @param {sap.m.MultiInput.fnValidator} fnValidator The validation callback
+	 * @public
+	 */
+	MultiInput.prototype.addValidator = function (fnValidator) {
+		this.getAggregation("tokenizer").addValidator(fnValidator);
 	};
 
 	/**
 	 * Function removes a validation callback
 	 *
-	 * @param {function} fValidator The validation callback to be removed
+	 * @param {sap.m.MultiInput.fnValidator} fnValidator The validation callback to be removed
 	 * @public
 	 */
-	MultiInput.prototype.removeValidator = function (fValidator) {
-		this._tokenizer.removeValidator(fValidator);
+	MultiInput.prototype.removeValidator = function (fnValidator) {
+		this.getAggregation("tokenizer").removeValidator(fnValidator);
 	};
 
 	/**
@@ -579,7 +614,7 @@ function(
 	 * @public
 	 */
 	MultiInput.prototype.removeAllValidators = function () {
-		this._tokenizer.removeAllValidators();
+		this.getAggregation("tokenizer").removeAllValidators();
 	};
 
 	/**
@@ -588,6 +623,7 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype.onsapnext = function (oEvent) {
+		var oTokenizer = this.getAggregation("tokenizer");
 
 		if (oEvent.isMarked()) {
 			return;
@@ -602,12 +638,14 @@ function(
 			return;
 		}
 
-		if (this._tokenizer === oFocusedElement || this._tokenizer.$().find(oFocusedElement.$()).length > 0) {
+		if (oTokenizer === oFocusedElement || oTokenizer.$().find(oFocusedElement.$()).length > 0) {
 			// focus is on the tokenizer or on some descendant of the tokenizer and the event was not handled ->
 			// we therefore handle the event and focus the input element
-			this._scrollAndFocus();
+			oTokenizer.scrollToEnd();
+			// we set the focus back via jQuery instead of this.focus() since the latter on phones lead to unwanted opening of the
+			// suggest popup
+			this.$().find("input").trigger("focus");
 		}
-
 	};
 
 	/**
@@ -617,12 +655,18 @@ function(
 	 * @param {jQuery.Event} oEvent The event object
 	 */
 	MultiInput.prototype.onsapbackspace = function (oEvent) {
-		if (this.getCursorPosition() > 0 || !this.getEditable() || this.getValue().length > 0) {
+		if (this._$input.cursorPos() > 0 || !this.getEditable() || this.getValue().length > 0) {
 			// deleting characters, not
 			return;
 		}
 
-		Tokenizer.prototype.onsapbackspace.apply(this._tokenizer, arguments);
+		if (!oEvent.isMarked()) {
+			Tokenizer.prototype.onsapbackspace.apply(this.getAggregation("tokenizer"), arguments);
+		}
+
+		if (oEvent.isMarked("forwardFocusToParent")) {
+			this.focus();
+		}
 
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
@@ -643,42 +687,56 @@ function(
 			return;
 		}
 
-		Tokenizer.prototype.onsapdelete.apply(this._tokenizer, arguments);
+		if (oEvent.isMarked("forwardFocusToParent")) {
+			this.focus();
+		}
 	};
 
 	/**
-	 * Handle the key down event for Ctrl + A
+	 * Handles the key down event.
 	 *
 	 * @param {jQuery.Event} oEvent The event object
 	 * @private
 	 */
 	MultiInput.prototype.onkeydown = function (oEvent) {
+		var oTokenizer = this.getAggregation("tokenizer");
 
+		if (!this.getEnabled()) {
+			return;
+		}
 		if (oEvent.which === KeyCodes.TAB) {
-			this._tokenizer._changeAllTokensSelection(false);
+			oTokenizer._changeAllTokensSelection(false);
 		}
 
-		// ctrl/meta + A - Select all Tokens
-		if ((oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.A) {
-			if (this._tokenizer.getTokens().length > 0) {
-				this._tokenizer.focus();
-				this._tokenizer._changeAllTokensSelection(true);
-				oEvent.preventDefault();
-			}
+		if ((oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.A && oTokenizer.getTokens().length > 0) {
+			oTokenizer.focus();
+			oTokenizer._changeAllTokensSelection(true);
+			oEvent.preventDefault();
 		}
 
 		// ctrl/meta + c OR ctrl/meta + Insert - Copy all selected Tokens
 		if ((oEvent.ctrlKey || oEvent.metaKey) && (oEvent.which === KeyCodes.C || oEvent.which === KeyCodes.INSERT)) {
-			this._tokenizer._copy();
+			oTokenizer._copy();
 		}
 
 		// ctr/meta + x OR Shift + Delete - Cut all selected Tokens if editable
 		if (((oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.X) || (oEvent.shiftKey && oEvent.which === KeyCodes.DELETE)) {
 			if (this.getEditable()) {
-				this._tokenizer._cut();
+				oTokenizer._cut();
 			} else {
-				this._tokenizer._copy();
+				oTokenizer._copy();
 			}
+		}
+
+		// ctrl/meta + I -> Open suggestions
+		if ((oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.I && oTokenizer.getTokens().length) {
+			this._manageListsVisibility(true);
+			if (this.getEditable()) {
+				this._toggleSelectedItemsPicker();
+			} else {
+				this._toggleReadonlyPopover(this.getDomRef());
+			}
+			oEvent.preventDefault();
 		}
 	};
 
@@ -689,8 +747,8 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype.onpaste = function (oEvent) {
-
-		var sOriginalText, i,
+		var oTokenizer = this.getAggregation("tokenizer"),
+			sOriginalText, i,
 			aValidTokens = [],
 			aAddedTokens = [];
 
@@ -700,7 +758,7 @@ function(
 
 		// for the purpose to copy from column in excel and paste in MultiInput/MultiComboBox
 		if (window.clipboardData) {
-			/* TODO remove after 1.62 version */
+			/* TODO remove after the end of support for Internet Explorer */
 			//IE
 			sOriginalText = window.clipboardData.getData("Text");
 		} else {
@@ -708,7 +766,7 @@ function(
 			sOriginalText = oEvent.originalEvent.clipboardData.getData('text/plain');
 		}
 
-		var aSeparatedText = this._tokenizer._parseString(sOriginalText);
+		var aSeparatedText = oTokenizer._parseString(sOriginalText);
 
 		// if only one piece of text was pasted, we can assume that the user wants to alter it before it is converted into a token
 		// in this case we leave it as plain text input
@@ -734,7 +792,7 @@ function(
 					this.updateDomValue(lastInvalidText);
 
 					for (i = 0; i < aValidTokens.length; i++) {
-						if (this._tokenizer._addUniqueToken(aValidTokens[i])) {
+						if (oTokenizer._addUniqueToken(aValidTokens[i])) {
 							aAddedTokens.push(aValidTokens[i]);
 						}
 					}
@@ -756,11 +814,50 @@ function(
 
 	};
 
+	/**
+	 * Close or open the suggestion popover depending on the current state
+	 *
+	 * @private
+	 */
+	MultiInput.prototype._toggleSelectedItemsPicker = function () {
+		var oPicker = this._getSelectedItemsPicker();
+
+		// In case we have one token in the MultiInput, with truncated text,
+		// tapping on the token will open the selected items picker.
+		// With the focus, we ensure that the last focused element before opening the popover is
+		// the MultiInput itself, as otherwise the focus will be returned to the token.
+		this.focus();
+		if (oPicker.isOpen()) {
+			this._setValueVisible(true);
+			oPicker.close();
+		} else {
+			this._openSelectedItemsPicker();
+		}
+	};
+
+	/**
+	 * Close or open the read-only popover
+	 *
+	 * @private
+	 */
+	MultiInput.prototype._toggleReadonlyPopover = function (oOpenByDom) {
+		var oPopover = this._getReadOnlyPopover(),
+			oPopoverIsOpen = oPopover.isOpen();
+
+		if (oPopoverIsOpen) {
+			oPopover.close();
+		} else {
+			this._fillList();
+			oPopover.openBy(oOpenByDom);
+		}
+	};
+
 	MultiInput.prototype._convertTextToToken = function (text, bCopiedToken) {
-		var result = null,
+		var oTokenizer = this.getAggregation("tokenizer"),
+			result = null,
 			item = null,
 			token = null,
-			iOldLength = this._tokenizer.getTokens().length;
+			iOldLength = oTokenizer.getTokens().length;
 
 		if (!this.getEditable()) {
 			return null;
@@ -771,12 +868,13 @@ function(
 		if (!text) {
 			return null;
 		}
+
 		if ( this._getIsSuggestionPopupOpen() || bCopiedToken) {
 			// only take item from suggestion list if popup is open
 			// or token is pasted (otherwise pasting multiple tokens at once does not work)
 			if (this._hasTabularSuggestions()) {
 				//if there is suggestion table, select the correct item, to avoid selecting the wrong item but with same text.
-				item = this._oSuggestionTable._oSelectedItem;
+				item = this._oSuggestionTable.getSelectedItem();
 			} else {
 				// impossible to enter other text
 				item = this._getSuggestionItem(text);
@@ -790,30 +888,35 @@ function(
 			});
 		}
 
-		var that = this;
-
-		result = this._tokenizer._validateToken({
+		result = oTokenizer._validateToken({
 			text: text,
 			token: token,
 			suggestionObject: item,
-			validationCallback: function (validated) {
-				that._bIsValidating = false;
-				if (validated) {
-					that.setValue("");
-					if (that._bUseDialog && that._isMultiLineMode && that._oSuggestionTable.getItems().length === 0) {
-						var iNewLength = that._tokenizer.getTokens().length;
-						if (iOldLength < iNewLength) {
-							that._oSuggPopover._oPopupInput.setValue("");
-						}
-
-						that._setAllTokenVisible();
-					}
-
-				}
-			}
+			validationCallback: this._validationCallback.bind(this, iOldLength)
 		});
 
 		return result;
+	};
+
+	/**
+	 * A callback executed on ._validateToken call
+	 *
+	 * @param {integer} iOldLength Prior validation length of the Tokens
+	 * @param {boolean} bValidated Is token/input successfully validated
+	 * @private
+	 */
+	MultiInput.prototype._validationCallback = function (iOldLength, bValidated) {
+		var iNewLength = this.getAggregation("tokenizer").getTokens().length;
+		var oSuggestionsPopover = this._getSuggestionsPopoverInstance();
+
+		this._bIsValidating = false;
+		if (bValidated) {
+			this.setValue("");
+			this._bTokenIsValidated = true;
+			if (this.isMobileDevice() && oSuggestionsPopover && oSuggestionsPopover._oPopupInput && (iOldLength < iNewLength)) {
+				oSuggestionsPopover._oPopupInput.setValue("");
+			}
+		}
 	};
 
 	/**
@@ -828,26 +931,16 @@ function(
 			return;
 		}
 
-		if (this.getCursorPosition() === 0) {
+		if (this._$input.cursorPos() === 0) {
 			if (oEvent.srcControl === this) {
-				Tokenizer.prototype.onsapprevious.apply(this._tokenizer, arguments);
-
-				// we need this otherwise navigating with the left arrow key will trigger a scroll of the Tokens
-				oEvent.preventDefault();
+				Tokenizer.prototype.onsapprevious.apply(this.getAggregation("tokenizer"), arguments);
 			}
 		}
-	};
 
-	/**
-	 * Function scrolls the tokens to the end and focuses the input field.
-	 *
-	 * @private
-	 */
-	MultiInput.prototype._scrollAndFocus = function () {
-		this._tokenizer.scrollToEnd();
-		// we set the focus back via jQuery instead of this.focus() since the latter on phones lead to unwanted opening of the
-		// suggest popup
-		this.$().find("input").focus();
+		if (oEvent.keyCode === KeyCodes.ARROW_UP) {
+			// prevent scroll of the page
+			oEvent.preventDefault();
+		}
 	};
 
 	/**
@@ -857,21 +950,22 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype.onsaphome = function (oEvent) {
-		if (this._tokenizer._checkFocus()) {
-			Tokenizer.prototype.onsaphome.apply(this._tokenizer, arguments);
+		// if the caret is already moved to the start of the input text
+		// execute tokenizer's onsaphome handler
+		if (!this.getFocusDomRef().selectionStart) {
+			Tokenizer.prototype.onsaphome.apply(this.getAggregation("tokenizer"), arguments);
 		}
 	};
 
 	/**
-	 * Handle the end button, gives control to tokenizer to move to last token
+	 * Handles the End key. Scrolls the last token into viewport.
 	 *
 	 * @param {jQuery.Event} oEvent The event object
 	 * @private
 	 */
 	MultiInput.prototype.onsapend = function (oEvent) {
-		if (this._tokenizer._checkFocus()) {
-			Tokenizer.prototype.onsapend.apply(this._tokenizer, arguments);
-			oEvent.preventDefault();
+		if (oEvent.isMarked("forwardFocusToParent")) {
+			this.focus();
 		}
 	};
 
@@ -888,7 +982,7 @@ function(
 
 		var bValidateFreeText = true;
 
-		if (this._oSuggestionPopup && this._oSuggestionPopup.isOpen()) {
+		if (this._getIsSuggestionPopupOpen()) {
 			if (this._hasTabularSuggestions()) {
 				bValidateFreeText = !this._oSuggestionTable.getSelectedItem();
 			} else {
@@ -900,17 +994,16 @@ function(
 			this._validateCurrentText();
 		}
 
+		if (oEvent && oEvent.setMarked && this._bTokenIsValidated) {
+			oEvent.setMarked();
+		}
+
+		// Open popover with items if in readonly mode and has Nmore indicator
+		if (!this.getEditable() && this.getAggregation("tokenizer")._hasMoreIndicator() && oEvent.target === this.getFocusDomRef()) {
+			this._handleIndicatorPress();
+		}
+
 		this.focus();
-	};
-
-
-	/**
-	 * Checks whether the MultiInput or one of its internal DOM elements has the focus.
-	 * @returns {boolean} True if the input or its children elements have focus
-	 * @private
-	 */
-	MultiInput.prototype._checkFocus = function () {
-		return this.getDomRef() && containsOrEquals(this.getDomRef(), document.activeElement);
 	};
 
 	/**
@@ -920,18 +1013,21 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype.onsapfocusleave = function (oEvent) {
-		var oPopup = this._oSuggestionPopup,
+		var oPopup = this._getSuggestionsPopoverPopup(),
 			oSelectedItemsPopup = this._oSelectedItemPicker,
 			bNewFocusIsInSuggestionPopup = false,
 			bNewFocusIsInTokenizer = false,
-			bNewFocusIsInMultiInput = this._checkFocus(),
+			bNewFocusIsInMultiInput = this.getDomRef() && containsOrEquals(this.getDomRef(), document.activeElement),
 			oRelatedControlDomRef,
-			bFocusIsInSelectedItemPopup;
-		if (oPopup instanceof sap.m.Popover) {
+			bFocusIsInSelectedItemPopup,
+			oTokenizer = this.getAggregation("tokenizer");
+
+
+		if (oPopup.isA("sap.m.Popover")) {
 			if (oEvent.relatedControlId) {
 				oRelatedControlDomRef = sap.ui.getCore().byId(oEvent.relatedControlId).getFocusDomRef();
 				bNewFocusIsInSuggestionPopup = containsOrEquals(oPopup.getFocusDomRef(), oRelatedControlDomRef);
-				bNewFocusIsInTokenizer = containsOrEquals(this._tokenizer.getFocusDomRef(), oRelatedControlDomRef);
+				bNewFocusIsInTokenizer = containsOrEquals(oTokenizer.getFocusDomRef(), oRelatedControlDomRef);
 
 				if (oSelectedItemsPopup) {
 					bFocusIsInSelectedItemPopup = containsOrEquals(oSelectedItemsPopup.getFocusDomRef(), oRelatedControlDomRef);
@@ -941,7 +1037,7 @@ function(
 
 		// setContainerSize of multi-line mode in the end
 		if (!bNewFocusIsInTokenizer && !bNewFocusIsInSuggestionPopup) {
-			this._tokenizer.scrollToEnd();
+			oTokenizer.scrollToEnd();
 		}
 
 		Input.prototype.onsapfocusleave.apply(this, arguments);
@@ -952,15 +1048,15 @@ function(
 			return;
 		}
 
-		if (!this._bUseDialog										// Validation occurs if we are not on phone
-			&& !bNewFocusIsInSuggestionPopup						// AND the focus is not in the suggestion popup
-			&& oEvent.relatedControlId !== this.getId()				// AND the focus is not in the input field
-			&& oEvent.relatedControlId !== this._tokenizer.getId()) {	// AND the focus is not on the tokenizer
+		if (!this.isMobileDevice()							// Validation occurs if we are not on phone
+			&& !bNewFocusIsInSuggestionPopup				// AND the focus is not in the suggestion popup
+			&& oEvent.relatedControlId !== this.getId()			// AND the focus is not in the input field
+			&& !bNewFocusIsInTokenizer) {					// AND the focus is not in the tokenizer
 
 			this._validateCurrentText(true);
 		}
 
-		if (!this._bUseDialog 								// not phone
+		if (!this.isMobileDevice() 								// not phone
 			&& this.getEditable()) {						// control is editable
 
 			if (bNewFocusIsInMultiInput || bNewFocusIsInSuggestionPopup) {
@@ -969,22 +1065,18 @@ function(
 		}
 
 		if (!bFocusIsInSelectedItemPopup && !bNewFocusIsInTokenizer) {
-			this._tokenizer._useCollapsedMode(true);
-		}
-
-		if (this._oReadOnlyPopover && this._oReadOnlyPopover.isOpen() && !bNewFocusIsInTokenizer) {
-			this._oReadOnlyPopover.close();
+			oTokenizer._useCollapsedMode(true);
 		}
 
 		this._handleInnerVisibility();
 	};
 
 	MultiInput.prototype._onDialogClose = function () {
-		this._validateCurrentText();
+		var oTokenizer = this.getAggregation("tokenizer");
 
-		this.setAggregation("tokenizer", this._tokenizer);
-		this._tokenizer.setReverseTokens(false);
-		this._tokenizer.invalidate();
+		this.setAggregation("tokenizer", oTokenizer);
+		oTokenizer.setReverseTokens(false);
+		oTokenizer.invalidate();
 	};
 
 
@@ -994,11 +1086,12 @@ function(
 	 * @param {jQuery.Event} oEvent The event object
 	 */
 	MultiInput.prototype.ontap = function (oEvent) {
+		var oTokenizer = this.getAggregation("tokenizer");
 
 		//deselect tokens when focus is on text field
 		if (document.activeElement === this._$input[0]
-			|| document.activeElement === this._tokenizer.getDomRef()) {
-			this._tokenizer.selectAllTokens(false);
+			|| document.activeElement === oTokenizer.getDomRef()) {
+			oTokenizer.selectAllTokens(false);
 		}
 
 		if (oEvent && oEvent.isMarked("tokenDeletePress")) {
@@ -1006,10 +1099,6 @@ function(
 		}
 
 		Input.prototype.ontap.apply(this, arguments);
-
-	};
-
-	MultiInput.prototype._onclick = function (oEvent) {
 	};
 
 	/**
@@ -1018,25 +1107,28 @@ function(
 	 * @param {jQuery.Event} oEvent The event object
 	 */
 	MultiInput.prototype.onfocusin = function (oEvent) {
+		var oTokenizer = this.getAggregation("tokenizer");
+		this._deregisterTokenizerResizeHandler();
+
 		this._bValueHelpOpen = false; //This means the ValueHelp is closed and the focus is back. So, reset that var
 
 		if (oEvent.target === this.getFocusDomRef()) {
 			Input.prototype.onfocusin.apply(this, arguments);
+			oTokenizer.hasOneTruncatedToken() && oTokenizer.setFirstTokenTruncated(false);
 		}
 
-		if (this.getEditable() && (!oEvent.target.classList.contains("sapMInputValHelp")
-			&& !oEvent.target.classList.contains("sapMInputValHelpInner"))) {
-
-				if (this._oSuggestionPopup && this._oSuggestionPopup.isOpen()) {
-					return;
-				}
-
-				this._tokenizer._useCollapsedMode(false);
-				this._setValueVisible();
-				this._tokenizer.scrollToEnd();
+		if (!this.isMobileDevice() &&
+			this.getEditable() &&
+			oEvent.target === this.getDomRef("inner") &&
+			!(this._getIsSuggestionPopupOpen())
+		) {
+			oTokenizer._useCollapsedMode(false);
+			this._setValueVisible(true);
+			oTokenizer.scrollToEnd();
 		}
+
+		this._registerResizeHandler();
 	};
-
 
 	/**
 	 * When press ESC, deselect all tokens and all texts
@@ -1046,7 +1138,7 @@ function(
 	MultiInput.prototype.onsapescape = function (oEvent) {
 
 		//deselect everything
-		this._tokenizer.selectAllTokens(false);
+		this.getAggregation("tokenizer").selectAllTokens(false);
 		this.selectText(0, 0);
 
 		Input.prototype.onsapescape.apply(this, arguments);
@@ -1059,7 +1151,10 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype._validateCurrentText = function (bExactMatch) {
-		var text = this.getValue();
+		var oTokenizer = this.getAggregation("tokenizer"),
+			text = this.getValue(),
+			iOldLength = oTokenizer.getTokens().length; //length of tokens before validating
+
 		if (!text || !this.getEditable()) {
 			return;
 		}
@@ -1076,7 +1171,7 @@ function(
 		if (bExactMatch || this._getIsSuggestionPopupOpen()) { // only take item from suggestion list if popup is open, otherwise it can be
 			if (this._hasTabularSuggestions()) {
 				//if there is suggestion table, select the correct item, to avoid selecting the wrong item but with same text.
-				item = this._oSuggestionTable._oSelectedItem;
+				item = this._oSuggestionTable.getSelectedItem();
 			} else {
 				// impossible to enter other text
 				item = this._getSuggestionItem(text, bExactMatch);
@@ -1089,35 +1184,20 @@ function(
 				text: item.getText(),
 				key: item.getKey()
 			});
-		}
 
-		var that = this;
+			this._bTokenIsAdded = true;
+		}
 
 		// if maxTokens limit is not set or the added tokens are less than the limit
 		if (!this.getMaxTokens() || this.getTokens().length < this.getMaxTokens()) {
 			this._bIsValidating = true;
-			this._tokenizer._addValidateToken({
+			oTokenizer._addValidateToken({
 				text: text,
 				token: token,
 				suggestionObject: item,
-				validationCallback: function (validated) {
-					that._bIsValidating = false;
-					if (validated) {
-						that.setValue("");
-					}
-				}
+				validationCallback: this._validationCallback.bind(this, iOldLength)
 			});
 		}
-	};
-
-	/**
-	 * Functions returns the current input field's cursor position
-	 *
-	 * @private
-	 * @return {int} The cursor position
-	 */
-	MultiInput.prototype.getCursorPosition = function () {
-		return this._$input.cursorPos();
 	};
 
 	/**
@@ -1145,12 +1225,16 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype._getIsSuggestionPopupOpen = function () {
-		return this._oSuggPopover && this._oSuggPopover._oPopover.isOpen();
+		var oSuggestionsPopover = this._getSuggestionsPopoverInstance(),
+			oSuggestionsPopoverPopup = this._getSuggestionsPopoverPopup();
+
+		return oSuggestionsPopover && oSuggestionsPopoverPopup && oSuggestionsPopoverPopup.isOpen();
 	};
 
 	MultiInput.prototype.setEditable = function (bEditable) {
 		bEditable = this.validateProperty("editable", bEditable);
-		var oTokensList = this._getTokensList();
+
+		var oTokensList = this._getTokensList(true);
 
 		if (bEditable === this.getEditable()) {
 			return this;
@@ -1160,15 +1244,15 @@ function(
 			Input.prototype.setEditable.apply(this, arguments);
 		}
 
-		this._tokenizer.setEditable(bEditable);
+		this.getAggregation("tokenizer").setEditable(bEditable);
 
 		if (bEditable) {
-			if (this._bUseDialog) {
-				this._oSuggPopover._oPopover.addContent(oTokensList);
+			if (this.isMobileDevice()) {
+				this._getSuggestionsPopoverPopup().addContent(oTokensList);
 			} else {
 				this._getSelectedItemsPicker().addContent(oTokensList);
 			}
-			oTokensList.setMode(ListMode.MultiSelect);
+			oTokensList.setMode(ListMode.Delete);
 		} else {
 			oTokensList.setMode(ListMode.None);
 			this._getReadOnlyPopover().addContent(oTokensList);
@@ -1253,57 +1337,47 @@ function(
 		return item;
 	};
 
+	/**
+	 * Clones the <code>sap.m.MultiInput</code> control.
+	 *
+	 * @public
+	 * @return {sap.m.MultiInput} reference to the newly created clone
+	 */
+	MultiInput.prototype.clone = function () {
+		var oClone,
+			oTokenizer = this.getAggregation("tokenizer");
+
+		this.detachSuggestionItemSelected(this._onSuggestionItemSelected, this);
+		this.detachLiveChange(this._onLiveChange, this);
+		oTokenizer.detachTokenChange(this._onTokenChange, this);
+		oTokenizer.detachTokenUpdate(this._onTokenUpdate, this);
+		this.detachValueHelpRequest(this._onValueHelpRequested, this);
+
+		oClone = Input.prototype.clone.apply(this, arguments);
+
+		this.attachSuggestionItemSelected(this._onSuggestionItemSelected, this);
+		this.attachLiveChange(this._onLiveChange, this);
+		oTokenizer.attachTokenChange(this._onTokenChange, this);
+		oTokenizer.attachTokenUpdate(this._onTokenUpdate, this);
+		this.attachValueHelpRequest(this._onValueHelpRequested, this);
+
+		return oClone;
+	};
+
 	MultiInput.getMetadata().forwardAggregation(
 		"tokens",
 		{
-			getter: function(){ return this._tokenizer; },
+			getter: function(){ return this.getAggregation("tokenizer"); },
 			aggregation: "tokens",
 			forwardBinding: true
 		}
 	);
 
-
-	/**
-	 * Function overwrites clone function to add tokens to MultiInput
-	 *
-	 * @public
-	 * @return {sap.ui.core.Element} reference to the newly created clone
-	 */
-	MultiInput.prototype.clone = function () {
-		var oClone,
-			oTokenizerClone;
-
-		this.detachSuggestionItemSelected(this._onSuggestionItemSelected, this);
-		this.detachLiveChange(this._onLiveChange, this);
-		this._tokenizer.detachTokenChange(this._onTokenChange, this);
-		this._tokenizer.detachTokenUpdate(this._onTokenUpdate, this);
-
-		oClone = Input.prototype.clone.apply(this, arguments);
-
-		oClone.destroyAggregation("tokenizer");
-		oClone._tokenizer = null;
-
-		oTokenizerClone = this._tokenizer.clone();
-		oClone._tokenizer = oTokenizerClone;
-		oClone.setAggregation("tokenizer", oTokenizerClone, true);
-
-		this._tokenizer.attachTokenChange(this._onTokenChange, this);
-		this._tokenizer.attachTokenUpdate(this._onTokenUpdate, this);
-		oClone._tokenizer.attachTokenChange(oClone._onTokenChange, oClone);
-		oClone._tokenizer.attachTokenUpdate(oClone._onTokenUpdate, oClone);
-		oClone._tokenizer._handleNMoreIndicatorPress(oClone._handleIndicatorPress.bind(oClone));
-
-		this.attachSuggestionItemSelected(this._onSuggestionItemSelected, this);
-		this.attachLiveChange(this._onLiveChange, this);
-
-		return oClone;
-	};
-
 	/**
 	 * Function returns domref which acts as reference point for the opening suggestion menu
 	 *
 	 * @public
-	 * @returns {domRef} The domref at which to open the suggestion menu
+	 * @returns {Element} The domref at which to open the suggestion menu
 	 */
 	MultiInput.prototype.getPopupAnchorDomRef = function () {
 		return this.getDomRef("content");
@@ -1328,7 +1402,7 @@ function(
 				aValidatedTokens.push(oValidatedToken);
 			}
 
-			this._tokenizer.setTokens(aValidatedTokens);
+			this.getAggregation("tokenizer").setTokens(aValidatedTokens);
 
 			for (i = 0; i < aTokens.length; i++) {
 				ManagedObjectMetadata.addAPIParentInfoEnd(aTokens[i]);
@@ -1352,7 +1426,7 @@ function(
 	/**
 	 * Get the reference element which the message popup should dock to
 	 *
-	 * @return {DOMRef} Dom Element which the message popup should dock to
+	 * @return {Element} DOM Element which the message popup should dock to
 	 * @protected
 	 * @function
 	 */
@@ -1365,7 +1439,48 @@ function(
 	 */
 	MultiInput.prototype.updateInputField = function(sNewValue) {
 		Input.prototype.updateInputField.call(this, sNewValue);
+		var oSuggestionsPopover = this._getSuggestionsPopoverInstance();
+
 		this.setDOMValue('');
+
+		if (oSuggestionsPopover._oPopupInput) {
+			oSuggestionsPopover._oPopupInput.setDOMValue('');
+		}
+	};
+
+	/**
+	 * Overwrites the change event handler of the {@link sap.m.InputBase}.
+	 * In case of added token it will not reset the value.
+	 *
+	 * @protected
+	 * @param {object} oEvent
+	 * @param {object} [mParameters] Additional event parameters to be passed in to the change event handler if * the value has changed
+	 * @param {string} sNewValue Passed value on change
+	 * @returns {boolean|undefined} true when change event is fired
+	 */
+	MultiInput.prototype.onChange = function(oEvent, mParameters, sNewValue) {
+
+		mParameters = mParameters || this.getChangeEventParams();
+
+		if (!this.getEditable() || !this.getEnabled()) {
+			return;
+		}
+
+		var sValue = this._getInputValue(sNewValue);
+
+		if (sValue === this.getLastValue()) {
+			this._bCheckDomValue = false;
+			return;
+		}
+
+		if (!this._bTokenIsValidated) {
+			this.setValue(sValue);
+			sValue = this.getValue();
+			this.setLastValue(sValue);
+		}
+
+		this.fireChangeEvent(sValue, mParameters);
+		return true;
 	};
 
 	/**
@@ -1386,85 +1501,71 @@ function(
 
 
 	/**
-	 * Modifies the picker provided from sap.m.Input when on mobile
+	 * Modifies the suggestions dialog input
+	 * @param {sap.m.Input} oInput The input
 	 *
+	 * @returns {sap.m.Input} The modified input control
 	 * @private
 	 */
 	MultiInput.prototype._modifySuggestionPicker = function () {
-		var that = this;
-
+		var that = this,
+			aTokens, bShowListWithTokens,
+			oSuggestionsPopoverPopup = this._getSuggestionsPopoverPopup();
 		// on mobile the Input's suggestionList is used for displaying
 		// any suggestions or tokens related information
-		if (!this._bUseDialog) {
+		if (!this.isMobileDevice()) {
 			return;
 		}
-
-		this._bShowSelectedButton = this._createFilterSelectedButton();
-		this._oSuggPopover._oPopover.addContent(this._getTokensList());
-		this._oSuggPopover._oPopover
+		oSuggestionsPopoverPopup.addContent(this._getTokensList());
+		oSuggestionsPopoverPopup
 			.attachBeforeOpen(function(){
-				that._manageListsVisibility(that._bShowListWithTokens);
+				aTokens = that.getTokens();
+				bShowListWithTokens =  aTokens.length ? true : false;
+				that._manageListsVisibility(bShowListWithTokens);
 				that._fillList();
 				that._updatePickerHeaderTitle();
 			})
-			.attachAfterClose(function(){
-				that._tokenizer._useCollapsedMode(true);
+			.attachAfterClose(function() {
+				that.getAggregation("tokenizer")._useCollapsedMode(true);
 				that._bShowListWithTokens = false;
 			});
-
-		this._oSuggPopover._oPopover.getCustomHeader().removeAllContentMiddle();
-		this._oSuggPopover._oPopover.destroyCustomHeader(true);
-		this._oSuggPopover._oPopover.setCustomHeader(new Bar({
-			contentMiddle: [new Title()],
-			contentRight: new Button({
-				icon: IconPool.getIconURI("decline"),
-				press: function() {
-					that._oSuggPopover._oPopover.close();
-				}
-			})
-		}));
-		this._oSuggPopover._oPopover.setSubHeader(new Toolbar({
-			content : [
-				this._oSuggPopover._oPopupInput,
-				this._bShowSelectedButton
-			]}
-		));
-
-		this._oSuggPopover._oPopupInput.onsapenter = function (oEvent) {
-			that._validateCurrentText();
-			that._setValueInvisible();
-
-			// Fire through the MultiInput Popup's input value and save it
-			that.onChange(oEvent, null, this.getValue());
-		};
-
-		this._oSuggPopover._oPopupInput.attachLiveChange(function(){
-			if (that._bShowListWithTokens) {
-				// filter inside tokens
-				that._filterTokens(this.getValue());
-			}
-
-			that._manageListsVisibility(that._bShowListWithTokens);
-		});
 	};
 
-	/**
-	 * Creates an instance of <code>sap.m.ToggleButton</code>.
-	 *
-	 * @returns {sap.m.ToggleButton} The Button instance
-	 * @private
-	 */
-	MultiInput.prototype._createFilterSelectedButton = function () {
-		var sIconURI = IconPool.getIconURI("multiselect-all"),
-			that = this;
+	MultiInput.prototype._modifyPopupInput = function (oPopupInput) {
+		var that = this;
 
-		return new ToggleButton({
-			icon: sIconURI,
-			press: function (oEvent) {
-				that._bShowListWithTokens = oEvent.getSource().getPressed();
-				that._manageListsVisibility(that._bShowListWithTokens);
+		oPopupInput.addEventDelegate({
+			oninput: that._manageListsVisibility.bind(that, false),
+			onsapenter: function (oEvent) {
+				if (oPopupInput.getValue()) {
+					that._closeSuggestionPopup();
+				}
+
+				that._validateCurrentText();
+				that._setValueVisible(false);
+
+				// Fire through the MultiInput Popup's input value and save it
+				that.onChange(oEvent, null, oPopupInput.getValue());
 			}
 		});
+
+		return oPopupInput;
+	};
+
+	MultiInput.prototype._hasShowSelectedButton = function () {
+		return true;
+	};
+
+
+	MultiInput.prototype.forwardEventHandlersToSuggPopover = function (oSuggPopover) {
+
+		Input.prototype.forwardEventHandlersToSuggPopover.apply(this, arguments);
+		oSuggPopover.setShowSelectedPressHandler(this._handleShowSelectedPress.bind(this));
+	};
+
+	MultiInput.prototype._handleShowSelectedPress  = function (oEvent) {
+		this._bShowListWithTokens = oEvent.getSource().getPressed();
+		this._manageListsVisibility(this._bShowListWithTokens);
 	};
 
 
@@ -1477,23 +1578,13 @@ function(
 		var oPopover = this._getSelectedItemsPicker(),
 			oDomRef = this.getDomRef(),
 			sWidth;
-		this._setValueInvisible();
+
+		this._setValueVisible(false);
 		this._fillList();
 
 		if (oDomRef && oPopover) {
 			sWidth = (oDomRef.offsetWidth / parseFloat(library.BaseFontSize)) + "rem";
 			oPopover.setContentMinWidth(sWidth);
-		}
-	};
-	/**
-	 * This event handler will be called after the MultiComboBox's Pop-up is closed.
-	 *
-	 * @private
-	 */
-	MultiInput.prototype._onAfterCloseTokensPicker = function() {
-		if (this._oSuggPopover && !this.getValue()) {
-			this._tokenizer._useCollapsedMode(true);
-			this._setValueInvisible();
 		}
 	};
 
@@ -1504,7 +1595,7 @@ function(
 	 * @protected
 	 */
 	MultiInput.prototype.getDialogTitle = function() {
-		var oPicker = this._oSuggPopover._oPopover,
+		var oPicker = this._getSuggestionsPopoverPopup(),
 			oHeader = oPicker && oPicker.getCustomHeader();
 
 		if (oHeader) {
@@ -1543,18 +1634,18 @@ function(
 	 */
 	MultiInput.prototype._openSelectedItemsPicker = function () {
 		// on mobile reuse the input's suggestion popup
-		if (this._bUseDialog) {
-			this._oSuggPopover._oPopover.open();
+		if (this.isMobileDevice()) {
+			this._getSuggestionsPopoverPopup().open();
 		} else {
 			// on desktop create separate popover for tokens
 			var oPicker = this._getSelectedItemsPicker();
 			if (oPicker) {
-				oPicker.open();
+				oPicker.openBy(this);
 			}
 		}
 
 		this._manageListsVisibility(true);
-		this._setValueVisible();
+		this._setValueVisible(true);
 
 		return this;
 	};
@@ -1562,12 +1653,21 @@ function(
 	/**
 	 * Getter for the list containing tokens
 	 *
+	 * @param {boolean} bRefresh If true, the tokens list should be recreated
 	 * @returns {sap.m.List} The list
 	 * @private
 	 */
-	MultiInput.prototype._getTokensList = function() {
+	MultiInput.prototype._getTokensList = function(bRefresh) {
+		if (bRefresh && this._oSelectedItemsList) {
+			this._oSelectedItemsList.destroy();
+			this._oSelectedItemsList = null;
+		}
+
 		if (!this._oSelectedItemsList) {
-			this._oSelectedItemsList = this._createTokensList();
+			this._oSelectedItemsList = new List({
+				width: "auto",
+				mode: ListMode.Delete
+			}).attachDelete(this._handleNMoreItemDelete, this);
 		}
 
 		return this._oSelectedItemsList;
@@ -1580,23 +1680,29 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype._getSuggestionsList = function() {
-		return this._oSuggPopover && this._oSuggPopover._oList;
+		var oSuggestionsPopover = this._getSuggestionsPopoverInstance();
+
+		return oSuggestionsPopover && oSuggestionsPopover._oList;
 	};
 
 	/**
-	 * Creates a list for items generated from token
+	 * Returns the <code>SuggestionsPopover</code> instance.
 	 *
-	 * @returns {sap.m.List} The list
+	 * @returns {sap.m.SuggestionsPopover} A suggestion popover instance.
 	 * @private
 	 */
-	MultiInput.prototype._createTokensList = function() {
-		return new List({
-			width: "auto",
-			mode: ListMode.MultiSelect,
-			includeItemInSelection: true,
-			rememberSelections: false
-		}).attachBrowserEvent("tap", this._handleItemTap, this)
-		  .attachSelectionChange(this._handleSelectionLiveChange, this);
+	MultiInput.prototype._getSuggestionsPopoverInstance = function () {
+		return this._oSuggPopover;
+	};
+
+	/**
+	 * Returns the <code>SuggestionsPopover</code> Popup instance.
+	 *
+	 * @returns {sap.m.SuggestionsPopover} A suggestions popover popup instance.
+	 * @private
+	 */
+	MultiInput.prototype._getSuggestionsPopoverPopup = function () {
+		return this._oSuggPopover._oPopover;
 	};
 
 	/**
@@ -1625,8 +1731,8 @@ function(
 		this._getTokensList().setVisible(bShowListWithTokens);
 		this._getSuggestionsList() && this._getSuggestionsList().setVisible(!bShowListWithTokens);
 
-		if (this._bUseDialog) {
-			this._bShowSelectedButton.setPressed(bShowListWithTokens);
+		if (this.isMobileDevice()) {
+			this._getSuggestionsPopover().getFilterSelectedButton().setPressed(bShowListWithTokens);
 		}
 	};
 
@@ -1642,12 +1748,11 @@ function(
 			return null;
 		}
 
-		var oListItem = new sap.m.StandardListItem({
-			selected: true,
-			title: oToken.getText()
+		var oListItem = new StandardListItem({
+			selected: true
 		});
-		oListItem.data("key", oToken.getKey());
-		oListItem.data("text", oToken.getText());
+		oListItem.setTitle(oToken.getText());
+
 		oListItem.data("tokenId", oToken.getId());
 		return oListItem;
 	};
@@ -1679,75 +1784,66 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype._handleIndicatorPress = function() {
-			this._bShowListWithTokens = true;
-			if (this.getEditable()) {
-				this._openSelectedItemsPicker();
-			} else {
-				this._fillList();
-				this._getReadOnlyPopover().openBy(this._tokenizer._oIndicator[0]);
-			}
-	};
+		var oTokenizer = this.getAggregation("tokenizer"),
+			bNMoreIndicatorVisible = oTokenizer._oIndicator && !oTokenizer._oIndicator[0].classList.contains("sapUiHidden"),
+			oOpenByDom = bNMoreIndicatorVisible ? oTokenizer._oIndicator[0] : this.getDomRef();
 
-	/**
-	 * Called when the user taps on a list item
-	 * @param {jQuery.Event} oEvent The event triggered by the user
-	 * @private
-	 */
-	MultiInput.prototype._handleItemTap = function (oEvent) {
-		if (jQuery(oEvent.target).hasClass("sapMCbMark")) {
-			return;
-		}
-
-		if (this._bUseDialog) {
-			this._oSuggPopover._oPopover.close();
-		} else if (this._oReadOnlyPopover && this._oReadOnlyPopover.isOpen()) {
-			this._oReadOnlyPopover.close();
+		this._bShowListWithTokens = true;
+		if (this.getEditable()) {
+			// The selected items picker
+			this.focus();
+			this._openSelectedItemsPicker();
 		} else {
-			this._getSelectedItemsPicker().close();
+			this._toggleReadonlyPopover(oOpenByDom);
 		}
 	};
 
 	/**
-	 * Called when the user selects or deselects a list item from the token's popover
+	 * Called when the user deletes a list item from the token's popover
 	 * @param {jQuery.Event} oEvent The event triggered by the user
 	 * @private
 	 */
-	MultiInput.prototype._handleSelectionLiveChange = function(oEvent) {
+	MultiInput.prototype._handleNMoreItemDelete = function(oEvent) {
 		var oListItem = oEvent.getParameter("listItem"),
-			bIsSelected = oEvent.getParameter("selected");
-		this._syncTokensWithSelection(oListItem, bIsSelected);
+			sSelectedId = oListItem && oListItem.data("tokenId"),
+			oTokenToDelete;
+
+		oTokenToDelete = this.getTokens().filter(function(oToken){
+			return oToken.getId() === sSelectedId;
+		})[0];
+
+		if (oTokenToDelete && oTokenToDelete.getEditable()) {
+			oTokenToDelete = this.removeToken(oTokenToDelete);
+			oTokenToDelete.destroy();
+			this._getTokensList().removeItem(oListItem);
+		}
+
+		this._getTokensList().destroyItems();
+		this._fillList();
+
+		this.focus();
 	};
 
 	/**
-	 * Synchronizes the tokens with the selected items in the token's popover
+	 * Adds or removes aria-labelledby attribute to indicate that you can interact with Nmore.
 	 *
-	 * @param {sap.m.StandardListItem} oItemData The target list item
-	 * @param {boolean} bSelected True if the item is selected
 	 * @private
 	 */
-	MultiInput.prototype._syncTokensWithSelection = function(oItemData, bSelected) {
-		if (bSelected) {
-			var oToken = new Token({
-				text: oItemData.data("text"),
-				key: oItemData.data("key")
-			});
-			oItemData.data("tokenId", oToken.getId());
-			this.addToken(oToken);
+	MultiInput.prototype._handleNMoreAccessibility = function () {
+		var sInvisibleTextId = InvisibleText.getStaticId("sap.m", "MULTICOMBOBOX_OPEN_NMORE_POPOVER"),
+			oFocusDomRef = this.getFocusDomRef(),
+			sAriaLabeledBy = (oFocusDomRef && oFocusDomRef.getAttribute("aria-labelledby")) || "",
+			aAriaLabeledBy = sAriaLabeledBy.split(" "),
+			iNMoreIndex = aAriaLabeledBy.indexOf(sInvisibleTextId);
 
-			this.fireTokenUpdate({
-				addedTokens: [oToken],
-				removedTokens: [],
-				type: Tokenizer.TokenUpdateType.Added
-			});
-		} else {
-			var sSelectedId = oItemData.data("tokenId");
+		if (!this.getEditable() && this.getAggregation("tokenizer")._hasMoreIndicator() && iNMoreIndex === -1) {
+			aAriaLabeledBy.push(sInvisibleTextId);
+		} else if (iNMoreIndex !== -1) {
+			aAriaLabeledBy.splice(iNMoreIndex, 1);
+		}
 
-			this.getTokens().some(function(oToken){
-				if (oToken.getId() === sSelectedId) {
-					this._tokenizer._onTokenDelete(oToken);
-					return true;
-				}
-			}.bind(this));
+		if (oFocusDomRef) {
+			oFocusDomRef.setAttribute("aria-labelledby", aAriaLabeledBy.join(" "));
 		}
 	};
 
@@ -1763,29 +1859,15 @@ function(
 			return this._oSelectedItemPicker;
 		}
 
-		this._oSelectedItemPicker = this._createDropdown();
+		this._oSelectedItemPicker = new Popover(this._getDropdownSettings()).setInitialFocus(this);
 
-		if (!this._bUseDialog) {
+		if (!this.isMobileDevice()) {
 			// configuration
 			this._oSelectedItemPicker.setHorizontalScrolling(false)
 				.attachBeforeOpen(this._onBeforeOpenTokensPicker, this)
-				.attachAfterClose(this._onAfterCloseTokensPicker, this)
 				.addContent(this._getTokensList());
 		}
 		return this._oSelectedItemPicker;
-	};
-
-	/**
-	 * Creates an instance type of <code>sap.m.Popover</code>.
-	 *
-	 * @returns {sap.m.Popover} The Popover instance
-	 * @private
-	 */
-	MultiInput.prototype._createDropdown = function() {
-		var oDropdown = new Popover(this._getDropdownSettings());
-		oDropdown.setInitialFocus(this);
-		this._decoratePopover(oDropdown);
-		return oDropdown;
 	};
 
 	/**
@@ -1796,41 +1878,17 @@ function(
 	 */
 	MultiInput.prototype._getReadOnlyPopover = function() {
 		if (!this._oReadOnlyPopover) {
-			this._oReadOnlyPopover = this._createReadOnlyPopover();
+			this._oReadOnlyPopover = new Popover({
+				showArrow: true,
+				placement: PlacementType.Auto,
+				showHeader: false,
+				contentMinWidth: "auto"
+			}).addStyleClass("sapMMultiInputReadOnlyPopover");
 		}
 
 		return this._oReadOnlyPopover;
 	};
 
-	/**
-	 * Creates an instance type of <code>sap.m.Popover</code> used in read-only mode.
-	 *
-	 * @returns {sap.m.Popover} The Popover instance
-	 * @private
-	 */
-	MultiInput.prototype._createReadOnlyPopover = function() {
-		return new Popover({
-			showArrow: true,
-			placement: PlacementType.Auto,
-			showHeader: false,
-			contentMinWidth: "auto"
-		}).addStyleClass("sapMMultiInputReadOnlyPopover")
-			.setInitialFocus(this);
-	};
-
-	/**
-	 * Decorate a Popover instance by adding some private methods.
-	 *
-	 * @param {sap.m.Popover} oPopover The popover to be decorated
-	 * @private
-	 */
-	MultiInput.prototype._decoratePopover = function(oPopover) {
-		var that = this;
-
-		oPopover.open = function() {
-			return this.openBy(that);
-		};
-	};
 
 	/*
 	 * Gets the dropdown default settings.
@@ -1848,6 +1906,69 @@ function(
 			bounce: false
 		};
 	};
+
+	/**
+	 * Function calculates the available space for the tokenizer
+	 *
+	 * @private
+	 * @return {String | null} CSSSize in px
+	 */
+	MultiInput.prototype._calculateSpaceForTokenizer = function () {
+		var oDomRef = this.getDomRef();
+
+		if (oDomRef) {
+			var iSpace,
+				oDescriptionWrapper = this.$().find(".sapMInputDescriptionWrapper"),
+				oInputRef = this.$().find(".sapMInputBaseInner"),
+				iControlWidth = oDomRef.offsetWidth || 0,
+				iDescriptionWidth = oDescriptionWrapper.width() || 0,
+				iSummedIconsWidth = this._calculateIconsSpace(),
+				aInputRelevantCss = ["min-width", "padding-right", "padding-left"],
+				// calculate width of the input html element based on its min-width
+				iInputWidth = aInputRelevantCss.reduce(function (iAcc, sProperty) {
+					return iAcc + (parseInt(oInputRef.css(sProperty)) || 0);
+				}, 0);
+
+			iSpace = iControlWidth - (iSummedIconsWidth + iInputWidth + iDescriptionWidth);
+			iSpace = iSpace < 0 ? 0 : iSpace;
+
+			return iSpace + "px";
+		} else {
+			return null;
+		}
+	};
+
+	/**
+	 * Calculates and sets the available width of the html input element
+	 * when there is a tokenizer.
+	 *
+	 * @param {sap.m.Tokenizer} oTokenizer The tokenizer of the control
+	 * @private
+	 */
+	MultiInput.prototype._syncInputWidth = function (oTokenizer) {
+		var oFocusDomRef = this.getDomRef('inner'),
+			iSummedIconsWidth, iTokenizerWidth;
+
+		if (!oFocusDomRef || (oTokenizer && !oTokenizer.getDomRef())) {
+			return;
+		}
+
+		iSummedIconsWidth = this._calculateIconsSpace();
+		iTokenizerWidth = Math.ceil(oTokenizer.getDomRef().getBoundingClientRect().width);
+		oFocusDomRef.style.width = 'calc(100% - ' + Math.floor(iSummedIconsWidth + iTokenizerWidth) + "px";
+	};
+
+	/**
+	 * Gets the supported openers for the valueHelpOnly.
+	 *
+	 * @protected
+	 * @param {HTMLElement} oTarget The target of the event.
+	 * @returns {Boolean} Boolean indicating if the target is a valid opener.
+	 */
+	MultiInput.prototype.isValueHelpOnlyOpener = function (oTarget) {
+		return [this._$input[0], this._getValueHelpIcon().getDomRef()].indexOf(oTarget) > -1;
+	};
+
 
 	return MultiInput;
 

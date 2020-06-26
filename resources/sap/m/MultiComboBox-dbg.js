@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,15 +8,11 @@ sap.ui.define([
 	'./InputBase',
 	'./ComboBoxTextField',
 	'./ComboBoxBase',
-	'./Input',
 	'./Tokenizer',
 	'./Token',
-	'./ToggleButton',
 	'./List',
 	'./StandardListItem',
 	'./Popover',
-	'./SuggestionsPopover',
-	'./Toolbar',
 	'./GroupHeaderListItem',
 	'./library',
 	'sap/ui/core/EnabledPropagator',
@@ -33,6 +29,7 @@ sap.ui.define([
 	"sap/base/assert",
 	"sap/base/Log",
 	"sap/ui/core/Core",
+	'sap/ui/core/InvisibleText',
 	"sap/ui/thirdparty/jquery",
 	// jQuery Plugin "cursorPos"
 	"sap/ui/dom/jquery/cursorPos",
@@ -43,15 +40,11 @@ function(
 	InputBase,
 	ComboBoxTextField,
 	ComboBoxBase,
-	Input,
 	Tokenizer,
 	Token,
-	ToggleButton,
 	List,
 	StandardListItem,
 	Popover,
-	SuggestionsPopover,
-	Toolbar,
 	GroupHeaderListItem,
 	library,
 	EnabledPropagator,
@@ -68,6 +61,7 @@ function(
 	assert,
 	Log,
 	core,
+	InvisibleText,
 	jQuery
 ) {
 	"use strict";
@@ -99,6 +93,8 @@ function(
 	 * <h3>Overview</h3>
 	 * The MultiComboBox control is commonly used to enable users to select one or more options from a predefined list. The control provides an editable input field to filter the list, and a dropdown arrow of available options.
 	 * The select options in the list have checkboxes that permit multi-selection. Entered values are displayed as {@link sap.m.Token tokens}.
+	 *
+	 * When an invalid character is typed into the text field of the MultiComboBox control, the value state is changed to <code>sap.ui.core.ValueState.Error</code> only for a second, as the invalid value is immediately deleted from the input field.
 	 * <h3>Structure</h3>
 	 * The MultiComboBox consists of the following elements:
 	 * <ul>
@@ -116,7 +112,7 @@ function(
 	 * <li>The user needs to choose between two options such as ON or OFF and YES or NO. In this case, consider using a {@link sap.m.Switch switch} control instead</li>
 	 * <li>You need to display more that one attribute. In this case, consider using the {@link sap.m.SelectDialog select dialog} or value help dialog instead.</li>
 	 * <li>The user needs to search on multiple attributes. In this case, consider using the {@link sap.m.SelectDialog select dialog} or value help dialog instead.</li>
-	 * <li>Your use case requires all available options to be displayed right away, without any user interaction. In this case, consider using the {@link sap.m.Checkbox checkboxes} instead.</li>
+	 * <li>Your use case requires all available options to be displayed right away, without any user interaction. In this case, consider using the {@link sap.m.CheckBox checkboxes} instead.</li>
 	 * </ul>
 	 * <h3>Responsive Behavior</h3>
 	 * If there are many tokens, the control shows only the last selected tokens that fit and for the others a label N-more is provided.
@@ -141,7 +137,7 @@ function(
 	 * </ul>
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @extends sap.m.ComboBoxBase
@@ -204,16 +200,46 @@ function(
 					selectedItems: { type: "sap.ui.core.Item[]" }
 				}
 			}
-		}
+		},
+		dnd: { draggable: false, droppable: true }
 	}});
 
 	IconPool.insertFontFaceStyle();
 	EnabledPropagator.apply(MultiComboBox.prototype, [true]);
 
-	MultiComboBox.prototype.open = function() {
-		this._bPickerIsOpening = true;
 
-		ComboBoxBase.prototype.open.apply(this, arguments);
+	/**
+	 * Clones the <code>sap.m.MultiComboBox</code> control.
+	 *
+	 * @param {string} sIdSuffix Suffix to be added to the ids of the new control and its internal objects.
+	 * @returns {sap.m.ComboBox} The cloned <code>sap.m.MultiComboBox</code> control.
+	 * @public
+	 */
+	MultiComboBox.prototype.clone = function (sIdSuffix) {
+		var oComboBoxClone = ComboBoxBase.prototype.clone.apply(this, arguments),
+			oList = this._getList();
+
+		if (oList) {
+			oComboBoxClone.syncPickerContent();
+		}
+
+		return oComboBoxClone;
+	};
+
+	/**
+	 * Opens the control's picker popup.
+	 *
+	 * @returns {sap.m.MultiComboBox} <code>this</code> to allow method chaining.
+	 * @protected
+	 */
+	MultiComboBox.prototype.open = function () {
+
+		if (!this.isOpen()) {
+			this._bPickerIsOpening = true;
+		}
+		this.syncPickerContent();
+
+		return ComboBoxBase.prototype.open.apply(this, arguments);
 	};
 
 	/* ----------------------------------------------------------- */
@@ -227,7 +253,9 @@ function(
 	 * @private
 	 */
 	MultiComboBox.prototype.onsapend = function(oEvent) {
-		sap.m.Tokenizer.prototype.onsapend.apply(this._oTokenizer, arguments);
+		if (oEvent.isMarked("forwardFocusToParent")) {
+			this.focus();
+		}
 	};
 
 	/**
@@ -237,7 +265,13 @@ function(
 	 * @private
 	 */
 	MultiComboBox.prototype.onsaphome = function(oEvent) {
-		sap.m.Tokenizer.prototype.onsaphome.apply(this._oTokenizer, arguments);
+		// if the caret is already moved to the start of the input text
+		// execute tokenizer's onsaphome handler
+		if (!this.getFocusDomRef().selectionStart) {
+			Tokenizer.prototype.onsaphome.apply(this._oTokenizer, arguments);
+		}
+
+		oEvent.setMarked();
 	};
 
 	/**
@@ -260,31 +294,44 @@ function(
 		// note: prevent document scrolling when arrow keys are pressed
 		oEvent.preventDefault();
 
+		this.syncPickerContent();
+
 		// If list is open then go to the first visible list item. Set this item
 		// into the visual viewport.
 		// If list is closed...
 		var aItems = this.getSelectableItems();
 		var oItem = aItems[0];
+		var that = this;
 
-		if (oItem && this.isOpen()) {
-			this.getListItem(oItem).focus();
+		// If there is a link in the value state message
+		if (oItem && this.isOpen() && this.getValueStateLinks().length) {
+			this._handleFormattedTextNav();
+			return;
+		} else if (oItem && this.isOpen()) {
+			// wait for the composition and input events to fire properly
+			// since the focus of the list item triggers unwanted extra events
+			// when called in while composing
+			setTimeout(function() {
+				that.getListItem(oItem).focus();
+			}, 0);
 			return;
 		}
 
-		if (this._oTokenizer.getSelectedTokens().length) {
+		if (this.isFocusInTokenizer()) {
 			return;
 		}
 
 		this._oTraversalItem = this._getNextTraversalItem();
 
-		if (this._oTraversalItem) {
+		if (this._oTraversalItem && !this.isComposingCharacter()) {
 			this.updateDomValue(this._oTraversalItem.getText());
 			this.selectText(0, this.getValue().length);
 		}
 	};
 
 	/**
-	 * Handle UP arrow key pressed. Set focus to input field if first list item has focus. Otherwise show in input field
+	 * Handles Up arrow key pressed. Set the focus to the input field if there are no links in
+	 * the value state message and the first list item is selected. Otherwise show in input field
 	 * description of the previous traversal item.
 	 *
 	 * @param {jQuery.Event} oEvent The event object
@@ -303,7 +350,9 @@ function(
 		// note: prevent document scrolling when arrow keys are pressed
 		oEvent.preventDefault();
 
-		if (this._oTokenizer.getSelectedTokens().length) {
+		this.syncPickerContent();
+
+		if (this.isFocusInTokenizer()) {
 			return;
 		}
 
@@ -316,44 +365,175 @@ function(
 	};
 
 	/**
+	 * Checks if the focused element is part of the Tokenizer.
+	 * @returns {boolean} True if the focus is inside the Tokenizer
+	 * @private
+	 */
+	MultiComboBox.prototype.isFocusInTokenizer = function () {
+		return jQuery.contains(this._oTokenizer.getFocusDomRef(), document.activeElement);
+	};
+
+	/**
 	 * Handles the <code>onsapshow</code> event when either F4 is pressed or Alt + Down arrow are pressed.
 	 *
 	 * @param {jQuery.Event} oEvent The event object
+	 * @private
 	 */
 	MultiComboBox.prototype.onsapshow = function(oEvent) {
-		var oList = this._getList(),
-			oPicker = this.getPicker(),
-			aSelectableItems = this.getSelectableItems(),
-			aSelectedItems = this.getSelectedItems(),
-			oItemToFocus, oItemNavigation = oList.getItemNavigation(),
-			iItemToFocus, oCurrentFocusedControl;
-
-		oCurrentFocusedControl = jQuery(document.activeElement).control()[0];
-
-		if (oCurrentFocusedControl instanceof sap.m.Token) {
-			oItemToFocus = this._getItemByToken(oCurrentFocusedControl);
-		} else {
-			// we need to take the list's first selected item not the first selected item by the combobox user
-			oItemToFocus = aSelectedItems.length ? this._getItemByListItem(this._getList().getSelectedItems()[0]) : aSelectableItems[0];
-		}
-
-		iItemToFocus = this.getItems().indexOf(oItemToFocus);
-
-		if (oItemNavigation) {
-			oItemNavigation.setSelectedIndex(iItemToFocus);
-		} else {
-			this._bListItemNavigationInvalidated = true;
-			this._iInitialItemFocus = iItemToFocus;
-		}
-
-		oPicker.setInitialFocus(oList);
+		this._handleItemToFocus();
 		ComboBoxBase.prototype.onsapshow.apply(this, arguments);
+	};
+
+	MultiComboBox.prototype._handlePopupOpenAndItemsLoad = function () {
+		// should sync the content before setting the initial focus and opening the picker
+		// the picker opening is handled in the base function
+		this._handleItemToFocus();
+		ComboBoxBase.prototype._handlePopupOpenAndItemsLoad.apply(this, arguments);
+	};
+
+	/**
+	 * Generates an event delegate for keyboard navigation for <code>sap.m.FormattedText</code> value state header.
+	 * If the focus is on the formatted text value state message:
+	 *  - pressing the Up arrow key will move the focus to the input,
+	 *  - pressing the Down arrow key - will select the first selectable item.
+	 *
+	 * @param {object} oFormattedText <code>sap.m.FormattedText</code> value state message.
+	 * @param {array} aValueStateLinks The links in <code>sap.m.FormattedText</code> value state message.
+	 * @returns {object} Delegate for navigation and focus handling for <code>sap.m.ValueStateHeader</code> containing <code>sap.m.FormattedText</code> message with links.
+	 *
+	 * @private
+	 */
+	MultiComboBox.prototype._valueStateNavDelegate = function(oValueStateHeader, oFormattedText, aValueStateLinks) {
+		var that = this;
+		this.oValueStateNavDelegate = {};
+
+		this.oValueStateNavDelegate.onsapdown = function() {
+			that.getListItem(that.getSelectableItems()[0]).focus();
+		};
+		this.oValueStateNavDelegate.onsapup = function() {
+			that.getFocusDomRef().focus();
+		};
+		this.oValueStateNavDelegate.onsapend = function(oEvent) {
+			// Prevent document scrolling when End key is pressed
+			oEvent.preventDefault();
+			var aVisibleItems = that.getSelectableItems();
+			that.getListItem(that.getSelectableItems()[aVisibleItems.length - 1]).focus();
+		};
+
+		// Links should not be tabbable after the focus is moved outside of the value state header
+		this.oValueStateNavDelegate.onfocusout = function(oEvent) {
+			oValueStateHeader.removeStyleClass("sapMFocusable");
+
+			// Check if the element getting the focus is outside the value state header
+			if (!oValueStateHeader.getDomRef().contains(oEvent.relatedTarget)) {
+				aValueStateLinks.forEach(function(oLink) {
+					oLink.getDomRef().setAttribute("tabindex", "-1");
+				});
+			}
+
+			// In IE a pseudo visual focus is applied to the FormattedText because no visible
+			// focus outlines are natively added to the value state header when it is active.
+			// Remove it when the picker is closed.
+			if (Device.browser.msie) {
+				oFormattedText.removeStyleClass("sapMPseudoFocus");
+			}
+		};
+
+		return this.oValueStateNavDelegate;
+	};
+
+	/**
+	 * Event delegate for the last link in the <code>sap.m.FormattedText</code> value state message.
+	 * Closes the picker and the value state popup if tab key is pressed on the last value state message link in the header.
+	 *
+	 * @private
+	 */
+	MultiComboBox.prototype._closePickerDelegate = {
+		onsaptabnext: function() {
+			// In IE a pseudo visual focus is applied to the FormattedText because no visible
+			// focus outlines are natively added to the value state header when it is active.
+			// Remove it when the picker is closed.
+			if (Device.browser.msie) {
+				this.getPicker().getCustomHeader().getFormattedText().removeStyleClass("sapMPseudoFocus");
+			}
+
+			this.close();
+
+			// Closing with timeout as it is open that way
+			setTimeout(function() {
+				this.closeValueStateMessage();
+			}.bind(this), 0);
+		}
+	};
+
+	/**
+	 * Event delegate that Handles the arrow navigation of the links in the value state header
+	 *
+	 * @private
+	 */
+	MultiComboBox.prototype._formattedTextLinksNav = {
+		onsapup: function() {
+			this.focus();
+		},
+		onsapdown: function() {
+			this.getSelectableItems()[0].focus();
+		}
+	};
+
+	/**
+	 * Handles the focus and the navigation of the value state header
+	 * when <code>sap.m.Link</code> is present in the value state message.
+	 *
+	 * @private
+	 */
+	MultiComboBox.prototype._handleFormattedTextNav = function() {
+		var	oCustomHeader = this.getPicker().getCustomHeader(),
+			aValueStateLinks = this.getValueStateLinks(),
+			oFormattedText = oCustomHeader.getFormattedText(),
+			oValueStateNavDelegate = this.oValueStateNavDelegate || this._valueStateNavDelegate(oCustomHeader, oFormattedText, aValueStateLinks),
+			oLastValueStateLink = aValueStateLinks ? aValueStateLinks[aValueStateLinks.length - 1] : null,
+			oFirstValueStateLink = aValueStateLinks ? aValueStateLinks[0] : null;
+
+		if (!aValueStateLinks.length || oCustomHeader.getDomRef() === document.activeElement) {
+			return;
+		}
+
+		// Make the value state header focusable and focus it
+		oCustomHeader.getDomRef().setAttribute("tabindex", "-1");
+		oCustomHeader.addDelegate(oValueStateNavDelegate);
+		oCustomHeader.addStyleClass("sapMFocusable");
+		oCustomHeader.focus();
+
+		// IE doesn't seem to like putting focus outline on a div, even if the div is
+		// currently on focus, so we apply the visual focus styling manually
+		if (Device.browser.msie) {
+			oFormattedText.addStyleClass("sapMPseudoFocus");
+		}
+
+		// Linka should not be part of the tab chain when the focus is out of the value state header
+		// (on the items list or on the input) and the opposite when the header is focused.
+		aValueStateLinks.forEach(function(oLink) {
+			oLink.getDomRef().setAttribute("tabindex", "0");
+			oLink.addDelegate(this._formattedTextLinksNav, this);
+		}, this);
+
+		this.oMoveFocusBackToVSHeader = !this.oMoveFocusBackToVSHeader ? {
+			onsaptabprevious: function(oEvent) {
+				oEvent.preventDefault();
+				oCustomHeader.focus();
+				oCustomHeader.addStyleClass("sapMFocusable");
+			}
+		} : this.oMoveFocusBackToVSHeader;
+
+		oLastValueStateLink.addDelegate(this._closePickerDelegate, this);
+		oFirstValueStateLink.addDelegate(this.oMoveFocusBackToVSHeader, this);
 	};
 
 	/**
 	 * Handles when Alt + Up arrow are pressed.
 	 *
 	 * @param {jQuery.Event} oEvent The event object.
+	 * @private
 	 */
 	MultiComboBox.prototype.onsaphide = MultiComboBox.prototype.onsapshow;
 
@@ -365,7 +545,7 @@ function(
 	 */
 	MultiComboBox.prototype._selectItemByKey = function(oEvent) {
 		var aVisibleItems, oParam,
-			oItem, i, bItemMatched,
+			oItem, i, bItemMatched, bKeyIsValid,
 			bPickerOpened = this.isOpen();
 
 		if (!this.getEnabled() || !this.getEditable()) {
@@ -381,7 +561,12 @@ function(
 		aVisibleItems = this._getUnselectedItems(bPickerOpened ? "" : this.getValue());
 
 		for (i = 0; i < aVisibleItems.length; i++) {
-			if (aVisibleItems[i].getText().toUpperCase() === this.getValue().toUpperCase()) {
+			// Empty string should be valid key for sap.ui.core.Item only
+			// as sap.ui.core.SeparatorItem with empty key is used for Grouping
+			// while sap.ui.core.SeparatorItem without key and text is used for horizontal visible separator
+			bKeyIsValid = !(aVisibleItems[i].getKey() === undefined || aVisibleItems[i].getKey() === null) && !aVisibleItems[i].isA("sap.ui.core.SeparatorItem");
+
+			if (aVisibleItems[i].getText().toUpperCase() === this.getValue().toUpperCase() && bKeyIsValid) {
 				oItem = aVisibleItems[i];
 				bItemMatched = true;
 				break;
@@ -409,12 +594,7 @@ function(
 				}
 			}
 		} else {
-			// validate if an item is already selected
-			if (this.isPickerDialog()) {
-				this._showAlreadySelectedVisualEffect();
-			}
 			this._bPreventValueRemove = true;
-			this._showWrongValueVisualEffect();
 		}
 
 		if (oEvent) {
@@ -437,6 +617,12 @@ function(
 		if (this.getValue()) {
 			this._selectItemByKey(oEvent);
 		}
+
+		//Open popover with items if in readonly mode and has Nmore indicator
+		if (!this.getEditable() && this._oTokenizer._hasMoreIndicator() && oEvent.target === this.getFocusDomRef()) {
+			this._handleIndicatorPress(oEvent);
+		}
+
 	};
 
 	/**
@@ -457,6 +643,8 @@ function(
 		}
 	};
 
+	MultiComboBox.prototype.onsaptabprevious = MultiComboBox.prototype.onsaptabnext;
+
 	/* =========================================================== */
 	/* Event handlers */
 	/* =========================================================== */
@@ -468,11 +656,11 @@ function(
 	 * @private
 	 */
 	MultiComboBox.prototype.onsapfocusleave = function(oEvent) {
-		var oPicker = this.getAggregation("picker"),
-			bTablet = this.isPlatformTablet(),
+		var bTablet = this.isPlatformTablet(),
 			oControl = core.byId(oEvent.relatedControlId),
 			oFocusDomRef = oControl && oControl.getFocusDomRef(),
-			sOldValue = this.getValue();
+			sOldValue = this.getValue(),
+			oPicker = this.getPicker();
 
 		// If focus target is outside of picker and the picker is fully opened
 		if (!this._bPickerIsOpening && (!oPicker || !oPicker.getFocusDomRef() || !oFocusDomRef || !jQuery.contains(oPicker.getFocusDomRef(), oFocusDomRef))) {
@@ -513,8 +701,8 @@ function(
 	MultiComboBox.prototype.onfocusin = function(oEvent) {
 		var oPicker = this.getPicker();
 		var bPreviousFocusInDropdown = false;
-		var oPickerDomRef  = oPicker.getFocusDomRef();
-		var sCurrentState = oPicker.oPopup.getOpenState();
+		var oPickerDomRef  = oPicker && oPicker.getFocusDomRef();
+		var sCurrentState = (oPicker && oPicker.oPopup.getOpenState()) || OpenState.CLOSED;
 		var bPickerClosedOrClosing = sCurrentState === OpenState.CLOSING || sCurrentState === OpenState.CLOSED;
 		var bDropdownPickerType = this.getPickerType() === "Dropdown";
 
@@ -522,13 +710,14 @@ function(
 			bPreviousFocusInDropdown = oPickerDomRef && jQuery.contains(oPickerDomRef, oEvent.relatedTarget);
 		}
 
-		if (this.getEditable()) {
+		if (this.getEditable() && oEvent.target === this.getDomRef("inner")) {
 			this._oTokenizer._useCollapsedMode(false);
 			this._oTokenizer.scrollToEnd();
 		}
 
 		if (oEvent.target === this.getFocusDomRef()) {
-			this.getEditable() && this.addStyleClass("sapMFocus");
+			this._oTokenizer.hasOneTruncatedToken() && this._oTokenizer.setFirstTokenTruncated(false);
+			this.getEnabled() && this.addStyleClass("sapMFocus");
 			// enable type ahead when switching focus from the dropdown to the input field
 			// we need to check whether the focus has been triggered by the popover's closing or just a manual focusin
 			// isOpen is still true as the closing has not finished yet.
@@ -550,7 +739,7 @@ function(
 	};
 
 	/**
-	 * Handle the browser tap event on the List item.
+	 * Handles the <code>tap</code> event on the list's items.
 	 *
 	 * @param {sap.ui.base.Event} oEvent The event object
 	 * @private
@@ -564,7 +753,7 @@ function(
 	};
 
 	/**
-	 * Handle the item press event on the List.
+	 * Handles the <code>press</code> event on the list's items.
 	 *
 	 * @param {sap.ui.base.Event} oEvent The event object
 	 * @private
@@ -584,7 +773,7 @@ function(
 	};
 
 	/**
-	 * Handle the selection change event on the List.
+	 * Handles the <code>selectionChange</code> event on the List.
 	 *
 	 * @param {sap.ui.base.Event} oEvent The event object
 	 * @private
@@ -644,15 +833,27 @@ function(
 	};
 
 	/**
-	 * Function is called on key down keyboard input
+	 * Handles the <code>keydown</code> event when any key is pressed.
 	 *
-	 * @private
 	 * @param {jQuery.Event} oEvent The event object
+	 * @private
 	 */
 	MultiComboBox.prototype.onkeydown = function(oEvent) {
+		var bEditable = this.getEditable(),
+			iTokensCount = this._oTokenizer.getTokens().length;
 		ComboBoxBase.prototype.onkeydown.apply(this, arguments);
 
-		if (!this.getEnabled() || !this.getEditable()) {
+		if (!this.getEnabled()) {
+			return;
+		}
+
+		if ((oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.I && iTokensCount) {
+			oEvent.preventDefault();
+			if (bEditable) {
+				this._togglePopover();
+			} else {
+				this._toggleReadonlyPopover(this.getDomRef());
+			}
 			return;
 		}
 
@@ -673,46 +874,61 @@ function(
 			this._iOldCursorPos = jQuery(this.getFocusDomRef()).cursorPos();
 		}
 
-		this._bDoTypeAhead = (oEvent.which !== KeyCodes.BACKSPACE) && (oEvent.which !== KeyCodes.DELETE);
+		this._bDoTypeAhead = !Device.os.android && (oEvent.which !== KeyCodes.BACKSPACE) && (oEvent.which !== KeyCodes.DELETE);
 	};
 
 	/**
-	 * Handle the input event on the control's input field.
+	 * Handles the <code>input</code> event on the control's input field.
 	 *
 	 * @param {jQuery.Event} oEvent The event object
 	 * @private
 	 */
 	MultiComboBox.prototype.oninput = function(oEvent) {
 		ComboBoxBase.prototype.oninput.apply(this, arguments);
+
 		var oInput = oEvent.srcControl,
-			oPickerTextField = this.getPickerTextField();
+			bIsPickerDialog = this.isPickerDialog(),
+			oInputField = bIsPickerDialog ? this.getPickerTextField() : this,
+			sValueState = oInputField.getValueState();
 
 		// reset the value state
-		if (this.isPickerDialog() && oPickerTextField.getValueState() === ValueState.Error) {
-			oPickerTextField.setValueState(ValueState.None);
+		if (sValueState === ValueState.Error && this._bAlreadySelected) {
+				oInputField.setValueState(this._sInitialValueState);
+				oInputField.setValueStateText(this._sInitialValueStateText);
+				this._bAlreadySelected = false;
 		}
 
 		if (!this.getEnabled() || !this.getEditable()) {
 			return;
 		}
 
-		if (this._bIsPasteEvent) {
-			oInput.updateDomValue(this._sOldValue || "");
-			return;
-		}
+		this.syncPickerContent();
 
 		// suppress invalid value
 		this.handleInputValidation(oEvent, this.isComposingCharacter());
+
+		if (this._bIsPasteEvent) {
+			oInput.updateDomValue(this._sOldValue || oEvent.target.value || "");
+			return;
+		}
+
 
 		if (this.isOpen()) {
 			// wait a tick so the setVisible call has replaced the DOM
 			setTimeout(this._highlightList.bind(this, this._sOldInput));
 		}
+
+		// if recommendations were shown - add the icon pressed style
+		if (this._getItemsShownWithFilter()) {
+			this.toggleIconPressedStyle(true);
+		}
 	};
 
 	/**
-	 * Filters array of items for given value
+	 * Filters array of items for given value.
 	 *
+	 * @param {object} mOptions Options object
+	 * @returns {sap.ui.core.Item[]} Array of filtered items
 	 * @private
 	 */
 	MultiComboBox.prototype.filterItems = function (mOptions) {
@@ -763,8 +979,8 @@ function(
 	/**
 	 * Function is called on key up keyboard input
 	 *
-	 * @private
 	 * @param {jQuery.Event} oEvent The event object
+	 * @private
 	 */
 	MultiComboBox.prototype.onkeyup = function(oEvent) {
 		if (!this.getEnabled() || !this.getEditable()) {
@@ -785,23 +1001,29 @@ function(
 	 * @private
 	 */
 	MultiComboBox.prototype._showWrongValueVisualEffect = function() {
-		var oPickerTextField = this.getPickerTextField(),
-			sOldValueState = this.isPickerDialog() ? oPickerTextField.getValueState() : this.getValueState(),
-			sInvalidEntry = this._oRbC.getText("VALUE_STATE_ERROR");
+		var oSuggestionsPopover = this._getSuggestionsPopover();
+		var sInitialValueStateText = this._sInitialValueStateText;
+		var sInitialValueState = this._sInitialValueState;
+		var sInvalidEntry = sInitialValueStateText || this._oRbC.getText("VALUE_STATE_ERROR");
+		var that = this;
 
-		if (sOldValueState === ValueState.Error) {
+		if (sInitialValueState === ValueState.Error) {
 			return;
 		}
 
-		if (this.isPickerDialog()) {
-			oPickerTextField.setValueState(ValueState.Error);
-			oPickerTextField.setValueStateText(sInvalidEntry);
-			setTimeout(oPickerTextField["setValueState"].bind(oPickerTextField, sOldValueState), 1000);
-		} else {
-			this.setValueState(ValueState.Error);
-			this.setValueStateText(sInvalidEntry);
-			setTimeout(this["setValueState"].bind(this, sOldValueState), 1000);
+		if (oSuggestionsPopover) {
+			oSuggestionsPopover.updateValueState(ValueState.Error, sInvalidEntry, true);
+			setTimeout(oSuggestionsPopover.updateValueState.bind(oSuggestionsPopover, that.getValueState(), sInvalidEntry, true), 1000);
 		}
+
+		if (!this.isPickerDialog()) {
+			this.setValueState(ValueState.Error);
+			this.setValueStateText(this.getValueStateText() || sInvalidEntry);
+
+			setTimeout(this["setValueState"].bind(this, sInitialValueState || ValueState.Error), 1000);
+		}
+
+		this._syncInputWidth(this._oTokenizer);
 	};
 
 	/**
@@ -810,28 +1032,44 @@ function(
 	 * @private
 	 */
 	MultiComboBox.prototype._showAlreadySelectedVisualEffect = function() {
-		var bIsPickerDialog = this.isPickerDialog(),
-			oPickerTextField = this.getPickerTextField(),
-			sValueState = bIsPickerDialog ? oPickerTextField.getValueState() : this.getValueState(),
-			sValue = this.getValue().toLowerCase(),
-			aText = this.getSelectedItems().map(function(oItem) {
-				return oItem.getText().toLowerCase();
-			}),
-			sAlreadySelected = this._oRbM.getText("VALUE_STATE_ERROR_ALREADY_SELECTED");
+		var sAlreadySelectedText = this._oRbM.getText("VALUE_STATE_ERROR_ALREADY_SELECTED");
 
-		if (aText.indexOf(sValue) > -1 && sValueState !== ValueState.Error) {
-			if (bIsPickerDialog) {
-				oPickerTextField.setValueState(ValueState.Error);
-				oPickerTextField.setValueStateText(sAlreadySelected);
-				oPickerTextField.selectText(0, this.getValue().length);
-			} else {
-				this.setValueState(ValueState.Error);
-				this.setValueStateText(sAlreadySelected);
-				this.selectText(0, this.getValue().length);
-			}
-		} else {
-			bIsPickerDialog ? oPickerTextField.setValueState(ValueState.None) : this.setValueState(ValueState.None);
+		if (!this.getValue()) {
+			return;
 		}
+
+		var bAlreadySelected = !!this.getSelectedItems().filter(function(oItem) {
+			return oItem.getText().toLowerCase() === this.getValue().toLowerCase();
+		}, this).length;
+
+		var bNewSelection = this.getItems().filter(function(oItem) {
+			return oItem.getText().toLowerCase() === this.getValue().toLowerCase();
+		}, this).length;
+
+		if (bAlreadySelected) {
+			this._sInitialValueState = this.getValueState();
+
+			this._sInitialValueStateText = this.getValueStateText();
+			this.setValueStateText(sAlreadySelectedText);
+
+			this._bAlreadySelected = true;
+			this.setValueState("Error");
+
+			return;
+		} else if (bNewSelection) {
+			return;
+		} else {
+			this._showWrongValueVisualEffect();
+		}
+	};
+
+	MultiComboBox.prototype._hasShowSelectedButton = function () {
+		return true;
+	};
+
+	MultiComboBox.prototype.forwardEventHandlersToSuggPopover = function (oSuggPopover) {
+		ComboBoxBase.prototype.forwardEventHandlersToSuggPopover.apply(this, arguments);
+		oSuggPopover.setShowSelectedPressHandler(this._filterSelectedItems.bind(this));
 	};
 
 	/**
@@ -864,98 +1102,44 @@ function(
 	};
 
 	/**
-	 * Creates a picker. To be overwritten by subclasses.
+	 * <code>MultiComboBox</code> picker configuration
 	 *
-	 * @param {string} sPickerType The picker type
-	 * @returns {sap.m.Popover | sap.m.Dialog} The picker pop-up to be used
+	 * @param {sap.m.Popover | sap.m.Dialog} oPicker Picker instance
 	 * @protected
-	 * @function
 	 */
-	MultiComboBox.prototype.createPicker = function(sPickerType) {
-		var oPicker = this.getAggregation("picker"),
-			oRenderer = this.getRenderer(),
+	MultiComboBox.prototype.configPicker = function (oPicker) {
+		var oRenderer = this.getRenderer(),
 			CSS_CLASS_MULTICOMBOBOX = oRenderer.CSS_CLASS_MULTICOMBOBOX;
 
-		if (oPicker) {
-			return oPicker;
-		}
-
-		this._oSuggestionPopover = this._createSuggestionsPopover();
-		oPicker = this._oSuggestionPopover._oPopover;
-		// define a parent-child relationship between the control's and the picker pop-up (Popover or Dialog)
-		this.setAggregation("picker", oPicker, true);
-
-		this["configure" + sPickerType](oPicker);
-
-		// configuration
 		oPicker.setHorizontalScrolling(false)
-				.addStyleClass(oRenderer.CSS_CLASS_COMBOBOXBASE + "Picker")
-				.addStyleClass(CSS_CLASS_MULTICOMBOBOX + "Picker")
-				.addStyleClass(CSS_CLASS_MULTICOMBOBOX + "Picker-CTX")
-				.attachBeforeOpen(this.onBeforeOpen, this)
-				.attachAfterOpen(this.onAfterOpen, this)
-				.attachBeforeClose(this.onBeforeClose, this)
-				.attachAfterClose(this.onAfterClose, this)
-				.addEventDelegate({
-					onBeforeRendering : this.onBeforeRenderingPicker,
-					onAfterRendering : this.onAfterRenderingPicker
-				}, this);
-
-		return oPicker;
-	};
-
-	/**
-	 * Creates a SuggestionsPopover and assigns it as aggregation to the MultiComboBox.
-	 * This method also:
-	 * 	- configures the SuggestionsPopover and its internal controls.
-	 * 	- assigns the control (Popover or Dialog) to the MultiComboBox's "picker" aggregation
-	 *
-	 * @private
-	 * @function
-	 */
-	MultiComboBox.prototype._createSuggestionsPopover = function () {
-		var bUseDialog = this.isPickerDialog(),
-			oSuggPopover;
-
-		oSuggPopover = new SuggestionsPopover(this);
-
-		if (bUseDialog) {
-			oSuggPopover._oPopupInput = this._createPickerTextField();
-		}
-
-		// Create the SuggestionsPopover's internal controls
-		oSuggPopover._createSuggestionPopup();
-		oSuggPopover._createSuggestionPopupContent(false, false, false);
-
-		// Ammend the suggestions popovers list
-		// this._oList is used by the ComboBoxBase
-		this._oList = oSuggPopover._oList;
-		this._configureList(this._oList);
-
-		return oSuggPopover;
+			.addStyleClass(oRenderer.CSS_CLASS_COMBOBOXBASE + "Picker")
+			.addStyleClass(CSS_CLASS_MULTICOMBOBOX + "Picker")
+			.addStyleClass(CSS_CLASS_MULTICOMBOBOX + "Picker-CTX")
+			.attachBeforeOpen(this.onBeforeOpen, this)
+			.attachAfterOpen(this.onAfterOpen, this)
+			.attachBeforeClose(this.onBeforeClose, this)
+			.attachAfterClose(this.onAfterClose, this)
+			.addEventDelegate({
+				onBeforeRendering : this.onBeforeRenderingPicker,
+				onAfterRendering : this.onAfterRenderingPicker
+			}, this);
 	};
 
 	/**
 	 * Configures the SuggestionsPopover internal list and attaches it's event handlers/delegates.
 	 *
-	 * @param {sap.m.List} oList The list control
+	 * @param {sap.m.List} oList The list instance to be configured
 	 * @private
 	 * @function
 	 */
 	MultiComboBox.prototype._configureList = function (oList) {
-		var oRenderer = this.getRenderer();
-
 		if (!oList) {
 			return;
 		}
 
 		// configure the list
-		oList
-			.setMode(ListMode.MultiSelect)
-			.setIncludeItemInSelection(true)
-			.setRememberSelections(false)
-			.addStyleClass(oRenderer.CSS_CLASS_COMBOBOXBASE + "List")
-			.addStyleClass(oRenderer.CSS_CLASS_MULTICOMBOBOX + "List");
+		oList.setMode(ListMode.MultiSelect);
+		oList.setIncludeItemInSelection(true);
 
 		// attach event handlers
 		oList
@@ -971,38 +1155,77 @@ function(
 	};
 
 	/**
-	 * Creates a new sap.m.Input control for the SuggestionsPopover dialog.
-
-	 * @returns {sap.m.Input} The newly created input control
-	 * @protected
-	 * @function
+	 * Modifies the suggestions dialog input
+	 * @param {sap.m.Input} oInput The input
+	 *
+	 * @returns {sap.m.Input} The modified input control
+	 * @private
 	 */
-	MultiComboBox.prototype._createPickerTextField = function () {
-		var that = this;
+	MultiComboBox.prototype._modifyPopupInput = function(oInput) {
+		ComboBoxBase.prototype._modifyPopupInput.apply(this, arguments);
 
-		return new Input({
-			// select a list item, when enter is triggered in picker text field
-			submit: function (oEvent) {
-				var sValue = this.getValue();
-				if (sValue) {
-					that.setValue(sValue);
-					that._selectItemByKey();
-					this.setValue(that._sOldInput);
-				}
+		oInput.attachSubmit(function (oEvent) {
+			var sValue = oInput.getValue();
+			if (sValue) {
+				this.setValue(sValue);
+				this._selectItemByKey();
+				this.setValue(this._sOldInput);
+				this.close();
 			}
-		}).addEventDelegate({
+		}.bind(this));
+
+		oInput.addEventDelegate({
 			// remove the type ahead when focus is not in the input
 			onfocusout: this._handleInputFocusOut
 		}, this);
+
+		return oInput;
 	};
 
+	/**
+	 * This hook method is called before the MultiComboBox is rendered.
+	 *
+	 * @protected
+	 */
 	MultiComboBox.prototype.onBeforeRendering = function() {
 		ComboBoxBase.prototype.onBeforeRendering.apply(this, arguments);
-		var aItems = this.getItems(),
+		this._bInitialSelectedKeysSettersCompleted = true;
+		this._oTokenizer.setEnabled(this.getEnabled());
+		this.setEditable(this.getEditable());
+		this._deregisterResizeHandler();
+		this._synchronizeSelectedItemAndKey();
+
+		if (!this._bAlreadySelected) {
+			this._sInitialValueStateText = this.getValueStateText();
+		}
+
+		if (this.getValueState() !== ValueState.Error) {
+			this._sInitialValueState = this.getValueState();
+		}
+	};
+
+	/**
+	 * Creates picker if doesn't exist yet and sync with Control items
+	 *
+	 * @param {boolean} bForceListSync Force MultiComboBox to SuggestionPopover sync
+	 * @protected
+	 * @returns {sap.m.Dialog|sap.m.Popover}
+	 */
+	MultiComboBox.prototype.syncPickerContent = function (bForceListSync) {
+		var aItems, oList,
+			oPicker = this.getPicker();
+
+		if (!oPicker) {
+			oPicker = this.createPicker(this.getPickerType());
+			this._updateSuggestionsPopoverValueState();
+			bForceListSync = true;
+		}
+
+		if (bForceListSync) {
+			aItems = this.getItems();
 			oList = this._getList();
 
-		if (oList) {
-			this._synchronizeSelectedItemAndKey(aItems);
+			this._synchronizeSelectedItemAndKey();
 
 			// prevent closing of popup on re-rendering
 			oList.destroyItems();
@@ -1013,12 +1236,9 @@ function(
 			if (oList.getItemNavigation()) {
 				this._iFocusedIndex = oList.getItemNavigation().getFocusedIndex();
 			}
-
-			// Re-apply editable state to make sure tokens are rendered in right state.
-			this.setEditable(this.getEditable());
 		}
 
-		this._deregisterResizeHandler();
+		return oPicker;
 	};
 
 	/**
@@ -1050,6 +1270,8 @@ function(
 	 */
 	MultiComboBox.prototype._onResize = function () {
 		this._oTokenizer.setMaxWidth(this._calculateSpaceForTokenizer());
+		this._syncInputWidth(this._oTokenizer);
+		this._handleNMoreAccessibility();
 	};
 
 	/**
@@ -1084,15 +1306,14 @@ function(
 	 * @private
 	 */
 	MultiComboBox.prototype.onBeforeOpen = function() {
+		ComboBoxBase.prototype.onBeforeOpen.apply(this, arguments);
 		var fnPickerTypeBeforeOpen = this["_onBeforeOpen" + this.getPickerType()];
 
 		// add the active state to the MultiComboBox's field
-		this.addStyleClass(InputBase.ICON_PRESSED_CSS_CLASS);
 		this._resetCurrentItem();
 		this.addContent();
 		this._aInitiallySelectedItems = this.getSelectedItems();
-
-		this._synchronizeSelectedItemAndKey(this._aInitiallySelectedItems);
+		this._synchronizeSelectedItemAndKey();
 
 		if (fnPickerTypeBeforeOpen) {
 			fnPickerTypeBeforeOpen.call(this);
@@ -1105,16 +1326,28 @@ function(
 	 * @private
 	 */
 	MultiComboBox.prototype.onAfterOpen = function() {
-		var oDomRef = this.getFocusDomRef();
+		var oDomRef = this.getFocusDomRef(),
+			aValueStateLinks = this.getValueStateLinks();
 
-		oDomRef && this.getRoleComboNodeDomRef().setAttribute("aria-expanded", "true");
-
+		oDomRef && this.getFocusDomRef().setAttribute("aria-expanded", "true");
 		this._bPickerIsOpening = false;
 
 		// reset the initial focus back to the input
 		if (!this.isPlatformTablet()) {
 			this.getPicker().setInitialFocus(this);
 		}
+
+		// If there are links in the value state take the links out of
+		// the tab chain by default. They will be tabbable only if the focus in the value state message
+		aValueStateLinks.forEach(function(oLink) {
+			oLink.addDelegate({
+				onAfterRendering: function() {
+					if (this.getFocusDomRef()) {
+						this.getFocusDomRef().setAttribute("tabindex", "-1");
+					}
+				}
+			}, oLink);
+		});
 
 		// close error message when the list is open, otherwise the list can be covered by the message
 		this.closeValueStateMessage();
@@ -1137,10 +1370,10 @@ function(
 		var bUseCollapsed = !jQuery.contains(this.getDomRef(), document.activeElement) || this.isPickerDialog(),
 			oDomRef = this.getFocusDomRef();
 
-		oDomRef && this.getRoleComboNodeDomRef().setAttribute("aria-expanded", "false");
+		oDomRef && this.getFocusDomRef().setAttribute("aria-expanded", "false");
 
 		// remove the active state of the MultiComboBox's field
-		this.removeStyleClass(InputBase.ICON_PRESSED_CSS_CLASS);
+		this.toggleIconPressedStyle(false);
 
 		// Show all items when the list will be opened next time
 		this.clearFilter();
@@ -1152,11 +1385,14 @@ function(
 		this._sOldValue = "";
 		this._sOldInput = "";
 
+		// clear the typed in value, since SP does not clean it itself,
+		// if no autocomplete property is present
+		this._getSuggestionsPopover()._sTypedInValue = "";
+
 		if (this.isPickerDialog()) {
 			// reset the value state after the dialog is closed
-			this._showAlreadySelectedVisualEffect();
 			this.getPickerTextField().setValue("");
-			this._getFilterSelectedButton() && this._getFilterSelectedButton().setPressed(false);
+			this.getFilterSelectedButton() && this.getFilterSelectedButton().setPressed(false);
 		}
 
 		this.fireSelectionFinish({
@@ -1168,7 +1404,6 @@ function(
 		// show value state message when focus is in the input field
 		if (this.getValueState() == ValueState.Error && document.activeElement === this.getFocusDomRef()) {
 			this.selectText(0, this.getValue().length);
-			this.openValueStateMessage();
 		}
 	};
 
@@ -1182,6 +1417,7 @@ function(
 	/**
 	 * This event handler will be called before the control's picker popover is opened.
 	 *
+	 * @private
 	 */
 	MultiComboBox.prototype._onBeforeOpenDropdown = function() {
 		var oPopover = this.getPicker(),
@@ -1195,120 +1431,19 @@ function(
 	};
 
 	/**
-	 * Configures the dropdown of type <code>sap.m.Popover</code>.
+	 * Gets the filter selected toggle button for the control's picker.
 	 *
-	 * @param {sap.m.Popover} oDropdown The popover control to be configured
+	 * @returns {sap.m.ToggleButton} The button's instance
 	 * @private
 	 */
-	MultiComboBox.prototype.configureDropdown = function(oDropdown) {
-		oDropdown.setInitialFocus(this);
-	};
-
 	MultiComboBox.prototype.getFilterSelectedButton = function () {
-		if (this._oToggleButton) {
-			return this._oToggleButton;
-		}
-		this._oToggleButton = this._createFilterSelectedButton();
-		return this._oToggleButton;
-	};
-
-	MultiComboBox.prototype.getPickerCustomHeader = function () {
-		if (this._oPickerCustomHeader) {
-			return this._oPickerCustomHeader;
-		}
-		this._oPickerCustomHeader = this.createPickerHeader();
-		return this._oPickerCustomHeader;
-	};
-
-	MultiComboBox.prototype.getCustomHeaderToolbar = function () {
-		if (this._oCustomHeaderToolbar) {
-			return this._oCustomHeaderToolbar;
-		}
-		this._oCustomHeaderToolbar = new Toolbar();
-		return this._oCustomHeaderToolbar;
-	};
-
-	MultiComboBox.prototype.getPickerCloseButton = function () {
-		if (this._oPickerCloseButton) {
-			return this._oPickerCloseButton;
-		}
-		this._oPickerCloseButton = this.createPickerCloseButton();
-		return this._oPickerCloseButton;
-	};
-
-	/**
-	 * Configures the dropdown of type <code>sap.m.Dialog</code>.
-	 *
-	 * @param {sap.m.Popover} oDropdown The dialog control to be configured
-	 * @private
-	 */
-	MultiComboBox.prototype.configureDialog = function (oDialog) {
-		var that = this,
-			oSelectAllButton = this.getFilterSelectedButton(),
-			oTextField = this._oSuggestionPopover._oPopupInput,
-			oTextFieldHandleEvent = oTextField._handleEvent,
-			oCustomHeaderToolbar = this.getCustomHeaderToolbar(),
-			oPickerInvisibleText = this.getPickerInvisibleTextId();
-
-		oCustomHeaderToolbar.addContent(oTextField);
-
-		// This code was taken from the ComboBoxBase
-		//TODO: To be refactored when the ComboBox control addopts the SuggestionsPopover
-		oTextField._handleEvent = function(oEvent) {
-			oTextFieldHandleEvent.apply(this, arguments);
-
-			if (/keydown|sapdown|sapup|saphome|sapend|sappagedown|sappageup|input/.test(oEvent.type)) {
-				that._handleEvent(oEvent);
-			}
-		};
-
-		oDialog.setStretch(true);
-		oDialog.setCustomHeader(this.getPickerCustomHeader());
-		oDialog.setSubHeader(oCustomHeaderToolbar);
-		oDialog.addButton(this.createPickerCloseButton());
-		oDialog.getSubHeader().addContent(oSelectAllButton);
-		oDialog.attachBeforeOpen(function () {
-			that.updatePickerHeaderTitle();
-		});
-		oDialog.attachAfterClose(function () {
-			that.focus();
-			library.closeKeyboard();
-		});
-		if (oPickerInvisibleText) {
-			oDialog.addAriaLabelledBy(oPickerInvisibleText);
-		}
-	};
-
-	/**
-	 * Creates an instance of <code>sap.m.ToggleButton</code>.
-	 *
-	 * @returns {sap.m.ToggleButton} The Button instance
-	 * @private
-	 */
-	MultiComboBox.prototype._createFilterSelectedButton = function () {
-		if (this._oToggleButton) {
-			return this._oToggleButton;
-		}
-
-		var sIconURI = IconPool.getIconURI("multiselect-all"),
-			oRenderer = this.getRenderer(),
-			that = this;
-
-		this._oToggleButton = new ToggleButton({
-			icon: sIconURI,
-			press: that._filterSelectedItems.bind(this)
-		}).addStyleClass(oRenderer.CSS_CLASS_MULTICOMBOBOX + "ToggleButton");
-
-		return this._oToggleButton;
-	};
-
-	MultiComboBox.prototype._getFilterSelectedButton = function () {
-			return this.getPicker().getSubHeader().getContent()[1];
+		return this._getSuggestionsPopover().getFilterSelectedButton();
 	};
 
 	/**
 	 * Filters visible selected items
 	 * @param {jQuery.Event} oEvent The event object
+	 * @param {boolean} bForceShowSelected Should the selected items be shown
 	 * @returns {void}
 	 * @private
 	 */
@@ -1346,6 +1481,11 @@ function(
 		}
 	};
 
+	/**
+	 * Reverts the selection as before opening the picker.
+	 *
+	 * @private
+	 */
 	MultiComboBox.prototype.revertSelection = function () {
 		this.setSelectedItems(this._aInitiallySelectedItems);
 	};
@@ -1363,6 +1503,8 @@ function(
 	 * @private
 	 */
 	MultiComboBox.prototype.setSelection = function(mOptions) {
+		var oList = this._getList();
+
 		if (mOptions.item && this.isItemSelected(mOptions.item)) {
 			return;
 		}
@@ -1372,17 +1514,16 @@ function(
 		}
 
 
-		if (!mOptions.listItemUpdated && this.getListItem(mOptions.item)) {
+		if (!mOptions.listItemUpdated && this.getListItem(mOptions.item) && oList) {
 			// set the selected item in the List
-			this._getList().setSelectedItem(this.getListItem(mOptions.item), true);
+			oList.setSelectedItem(this.getListItem(mOptions.item), true);
 		}
 
 		// Fill Tokenizer
-		var oToken = new sap.m.Token({
+		var oToken = new Token({
 			key: mOptions.key
 		});
 		oToken.setText(mOptions.item.getText());
-		oToken.setTooltip(mOptions.item.getText());
 
 		mOptions.item.data(this.getRenderer().CSS_CLASS_COMBOBOXBASE + "Token", oToken);
 
@@ -1391,8 +1532,14 @@ function(
 		this.setValue('');
 
 		this.addAssociation("selectedItems", mOptions.item, mOptions.suppressInvalidate);
-		var aSelectedKeys = this.getKeys(this.getSelectedItems());
-		this.setProperty("selectedKeys", aSelectedKeys, mOptions.suppressInvalidate);
+		var aSelectedKeys = this.getSelectedKeys();
+		var sKey = this.getKeys([mOptions.item])[0];
+		// Rather strange, but we need to keep it for backwards compatibility- when there are selectedItems with
+		// empty keys, we need to append empty string, but if there's a key, it should be unique
+		if (sKey === "" || aSelectedKeys.indexOf(sKey) === -1) {
+			aSelectedKeys.push(sKey);
+			this.setProperty("selectedKeys", aSelectedKeys, mOptions.suppressInvalidate);
+		}
 
 		if (mOptions.fireChangeEvent) {
 			this.fireSelectionChange({
@@ -1436,7 +1583,9 @@ function(
 		}
 
 		this.removeAssociation("selectedItems", mOptions.item, mOptions.suppressInvalidate);
-		var aSelectedKeys = this.getKeys(this.getSelectedItems());
+		var aSelectedKeys = this.getSelectedKeys();
+		var iItemSelectIndex = aSelectedKeys.indexOf(mOptions.item.getKey());
+		aSelectedKeys.splice(iItemSelectIndex, 1);
 		this.setProperty("selectedKeys", aSelectedKeys, mOptions.suppressInvalidate);
 
 		if (!mOptions.listItemUpdated && this.getListItem(mOptions.item)) {
@@ -1475,56 +1624,40 @@ function(
 	/**
 	 * Synchronize selected item and key.
 	 *
-	 * @param {array} [aItems] The items array
 	 * @private
 	 */
-	MultiComboBox.prototype._synchronizeSelectedItemAndKey = function(aItems) {
+	MultiComboBox.prototype._synchronizeSelectedItemAndKey = function () {
+		var aSelectedKeys = this.getSelectedKeys();
+		var aKeyOfSelectedItems = this.getKeys(this.getSelectedItems());
 
-		// no items
-		if (!aItems.length) {
+		// the "selectedKey" property is not synchronized
+		if (!aSelectedKeys.length) {
 			Log.info("Info: _synchronizeSelectedItemAndKey() the MultiComboBox control does not contain any item on ", this);
 			return;
 		}
 
-		var aSelectedKeys = this.getSelectedKeys() || this._aCustomerKeys;
-		var aKeyOfSelectedItems = this.getKeys(this.getSelectedItems());
+		for (var i = 0, sKey = null, oItem = null, iLength = aSelectedKeys.length; i < iLength; i++) {
+			sKey = aSelectedKeys[i];
 
-		// the "selectedKey" property is not synchronized
-		if (aSelectedKeys.length) {
-			for ( var i = 0, sKey = null, oItem = null, iIndex = null, iLength = aSelectedKeys.length; i < iLength; i++) {
-				sKey = aSelectedKeys[i];
-
-				if (aKeyOfSelectedItems.indexOf(sKey) > -1) {
-
-					if (this._aCustomerKeys.length && (iIndex = this._aCustomerKeys.indexOf(sKey)) > -1) {
-						this._aCustomerKeys.splice(iIndex, 1);
-					}
-
-					continue;
-				}
-
-				oItem = this.getItemByKey("" + sKey);
-
-				// if the "selectedKey" has no corresponding aggregated item, no
-				// changes will apply
-				if (oItem) {
-
-					if (this._aCustomerKeys.length && (iIndex = this._aCustomerKeys.indexOf(sKey)) > -1) {
-						this._aCustomerKeys.splice(iIndex, 1);
-					}
-
-					this.setSelection({
-						item: oItem,
-						id: oItem.getId(),
-						key: oItem.getKey(),
-						fireChangeEvent: false,
-						suppressInvalidate: true,
-						listItemUpdated: false
-					});
-				}
+			if (aKeyOfSelectedItems.indexOf(sKey) > -1) {
+				continue;
 			}
 
-			return;
+			oItem = this.getItemByKey("" + sKey);
+
+			// if the "selectedKey" has no corresponding aggregated item, no
+			// changes will apply
+			if (oItem) {
+
+				this.setSelection({
+					item: oItem,
+					id: oItem.getId(),
+					key: oItem.getKey(),
+					fireChangeEvent: false,
+					suppressInvalidate: true,
+					listItemUpdated: false
+				});
+			}
 		}
 	};
 
@@ -1541,29 +1674,33 @@ function(
 		return oItem ? oItem.data(this.getRenderer().CSS_CLASS_COMBOBOXBASE + "Token") : null;
 	};
 
-
+	/**
+	 * Called whenever the binding of the aggregation named <code>items</code> is changed.
+	 *
+	 * @param {string} sReason The cause for items update
+	 * @returns {undefined}
+	 * @private
+	 */
 	MultiComboBox.prototype.updateItems = function (sReason) {
-		var bKeyItemSync, aItems,
-			// Get selected keys should be requested at that point as it
-			// depends on getSelectedItems()- calls it internally
-			aKeys = this.getSelectedKeys();
+		var fnGetItemKey = function (oItem) {
+				return oItem && oItem.getKey && oItem.getKey();
+			},
+			aSelectedItems,
+			// Stash selected keys and items prior the update
+			aSelectedItemKeys = this.getSelectedItems().map(fnGetItemKey),
+			aSelectedKeys = this.getSelectedKeys();
 
 		var oUpdateItems = ComboBoxBase.prototype.updateItems.apply(this, arguments);
 
-		// It's important to request the selected items after the update,
-		// because the sync breaks there.
-		aItems = this.getSelectedItems();
+		// Now check if selectedItems' keys have been modified. This means that the model has been updated.
+		// And as the ListItem instances are reused, we need to check for something more relevant like the key
+		aSelectedItemKeys = this.getSelectedItems().map(fnGetItemKey).filter(function (sItemKey) {
+			return aSelectedItemKeys.indexOf(sItemKey) > -1;
+		});
 
-		// Check if selected keys and selected items are in sync
-		bKeyItemSync = (aItems.length === aKeys.length) && aItems.every(function (oItem) {
-				return oItem && oItem.getKey && aKeys.indexOf(oItem.getKey()) > -1;
-			});
+		aSelectedItems = aSelectedKeys.concat(aSelectedItemKeys);
 
-		// Synchronize if sync has been broken by the update
-		if (!bKeyItemSync) {
-			aItems = aKeys.map(this.getItemByKey, this);
-			this.setSelectedItems(aItems);
-		}
+		this.setSelectedKeys(aSelectedItems);
 
 		return oUpdateItems;
 	};
@@ -1587,7 +1724,8 @@ function(
 
 	/**
 	 * Get the last selected item
-	 * @returns {sap.ui.core.Item} The selected item
+	 *
+	 * @returns {sap.ui.core.Item | null} The selected item
 	 * @private
 	 */
 	MultiComboBox.prototype._getLastSelectedItem = function() {
@@ -1618,7 +1756,8 @@ function(
 
 	/**
 	 * Get the focused item from list
-	 * @returns {sap.ui.core.Item} The focused item in the list
+	 *
+	 * @returns {sap.ui.core.Item | null} The focused item in the list
 	 * @private
 	 */
 	MultiComboBox.prototype._getFocusedListItem = function() {
@@ -1853,6 +1992,13 @@ function(
 
 				// note: prevent document scrolling when Home key is pressed
 				oEvent.preventDefault();
+
+				if (this.getValueStateLinks().length) {
+					this._handleFormattedTextNav();
+					oEvent.stopPropagation(true);
+					return;
+				}
+
 				var aVisibleItems = this.getSelectableItems();
 				var oItem = aVisibleItems[0];
 
@@ -1886,7 +2032,11 @@ function(
 				var oItemFirst = aVisibleItems[0];
 				var oItemCurrent = jQuery(document.activeElement).control()[0];
 
-				if (oItemCurrent === this.getListItem(oItemFirst)) {
+				if (oItemCurrent === this.getListItem(oItemFirst) && this.getValueStateLinks().length) {
+					this._handleFormattedTextNav();
+					oEvent.stopPropagation(true);
+					return;
+				} else if (oItemCurrent === this.getListItem(oItemFirst)) {
 					this.focus();
 
 					// Stop the propagation of event. Otherwise the list item sets
@@ -1937,30 +2087,103 @@ function(
 	MultiComboBox.prototype._handleInputFocusOut = function () {
 		var oInput = this.isPickerDialog() ? this.getPickerTextField() : this,
 		sUpdateValue = this._sOldInput || this._sOldValue || "";
-
 		oInput.updateDomValue(sUpdateValue);
+		this._bIsPasteEvent = null;
+	};
+
+	MultiComboBox.prototype.onItemChange = function (oControlEvent) {
+		var oValue = ComboBoxBase.prototype.onItemChange.apply(this, arguments);
+		this._forwardItemInfoToToken(oControlEvent);
+
+		return oValue;
+	};
+
+	MultiComboBox.prototype._forwardItemInfoToToken = function (oControlEvent) {
+		var oItem = oControlEvent.getSource(),
+			oPropertyInfo = oControlEvent.getParameters(),
+			oToken = this._getTokenByItem(oItem);
+
+		if (!oToken) {
+			return;
+		}
+
+		if (oPropertyInfo.name === "enabled") {
+			oToken.setVisible(oPropertyInfo.newValue);
+		} else if (oToken.getMetadata().hasProperty(oPropertyInfo.name)) {
+			oToken.setProperty(oPropertyInfo.name, oPropertyInfo.newValue, false);
+		}
 	};
 
 	/**
-	 * Handler for the press event on the N-more label
+	 * Handler for the press event on the N-more label.
 	 *
+	 * @param {jQuery.Event} oEvent The event object
 	 * @private
 	 */
 	MultiComboBox.prototype._handleIndicatorPress = function(oEvent) {
+		var oPicker,
+			aTokens = this._oTokenizer.getTokens();
+
+		if (aTokens.length === 1 && aTokens[0].getTruncated()) {
+			// this is needed as upon syncing and opening the picker new token is created
+			// and the width of its text should be calculated properly.
+			this._oTokenizer.setFirstTokenTruncated(false);
+		}
+
+		this.syncPickerContent();
 		this._filterSelectedItems(oEvent, true);
 		this.focus();
 
 		if (this.getEditable()) {
-			this.getPicker().open();
+			oPicker = this.getPicker();
+			oPicker.open();
 		} else {
-			this._getReadOnlyPopover().openBy(this._oTokenizer._oIndicator);
+			this._updatePopoverBasedOnEditMode(false);
+			this._toggleReadonlyPopover(this._oTokenizer);
 		}
 
 		if (this.isPickerDialog()) {
-			this._getFilterSelectedButton().setPressed(true);
+			this.getFilterSelectedButton().setPressed(true);
 			this.bOpenedByKeyboardOrButton = true;
 		} else {
 			setTimeout(this._oTokenizer["scrollToEnd"].bind(this._oTokenizer), 0);
+		}
+	};
+
+	/**
+	 * Close or open the suggestion popover depending on the current state
+	 *
+	 * @private
+	 */
+	MultiComboBox.prototype._togglePopover = function() {
+		var oPicker = this.getPicker();
+
+		if (!oPicker) {
+			oPicker = this.syncPickerContent(true);
+		}
+
+		if (oPicker.isOpen()) {
+			oPicker.close();
+		} else {
+			oPicker.open();
+		}
+	};
+
+	/**
+	 * Close or open the suggestion read-only popover depending on the current state
+	 *
+	 * @private
+	 */
+	MultiComboBox.prototype._toggleReadonlyPopover = function(oOpenByControl) {
+		var oPopover = this._getReadOnlyPopover(),
+			oPopoverIsOpen = oPopover.isOpen();
+
+		if (oPopoverIsOpen) {
+			oPopover.close();
+		} else {
+			this.syncPickerContent(true);
+			this._updatePopoverBasedOnEditMode(false);
+			oPopover.openBy(oOpenByControl);
 		}
 	};
 
@@ -1971,7 +2194,7 @@ function(
 	 * @private
 	 */
 	MultiComboBox.prototype._createTokenizer = function() {
-		var oTokenizer = new sap.m.Tokenizer({
+		var oTokenizer = new Tokenizer({
 			tokens: []
 		}).attachTokenChange(this._handleTokenChange, this);
 		oTokenizer._setAdjustable(true);
@@ -1987,7 +2210,7 @@ function(
 			onfocusin: function (oEvent) {
 
 				// if a token is selected, the tokenizer should not scroll
-				if (this.getEditable() && jQuery(oEvent.target).hasClass("sapMToken")) {
+				if (this.getEditable() && (!oEvent.target.classList.contains("sapMToken"))) {
 					oTokenizer._useCollapsedMode(false);
 				}
 			}
@@ -1997,22 +2220,32 @@ function(
 	};
 
 	/**
+	 * This hook method is called after the MultiComboBox's Tokenizer is rendered.
+	 *
 	 * @private
 	 */
 	MultiComboBox.prototype._onAfterRenderingTokenizer = function() {
+		setTimeout(this._syncInputWidth.bind(this, this._oTokenizer), 0);
+		setTimeout(this._handleNMoreAccessibility.bind(this), 0);
 		setTimeout(this._oTokenizer["scrollToEnd"].bind(this._oTokenizer), 0);
 	};
 
+	/**
+	 * Handler for the <code>tokenChange</code> event of the token.
+	 *
+	 * @param {jQuery.Event} oEvent The event object
+	 * @private
+	 */
 	MultiComboBox.prototype._handleTokenChange = function(oEvent) {
 		var sType = oEvent.getParameter("type");
 		var oToken = oEvent.getParameter("token");
 		var oItem = null;
 
-		if (sType !== sap.m.Tokenizer.TokenChangeType.Removed && sType !== sap.m.Tokenizer.TokenChangeType.Added) {
+		if (sType !== Tokenizer.TokenChangeType.Removed && sType !== Tokenizer.TokenChangeType.Added) {
 			return;
 		}
 
-		if (sType === sap.m.Tokenizer.TokenChangeType.Removed) {
+		if (sType === Tokenizer.TokenChangeType.Removed) {
 
 			oItem = (oToken && this._getItemByToken(oToken));
 
@@ -2028,7 +2261,7 @@ function(
 					suppressInvalidate: true
 				});
 
-				!this.isPickerDialog() && this.focus();
+				!this.isPickerDialog() && !this.isFocusInTokenizer() && this.focus();
 				this.fireChangeEvent("");
 			}
 		}
@@ -2041,46 +2274,12 @@ function(
 	 */
 	MultiComboBox.prototype.onAfterRenderingList = function() {
 		var oList = this._getList();
+		var bInputFocussed = document.activeElement === this.getFocusDomRef();
 
-		if (this._iFocusedIndex != null && oList.getItems().length > this._iFocusedIndex) {
+		if (this.getEditable() && !bInputFocussed && (this._iFocusedIndex != null) && (oList.getItems().length > this._iFocusedIndex)) {
 			oList.getItems()[this._iFocusedIndex].focus();
 			this._iFocusedIndex = null;
 		}
-	};
-
-	/**
-	 * Collects information for dom refs of list items and passes them on to {@link sap.m.ComboBoxBase#highLightList}
-	 *
-	 * @param {string} sValue Currenly typed value of the input field
-	 * @private
-	 */
-	MultiComboBox.prototype._highlightList = function (sValue) {
-		var aListItemsDOM = [],
-			aListItemAdditionalText = [],
-			oItemAdditionalTextRef, oItemDomRef;
-
-		this._getList().getItems().forEach(function(oItem) {
-			oItemDomRef = oItem.getDomRef();
-
-			if (oItemDomRef) {
-				aListItemsDOM.push({
-					ref: oItemDomRef.getElementsByClassName("sapMSLITitleOnly")[0],
-					text: oItem.getTitle()
-				});
-
-				oItemAdditionalTextRef = oItemDomRef.querySelector(".sapMSLIInfo");
-
-				if (oItemAdditionalTextRef && oItem.getInfo) {
-					aListItemAdditionalText.push({
-						ref: oItemAdditionalTextRef,
-						text: oItem.getInfo()
-					});
-				}
-			}
-		});
-
-		this.highLightList(sValue, aListItemsDOM);
-		this.highLightList(sValue, aListItemAdditionalText);
 	};
 
 	/**
@@ -2095,6 +2294,11 @@ function(
 		}
 	};
 
+	/**
+	 * This hook method is called after the MultiComboBox control is rendered.
+	 *
+	 * @private
+	 */
 	MultiComboBox.prototype.onAfterRendering = function() {
 		ComboBoxBase.prototype.onAfterRendering.apply(this, arguments);
 		this._oTokenizer.setMaxWidth(this._calculateSpaceForTokenizer());
@@ -2114,7 +2318,8 @@ function(
 
 		// reset the value state
 		if (this.getValueState() === ValueState.Error && this.getValueStateText() === this._oRbM.getText("VALUE_STATE_ERROR_ALREADY_SELECTED")) {
-			this.setValueState(ValueState.None);
+			this.setValueState(this._sInitialValueState);
+			this.setValueStateText(this._sInitialValueStateText);
 		}
 
 		ComboBoxBase.prototype.onfocusout.apply(this, arguments);
@@ -2165,14 +2370,10 @@ function(
 	/**
 	 * Function is called on keyboard backspace, if cursor is in front of a token, token gets selected and deleted
 	 *
-	 * @private
 	 * @param {jQuery.Event} oEvent The event object
+	 * @private
 	 */
 	MultiComboBox.prototype.onsapbackspace = function(oEvent) {
-
-		// validate the input value
-		this._showAlreadySelectedVisualEffect();
-
 		if (!this.getEnabled() || !this.getEditable()) {
 
 			// Prevent the backspace key from navigating back
@@ -2185,7 +2386,13 @@ function(
 			return;
 		}
 
-		sap.m.Tokenizer.prototype.onsapbackspace.apply(this._oTokenizer, arguments);
+		if (!oEvent.isMarked()) {
+			Tokenizer.prototype.onsapbackspace.apply(this._oTokenizer, arguments);
+		}
+
+		if (oEvent.isMarked("forwardFocusToParent")) {
+			this.focus();
+		}
 
 		// Prevent the backspace key from navigating back
 		oEvent.preventDefault();
@@ -2194,14 +2401,10 @@ function(
 	/**
 	 * Function is called on delete keyboard input, deletes selected tokens
 	 *
-	 * @private
 	 * @param {jQuery.Event} oEvent The event object
+	 * @private
 	 */
 	MultiComboBox.prototype.onsapdelete = function(oEvent) {
-
-		// validate the input value
-		this._showAlreadySelectedVisualEffect();
-
 		if (!this.getEnabled() || !this.getEditable()) {
 			return;
 		}
@@ -2211,12 +2414,20 @@ function(
 			return;
 		}
 
-		sap.m.Tokenizer.prototype.onsapdelete.apply(this._oTokenizer, arguments);
+		if (!oEvent.isMarked()) {
+			Tokenizer.prototype.onsapbackspace.apply(this._oTokenizer, arguments);
+		}
+
+		if (oEvent.isMarked("forwardFocusToParent")) {
+			this.focus();
+		}
 	};
 
 	/**
-	 * @private
+	 * Handles the <code>sapnext</code> event when the 'Arrow down' or 'Arrow right' key is pressed.
+	 *
 	 * @param {jQuery.Event} oEvent The event object
+	 * @private
 	 */
 	MultiComboBox.prototype.onsapnext = function(oEvent) {
 
@@ -2244,15 +2455,17 @@ function(
 	};
 
 	/**
-	 * @private
+	 * Handles the <code>sapprevious</code> event when the 'Arrow up' or 'Arrow left' key is pressed.
+	 *
 	 * @param {jQuery.Event} oEvent The event object
+	 * @private
 	 */
 	MultiComboBox.prototype.onsapprevious = function(oEvent) {
 
 		if (this.getCursorPosition() === 0 && !this._isCompleteTextSelected()) {
 
 			if (oEvent.srcControl === this) {
-				sap.m.Tokenizer.prototype.onsapprevious.apply(this._oTokenizer, arguments);
+				Tokenizer.prototype.onsapprevious.apply(this._oTokenizer, arguments);
 			}
 		}
 	};
@@ -2261,6 +2474,7 @@ function(
 	 * Handles the tap event on the control.
 	 *
 	 * @param {jQuery.Event} oEvent The event object.
+	 * @private
 	 */
 	MultiComboBox.prototype.ontap = function(oEvent) {
 		ComboBoxBase.prototype.ontap.apply(this, arguments);
@@ -2281,6 +2495,12 @@ function(
 		}
 	};
 
+	/**
+	 * Gets the trigger element of the control's picker popup.
+	 *
+	 * @returns {HTMLElement | null} The element that is used as trigger to open the control's picker popup.
+	 * @private
+	 */
 	MultiComboBox.prototype.getOpenArea = function() {
 		if (this.isPickerDialog()) {
 			return this.getDomRef();
@@ -2618,6 +2838,13 @@ function(
 		return this;
 	};
 
+	/**
+	 * Removes an selectedItem from the association named <code>selectedItems</code>.
+	 *
+	 * @param {sap.ui.core.Item | sap.ui.core.ID | string} oItem The item to be removed
+	 * @returns {sap.ui.core.ID | null} The removed selectedItem or null
+	 * @public
+	 */
 	MultiComboBox.prototype.removeSelectedItem = function(oItem) {
 
 		if (!oItem) {
@@ -2642,6 +2869,12 @@ function(
 		return oItem;
 	};
 
+	/**
+	 * Removes all the controls in the association named selectedItems.
+	 *
+	 * @returns {sap.ui.core.ID[]} An array of the removed elements (might be empty)
+	 * @public
+	 */
 	MultiComboBox.prototype.removeAllSelectedItems = function() {
 		var aIds = [];
 		var aItems = this.getAssociation("selectedItems", []);
@@ -2662,15 +2895,14 @@ function(
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	MultiComboBox.prototype.removeSelectedKeys = function(aKeys) {
-		var aItems = [], iIndex;
+	MultiComboBox.prototype.removeSelectedKeys = function (aKeys) {
+		var oItem, aItems = [];
 
 		if (!aKeys || !aKeys.length || !Array.isArray(aKeys)) {
 			return aItems;
 		}
 
-		var oItem;
-		aKeys.forEach(function(sKey) {
+		aKeys.forEach(function (sKey) {
 			oItem = this.getItemByKey(sKey);
 
 			if (oItem) {
@@ -2683,18 +2915,31 @@ function(
 				});
 				aItems.push(oItem);
 			}
-
-			if (this._aCustomerKeys.length && (iIndex = this._aCustomerKeys.indexOf(sKey)) > -1) {
-				this._aCustomerKeys.splice(iIndex, 1);
-			}
 		}, this);
+
 		return aItems;
 	};
 
-	MultiComboBox.prototype.setSelectedKeys = function(aKeys) {
-		this.removeAllSelectedItems();
-		this._aCustomerKeys = [];
+	/**
+	 * Sets a new value for property <code>selectedKeys</code>.
+	 * Keys of the selected items. If the key has no corresponding item, no changes will apply. If duplicate keys exists the first item matching the key is used.
+	 * When called with a value of null or undefined, the default value of the property will be restored.
+	 * Default value is [].
+	 *
+	 * @param {string[]} aKeys Keys of items to be set as selected
+	 * @returns {sap.m.MultiComboBox} <code>this</code> to allow method chaining.
+	 * @public
+	 */
+	MultiComboBox.prototype.setSelectedKeys = function (aKeys) {
+		if (this._bInitialSelectedKeysSettersCompleted) {
+			this.setProperty("selectedKeys", [], true);
+			this.removeAllSelectedItems();
+		}
+
 		this.addSelectedKeys(aKeys);
+
+		this._bInitialSelectedKeysSettersCompleted = true;
+
 		return this;
 	};
 
@@ -2706,10 +2951,13 @@ function(
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	MultiComboBox.prototype.addSelectedKeys = function(aKeys) {
+	MultiComboBox.prototype.addSelectedKeys = function (aKeys) {
+		var aStoredSelectedKeys,
+			aSelectedKeys = [];
+
 		aKeys = this.validateProperty("selectedKeys", aKeys);
 
-		aKeys.forEach(function(sKey) {
+		aKeys.forEach(function (sKey) {
 			var oItem = this.getItemByKey(sKey);
 
 			if (oItem) {
@@ -2718,23 +2966,21 @@ function(
 
 				// If at this point of time aggregation 'items' does not exist we
 				// have save provided key.
-				this._aCustomerKeys.push(sKey);
+				aSelectedKeys.push(sKey);
 			}
 		}, this);
-		return this;
-	};
 
-	MultiComboBox.prototype.getSelectedKeys = function() {
-		var aItems = this.getSelectedItems() || [], aKeys = [];
-		aItems.forEach(function(oItem) {
-			aKeys.push(oItem.getKey());
-		}, this);
+		// Merging should happen here as addSelectedItem could modify the selectedKeys property
+		if (aSelectedKeys.length > 0) {
+			aStoredSelectedKeys = this.getProperty("selectedKeys").filter(function (sKey) {
+				return aSelectedKeys.indexOf(sKey) === -1;
+			});
+			aSelectedKeys = aStoredSelectedKeys.concat(aSelectedKeys);
 
-		if (this._aCustomerKeys.length) {
-			aKeys = aKeys.concat(this._aCustomerKeys);
+			this.setProperty("selectedKeys", aSelectedKeys, true);
 		}
 
-		return aKeys;
+		return this;
 	};
 
 	/**
@@ -2777,25 +3023,59 @@ function(
 		return aItems;
 	};
 
+	/**
+	 * Gets current value of property width.
+	 *
+	 * @returns {string} The value of property width or "100%"
+	 * @public
+	 * @override
+	 */
 	MultiComboBox.prototype.getWidth = function() {
 		return this.getProperty("width") || "100%";
 	};
 
 	// ----------------------- Inheritance ---------------------
 
-	MultiComboBox.prototype.setEditable = function(bEditable) {
+	/**
+	 * @override
+	 */
+	MultiComboBox.prototype.setEditable = function (bEditable) {
 		var oList = this._getList();
+
 		ComboBoxBase.prototype.setEditable.apply(this, arguments);
 		this._oTokenizer.setEditable(bEditable);
 
+		if (oList) {
+			this.syncPickerContent(true);
+			this._updatePopoverBasedOnEditMode(bEditable);
+		}
+
+		return this;
+	};
+
+	/**
+	 * Adds correct content and sets the correct list mode for the popover.
+	 * The method is used to switch between read-only mode and edit mode.
+	 *
+	 * @param {boolean} bEditable The mode of the popover
+	 * @private
+	 */
+	MultiComboBox.prototype._updatePopoverBasedOnEditMode = function (bEditable) {
+		var oList = this._getList(),
+			oSuggestionsPopover = this._getSuggestionsPopover(),
+			oReadOnlyPopover = this._getReadOnlyPopover();
+
+		if (!oList) {
+			return;
+		}
+
 		if (bEditable) {
 			oList.setMode(ListMode.MultiSelect);
-			this.getPicker().addContent(oList);
-		} else {
+			oSuggestionsPopover.addContent(oList);
+		} else if (!oReadOnlyPopover.getContent().length){
 			oList.setMode(ListMode.None);
-			this._getReadOnlyPopover().addContent(oList);
+			oReadOnlyPopover.addContent(oList);
 		}
-		return this;
 	};
 
 	/**
@@ -2829,7 +3109,6 @@ function(
 
 		oListItem = new StandardListItem({
 			type: ListType.Active,
-			info: sAdditionalText,
 			visible: oItem.getEnabled()
 		}).addStyleClass(sListItem + " " + sListItemSelected);
 
@@ -2837,6 +3116,7 @@ function(
 
 		oItem.data(oRenderer.CSS_CLASS_COMBOBOXBASE + "ListItem", oListItem);
 		oListItem.setTitle(oItem.getText());
+		oListItem.setInfo(sAdditionalText);
 
 		if (sListItemSelected) {
 			var oToken = new Token({
@@ -2844,7 +3124,6 @@ function(
 			});
 
 			oToken.setText(oItem.getText());
-			oToken.setTooltip(oItem.getText());
 
 			oItem.data(oRenderer.CSS_CLASS_COMBOBOXBASE + "Token", oToken);
 			// TODO: Check this invalidation
@@ -2857,24 +3136,6 @@ function(
 	};
 
 	/**
-	 * Given an item type of sap.m.StandardListItem, find the corresponding item type of sap.ui.core.Item.
-	 *
-	 * @param {sap.m.StandardListItem} oListItem The item to search for
-	 * @param {array} [aItems] The item array
-	 * @returns {sap.ui.core.Item | null} The matching item
-	 * @private
-	 */
-	MultiComboBox.prototype._findMappedItem = function(oListItem, aItems) {
-		for (var i = 0, aItems = aItems || this.getItems(), aItemsLength = aItems.length; i < aItemsLength; i++) {
-			if (this.getListItem(aItems[i]) === oListItem) {
-				return aItems[i];
-			}
-		}
-
-		return null;
-	};
-
-	/**
 	 * Set selectable property of sap.ui.core.Item
 	 *
 	 * @param {sap.ui.core.Item} oItem The item to set the property
@@ -2882,17 +3143,7 @@ function(
 	 * @private
 	 */
 	MultiComboBox.prototype.setSelectable = function(oItem, bSelectable) {
-
-		if (this.indexOfItem(oItem) < 0) {
-			return;
-		}
-
-		oItem._bSelectable = bSelectable;
-		var oListItem = this.getListItem(oItem);
-
-		if (oListItem) {
-			oListItem.setVisible(bSelectable);
-		}
+		ComboBoxBase.prototype.setSelectable.call(this, oItem, bSelectable);
 
 		var oToken = this._getTokenByItem(oItem);
 
@@ -2972,12 +3223,14 @@ function(
 
 		aStartsWithItems = this._getItemsStartingWith(sValue, true);
 
-		!bCompositionEvent && this._handleTypeAhead(sValue, aStartsWithItems, oInput);
+		if (!bCompositionEvent || this._bIsPasteEvent) {
+			this._handleTypeAhead(sValue, aStartsWithItems, oInput);
+		}
 
 		aItemsToCheck = this.getEnabledItems();
 
 		if (this.isPickerDialog()) {
-			oSelectedButton = this._getFilterSelectedButton();
+			oSelectedButton = this.getFilterSelectedButton();
 			if (oSelectedButton != null && oSelectedButton.getPressed()) {
 				oSelectedButton.setPressed(false);
 			}
@@ -3000,9 +3253,10 @@ function(
 	};
 
 	/**
-	 * Determines if a given value matches an item
+	 * Determines if a given value matches an item.
 	 *
 	 * @param {string} sValue The string value to be checked
+	 * @returns {int} The number of items starting with the given value
 	 * @private
 	 */
 	MultiComboBox.prototype.isValueValid = function (sValue) {
@@ -3069,6 +3323,10 @@ function(
 
 		ComboBoxBase.prototype.init.apply(this, arguments);
 
+		// Flag to mark that all the initial setters have completed.
+		// This would help with the synchronisation within dependent properties.
+		this._bInitialSelectedKeysSettersCompleted = false;
+
 		// To detect whether the List's item navigation is inited
 		this._bListItemNavigationInvalidated = false;
 
@@ -3084,7 +3342,6 @@ function(
 		// determines if value of the combobox should be empty string after popup's close
 		this._bPreventValueRemove = false;
 		this._oTokenizer = this._createTokenizer();
-		this._aCustomerKeys = [];
 		this._aInitiallySelectedItems = [];
 
 		this._oRbM = core.getLibraryResourceBundle("sap.m");
@@ -3157,6 +3414,13 @@ function(
 		return oItem;
 	};
 
+	/**
+	 * Checks whether an item is selected.
+	 *
+	 * @param {sap.ui.core.Item} oItem The item to check.
+	 * @returns {boolean} True if the item is selected.
+	 * @public
+	 */
 	MultiComboBox.prototype.isItemSelected = function(oItem) {
 		return this.getSelectedItems().indexOf(oItem) > -1;
 	};
@@ -3167,7 +3431,7 @@ function(
 	 * @private
 	 */
 	MultiComboBox.prototype._clearTokenizer = function() {
-		this._oTokenizer.destroyAggregation("tokens", true);
+		this._oTokenizer.destroyAggregation("tokens");
 	};
 
 	MultiComboBox.prototype.exit = function() {
@@ -3190,6 +3454,8 @@ function(
 				that[sControlName] = null;
 			}
 		});
+
+		this._sInitialValueState = null;
 	};
 
 	/**
@@ -3200,6 +3466,7 @@ function(
 	 */
 	MultiComboBox.prototype.destroyItems = function() {
 		this.destroyAggregation("items");
+		this.setProperty("selectedKeys", [], true);
 
 		if (this._getList()) {
 			this._getList().destroyItems();
@@ -3237,7 +3504,69 @@ function(
 	};
 
 	/**
+	 * Gets item corresponding to the given value.
+	 *
+	 * @param {string} sValue The given value
+	 * @return {sap.ui.core.Item} The corresponding item
+	 * @private
+	 */
+	MultiComboBox.prototype._getItemByValue = function (sValue) {
+		return this.getSelectableItems().find(function (oItem) {
+			return oItem.getText().toLowerCase() === sValue.toLowerCase();
+		});
+	};
+
+	/**
+	 * Handles the initial placement of the focus and item selection before the picker is opened.
+	 *
+	 * @private
+	 */
+	MultiComboBox.prototype._handleItemToFocus = function () {
+		if (this.isOpen()) {
+			return;
+		}
+
+		this.syncPickerContent();
+
+		var iItemToFocus, oItemToFocus,
+			oCurrentlyFocusedObject = core.byId(document.activeElement.id),
+			aSelectedItems = this.getSelectedItems(),
+			aSelectableItems = this.getSelectableItems(),
+			oList = this._getList(),
+			oItemNavigation = oList && oList.getItemNavigation(),
+			sValue = this.getValue(),
+			oPicker = this.getPicker();
+
+
+		if (oCurrentlyFocusedObject && oCurrentlyFocusedObject.isA("sap.m.Token")) {
+			oItemToFocus = this._getItemByToken(oCurrentlyFocusedObject);
+		} else if (sValue) {
+			oItemToFocus = this._getItemByValue(sValue);
+		}
+
+		// If no items are selected focuse the first visible one
+		if (!oItemToFocus) {
+			oItemToFocus = aSelectedItems.length ? this._getItemByListItem(this._getList().getSelectedItems()[0]) : aSelectableItems[0];
+		}
+
+		iItemToFocus = aSelectableItems.indexOf(oItemToFocus);
+
+		// Set the initial selected index and focus
+		if (oItemNavigation) {
+			oItemNavigation.setSelectedIndex(iItemToFocus);
+		} else {
+			this._bListItemNavigationInvalidated = true;
+			this._iInitialItemFocus = iItemToFocus;
+		}
+
+		oPicker.setInitialFocus(oList);
+	};
+
+	/**
+	 * Gets the accessibility info for the control
+	 *
 	 * @see sap.ui.core.Control#getAccessibilityInfo
+	 * @returns {string} The accessibility text
 	 * @protected
 	 */
 	MultiComboBox.prototype.getAccessibilityInfo = function() {
@@ -3252,15 +3581,80 @@ function(
 	};
 
 	/**
+	 * Function calculates the available space for the tokenizer
+	 *
+	 * @private
+	 * @return {String | null} CSSSize in px
+	 */
+	MultiComboBox.prototype._calculateSpaceForTokenizer = function () {
+		if (this.getDomRef()) {
+			var iSpace,
+				iControlWidth = this.getDomRef().offsetWidth,
+				iSummedIconsWidth = this._calculateIconsSpace(),
+				oInputRef = this.$().find(".sapMInputBaseInner"),
+				aInputRelevantCss = ["min-width", "padding-right", "padding-left"],
+				// calculate width of the input html element based on its min-width
+				iInputWidth = aInputRelevantCss.reduce(function(iAcc, sProperty) {
+					return iAcc + (parseInt(oInputRef.css(sProperty)) || 0);
+				}, 0);
+
+			iSpace = iControlWidth - (iSummedIconsWidth + iInputWidth);
+			iSpace = iSpace < 0 ? 0 : iSpace;
+
+			return iSpace + "px";
+		} else {
+			return null;
+		}
+	};
+
+	/**
+	 * Calculates and sets the available width of the html input element
+	 * when there is a tokenizer.
+	 *
+	 * @param {sap.m.Tokenizer} oTokenizer The tokenizer of the control
+	 * @private
+	 */
+	MultiComboBox.prototype._syncInputWidth = function (oTokenizer) {
+		var oFocusDomRef = this.getDomRef('inner'),
+			iSummedIconsWidth, iTokenizerWidth;
+
+		if (!oFocusDomRef || (oTokenizer && !oTokenizer.getDomRef())) {
+			return;
+		}
+
+		iSummedIconsWidth = this._calculateIconsSpace();
+		iTokenizerWidth = Math.ceil(oTokenizer.getDomRef().getBoundingClientRect().width);
+		oFocusDomRef.style.width = 'calc(100% - ' + Math.floor(iSummedIconsWidth + iTokenizerWidth) + "px";
+	};
+
+	/**
+	 * Adds or removes aria-labelledby attribute to indicate that you can interact with Nmore.
+	 *
+	 * @private
+	 */
+	MultiComboBox.prototype._handleNMoreAccessibility = function () {
+		var sInvisibleTextId = InvisibleText.getStaticId("sap.m", "MULTICOMBOBOX_OPEN_NMORE_POPOVER");
+		var bHasAriaLabelledBy = this.getAriaLabelledBy().indexOf(sInvisibleTextId) !== -1;
+
+		if (!this.getEditable() && this._oTokenizer && this._oTokenizer._hasMoreIndicator()) {
+			!bHasAriaLabelledBy && this.addAriaLabelledBy(sInvisibleTextId);
+		} else {
+			bHasAriaLabelledBy && this.removeAriaLabelledBy(sInvisibleTextId);
+		}
+	};
+
+
+	/**
 	 * Applies <code>MultiComboBox</code> specific filtering over the list items.
 	 * Called within showItems method.
 	 *
 	 * @since 1.64
 	 * @experimental Since 1.64
-	 * @protected
-	 * @sap-restricted
+	 * @private
+	 * @ui5-restricted
 	 */
 	MultiComboBox.prototype.applyShowItemsFilters = function () {
+		this.syncPickerContent();
 		this.filterItems({value: this.getValue() || "_", items: this.getItems()});
 	};
 

@@ -1,22 +1,37 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/test/matchers/Matcher'], function(Matcher) {
+sap.ui.define([
+	'sap/ui/test/matchers/Matcher'
+], function (Matcher) {
 	"use strict";
 
 	/**
-	 * BindingPath - checks if a control has a specific binding
-	 * @since 1.60 Comparison is strict and can include one or more binding criteria:
-	 * - context path (matches children of bound controls, eg: items in a table)
-	 * - property path (matches controls with no context and a single bound property, eg: Text with binding for property text)
-	 * - context path + property path (matches children of bound controls, where the child has a binding for a certain property within the context)
+	 * @class
+	 * Checks if a control has a binding context with the exact same binding path.
 	 *
-	 * Before v1.60 he only available criteria is binding context path!
+	 * As of version 1.60, comparison is strict and can include one or more binding criteria:
+	 * <ul>
+	 * <li>context path (matches children of bound controls, eg: items in a table)</li>
+	 * <li>property path (matches controls with no context and a single bound property, eg: Text with binding for property text)</li>
+	 * <li>context path + property path (matches children of bound controls, where the child has a binding for a certain property within the context)</li>
+	 * </ul>
 	 *
-	 * @class BindingPath - checks if a control has a binding context with the exact same binding path
+	 * <b>Note:</b> Before version 1.60, the only available criteria is binding context path.
+	 *
+	 * As of version 1.72, it is available as a declarative matcher with the following syntax:
+	 * <code><pre>{
+	 *     bindingPath: {
+	 *         path: "string",
+	 *         modelName: "string",
+	 *         propertyPath: "string"
+	 *     }
+	 * }
+	 * </code></pre>
+	 *
 	 * @extends sap.ui.test.matchers.Matcher
 	 * @param {object} [mSettings] Map/JSON-object with initial settings for the new BindingPath.
 	 * @public
@@ -44,6 +59,7 @@ sap.ui.define(['sap/ui/test/matchers/Matcher'], function(Matcher) {
 				/**
 				 * The value of the binding property path that is used for matching.
 				 * If (context) path is also set, propertyPath will be assumed to be relative to the binding context path
+				 * @since 1.60
 				 */
 				propertyPath: {
 					type: "string"
@@ -79,18 +95,32 @@ sap.ui.define(['sap/ui/test/matchers/Matcher'], function(Matcher) {
 					var sContextPathToMatch = _getFormattedPath(sContextPath, sModelName);
 					bContextMatches = oObjectBindingInfo.path === sContextPathToMatch;
 
-					this._oLogger.debug("Control '" + oControl + "'" + (bContextMatches ? " has" : " does not have ") +
-						" object binding with context path '" + sContextPathToMatch + "' for model '" + sModelName + "'");
+					if (bContextMatches) {
+						this._oLogger.debug("Control '" + oControl + "' has object binding with the expected context path '" +
+							sContextPathToMatch + "' for model '" + sModelName + "'");
+					} else {
+						this._oLogger.debug("Control '" + oControl + "' has object binding with context path '" +
+							oObjectBindingInfo.path + "' for model '" + sModelName + "' but should have context path '" + sContextPathToMatch + "'");
+					}
 				} else {
 					bContextMatches = !!oBindingContext && oBindingContext.getPath() === sContextPath;
 
-					this._oLogger.debug("Control '" + oControl + "' " + (bContextMatches ? "has" : "does not have") +
-						" binding context with path '" + sContextPath + "' for model '" + sModelName + "'");
+					if (bContextMatches) {
+						this._oLogger.debug("Control '" + oControl + "' has binding context with the expected path '" +
+							sContextPath + "' for model '" + sModelName + "'");
+					} else if (oBindingContext){
+						this._oLogger.debug("Control '" + oControl + "' has binding context with path '" +
+							oBindingContext.getPath() + "' for model '" + sModelName + "' but should have context path '" + sContextPath + "'");
+					} else {
+						this._oLogger.debug("Control '" + oControl + "' does not have a binding context for model '" + sModelName +
+							"' but should have a binding context with path '" + sContextPath + "'");
+					}
 				}
 			}
 
 			if (sPropertyPath) {
 				var sPropertyPathToMatch = _getFormattedPath(sPropertyPath, sModelName, oBindingContext);
+				var aActualPathsForModel = [];
 
 				var aMatchingBindingInfos = Object.keys(oControl.mBindingInfos).filter(function (sBinding) {
 					var mBindingInfo = oControl.mBindingInfos[sBinding];
@@ -99,6 +129,12 @@ sap.ui.define(['sap/ui/test/matchers/Matcher'], function(Matcher) {
 					var aMatchingParts = aBindingParts.filter(function (mPart) {
 						var bPathMatches = mPart.path === sPropertyPathToMatch;
 						var bModelMatches = oObjectBindingInfo || mPart.model === sModelName;
+
+						if (!bPathMatches && bModelMatches) {
+							// for bindings to the matching model, save the actual paths for debug logging
+							aActualPathsForModel.push(mPart.path);
+						}
+
 						return bPathMatches && bModelMatches;
 					});
 
@@ -106,8 +142,17 @@ sap.ui.define(['sap/ui/test/matchers/Matcher'], function(Matcher) {
 				});
 
 				bPropertyPathMatches = !!aMatchingBindingInfos.length;
-				this._oLogger.debug("Control '" + oControl + "' " + (bPropertyPathMatches ? "has" : "does not have") +
-					" binding property path '" + sPropertyPath + "' for model '" + sModelName + "'");
+
+				if (bPropertyPathMatches) {
+					this._oLogger.debug("Control '" + oControl + "' has the expected binding property path '" +
+						sPropertyPath + "' for model '" + sModelName + "'");
+				} else if (aActualPathsForModel.length){
+					this._oLogger.debug("Control '" + oControl + "' has binding property paths ['" +
+						aActualPathsForModel.join("', '") + "'] for model '" + sModelName + "' but should have binding property path '" + sPropertyPathToMatch + "'");
+				} else {
+					this._oLogger.debug("Control '" + oControl + "' has no binding property paths for model '" + sModelName +
+						"' but should have binding property path '" + sPropertyPathToMatch + "'");
+				}
 			}
 
 			return bContextMatches && bPropertyPathMatches;
@@ -123,7 +168,7 @@ sap.ui.define(['sap/ui/test/matchers/Matcher'], function(Matcher) {
 				sFormattedPath = sPath.substring(1);
 			}
 		} else if (sPath.charAt(0) !== sPropertyPathDelimiter) {
-				sFormattedPath = sPropertyPathDelimiter + sPath;
+			sFormattedPath = sPropertyPathDelimiter + sPath;
 		}
 
 		return sFormattedPath;

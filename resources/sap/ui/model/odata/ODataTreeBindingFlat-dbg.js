@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,7 +14,8 @@ sap.ui.define([
 	"sap/base/util/uid",
 	"sap/base/Log",
 	"sap/base/assert",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/base/util/isEmptyObject"
 ],
 	function(
 		Filter,
@@ -25,7 +26,8 @@ sap.ui.define([
 		uid,
 		Log,
 		assert,
-		jQuery
+		jQuery,
+		isEmptyObject
 	) {
 	"use strict";
 
@@ -1336,7 +1338,7 @@ sap.ui.define([
 
 		//trigger loading of the node if it is deeper than our initial level expansion
 		if (oToggledNode.initiallyCollapsed && oToggledNode.childCount == undefined) {
-			this._loadChildren(oToggledNode, 0, this._iPageSize);
+			this._loadChildren(oToggledNode, 0, this._iPageSize + this._iThreshold);
 		} else {
 			this._propagateMagnitudeChange(oToggledNode.parent, oToggledNode.magnitude);
 		}
@@ -1999,7 +2001,7 @@ sap.ui.define([
 
 	ODataTreeBindingFlat.prototype._indexGetSelectedIndex = function () {
 		//if we have no nodes selected, the lead selection index is -1
-		if (!this._sLeadSelectionKey || jQuery.isEmptyObject(this._mSelected)) {
+		if (!this._sLeadSelectionKey || isEmptyObject(this._mSelected)) {
 			return -1;
 		}
 
@@ -2014,7 +2016,7 @@ sap.ui.define([
 
 	ODataTreeBindingFlat.prototype._mapGetSelectedIndex = function () {
 		//if we have no nodes selected, the lead selection index is -1
-		if (!this._sLeadSelectionKey || jQuery.isEmptyObject(this._mSelected)) {
+		if (!this._sLeadSelectionKey || isEmptyObject(this._mSelected)) {
 			return -1;
 		}
 
@@ -2053,7 +2055,7 @@ sap.ui.define([
 		var aResultIndices = [];
 
 		//if we have no nodes selected, the selection indices are empty
-		if (jQuery.isEmptyObject(this._mSelected)) {
+		if (isEmptyObject(this._mSelected)) {
 			return aResultIndices;
 		}
 
@@ -2211,7 +2213,7 @@ sap.ui.define([
 		var aResultContexts = [];
 
 		//if we have no nodes selected, the selection indices are empty
-		if (jQuery.isEmptyObject(this._mSelected)) {
+		if (isEmptyObject(this._mSelected)) {
 			return aResultContexts;
 		}
 
@@ -3151,7 +3153,7 @@ sap.ui.define([
 			if (bNoAbort) {
 				return that._executeRestoreTreeState(oOptimizedChanges).then(function(aData) {
 					if (aData) {
-						that._fireRefresh({reason: ChangeReason.Refresh});
+						that._fireChange({reason: ChangeReason.Change});
 						that.fireDataReceived({data: aData});
 						return aData;
 					}
@@ -4028,7 +4030,7 @@ sap.ui.define([
 		var aNodesInfo = [];
 
 		//if we have no nodes selected, the selection info are empty
-		if (jQuery.isEmptyObject(this._mSelected)) {
+		if (isEmptyObject(this._mSelected)) {
 			return aNodesInfo;
 		}
 
@@ -4202,18 +4204,33 @@ sap.ui.define([
 	//*********************************************
 
 	/**
-	 * Attach event-handler <code>fnFunction</code> to the 'selectionChanged' event of this <code>sap.ui.model.SelectionModel</code>.<br/>
+	 * The <code>selectionChanged</code> event is fired whenever the selection of tree nodes changes in any way.
+	 *
+	 * @name sap.ui.model.odata.ODataTreeBindingFlat#selectionChanged
+	 * @event
+	 * @param {sap.ui.base.Event} oEvent
+	 * @public
+	 */
+
+	/**
+	 * Attaches event handler <code>fnFunction</code> to the {@link #event:selectionChanged selectionChanged} event of
+	 * this <code>sap.ui.model.odata.ODataTreeBindingFlat</code>.
+	 *
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
+	 * if specified, otherwise it will be bound to this <code>sap.ui.model.odata.ODataTreeBindingFlat</code> itself.
+	 *
 	 * Event is fired if the selection of tree nodes is changed in any way.
 	 *
 	 * @param {object}
-	 *            [oData] The object, that should be passed along with the event-object when firing the event.
+	 *            [oData] An application-specific payload object that will be passed to the event handler
+	 *            along with the event object when firing the event
 	 * @param {function}
-	 *            fnFunction The function to call, when the event occurs. This function will be called on the
-	 *            oListener-instance (if present) or in a 'static way'.
+	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Object on which to call the given function. If empty, this binding adapter is used.
+	 *            [oListener] Context object to call the event handler with. Defaults to this
+	 *            <code>sap.ui.model.odata.ODataTreeBindingFlat</code> itself
 	 *
-	 * @return {sap.ui.model.SelectionModel} <code>this</code> to allow method chaining
+	 * @returns {sap.ui.model.odata.ODataTreeBindingFlat} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
 	 */
 	ODataTreeBindingFlat.prototype.attachSelectionChanged = function(oData, fnFunction, oListener) {
@@ -4222,15 +4239,16 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detach event-handler <code>fnFunction</code> from the 'selectionChanged' event of this <code>sap.ui.model.SelectionModel</code>.<br/>
+	 * Detaches event handler <code>fnFunction</code> from the {@link #event:selectionChanged selectionChanged} event of
+	 * this <code>sap.ui.model.odata.ODataTreeBindingFlat</code>.
 	 *
-	 * The passed function and listener object must match the ones previously used for event registration.
+	 * The passed function and listener object must match the ones used for event registration.
 	 *
 	 * @param {function}
-	 *            fnFunction The function to call, when the event occurs.
+	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            oListener Object on which the given function had to be called.
-	 * @return {sap.ui.model.SelectionModel} <code>this</code> to allow method chaining
+	 *            [oListener] Context object on which the given function had to be called
+	 * @returns {sap.ui.model.odata.ODataTreeBindingFlat} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
 	 */
 	ODataTreeBindingFlat.prototype.detachSelectionChanged = function(fnFunction, oListener) {
@@ -4239,7 +4257,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Fire event 'selectionChanged' to attached listeners.
+	 * Fires event {@link #event:selectionChanged selectionChanged} to attached listeners.
 	 *
 	 * Expects following event parameters:
 	 * <ul>
@@ -4247,14 +4265,14 @@ sap.ui.define([
 	 * <li>'rowIndices' of type <code>int[]</code> Other selected indices (if available)</li>
 	 * </ul>
 	 *
-	 * @param {object} mArguments the arguments to pass along with the event.
-	 * @param {int} mArguments.leadIndex Lead selection index
-	 * @param {int[]} [mArguments.rowIndices] Other selected indices (if available)
-	 * @return {sap.ui.model.SelectionModel} <code>this</code> to allow method chaining
+	 * @param {object} oParameters Parameters to pass along with the event.
+	 * @param {int} oParameters.leadIndex Lead selection index
+	 * @param {int[]} [oParameters.rowIndices] Other selected indices (if available)
+	 * @return {sap.ui.model.odata.ODataTreeBindingFlat} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
 	 */
-	ODataTreeBindingFlat.prototype.fireSelectionChanged = function(mArguments) {
-		this.fireEvent("selectionChanged", mArguments);
+	ODataTreeBindingFlat.prototype.fireSelectionChanged = function(oParameters) {
+		this.fireEvent("selectionChanged", oParameters);
 		return this;
 	};
 

@@ -1,34 +1,33 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 //Provides mixin sap.ui.model.odata.v4.lib._V2Requestor
 sap.ui.define([
 	"./_Helper",
 	"./_Parser",
+	"sap/ui/core/CalendarType",
 	"sap/ui/core/format/DateFormat",
-	"sap/ui/model/odata/ODataUtils",
-	"sap/ui/thirdparty/jquery"
-], function (_Helper, _Parser, DateFormat, ODataUtils, jQuery) {
+	"sap/ui/model/odata/ODataUtils"
+], function (_Helper, _Parser, CalendarType, DateFormat, ODataUtils) {
 	"use strict";
 
 	var // Example: "/Date(1395705600000)/", matching group: ticks in milliseconds
 		rDate = /^\/Date\((-?\d+)\)\/$/,
-		oDateFormatter = DateFormat.getDateInstance({pattern: "yyyy-MM-dd", UTC : true}),
+		oDateFormatter,
 		// Example "/Date(1420529121547+0530)/", the offset ("+0530") is optional
 		// matches: 1 = ticks in milliseconds, 2 = offset sign, 3 = offset hours, 4 = offset minutes
 		rDateTimeOffset = /^\/Date\((-?\d+)(?:([-+])(\d\d)(\d\d))?\)\/$/,
+		oDateTimeOffsetFormatter,
 		mPattern2Formatter = {},
-		oDateTimeOffsetParser =
-			DateFormat.getDateTimeInstance({pattern: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}),
 		rPlus = /\+/g,
 		rSegmentWithPredicate = /^([^(]+)(\(.+\))$/,
 		rSlash = /\//g,
 		// Example: "PT11H33M55S",
 		// PT followed by optional hours, optional minutes, optional seconds with optional fractions
 		rTime = /^PT(?:(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)(\.\d+)?S)?)$/i,
-		oTimeFormatter = DateFormat.getTimeInstance({pattern: "HH:mm:ss", UTC : true});
+		oTimeFormatter;
 
 	/**
 	 * A mixin for a requestor using an OData V2 service.
@@ -62,6 +61,22 @@ sap.ui.define([
 		"MaxDataServiceVersion" : "2.0",
 		"DataServiceVersion" : "2.0",
 		"X-CSRF-Token" : "Fetch"
+	};
+
+	/**
+	 * OData V2 request headers reserved for internal use.
+	 */
+	_V2Requestor.prototype.mReservedHeaders = {
+		accept : true,
+		"content-id" : true,
+		"content-transfer-encoding" : true,
+		"content-type" : true,
+		dataserviceversion : true,
+		"if-match" : true,
+		"if-none-match" : true,
+		maxdataserviceversion : true,
+		"sap-contextid" : true,
+		"x-http-method" : true
 	};
 
 	/**
@@ -150,8 +165,11 @@ sap.ui.define([
 			sPattern += "." + "".padEnd(iPrecision, "S");
 		}
 		if (!mPattern2Formatter[sPattern]) {
-			mPattern2Formatter[sPattern] =
-				DateFormat.getDateTimeInstance({pattern: sPattern,UTC : true});
+			mPattern2Formatter[sPattern] = DateFormat.getDateTimeInstance({
+				calendarType : CalendarType.Gregorian,
+				pattern: sPattern,
+				UTC : true
+			});
 		}
 		return mPattern2Formatter[sPattern].format(new Date(iTicks)) + sOffset;
 	};
@@ -798,7 +816,7 @@ sap.ui.define([
 				vValue = parseAndCheck(oDateFormatter, vValue);
 				break;
 			case "Edm.DateTimeOffset":
-				vValue = parseAndCheck(oDateTimeOffsetParser, vValue);
+				vValue = parseAndCheck(oDateTimeOffsetFormatter, vValue);
 				break;
 			case "Edm.TimeOfDay":
 				vValue = {
@@ -946,9 +964,38 @@ sap.ui.define([
 		return this.oModelInterface.fetchEntityContainer().then(function () {});
 	};
 
-	return function (oRequestor) {
-		jQuery.extend(oRequestor, _V2Requestor.prototype);
+	//*********************************************************************************************
+	// "static" functions
+	//*********************************************************************************************
+	function asV2Requestor(oRequestor) {
+		Object.assign(oRequestor, _V2Requestor.prototype);
 		oRequestor.oModelInterface.reportBoundMessages = function () {};
 		oRequestor.oModelInterface.reportUnboundMessages = function () {};
+	}
+
+	/**
+	 * Sets the static date and time formatter instances.
+	 *
+	 * @private
+	 */
+	asV2Requestor._setDateTimeFormatter = function () {
+		oDateFormatter = DateFormat.getDateInstance({
+			calendarType : CalendarType.Gregorian,
+			pattern: "yyyy-MM-dd",
+			UTC : true
+		});
+		oDateTimeOffsetFormatter = DateFormat.getDateTimeInstance({
+			calendarType : CalendarType.Gregorian,
+			pattern: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+		});
+		oTimeFormatter = DateFormat.getTimeInstance({
+			calendarType : CalendarType.Gregorian,
+			pattern: "HH:mm:ss",
+			UTC : true
+		});
 	};
+
+	asV2Requestor._setDateTimeFormatter();
+
+	return asV2Requestor;
 }, /* bExport= */ false);

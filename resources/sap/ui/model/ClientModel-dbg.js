@@ -1,8 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
+/* global XMLHttpRequest */
 
 // Provides client-based DataBinding implementation
 sap.ui.define([
@@ -32,7 +34,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.Model
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @param {string} [oData] URL where to load the data from
 	 * @public
@@ -133,7 +135,6 @@ sap.ui.define([
 		if (oParameters.async) {
 			this.aPendingRequestHandles.push(oRequestHandle);
 		}
-
 	};
 
 	/**
@@ -190,7 +191,5 @@ sap.ui.define([
 		this.bCache = !bForceNoCache;
 	};
 
-
 	return ClientModel;
-
 });

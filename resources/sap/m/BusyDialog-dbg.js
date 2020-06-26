@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.BusyDialog.
-sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIndicator', 'sap/m/Label', 'sap/m/Button', "sap/base/Log"],
-	function (library, Control, Dialog, BusyIndicator, Label, Button, Log) {
+sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIndicator', 'sap/m/Label', 'sap/m/Button', "sap/base/Log", 'sap/ui/core/Core'],
+	function (library, Control, Dialog, BusyIndicator, Label, Button, Log, Core) {
 		"use strict";
 
 		/**
@@ -43,7 +43,7 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @public
 		 * @alias sap.m.BusyDialog
@@ -129,7 +129,10 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 			// requires a dummy render function to avoid loading of separate
 			// renderer file and in case of usage in control tree a render
 			// function has to be available to not crash the rendering
-			renderer: function(oRm, oControl) { /* just do nothing */ }
+			renderer: {
+				apiVersion: 2,
+				render: function(oRm, oControl) { /* just do nothing */ }
+			}
 
 		});
 
@@ -146,12 +149,6 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 				visible: true
 			});
 
-			function onOpen() {
-				if (sap.ui.getCore().getConfiguration().getAccessibility()) {
-					this._$content.attr('role', 'application');
-				}
-			}
-
 			/**
 			 * Creates the dialog with its class.
 			 * @private
@@ -159,7 +156,6 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 			this._oDialog = new Dialog(this.getId() + '-Dialog', {
 				content: this._busyIndicator,
 				showHeader: false,
-				afterOpen: onOpen,
 				afterClose: this._fnCloseHandler.bind(this),
 				initialFocus: this._busyIndicator.getId() + '-busyIndicator'
 			}).addStyleClass('sapMBusyDialog');
@@ -246,7 +242,7 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 			}
 
 			//if the code is not ready yet (new sap.m.BusyDialog().open()) wait 50ms and then try ot open it.
-			if (!document.body || !sap.ui.getCore().isInitialized()) {
+			if (!document.body || !Core.isInitialized()) {
 				setTimeout(function() {
 					this.open();
 				}.bind(this), 50);
@@ -313,15 +309,11 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 		};
 
 		/**
-		 * Gets the tooltip for the BusyDialog.
-		 *
-		 * @public
-		 * @returns {sap.m.BusyDialog} BusyDialog reference for chaining.
+		 * Gets the tooltip of the internal dialog.
+		 * @override
 		 */
 		BusyDialog.prototype.getTooltip = function () {
-			this._oDialog.getTooltip();
-
-			return this;
+			return this._oDialog.getTooltip();
 		};
 
 		/**
@@ -497,7 +489,7 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 		 */
 		BusyDialog.prototype._getCancelButton = function () {
 			var cancelButtonText = this.getCancelButtonText();
-			cancelButtonText = cancelButtonText ? cancelButtonText : sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("BUSYDIALOG_CANCELBUTTON_TEXT");
+			cancelButtonText = cancelButtonText ? cancelButtonText : Core.getLibraryResourceBundle("sap.m").getText("BUSYDIALOG_CANCELBUTTON_TEXT");
 
 			return this._cancelButton ? this._cancelButton : this._cancelButton = new Button(this.getId() + 'busyCancelBtn', {
 				text: cancelButtonText,

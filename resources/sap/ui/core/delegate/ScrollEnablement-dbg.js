@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,16 +14,16 @@
 sap.ui.define([
 	'sap/ui/Device',
 	'sap/ui/base/Object',
+	'sap/ui/core/IntervalTrigger',
 	'sap/ui/core/ResizeHandler',
-	"sap/ui/performance/trace/Interaction",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/events/KeyCodes"
 ],
 	function(
 		Device,
 		BaseObject,
+		IntervalTrigger,
 		ResizeHandler,
-		Interaction,
 		jQuery,
 		KeyCodes
 	) {
@@ -34,7 +34,7 @@ sap.ui.define([
 		 * Creates a ScrollEnablement delegate that can be attached to Controls requiring
 		 * capabilities for scrolling of a certain part of their DOM.
 		 *
-		 * @class Delegate for touch scrolling on mobile devices
+		 * @class Delegate for touch scrolling on mobile devices.
 		 *
 		 * This delegate uses native scrolling of mobile and desktop browsers. Third party scrolling libraries are not supported.
 		 *
@@ -56,7 +56,7 @@ sap.ui.define([
 		 *
 		 * @protected
 		 * @alias sap.ui.core.delegate.ScrollEnablement
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 * @author SAP SE
 		 */
 		var ScrollEnablement = BaseObject.extend("sap.ui.core.delegate.ScrollEnablement", /** @lends sap.ui.core.delegate.ScrollEnablement.prototype */ {
@@ -74,6 +74,7 @@ sap.ui.define([
 				this._scrollX = 0;
 				this._scrollY = 0;
 				this._scrollCoef = 0.9; // Approximation coefficient used to mimic page down and page up behaviour when [CTRL] + [RIGHT] and [CTRL] + [LEFT] is used
+				this._iLastMaxScrollTop = 0;
 
 				initDelegateMembers(this);
 
@@ -155,13 +156,32 @@ sap.ui.define([
 			 *
 			 * @param {function} fnScrollLoadCallback Scrolling callback
 			 * @param {sap.m.ListGrowingDirection} sScrollLoadDirection Scrolling direction
+			 * @param {function} fnOverflowChange listener for the <code>overflowChange</code> event
 			 * @protected
 			 * @since 1.11.0
 			 */
-			setGrowingList : function(fnScrollLoadCallback, sScrollLoadDirection) {
+			setGrowingList : function(fnScrollLoadCallback, sScrollLoadDirection, fnOverflowChange) {
 				this._fnScrollLoadCallback = fnScrollLoadCallback;
 				this._sScrollLoadDirection = sScrollLoadDirection;
+				this.onOverflowChange(fnOverflowChange);
 				return this;
+			},
+
+			/**
+			 * Sets the listener for the custom <code>overflowChange</code> event
+			 *
+			 * Only a single listener can be registered
+			 *
+			 * @param {function} fnCallback
+			 * @ui5-restricted sap.m.GrowingEnablement
+			 * @private
+			 * @since 1.74
+			 */
+			onOverflowChange : function(fnCallback){
+				this._fnOverflowChangeCallback = fnCallback;
+				if (!this._fnOverflowChangeCallback) {
+					this._deregisterOverflowMonitor();
+				}
 			},
 
 			/**
@@ -180,10 +200,10 @@ sap.ui.define([
 				return this;
 			},
 
-			scrollTo : function(x, y, time) {
+			scrollTo : function(x, y, time, fnScrollEndCallback) {
 				this._scrollX = x; // remember for later rendering
 				this._scrollY = y;
-				this._scrollTo(x, y, time);
+				this._scrollTo(x, y, time, fnScrollEndCallback);
 				return this;
 			},
 
@@ -391,11 +411,16 @@ sap.ui.define([
 				return ($Container && $Container[0]) ? $Container[0].scrollHeight - $Container[0].clientHeight : -1;
 			},
 
+			getContainerDomRef : function() {
+				return this._$Container && this._$Container[0];
+			},
+
 			_cleanup : function() {
 				if (this._sResizeListenerId) {
 					ResizeHandler.deregister(this._sResizeListenerId);
 					this._sResizeListenerId = null;
 				}
+				this._deregisterOverflowMonitor();
 			},
 
 			_setOverflow : function(){
@@ -450,8 +475,6 @@ sap.ui.define([
 				var $Container = this._$Container,
 					fScrollTop = $Container.scrollTop(),
 					fVerticalMove = fScrollTop - this._scrollY;
-
-				Interaction.notifyStepStart(this._oControl);
 
 				this._scrollX = $Container.scrollLeft(); // remember position
 				this._scrollY = fScrollTop;
@@ -552,8 +575,6 @@ sap.ui.define([
 			},
 
 			_onEnd : function(oEvent){
-				Interaction.notifyEventStart(oEvent);
-
 				if (this._oPullDown && this._oPullDown._bTouchMode) {
 					this._oPullDown.doScrollEnd();
 					this._refresh();
@@ -609,6 +630,7 @@ sap.ui.define([
 					ResizeHandler.deregister(this._sResizeListenerId);
 					this._sResizeListenerId = null;
 				}
+				this._deregisterOverflowMonitor();
 
 				var $Container = this._$Container;
 				if ($Container) {
@@ -618,6 +640,27 @@ sap.ui.define([
 					}
 					$Container.off(); // delete all event handlers
 				}
+			},
+
+			_checkOverflowChange: function(oEvent) {
+				var iMaxScrollTop = this.getMaxScrollTop(),
+					bOverflow = iMaxScrollTop > 0 && this._iLastMaxScrollTop === 0,
+					bUnderflow = iMaxScrollTop === 0 && this._iLastMaxScrollTop > 0,
+					bOverflowChange = bOverflow || bUnderflow;
+
+				if (bOverflowChange) {
+					this._fnOverflowChangeCallback(bOverflow, iMaxScrollTop);
+				}
+
+				this._iLastMaxScrollTop = iMaxScrollTop;
+			},
+
+			_registerOverflowMonitor: function() {
+				this._fnOverflowChangeCallback && IntervalTrigger.addListener(this._checkOverflowChange, this);
+			},
+
+			_deregisterOverflowMonitor: function() {
+				IntervalTrigger.removeListener(this._checkOverflowChange, this);
 			},
 
 			onAfterRendering: function() {
@@ -641,6 +684,11 @@ sap.ui.define([
 
 					// element may be hidden and have height 0
 					this._sResizeListenerId = ResizeHandler.register($Container[0], _fnRefresh);
+				}
+
+				if (this._fnOverflowChangeCallback) {
+					this._iOverflowTimer && window.cancelAnimationFrame(this._iOverflowTimer);
+					this._iOverflowTimer = window.requestAnimationFrame(this._registerOverflowMonitor.bind(this));
 				}
 
 				//
@@ -686,8 +734,8 @@ sap.ui.define([
 					// Everything else: drag scroll
 					$Container
 						.on("mouseup mouseleave", this._onMouseUp.bind(this))
-						.mousedown(this._onMouseDown.bind(this))
-						.mousemove(this._onMouseMove.bind(this));
+						.on("mousedown", this._onMouseDown.bind(this))
+						.on("mousemove", this._onMouseMove.bind(this));
 				}
 			},
 
@@ -701,14 +749,18 @@ sap.ui.define([
 				}
 			},
 
-			_scrollTo: function(x, y, time) {
+			_scrollTo: function(x, y, time, fnScrollEndCallback) {
 				if (this._$Container.length > 0) {
 					if (time > 0) {
-						this._$Container.finish().animate({ scrollTop: y, scrollLeft: x }, time, jQuery.proxy(this._readActualScrollPosition, this));
+						this._$Container.finish().animate({ scrollTop: y, scrollLeft: x }, time, jQuery.proxy(function() {
+							this._readActualScrollPosition();
+							fnScrollEndCallback && fnScrollEndCallback();
+						}, this));
 					} else {
 						this._$Container.scrollTop(y);
 						this._$Container.scrollLeft(x);
 						this._readActualScrollPosition(); // if container is too large no scrolling is possible
+						fnScrollEndCallback && fnScrollEndCallback();
 					}
 				}
 			}
@@ -725,7 +777,7 @@ sap.ui.define([
 						jQuery.event.special.swipe.scrollSupressionThreshold = 120;
 					}
 
-					jQuery.extend(this, oNativeScrollDelegate);
+					Object.assign(this, oNativeScrollDelegate);
 
 					if (oConfig.nonTouchScrolling === true) {
 						this._bDragScroll = true; // optional drag instead of native scrolling
@@ -744,7 +796,7 @@ sap.ui.define([
 				}
 			};
 			// Copy over members to prototype
-			jQuery.extend(oScrollerInstance, oDelegateMembers);
+			Object.assign(oScrollerInstance, oDelegateMembers);
 		}
 
 	return ScrollEnablement;

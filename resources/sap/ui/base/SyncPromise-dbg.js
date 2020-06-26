@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -387,6 +387,31 @@ sap.ui.define([], function () {
 			bDone = true;
 			checkFulfilled();
 		});
+	};
+
+	/**
+	 * Tells whether the given value is a function or object with a "then" property which can be
+	 * retrieved without an exception being thrown and which is a function.
+	 *
+	 * @param {any} vValue
+	 *   Any value
+	 * @returns {boolean}
+	 *   See above
+	 *
+	 * @see step 2.3.3. of https://promisesaplus.com
+	 */
+	SyncPromise.isThenable = function (vValue) {
+		// "typeof vValue.then" returns "unknown" in IE if the getter for "then" throws an error; to
+		// get 100% code coverage also in IE assign vValue.then to a variable before using typeof
+		var fnThen;
+
+		try {
+			return !!hasThen(vValue) && (fnThen = vValue.then) && typeof fnThen === "function";
+		} catch (e) {
+			// "2.3.3.2. If retrieving the property x.then results in a thrown exception e,..."
+			// ...we should not call this a proper "thenable"
+			return false;
+		}
 	};
 
 	/**

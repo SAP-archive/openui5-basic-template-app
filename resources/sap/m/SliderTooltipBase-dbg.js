@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -21,7 +21,7 @@ function(Control, Library, SliderTooltipBaseRenderer) {
 		 * @abstract
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -43,8 +43,8 @@ function(Control, Library, SliderTooltipBaseRenderer) {
 		 * Updates value of the tooltip.
 		 *
 		 * @param {float} fValue The new value
-		 * @sap-restricted sap.m.Slider
 		 * @private
+		 * @ui5-restricted sap.m.Slider
 		 */
 		SliderTooltipBase.prototype.setValue = function (fValue) {
 			this.fValue = fValue;
@@ -54,6 +54,7 @@ function(Control, Library, SliderTooltipBaseRenderer) {
 		/**
 		 * Gets the value of the tooltip.
 		 *
+		 * @returns {float} The current value of the tooltip.
 		 * @protected
 		 */
 		SliderTooltipBase.prototype.getValue = function () {

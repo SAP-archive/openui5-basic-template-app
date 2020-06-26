@@ -1,44 +1,48 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	'./library',
-	'sap/ui/core/Control',
-	'sap/ui/Device',
-	'sap/ui/core/delegate/ItemNavigation',
-	'sap/ui/core/library',
-	'sap/ui/core/IntervalTrigger',
-	'sap/ui/base/ManagedObject',
-	'sap/ui/core/Icon',
-	'./HeaderContainerRenderer',
-	"sap/base/Log",
-	"sap/ui/events/PseudoEvents",
-	"sap/ui/thirdparty/jquery",
-	// jQuery Plugin "control"
-	"sap/ui/dom/jquery/control",
-	// jQuery Plugin "scrollLeftRTL"
-	"sap/ui/dom/jquery/scrollLeftRTL",
-	// jQuery Plugin "scrollRightRTL"
-	"sap/ui/dom/jquery/scrollRightRTL",
-	// jQuery custom selectors ":sapTabbable"
-	"sap/ui/dom/jquery/Selectors"
-],
-function(
-	library,
-	Control,
-	Device,
-	ItemNavigation,
-	coreLibrary,
-	IntervalTrigger,
-	ManagedObject,
-	Icon,
-	HeaderContainerRenderer,
-	Log,
-	PseudoEvents,
-	jQuery
-) {
+		'./library',
+		'sap/ui/core/Core',
+		'sap/ui/core/Control',
+		'sap/ui/Device',
+		'sap/m/HeaderContainerItemNavigator',
+		'sap/ui/core/delegate/ItemNavigation',
+		'sap/ui/core/library',
+		'sap/ui/core/IntervalTrigger',
+		'sap/ui/base/ManagedObject',
+		'sap/ui/core/Icon',
+		'./HeaderContainerRenderer',
+		"sap/base/Log",
+		"sap/ui/events/PseudoEvents",
+		"sap/ui/thirdparty/jquery",
+		// jQuery Plugin "control"
+		"sap/ui/dom/jquery/control",
+		// jQuery Plugin "scrollLeftRTL"
+		"sap/ui/dom/jquery/scrollLeftRTL",
+		// jQuery Plugin "scrollRightRTL"
+		"sap/ui/dom/jquery/scrollRightRTL",
+		// jQuery custom selectors ":sapTabbable"
+		"sap/ui/dom/jquery/Selectors"
+	],
+	function (
+		library,
+		Core,
+		Control,
+		Device,
+		HeaderContainerItemNavigator,
+		ItemNavigation,
+		coreLibrary,
+		IntervalTrigger,
+		ManagedObject,
+		Icon,
+		HeaderContainerRenderer,
+		Log,
+		PseudoEvents,
+		jQuery
+	) {
 		"use strict";
 
 		// shortcut for sap.ui.core.Orientation
@@ -115,7 +119,7 @@ function(
 		 * @since 1.44.0
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @public
 		 * @alias sap.m.HeaderContainer
@@ -305,10 +309,10 @@ function(
 						var aDomRefs = oFocusObj.find(".sapMHrdrCntrInner").attr("tabindex", "0");
 
 						if (!this._oItemNavigation) {
-							this._oItemNavigation = new ItemNavigation();
+							this._oItemNavigation = new HeaderContainerItemNavigator();
 							this.addDelegate(this._oItemNavigation);
 							this._oItemNavigation.attachEvent(ItemNavigation.Events.BorderReached, this._handleBorderReached, this);
-							this._oItemNavigation.attachEvent(ItemNavigation.Events.AfterFocus, this._handleBorderReached, this);
+							this._oItemNavigation.attachEvent(ItemNavigation.Events.AfterFocus, this._handleAfterFocus, this);
 							this._oItemNavigation.attachEvent(ItemNavigation.Events.BeforeFocus, this._handleBeforeFocus, this);
 							if (Device.browser.msie || Device.browser.edge) {
 								this._oItemNavigation.attachEvent(ItemNavigation.Events.FocusAgain, this._handleFocusAgain, this);
@@ -318,6 +322,8 @@ function(
 						this._oItemNavigation.setItemDomRefs(aDomRefs);
 						this._oItemNavigation.setTabIndex0();
 						this._oItemNavigation.setCycling(false);
+
+						this._handleMobileScrolling();
 					}
 				}.bind(this)
 			});
@@ -364,7 +370,7 @@ function(
 				oToCell = this._getParentCell(oNext);
 			}
 
-          if ( ( oFromCell && oToCell && oFromCell.id !== oToCell.id ) || ( oNext && oNext.id === this.getId() + "-after" ) || ( oNext && oNext.id === this.getId() + "-scrl-prev-button" ) || ( oNext && oNext.id === this.getId() + "-scrl-next-button" ) ) { // attempt to jump out of HeaderContainer
+			if ((oFromCell && oToCell && oFromCell.id !== oToCell.id) || (oNext && oNext.id === this.getId() + "-after") || (oNext && oNext.id === this.getId() + "-scrl-prev-button") || (oNext && oNext.id === this.getId() + "-scrl-next-button")) { // attempt to jump out of HeaderContainer
 				var oLastInnerTab = oFocusables.last().get(0);
 				if (oLastInnerTab) {
 					this._bIgnoreFocusIn = true;
@@ -387,7 +393,7 @@ function(
 			if (!oToCell || oFromCell && oFromCell.id !== oToCell.id) { // attempt to jump out of HeaderContainer
 				var sTabIndex = this.$().attr("tabindex"); // save tabindex
 				this.$().attr("tabindex", "0");
-				this.$().focus(); // set focus before the control
+				this.$().trigger("focus"); // set focus before the control
 				if (!sTabIndex) { // restore tabindex
 					this.$().removeAttr("tabindex");
 				} else {
@@ -656,8 +662,8 @@ function(
 			}
 		};
 
-		HeaderContainer.prototype._filterVisibleItems = function() {
-			return this.getContent().filter(function(oItem) {
+		HeaderContainer.prototype._filterVisibleItems = function () {
+			return this.getContent().filter(function (oItem) {
 				return oItem.getVisible();
 			});
 		};
@@ -686,7 +692,8 @@ function(
 				var bScrollForward = false;
 
 				var realHeight = oBarHead.scrollHeight;
-				var availableHeight = oBarHead.clientHeight;
+				//Take height using offsetHeight to handle Different Browsers Compatibility for a empty Header container during Vertical Orientation.
+				var availableHeight = oBarHead.offsetHeight;
 
 				if (Math.abs(realHeight - availableHeight) === 1) {
 					realHeight = availableHeight;
@@ -723,6 +730,41 @@ function(
 			}
 		};
 
+
+		HeaderContainer.prototype._handleMobileScrolling = function () {
+			if (Core.isMobile()) {
+				var $scroll = this.$("scrl-cntnr-scroll"),
+					bIsHorizontal = this.getOrientation() === Orientation.Horizontal,
+					sProperty = bIsHorizontal ? "clientX" : "clientY",
+					iPos = 0,
+					that = this,
+					bScrolling = false;
+
+				$scroll.on("touchstart", function (oEvent) {
+					bScrolling = true;
+					iPos = oEvent.targetTouches[0][sProperty];
+				});
+
+				$scroll.on("touchmove", function (oEvent) {
+					if (bScrolling) {
+						var fCurrent = oEvent.targetTouches[0][sProperty],
+							iDelta = iPos - fCurrent,
+							oScroller = that._oScrollCntr.getDomRef();
+
+						bIsHorizontal ? oScroller.scrollLeft += iDelta : oScroller.scrollTop += iDelta;
+						iPos = fCurrent;
+
+						// prevent navigation
+						oEvent.preventDefault();
+					}
+				});
+
+				$scroll.on("touchend", function () {
+					bScrolling = false;
+				});
+			}
+		};
+
 		HeaderContainer.prototype._checkHOverflow = function () {
 			var oBarHead = this._oScrollCntr.getDomRef(), $ButtonContainer;
 
@@ -737,7 +779,8 @@ function(
 				var bScrollForward = false;
 
 				var realWidth = oBarHead.scrollWidth;
-				var availableWidth = oBarHead.clientWidth;
+				//Take width using offsetWidth to handle Different Browsers Compatibility for a empty Header container during Horizontal Orientation.
+				var availableWidth = oBarHead.offsetWidth;
 
 				if (Math.abs(realWidth - availableWidth) === 1) {
 					realWidth = availableWidth;
@@ -855,7 +898,30 @@ function(
 			}
 		};
 
+		HeaderContainer.prototype._handleAfterFocus = function (oEvt) {
+			//For Edge and IE on mousedown input element not getting focused.Hence setting focus manually.
+			var oSrcEvent = oEvt.getParameter("event");
+			if ((Device.browser.msie || Device.browser.edge) && oSrcEvent.type === "mousedown" && oSrcEvent.srcControl instanceof sap.m.Input) {
+				oSrcEvent.srcControl.focus();
+			}
+			if (Device.browser.msie && this.bScrollInProcess) {
+				return;
+			}
+			var iIndex = oEvt.getParameter("index");
+			if (iIndex === 0) {
+				this._scroll(this._getScrollValue(false), this.getScrollTime());
+			} else if (iIndex === this._filterVisibleItems().length - 1) {
+				this._scroll(this._getScrollValue(true), this.getScrollTime());
+			}
+
+		};
+
 		HeaderContainer.prototype._handleFocusAgain = function (oEvt) {
+			//For Edge and IE on mousedown input element not getting focused.Hence setting focus manually.
+			var oSrcEvent = oEvt.getParameter("event");
+			if ((Device.browser.msie || Device.browser.edge) && oSrcEvent.type === "mousedown" && oSrcEvent.srcControl instanceof sap.m.Input) {
+				oSrcEvent.srcControl.focus();
+			}
 			oEvt.getParameter("event").preventDefault();
 		};
 
@@ -960,7 +1026,7 @@ function(
 			var $Tabbables = oRelatedControl.getTabbables ? oRelatedControl.getTabbables() : $LastFocused.find(":sapTabbable");
 
 			// get the last tabbable item or itself and focus
-			$Tabbables.eq(-1).add($LastFocused).eq(-1).focus();
+			$Tabbables.eq(-1).add($LastFocused).eq(-1).trigger("focus");
 		};
 
 		return HeaderContainer;

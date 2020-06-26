@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -124,9 +124,9 @@ sap.ui.define([
 					//using href instead of hash to avoid the escape problem in firefox
 					sHash = (window.location.href.split("#")[1] || "");
 
-				jWindowDom.bind('hashchange', detectHashChange);
+				jWindowDom.on('hashchange', detectHashChange);
 
-				if (jQuery.isArray(mSettings.routes)) {
+				if (Array.isArray(mSettings.routes)) {
 					var i, route;
 					for (i = 0 ; i < mSettings.routes.length ; i++) {
 						route = mSettings.routes[i];
@@ -385,7 +385,7 @@ sap.ui.define([
 		 * @private
 		 */
 		function calculateStepsToHash(sCurrentHash, sToHash, bPrefix){
-			var iCurrentIndex = jQuery.inArray(sCurrentHash, hashHistory),
+			var iCurrentIndex = hashHistory.indexOf(sCurrentHash),
 				iToIndex,
 				i,
 				tempHash;
@@ -398,7 +398,7 @@ sap.ui.define([
 						}
 					}
 				} else {
-					iToIndex = jQuery.inArray(sToHash, hashHistory);
+					iToIndex = hashHistory.indexOf(sToHash);
 
 					//When back to home is needed, and application is started with nonempty hash but it's nonbookmarkable
 					if ((iToIndex === -1) && sToHash.length === 0) {
@@ -506,7 +506,7 @@ sap.ui.define([
 		 * @private
 		 */
 		function getAppendId(sHash){
-			var iIndex = jQuery.inArray(currentHash, hashHistory),
+			var iIndex = hashHistory.indexOf(currentHash),
 				i, sHistory;
 			if (iIndex > -1) {
 				for (i = 0 ; i < iIndex + 1 ; i++) {
@@ -526,7 +526,7 @@ sap.ui.define([
 		 * @private
 		 */
 		function reorganizeHistoryArray(sHash){
-			var iIndex = jQuery.inArray(currentHash, hashHistory);
+			var iIndex = hashHistory.indexOf(currentHash);
 
 			if ( !(iIndex === -1 || iIndex === hashHistory.length - 1) ) {
 				hashHistory.splice(iIndex + 1, hashHistory.length - 1 - iIndex);
@@ -549,7 +549,7 @@ sap.ui.define([
 		 * @private
 		 */
 		function calcStepsToRealHistory(sCurrentHash, bForward){
-			var iIndex = jQuery.inArray(sCurrentHash, hashHistory),
+			var iIndex = hashHistory.indexOf(sCurrentHash),
 				i;
 
 			if (iIndex !== -1) {

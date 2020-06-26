@@ -1,21 +1,29 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/test/_LogCollector", "sap/base/Log"], function (_LogCollector, Log) {
+sap.ui.define([
+	"sap/ui/test/_LogCollector",
+	"sap/base/Log",
+	"sap/ui/test/matchers/_Visitor"
+], function (_LogCollector, Log, _Visitor) {
 	"use strict";
 	var oLogger = Log.getLogger("sap.ui.test.matchers.Ancestor");
-
-	function matchControls(oParent, aAncestor) {
-		var bMatchById = typeof aAncestor === "string";
-		return bMatchById ? (oParent && oParent.getId()) === aAncestor : oParent === aAncestor;
-	}
+	var oVisitor = new _Visitor();
 
 	/**
-	 * @class Ancestor - checks if a control has a defined ancestor
-	 * @param {object|string} oAncestorControl the ancestor control to check, if undefined, validates every control to true. Can be a control or a control ID
+	 * @class
+	 * Checks if a control has a defined ancestor.
+	 *
+	 * As of version 1.72, it is available as a declarative matcher with the following syntax:
+	 * <code><pre>{
+	 *     ancestor: "object" // where "object" is a declarative matcher for the ancestor
+	 * }
+	 * </code></pre>
+	 *
+	 * @param {object|string} vAncestor the ancestor control to check, if undefined, validates every control to true. Can be a control or a control ID
 	 * @param {boolean} [bDirect] specifies if the ancestor should be a direct ancestor (parent)
 	 * @public
 	 * @name sap.ui.test.matchers.Ancestor
@@ -23,23 +31,26 @@ sap.ui.define(["sap/ui/test/_LogCollector", "sap/base/Log"], function (_LogColle
 	 * @since 1.27
 	 */
 
-	return function (aAncestorControl, bDirect) {
+	return function (vAncestor, bDirect) {
 		return function (oControl) {
-			if (!aAncestorControl) {
+			if (!vAncestor) {
 				oLogger.debug("No ancestor was defined so no controls will be filtered.");
 				return true;
 			}
 
-			var oParent = oControl.getParent();
+			var bResult = oVisitor.isMatching(oControl, function (oControlAncestor) {
+				if (oControlAncestor === oControl) {
+					return false;
+				}
+				if (typeof vAncestor === "string") {
+					return oControlAncestor && oControlAncestor.getId() === vAncestor;
+				}
+				return oControlAncestor === vAncestor;
+			}, bDirect);
 
-			while (!bDirect && oParent && !matchControls(oParent, aAncestorControl)) {
-				oParent = oParent.getParent();
-			}
+			oLogger.debug("Control '" + oControl + (bResult ? "' has " : "' does not have ") +
+				(bDirect ? "direct " : "") + "ancestor '" + vAncestor);
 
-			var bResult = matchControls(oParent, aAncestorControl);
-			if (!bResult) {
-				oLogger.debug("Control '" + oControl + "' does not have " + (bDirect ? "direct " : "") + "ancestor '" + aAncestorControl);
-			}
 			return bResult;
 		};
 	};

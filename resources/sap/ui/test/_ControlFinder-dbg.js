@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,14 +10,16 @@ sap.ui.define([
     "sap/ui/test/OpaPlugin",
     "sap/ui/test/actions/Press",
     "sap/ui/test/_LogCollector",
+    "sap/ui/test/_OpaLogger",
     "sap/ui/thirdparty/jquery",
     "sap/ui/base/ManagedObjectMetadata"
-], function(UI5Object, Opa5, OpaPlugin, Press, _LogCollector, $, ManagedObjectMetadata) {
+], function(UI5Object, Opa5, OpaPlugin, Press, _LogCollector, _OpaLogger, $, ManagedObjectMetadata) {
     "use strict";
 
     var oPlugin = new OpaPlugin();
 
     var _ControlFinder = UI5Object.extend("sap.ui.test._ControlFinder", {});
+    var oLogger = _OpaLogger.getLogger("sap.ui.test._ControlFinder");
     var oLogCollector = _LogCollector.getInstance('^((?!autowaiter).)*$');
     var aLogs = [];
 
@@ -26,44 +28,26 @@ sap.ui.define([
      * This can be useful in external tools since polling might be done beforehand as in UIVeri5
      * @param {object} oOptions An Object containing conditions for control search similar to {@link sap.ui.test.Opa5#waitFor}
      * For details on the recognized object properties, see {@link sap.ui.test.matchers} and control selector types of {@link sap.ui.test.RecordReplay}
-     * If oOptions.ancestor is given, it should be a control selector object. The ancestor control is located and then used for {@link sap.ui.test.matchers.Ancestor}
+     * If oOptions.ancestor is given, it should be a control selector object. The ancestor control will be located and then used for {@link sap.ui.test.matchers.Ancestor}
+     * If oOptions.descendant is given, it should be a control selector object. The descendant control will be located and then used for {@link sap.ui.test.matchers.Descendant}
      * @returns {Array} An array of the matching controls. If no controls match, the returned array is empty.
      * @private
      */
     _ControlFinder._findControls = function (oOptions) {
-        if (oOptions.ancestor) {
-            var mAncestorSelector = {};
-            // ensure backwards compatibility with UIVeri5
-            if ($.isArray(oOptions.ancestor)) {
-                mAncestorSelector = {id: oOptions.ancestor[0]};
-            } else {
-                mAncestorSelector = oOptions.ancestor;
-            }
-            var oAncestor = _ControlFinder._findControls(mAncestorSelector)[0];
-            if (!oAncestor) {
+        if (_hasExpansions(oOptions)) {
+            try {
+                return _ControlFinder._findControls(_getExpandedOptions(oOptions));
+            } catch (oError) {
+                oLogger.error(oError);
                 return [];
             }
-
-            var oOptionsWithAncestor = $.extend({}, oOptions, {
-                matchers: {
-                    ancestor: oAncestor
-                }
-            });
-
-            delete oOptionsWithAncestor.ancestor;
-
-            return  _ControlFinder._findControls(oOptionsWithAncestor);
         } else {
-            var vControls = oPlugin._getFilteredControlsByDeclaration(oOptions);
-            var aResult;
-
+            var vControls = oPlugin._getFilteredControls(oOptions);
             if (vControls === OpaPlugin.FILTER_FOUND_NO_CONTROLS) {
-                aResult = [];
+                return [];
             } else {
-                aResult = $.isArray(vControls) ? vControls : [vControls];
+                return $.isArray(vControls) ? vControls : [vControls];
             }
-
-            return aResult;
         }
     };
 
@@ -120,7 +104,7 @@ sap.ui.define([
      * @private
      */
     _ControlFinder._getControlForElement = function (vElement) {
-        var vSelector = Object.prototype.toString.call(vElement) === "[object String]" ? document.getElementById(vElement) : vElement;
+        var vSelector = Object.prototype.toString.call(vElement) === "[object String]" ? "#" + vElement : vElement;
         var controls = _ControlFinder._getIdentifiedDOMElement(vSelector).control();
         return controls && controls[0];
     };
@@ -139,7 +123,7 @@ sap.ui.define([
     };
 
      /**
-     * Retrieves the ID suffix of the DOM element, if it is stable
+     * Retrieves the ID suffix of a DOM element
      * @param {object} oElement DOM element
      * @returns {string} ID suffix or undefined
      * @private
@@ -147,11 +131,8 @@ sap.ui.define([
     _ControlFinder._getDomElementIDSuffix = function (oElement, oControl) {
         var sElementId = oElement.id;
         var sDelimiter = "-";
-
-        if (!ManagedObjectMetadata.isGeneratedId(sElementId)) {
-            var iSuffixStart = oControl.getId().length;
-            return sElementId.charAt(iSuffixStart) === sDelimiter && sElementId.substring(iSuffixStart + 1);
-        }
+        var iSuffixStart = oControl.getId().length;
+        return sElementId.charAt(iSuffixStart) === sDelimiter && sElementId.substring(iSuffixStart + 1);
     };
 
     /**
@@ -161,7 +142,21 @@ sap.ui.define([
      * @private
      */
     _ControlFinder._getIdentifiedDOMElement = function (vSelector) {
+        if (typeof vSelector === "string") {
+            vSelector = vSelector.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1");
+        }
         return $(vSelector).closest("[data-sap-ui]");
+    };
+
+    /**
+     * Retrieves the UI5 ID of the nearest parent DOM element that has such an ID
+     * @param {object|string} vSelector DOM element or jQuery string selector
+     * @returns {string} ID
+     * @private
+     */
+    _ControlFinder._getIdentifiedDOMElementId = function (vSelector) {
+        var oElement = _ControlFinder._getIdentifiedDOMElement(vSelector);
+        return oElement.attr("data-sap-ui");
     };
 
      /**
@@ -172,6 +167,52 @@ sap.ui.define([
     _ControlFinder._getLatestLog = function () {
         return aLogs && aLogs.pop();
     };
+
+    function _hasExpansions(oOptions) {
+        return oOptions.ancestor || oOptions.descendant;
+    }
+
+    function _getExpandedOptions(oOptions) {
+        var oOptionsExpansion = {};
+        if (oOptions.ancestor) {
+            var mAncestorSelector = _extractAncestorSelector(oOptions);
+            var oAncestor = _ControlFinder._findControls(mAncestorSelector)[0];
+            if (oAncestor) {
+                oOptionsExpansion.ancestor = oAncestor;
+                delete oOptions.ancestor;
+            } else {
+                throw new Error("Ancestor not found using selector: " + JSON.stringify(mAncestorSelector));
+            }
+        }
+        if (oOptions.descendant) {
+            var oDescendant = _ControlFinder._findControls(oOptions.descendant)[0];
+            if (oDescendant) {
+                oOptionsExpansion.descendant = oDescendant;
+                delete oOptions.descendant;
+            } else {
+                throw new Error("Descendant not found using selector: " + JSON.stringify(oOptions.descendant));
+            }
+        }
+
+        if ($.isEmptyObject(oOptionsExpansion)) {
+            return oOptions;
+        } else {
+            return $.extend({}, oOptions, {
+                matchers: oOptionsExpansion
+            });
+        }
+    }
+
+    function _extractAncestorSelector(oOptions) {
+        if ($.isArray(oOptions.ancestor)) {
+            // ensure backwards compatibility with UIVeri5
+            return {
+                id: oOptions.ancestor[0]
+            };
+        } else {
+            return oOptions.ancestor;
+        }
+    }
 
     return _ControlFinder;
 });

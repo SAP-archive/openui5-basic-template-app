@@ -1,6 +1,6 @@
 /*
  * ! OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,7 +17,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class An abstract base type for <code>panels</code> aggregation in <code>P13nDialog</code> control.
 	 * @extends sap.ui.core.Control
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @constructor
 	 * @public
 	 * @abstract
@@ -116,14 +116,14 @@ sap.ui.define([
 				beforeNavigationTo: {}
 			}
 		},
-		renderer: function(oRm, oControl) {
-			// write the HTML into the render manager
-			oRm.write("<span");
-			oRm.writeControlData(oControl);
-			oRm.addClass("sapMP13nPanel");
-			oRm.writeClasses();
-			oRm.write(">"); // span element
-			oRm.write("</span>");
+		renderer: {
+			apiVersion: 2,
+			render:function(oRm, oControl) {
+				oRm.openStart("span", oControl);
+				oRm.class("sapMP13nPanel");
+				oRm.openEnd();
+				oRm.close("span");
+			}
 		}
 	});
 

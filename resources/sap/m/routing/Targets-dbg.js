@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/core/routing/Targets', './TargetHandler', './Target', './async/Targets', './sync/Targets', "sap/base/Log", "sap/base/util/UriParameters"],
@@ -8,12 +8,21 @@ sap.ui.define(['sap/ui/core/routing/Targets', './TargetHandler', './Target', './
 		"use strict";
 
 		/**
-		 * Provides a convenient way for placing views into the correct containers of your application.
-		 * The mobile extension of Targets also handles the triggering of page navigation when the target control is a {@link sap.m.SplitContainer}, a {@link sap.m.NavContainer} or a control which extends one of these.
-		 * Other controls are also allowed, but the extra parameters viewLevel, transition and transitionParameters are ignored and it will behave like {@link sap.ui.core.routing.Targets}.
-		 * When a target is displayed, dialogs will be closed. To change this use {@link #getTargetHandler} and {@link sap.m.routing.TargetHandler#setCloseDialogs}.
+		 * Constructor for a new <code>Targets</code> class.
 		 *
 		 * @class
+		 * Provides a convenient way for placing views into the correct containers of your app.
+		 *
+		 * The mobile extension of <code>Targets</code> also handles the triggering
+		 * of page navigation when the target control is an <code>{@link sap.m.SplitContainer}</code>,
+		 * an <code>{@link sap.m.NavContainer}</code> or a control which extends one of these.
+		 * Other controls are also allowed, but the extra parameters <code>viewLevel</code>,
+		 * <code>transition</code> and <code>transitionParameters</code> are ignored and it behaves
+		 * as <code>{@link sap.ui.core.routing.Targets}</code>.
+		 *
+		 * When a target is displayed, dialogs will be closed. To change this use
+		 * <code>{@link #getTargetHandler}</code> and <code>{@link sap.m.routing.TargetHandler#setCloseDialogs}</code>.
+		 *
 		 * @extends sap.ui.core.routing.Targets
 		 * @param {object} oOptions
 		 * @param {sap.ui.core.routing.Views} oOptions.views the views instance will create the views of all the targets defined, so if 2 targets have the same viewName, the same instance of the view will be displayed.
@@ -309,7 +318,7 @@ sap.ui.define(['sap/ui/core/routing/Targets', './TargetHandler', './Target', './
 
 				// temporarily: for checking the url param
 				function checkUrl() {
-					if (new UriParameters(window.location.href).get("sap-ui-xx-asyncRouting") === "true") {
+					if (UriParameters.fromQuery(window.location.search).get("sap-ui-xx-asyncRouting") === "true") {
 						Log.warning("Activation of async view loading in routing via url parameter is only temporarily supported and may be removed soon", "MobileTargets");
 						return true;
 					}

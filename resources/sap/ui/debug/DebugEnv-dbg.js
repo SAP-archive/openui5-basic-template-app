@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,7 +16,7 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 	 * @class Central Class for the Debug Environment
 	 *
 	 * @author Martin Schaus, Frank Weigel
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @private
 	 * @alias sap.ui.debug.DebugEnv
 	 */
@@ -89,14 +89,14 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 			div.style.zIndex = 5;
 			div.style.opacity = '0.2';
 			div.style.filter = 'progid:DXImageTransform.Microsoft.Alpha(opacity=20)';
-			jQuery(div).bind("click",function(evt) {
+			jQuery(div).on("click",function(evt) {
 				alert("click!");
 			});
 			/ *
-			jQuery(div).bind("mouseover",function(evt) {
+			jQuery(div).on("mouseover",function(evt) {
 				alert("click!");
 			});
-			jQuery(div).bind("mouseout",function(evt) {
+			jQuery(div).on("mouseout",function(evt) {
 				alert("click!");
 			}); * /
 			this.oWindow.document.body.appendChild(div);
@@ -179,6 +179,7 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 	 */
 	DebugEnv.prototype.initLogger = function(oLogger, bOnInit) {
 		this.oLogger = oLogger;
+		this.oLogger.setLogEntriesLimit(Infinity);
 		if ( !this.bRunsEmbedded ) {
 			// attach test suite log viewer to our Log
 			this.oTraceWindow = top.frames["sap-ui-TraceWindow"];

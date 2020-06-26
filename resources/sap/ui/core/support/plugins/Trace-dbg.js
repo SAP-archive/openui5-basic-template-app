@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,7 +19,7 @@ sap.ui.define([
 		 * @class This class represents the trace plugin for the support tool functionality of UI5. This class is internal and all its functions must not be used by an application.
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 * @private
 		 * @alias sap.ui.core.support.plugins.Trace
 		 */
@@ -111,24 +111,24 @@ sap.ui.define([
 				log(that, aResult.join(""));
 			};
 
-			this.$("clear").bind("click", this._fClearHandler);
-			this.$("filter").bind("change", this._fFilterHandler);
-			this.$("loglevel").bind("change", this._fLogLevelHandler);
+			this.$("clear").on("click", this._fClearHandler);
+			this.$("filter").on("change", this._fFilterHandler);
+			this.$("loglevel").on("change", this._fLogLevelHandler);
 		};
 
 
 		Trace.prototype.exit = function(oSupportStub){
 			if (this.runsAsToolPlugin()) {
 				if (this._fClearHandler) {
-					this.$("clear").unbind("click", this._fClearHandler);
+					this.$("clear").off("click", this._fClearHandler);
 					this._fClearHandler = null;
 				}
 				if (this._fFilterHandler) {
-					this.$("filter").unbind("change", this._fFilterHandler);
+					this.$("filter").off("change", this._fFilterHandler);
 					this._fFilterHandler = null;
 				}
 				if (this._fLogLevelHandler) {
-					this.$("loglevel").unbind("change", this._fLogLevelHandler);
+					this.$("loglevel").off("change", this._fLogLevelHandler);
 					this._fLogLevelHandler = null;
 				}
 			} else {

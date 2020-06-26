@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,11 +14,12 @@ sap.ui.define(['sap/ui/core/Renderer', './CalendarDateIntervalRenderer'],
 	 * @namespace
 	 */
 	var CalendarOneMonthIntervalRenderer = Renderer.extend(CalendarDateIntervalRenderer);
+	CalendarOneMonthIntervalRenderer.apiVersion = 2;
 
 	CalendarOneMonthIntervalRenderer.addAttributes = function(oRm, oCal) {
 
 		CalendarDateIntervalRenderer.addAttributes.apply(this, arguments);
-		oRm.addClass("sapUiCalOneMonthInt");
+		oRm.class("sapUiCalOneMonthInt");
 	};
 
 	return CalendarOneMonthIntervalRenderer;

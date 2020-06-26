@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -25,10 +25,10 @@ sap.ui.define([
 	}
 
 	/**
-	* Checks if value is included in collection
+	* Checks if value is included in collection.
 	*
 	* @example
-	* sap.ui.require([sap/base/util/includes], function(includes){
+	* sap.ui.require(["sap/base/util/includes"], function(includes){
 	*   // arrays
 	*   includes(["1", "8", "7"], "8");         // true
 	*   includes(["1", "8", "7"], "8", 0);      // true

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,8 +15,8 @@ sap.ui.define([
 	'sap/ui/core/library',
 	'sap/ui/core/Popup',
 	'sap/ui/core/LabelEnablement',
-	'sap/m/Menu',
-	"./MenuButtonRenderer"
+	"./MenuButtonRenderer",
+	"sap/ui/events/KeyCodes"
 ], function(
 	library,
 	Control,
@@ -27,8 +27,8 @@ sap.ui.define([
 	coreLibrary,
 	Popup,
 	LabelEnablement,
-	Menu,
-	MenuButtonRenderer
+	MenuButtonRenderer,
+	KeyCodes
 ) {
 		"use strict";
 
@@ -58,7 +58,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -79,6 +79,9 @@ sap.ui.define([
 
 				/**
 				 * Defines the type of the <code>MenuButton</code> (for example, Default, Accept, Reject, Back, etc.)
+				 *
+				 * <b>Note:</b> Not all existing types are valid for the control. See {@link sap.m.ButtonType}
+				 * documentation.
 				 */
 				type : {type : "sap.m.ButtonType", group : "Appearance", defaultValue : ButtonType.Default},
 
@@ -269,11 +272,10 @@ sap.ui.define([
 		};
 
 		MenuButton.prototype._setAriaHasPopup = function() {
-			if (this._isSplitButton()) {
-				this._getButtonControl()._getArrowButton().$().attr("aria-haspopup", "true");
-			} else {
-				this._getButtonControl().$().attr("aria-haspopup", "true");
-			}
+			var oButtonControl = this._getButtonControl(),
+				oOpeningMenuButton = this._isSplitButton() ? oButtonControl._getArrowButton() : oButtonControl;
+
+			oOpeningMenuButton.$().attr("aria-haspopup", "menu");
 		};
 
 		/**
@@ -388,14 +390,16 @@ sap.ui.define([
 					minus2_left: "-2 0"
 				};
 
-			if (this._bPopupOpen) {
-				this.getMenu().close();
-				return;
-			}
-
 			if (!oMenu) {
 				return;
 			}
+
+			if (this._bPopupOpen) {
+				this.getMenu().close();
+				this._bPopupOpen = false;
+				return;
+			}
+
 
 			if (!oMenu.getTitle()) {
 				oMenu.setTitle(this.getText());
@@ -449,7 +453,12 @@ sap.ui.define([
 					aParam.push(Dock.BeginTop, Dock.BeginBottom, oOffset.minus2_right);
 					break;
 			}
-			Menu.prototype.openBy.apply(oMenu, aParam);
+
+			oMenu.openBy.apply(oMenu, aParam);
+
+			if (this.getMenu()) {
+				this._bPopupOpen = true;
+			}
 
 			this._writeAriaAttributes();
 
@@ -470,11 +479,15 @@ sap.ui.define([
 		};
 
 		MenuButton.prototype._menuClosed = function() {
+			var oButtonControl = this._getButtonControl(),
+				bOpeningMenuButton = oButtonControl;
+
 			if (this._isSplitButton()) {
-				this._getButtonControl().setArrowState(false);
+				oButtonControl.setArrowState(false);
+				bOpeningMenuButton = oButtonControl._getArrowButton();
 			}
 
-			this.$().removeAttr("aria-controls");
+			bOpeningMenuButton.$().removeAttr("aria-controls");
 		};
 
 		MenuButton.prototype._menuItemSelected = function(oEvent) {
@@ -545,6 +558,7 @@ sap.ui.define([
 				case 'activeIcon':
 				case 'iconDensityAware':
 				case 'textDirection':
+				case 'visible':
 				case 'enabled':
 					this._getButtonControl().setProperty(sPropertyName, vValue);
 					break;
@@ -601,6 +615,77 @@ sap.ui.define([
 			return this;
 		};
 
+		/*
+		 * Overrides the setter in order to propagate the value to the inner button instance.
+		 *
+		 * @param {string} sAriaLabelledBy the passed value
+		 * @override
+		 * @return {sap.m.MenuButton} This instance for chaining
+		 */
+		MenuButton.prototype.addAriaLabelledBy = function(sAriaLabelledBy) {
+			this.getAggregation("_button").addAssociation("ariaLabelledBy", sAriaLabelledBy);
+			return Control.prototype.addAssociation.call(this, "ariaLabelledBy", sAriaLabelledBy);
+		};
+
+		/*
+		 * Overrides the setter in order to propagate the value to the inner button instance.
+		 *
+		 * @param {string} sAriaDescribedBy the passed value
+		 * @override
+		 * @return {sap.m.MenuButton} This instance for chaining
+		 */
+		MenuButton.prototype.addAriaDescribedBy = function(sAriaDescribedBy) {
+			this.getAggregation("_button").addAssociation("ariaDescribedBy", sAriaDescribedBy);
+			return Control.prototype.addAssociation.call(this, "ariaDescribedBy", sAriaDescribedBy);
+		};
+
+		/*
+		 * Overrides the setter in order to propagate the value to the inner button instance.
+		 *
+		 * @param {string} sAriaLabelledBy the passed value
+		 * @override
+		 * @return {sap.m.MenuButton} This instance for chaining
+		 */
+		MenuButton.prototype.removeAriaLabelledBy = function(sAriaLabelledBy) {
+			this.getAggregation("_button").removeAssociation("ariaLabelledBy", sAriaLabelledBy);
+			return Control.prototype.removeAssociation.call(this, "ariaLabelledBy", sAriaLabelledBy);
+		};
+
+		/*
+		 * Overrides the setter in order to propagate the value to the inner button instance.
+		 *
+		 * @param {string} sAriaDescribedBy the passed value to be removed
+		 * @override
+		 * @return {sap.m.MenuButton} This instance for chaining
+		 */
+		MenuButton.prototype.removeAriaDescribedBy = function(sAriaDescribedBy) {
+			this.getAggregation("_button").removeAssociation("ariaDescribedBy", sAriaDescribedBy);
+			return Control.prototype.removeAssociation.call(this, "ariaDescribedBy", sAriaDescribedBy);
+		};
+
+		/*
+		 * Overrides the setter in order to propagate the value to the inner button instance.
+		 *
+		 * @param {string} sAriaLabelledBy the passed value to be removed
+		 * @override
+		 * @return {sap.m.MenuButton} This instance for chaining
+		 */
+		MenuButton.prototype.removeAllAriaLabelledBy = function(sAriaLabelledBy) {
+			this.getAggregation("_button").removeAllAssociation("ariaLabelledBy");
+			return Control.prototype.removeAllAssociation.call(this, "ariaLabelledBy");
+		};
+
+		/*
+		 * Overrides the setter in order to propagate the value to the inner button instance.
+		 *
+		 * @override
+		 * @return {sap.m.MenuButton} This instance for chaining
+		 */
+		MenuButton.prototype.removeAllAriaDescribedBy = function() {
+			this.getAggregation("_button").removeAllAssociation("ariaDescribedBy");
+			return Control.prototype.removeAllAssociation.call(this, "ariaDescribedBy");
+		};
+
 		MenuButton.prototype.getFocusDomRef = function() {
 			return this._getButtonControl().getDomRef();
 		};
@@ -631,6 +716,13 @@ sap.ui.define([
 			this._bPopupOpen = this.getMenu() && this.getMenu()._getMenu() && this.getMenu()._getMenu().getPopup().isOpen();
 		};
 
+		MenuButton.prototype.onkeydown = function(oEvent) {
+			if ((oEvent.keyCode === KeyCodes.ENTER || oEvent.keyCode === KeyCodes.TAB) && this._bPopupOpen) {
+				this.getMenu().close();
+				this._bPopupOpen = false;
+			}
+		};
+
 		MenuButton.prototype.openMenuByKeyboard = function() {
 			if (!this._isSplitButton()) {
 				this._handleButtonPress(true);
@@ -638,8 +730,12 @@ sap.ui.define([
 		};
 
 		MenuButton.prototype._writeAriaAttributes = function() {
-			if (this.getMenu()) {
-				this.$().attr("aria-controls", this.getMenu().getDomRefId());
+			var oButtonControl = this._getButtonControl(),
+				oOpeningMenuButton = this._isSplitButton() ? oButtonControl._getArrowButton() : oButtonControl,
+				oMenu = this.getMenu();
+
+			if (oMenu) {
+				oOpeningMenuButton.$().attr("aria-controls", oMenu.getDomRefId());
 			}
 		};
 

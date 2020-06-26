@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,6 +18,7 @@ sap.ui.define(['sap/ui/core/library', 'sap/ui/core/ValueStateSupport', 'sap/ui/D
 	 * @namespace
 	 */
 	var CheckBoxRenderer = {
+		apiVersion: 2
 	};
 
 
@@ -44,58 +45,55 @@ sap.ui.define(['sap/ui/core/library', 'sap/ui/core/ValueStateSupport', 'sap/ui/D
 			bUseEntireWidth = oCheckBox.getUseEntireWidth();
 
 		// CheckBox wrapper
-		oRm.write("<div");
-		oRm.addClass("sapMCb");
+		oRm.openStart("div", oCheckBox);
+		oRm.class("sapMCb");
 
 		if (!bEditable) {
-			oRm.addClass("sapMCbRo");
+			oRm.class("sapMCbRo");
 		}
 
 		if (bDisplayOnlyApplied) {
-			oRm.addClass("sapMCbDisplayOnly");
+			oRm.class("sapMCbDisplayOnly");
 		}
 
 		if (!bEnabled) {
-			oRm.addClass("sapMCbBgDis");
-		}
-
-		if (bInErrorState) {
-			oRm.addClass("sapMCbErr");
-		} else if (bInWarningState) {
-			oRm.addClass("sapMCbWarn");
-		} else if (bInSuccessState) {
-			oRm.addClass("sapMCbSucc");
-		} else if (bInInformationState) {
-			oRm.addClass("sapMCbInfo");
+			oRm.class("sapMCbBgDis");
 		}
 
 		if (oCheckBox.getText()) {
-			oRm.addClass("sapMCbHasLabel");
+			oRm.class("sapMCbHasLabel");
 		}
 
 		if (oCheckBox.getWrapping()) {
-			oRm.addClass("sapMCbWrapped");
+			oRm.class("sapMCbWrapped");
 		}
 
-		oRm.writeControlData(oCheckBox);
-		oRm.writeClasses();
+		if (bInErrorState) {
+			oRm.class("sapMCbErr");
+		} else if (bInWarningState) {
+			oRm.class("sapMCbWarn");
+		} else if (bInSuccessState) {
+			oRm.class("sapMCbSucc");
+		} else if (bInInformationState) {
+			oRm.class("sapMCbInfo");
+		}
 
 		if (bUseEntireWidth) {
-			oRm.addStyle("width", oCheckBox.getWidth());
-			oRm.writeStyles();
+			oRm.style("width", oCheckBox.getWidth());
 		}
 
-		var sTooltip = ValueStateSupport.enrichTooltip(oCheckBox, oCheckBox.getTooltip_AsString());
+		var sTooltip = this.getTooltipText(oCheckBox);
+
 		if (sTooltip) {
-			oRm.writeAttributeEscaped("title", sTooltip);
+			oRm.attr("title", sTooltip);
 		}
 
 		if (bInteractive) {
-			oRm.writeAttribute("tabindex", oCheckBox.getTabIndex());
+			oRm.attr("tabindex", oCheckBox.getTabIndex());
 		}
 
 		//ARIA attributes
-		oRm.writeAccessibilityState(oCheckBox, {
+		oRm.accessibilityState(oCheckBox, {
 			role: "checkbox",
 			selected: null,
 			checked: oCheckBox._getAriaChecked(),
@@ -103,73 +101,89 @@ sap.ui.define(['sap/ui/core/library', 'sap/ui/core/ValueStateSupport', 'sap/ui/D
 		});
 
 		if (bDisplayOnlyApplied) {
-			oRm.writeAttribute("aria-readonly", true);
+			oRm.attr("aria-readonly", true);
 		}
 
-		oRm.write(">");		// DIV element
+		oRm.openEnd();		// DIV element
 
 		// write the HTML into the render manager
-		oRm.write("<div id='");
-		oRm.write(oCheckBox.getId() + "-CbBg'");
+		oRm.openStart("div", oCheckBox.getId() + "-CbBg");
 
 		// CheckBox style class
-		oRm.addClass("sapMCbBg");
+		oRm.class("sapMCbBg");
 
 		if (bInteractive && bEditable && Device.system.desktop) {
-			oRm.addClass("sapMCbHoverable");
+			oRm.class("sapMCbHoverable");
 		}
 
 		if (!oCheckBox.getActiveHandling()) {
-			oRm.addClass("sapMCbActiveStateOff");
+			oRm.class("sapMCbActiveStateOff");
 		}
 
-		oRm.addClass("sapMCbMark"); // TODO: sapMCbMark is redundant, remove it and simplify CSS
+		oRm.class("sapMCbMark"); // TODO: sapMCbMark is redundant, remove it and simplify CSS
 
 		if (oCheckBox.getSelected()) {
-			oRm.addClass("sapMCbMarkChecked");
+			oRm.class("sapMCbMarkChecked");
 		}
 
 		if (oCheckBox.getPartiallySelected()) {
-			oRm.addClass("sapMCbMarkPartiallyChecked");
+			oRm.class("sapMCbMarkPartiallyChecked");
 		}
 
-		oRm.writeClasses();
+		oRm.openEnd();		// DIV element
 
-		oRm.write(">");		// DIV element
-
-		oRm.write("<input type='CheckBox' id='");
-		oRm.write(oCheckBox.getId() + "-CB'");
+		oRm.voidStart("input", oCheckBox.getId() + "-CB");
+		oRm.attr("type", "CheckBox");
 
 		if (oCheckBox.getSelected()) {
-			oRm.writeAttribute("checked", "checked");
+			oRm.attr("checked", "checked");
 		}
 
 		if (oCheckBox.getName()) {
-			oRm.writeAttributeEscaped('name', oCheckBox.getName());
+			oRm.attr("name", oCheckBox.getName());
 		}
 
 		if (!bEnabled) {
-			oRm.write(" disabled=\"disabled\"");
+			oRm.attr("disabled", "disabled");
 		}
 
 		if (!bEditable) {
-			oRm.write(" readonly=\"readonly\"");
+			oRm.attr("readonly", "readonly");
 		}
 
-		oRm.write(" /></div>");
+		oRm.voidEnd();
+		oRm.close("div");
 		oRm.renderControl(oCbLabel);
 
 		if (sTooltip && sap.ui.getCore().getConfiguration().getAccessibility()) {
 			// for ARIA, the tooltip must be in a separate SPAN and assigned via aria-describedby.
 			// otherwise, JAWS does not read it.
-			oRm.write("<span id=\"" + sId + "-Descr\" class=\"sapUiHidden\">");
-			oRm.writeEscaped(sTooltip);
-			oRm.write("</span>");
+			oRm.openStart("span", sId + "-Descr");
+			oRm.class("sapUiHidden");
+			oRm.openEnd();
+			oRm.text(sTooltip);
+			oRm.close("span");
 		}
 
-		oRm.write("</div>");
+		oRm.close("div");
 	};
 
+	/**
+	 * Returns the correct value of the tooltip.
+	 *
+	 * @param {sap.m.CheckBox} oCheckBox CheckBox instance
+	 * @returns {string} The correct tooltip value
+	 */
+	CheckBoxRenderer.getTooltipText = function (oCheckBox) {
+		var sValueStateText = oCheckBox.getProperty("valueStateText"),
+			sTooltipText = oCheckBox.getTooltip_AsString();
+
+		if (sValueStateText) {
+			return (sTooltipText ? sTooltipText + " - " : "") + sValueStateText;
+		} else {
+			return ValueStateSupport.enrichTooltip(oCheckBox, sTooltipText);
+		}
+	};
 
 	return CheckBoxRenderer;
 

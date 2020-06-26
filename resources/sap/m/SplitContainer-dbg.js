@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,6 +16,7 @@ sap.ui.define([
 	'sap/ui/base/ManagedObject',
 	'sap/m/NavContainer',
 	'sap/m/Popover',
+	'sap/m/Button',
 	'./SplitContainerRenderer',
 	"sap/ui/dom/containsOrEquals",
 	"sap/base/Log",
@@ -32,6 +33,7 @@ function(
 	ManagedObject,
 	NavContainer,
 	Popover,
+	Button,
 	SplitContainerRenderer,
 	containsOrEquals,
 	Log,
@@ -64,7 +66,7 @@ function(
 	 *
 	 * NOTE: This control must be rendered as a full screen control in order to make the show/hide master area work properly.
 	 * @extends sap.ui.core.Control
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -155,7 +157,7 @@ function(
 			/**
 			 * Determines the content entities, between which the SplitContainer navigates in master area.
 			 * These can be of type sap.m.Page, sap.ui.core.View, sap.m.Carousel or any other control with fullscreen/page semantics.
-			 * These aggregated controls receive navigation events like {@link sap.m.NavContainerChild#beforeShow beforeShow},
+			 * These aggregated controls receive navigation events like {@link sap.m.NavContainerChild#event:beforeShow beforeShow},
 			 * they are documented in the pseudo interface {@link sap.m.NavContainerChild sap.m.NavContainerChild}.
 			 */
 			masterPages : {type : "sap.ui.core.Control", multiple : true, singularName : "masterPage"},
@@ -163,7 +165,7 @@ function(
 			/**
 			 * Determines the content entities, between which the SplitContainer navigates in detail area.
 			 * These can be of type sap.m.Page, sap.ui.core.View, sap.m.Carousel or any other control with fullscreen/page semantics.
-			 * These aggregated controls receive navigation events like {@link sap.m.NavContainerChild#beforeShow beforeShow},
+			 * These aggregated controls receive navigation events like {@link sap.m.NavContainerChild#event:beforeShow beforeShow},
 			 * they are documented in the pseudo interface {@link sap.m.NavContainerChild sap.m.NavContainerChild}.
 			 */
 			detailPages : {type : "sap.ui.core.Control", multiple : true, singularName : "detailPage"},
@@ -600,6 +602,16 @@ function(
 		}
 
 		this._updateMasterButtonTooltip();
+
+		this._oMasterNav.setInitialPage(sap.ui.getCore().byId(this.getInitialMaster()));
+		this._oMasterNav.setDefaultTransitionName(this.getDefaultTransitionNameMaster());
+
+		if (!Device.system.phone) {
+			this._oDetailNav.setInitialPage(sap.ui.getCore().byId(this.getInitialDetail()));
+			this._oShowMasterBtn.setText(this.getMasterButtonText() || this._rb.getText("SPLITCONTAINER_NAVBUTTON_TEXT"));
+		}
+
+		this._oDetailNav.setDefaultTransitionName(this.getDefaultTransitionNameDetail());
 	};
 
 	SplitContainer.prototype.exit = function() {
@@ -624,7 +636,7 @@ function(
 		}
 		Device.resize.attachHandler(this._fnResize);
 
-		if (Device.os.windows && Device.browser.internet_explorer) { // not for windows_phone// TODO remove after 1.62 version
+		if (Device.os.windows && Device.browser.internet_explorer) { // not for windows_phone// TODO remove after the end of support for Internet Explorer
 			this._oMasterNav.$().append('<iframe class="sapMSplitContainerMasterBlindLayer" src="about:blank"></iframe>');
 		}
 
@@ -633,6 +645,13 @@ function(
 			this._oMasterNav.removeStyleClass("sapMSplitContainerNoTransition");
 		}.bind(this), 0);
 	};
+
+	SplitContainer.prototype.applySettings = function (mSettings, oScope) {
+		Control.prototype.applySettings.call(this, mSettings, oScope);
+
+		this._updateMasterInitialPage();
+	};
+
 	/**************************************************************
 	* END - Life Cycle Methods
 	**************************************************************/
@@ -1126,11 +1145,13 @@ function(
 	};
 
 	SplitContainer.prototype.getMasterPages = function() {
-		return this._aMasterPages;
+		// Return a shallow copy of the array instead of the array itself as reference
+		return this._aMasterPages.slice();
 	};
 
 	SplitContainer.prototype.getDetailPages = function() {
-		return this._aDetailPages;
+		// Return a shallow copy of the array instead of the array itself as reference
+		return this._aDetailPages.slice();
 	};
 
 	SplitContainer.prototype.indexOfMasterPage = function(oPage) {
@@ -1260,7 +1281,7 @@ function(
 			this.fireBeforeMasterOpen();
 			this._oMasterNav.toggleStyleClass("sapMSplitContainerMasterVisible", true);
 			//BCP: 1870368506
-			this._oMasterNav.getDomRef().offsetHeight;
+			this._oMasterNav.getDomRef() && this._oMasterNav.getDomRef().offsetHeight;
 			this._oMasterNav.toggleStyleClass("sapMSplitContainerMasterHidden", false);
 			this._bMasterOpening = true;
 			that._removeMasterButton(_curPage);
@@ -1305,7 +1326,7 @@ function(
 			this.fireBeforeMasterClose();
 			this._oMasterNav.toggleStyleClass("sapMSplitContainerMasterVisible", false);
 			//BCP: 1870368506
-			this._oMasterNav.getDomRef().offsetHeight;
+			this._oMasterNav.getDomRef() && this._oMasterNav.getDomRef().offsetHeight;
 			this._oMasterNav.toggleStyleClass("sapMSplitContainerMasterHidden", true);
 			this._bMasterClosing = true;
 		}
@@ -1490,122 +1511,28 @@ function(
 	//**************************************************************
 	//* START - Setters/Getters of the SplitContainer control
 	//**************************************************************
-	SplitContainer.prototype.setInitialMaster = function(sPage) {
-		this._oMasterNav.setInitialPage(sPage);
-		this.setAssociation('initialMaster', sPage, true);
-		return this;
-	};
-
-	SplitContainer.prototype.setInitialDetail = function(sPage) {
-		if (!Device.system.phone) {
-			this._oDetailNav.setInitialPage(sPage);
-		}
-		this.setAssociation('initialDetail', sPage, true);
-		return this;
-	};
-
-	SplitContainer.prototype.setDefaultTransitionNameDetail = function(sTransition) {
-		this.setProperty("defaultTransitionNameDetail", sTransition, true);
-		this._oDetailNav.setDefaultTransitionName(sTransition);
-		return this;
-	};
-
-	SplitContainer.prototype.setDefaultTransitionNameMaster = function(sTransition) {
-		this.setProperty("defaultTransitionNameMaster", sTransition, true);
-		this._oMasterNav.setDefaultTransitionName(sTransition);
-		return this;
-	};
-
-	SplitContainer.prototype.setMasterButtonText = function(sText) {
-		if (!Device.system.phone) {
-			if (!sText) {
-				sText = this._rb.getText("SplitContainer_NAVBUTTON_TEXT");
-			}
-			this._oShowMasterBtn.setText(sText);
-		}
-		this.setProperty("masterButtonText", sText, true);
-		return this;
-	};
-
-	SplitContainer.prototype.setMode = function(sMode) {
-		var sOldMode = this.getMode();
-		if (sOldMode === sMode) {
-			return this;
-		}
-		this.setProperty("mode", sMode, true);
-		//the reposition of master and detail area only occurs in tablet and after it's rendered
-		if (!Device.system.phone && this.getDomRef()) {
-			if (sOldMode === "HideMode" && this._oldIsLandscape) {
-				//remove the master button
-				this._removeMasterButton(this._oDetailNav.getCurrentPage());
-			}
-
-			var $this = this.$();
-
-			if (sMode !== "PopoverMode" && this._oPopOver.getContent().length > 0) {
-				this._updateMasterPosition("landscape");
-			} else if (sMode == "PopoverMode") {
-				if (!this._oldIsLandscape) {
-					if (this._oPopOver.getContent().length === 0) {
-						this._updateMasterPosition("popover");
-					}
-					this._setMasterButton(this._oDetailNav.getCurrentPage());
-				}
-				$this.toggleClass("sapMSplitContainerShowHide", false);
-				$this.toggleClass("sapMSplitContainerStretchCompress", false);
-				$this.toggleClass("sapMSplitContainerHideMode", false);
-				$this.toggleClass("sapMSplitContainerPopover", true);
-			}
-
-			if (sMode == "StretchCompressMode") {
-				$this.toggleClass("sapMSplitContainerShowHide", false);
-				$this.toggleClass("sapMSplitContainerPopover", false);
-				$this.toggleClass("sapMSplitContainerHideMode", false);
-				$this.toggleClass("sapMSplitContainerStretchCompress", true);
-				this._removeMasterButton(this._oDetailNav.getCurrentPage());
-			}
-
-			if (sMode == "ShowHideMode") {
-				$this.toggleClass("sapMSplitContainerPopover", false);
-				$this.toggleClass("sapMSplitContainerStretchCompress", false);
-				$this.toggleClass("sapMSplitContainerHideMode", false);
-				$this.toggleClass("sapMSplitContainerShowHide", true);
-
-				if (!Device.orientation.landscape) {
-					this._setMasterButton(this._oDetailNav.getCurrentPage());
-				}
-			}
-
-			if (sMode === "HideMode") {
-				$this.toggleClass("sapMSplitContainerPopover", false);
-				$this.toggleClass("sapMSplitContainerStretchCompress", false);
-				$this.toggleClass("sapMSplitContainerShowHide", false);
-				$this.toggleClass("sapMSplitContainerHideMode", true);
-
-				// always hide the master area after changing mode to HideMode
-				this._oMasterNav.toggleStyleClass("sapMSplitContainerMasterVisible", false);
-				this._oMasterNav.toggleStyleClass("sapMSplitContainerMasterHidden", true);
-				this._bMasterisOpen = false;
-
-				this._setMasterButton(this._oDetailNav.getCurrentPage());
-			}
-		}
-		return this;
-	};
 
 	SplitContainer.prototype.setBackgroundOpacity = function(fOpacity) {
 		if (fOpacity > 1 || fOpacity < 0) {
 			Log.warning("Invalid value " + fOpacity + " for SplitContainer.setBackgroundOpacity() ignored. Valid values are: floats between 0 and 1.");
 			return this;
 		}
-		this.$("BG").css("opacity", fOpacity);
-		return this.setProperty("backgroundOpacity", fOpacity, true); // no rerendering - live opacity change looks cooler
+		return this.setProperty("backgroundOpacity", fOpacity);
 	};
-
 
 	/**************************************************************
 	* START - Private methods
 	**************************************************************/
+
+	/**
+	 * @private
+	 */
+	SplitContainer.prototype._updateMasterInitialPage = function() {
+		//BCP: 002028376500005408012018
+		if (this.getMode() === "HideMode" && Device.system.phone && this._aDetailPages) {
+			this._oMasterNav.setInitialPage(this.getInitialDetail() ? this.getInitialDetail() : (this.getInitialMaster() || this._aDetailPages[0]));
+		}
+	};
 
 	/**
 	 * @private
@@ -1879,7 +1806,7 @@ function(
 			return;
 		}
 
-		this._oShowMasterBtn = new sap.m.Button(this.getId() + "-MasterBtn", {
+		this._oShowMasterBtn = new Button(this.getId() + "-MasterBtn", {
 			icon: IconPool.getIconURI("menu2"),
 			tooltip: this.getMasterButtonTooltip(),
 			type: ButtonType.Default,
@@ -1929,6 +1856,8 @@ function(
 			// showMasterBtn could have already be destroyed by destroying the customHeader of the previous page
 			// When this is the case, showMasterBtn will be instantiated again
 			this._createShowMasterButton();
+			//Tooltip should be update again also
+			this._updateMasterButtonTooltip();
 
 			this._oShowMasterBtn.removeStyleClass("sapMSplitContainerMasterBtnHidden");
 
@@ -2006,8 +1935,8 @@ function(
 
 						this._oShowMasterBtn.destroy();
 						/*eslint-disable no-loop-func */
-						this._oShowMasterBtn.$().parent().bind("webkitAnimationEnd animationend", function(){
-							jQuery(this).unbind("webkitAnimationEnd animationend");
+						this._oShowMasterBtn.$().parent().on("webkitAnimationEnd animationend", function(){
+							jQuery(this).off("webkitAnimationEnd animationend");
 							that._oShowMasterBtn.addStyleClass("sapMSplitContainerMasterBtnHidden");
 							if (fnCallBack) {
 								fnCallBack(oPage);
@@ -2069,21 +1998,6 @@ function(
 		return array.some(function(oArrayEntry) {
 			return oPage && (oPage === oArrayEntry);
 		});
-	};
-
-	/**
-	 * Returns the <code>backgroundColor</code> value that passed validation for type <code>sap.ui.core.CSSColor</code>
-	 * (required as the public property itself is of the more generic <code>string</code> type)
-	 *
-	 * @private
-	 * @returns {string} sValue the value that passed the check, or empty string
-	 */
-	SplitContainer.prototype._getValidatedBackgroundColor = function () {
-		var sBackgroundColor = this.getBackgroundColor();
-		if (!DataType.getType("sap.ui.core.CSSColor").isValid(sBackgroundColor)) {
-			sBackgroundColor = "";
-		}
-		return sBackgroundColor;
 	};
 
 	/**************************************************************

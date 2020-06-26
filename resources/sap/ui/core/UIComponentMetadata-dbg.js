@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,9 +22,11 @@ sap.ui.define(['./ComponentMetadata', './library'],
 	 * @experimental Since 1.15.1. The Component concept is still under construction, so some implementation details can be changed in future.
 	 * @class
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @since 1.15.1
 	 * @alias sap.ui.core.UIComponentMetadata
+	 * @extends sap.ui.core.ComponentMetadata
+	 * @private
 	 */
 	var UIComponentMetadata = function(sClassName, oClassInfo) {
 
@@ -35,6 +37,7 @@ sap.ui.define(['./ComponentMetadata', './library'],
 
 	//chain the prototypes
 	UIComponentMetadata.prototype = Object.create(ComponentMetadata.prototype);
+	UIComponentMetadata.prototype.constructor = UIComponentMetadata;
 
 	UIComponentMetadata.preprocessClassInfo = function(oClassInfo) {
 		// if the component is a string we convert this into a "_src" metadata entry
@@ -50,7 +53,7 @@ sap.ui.define(['./ComponentMetadata', './library'],
 
 	/**
 	 * Returns the root view of the component.
-	 * <p>
+	 *
 	 * <b>Important:</b></br>
 	 * If a Component is loaded using the manifest URL (or according the
 	 * "manifest first" strategy), this function ignores the entries of the
@@ -69,7 +72,7 @@ sap.ui.define(['./ComponentMetadata', './library'],
 
 	/**
 	 * Returns the routing configuration.
-	 * <p>
+	 *
 	 * <b>Important:</b></br>
 	 * If a Component is loaded using the manifest URL (or according the
 	 * "manifest first" strategy), this function ignores the entries of the
@@ -88,7 +91,7 @@ sap.ui.define(['./ComponentMetadata', './library'],
 
 	/**
 	 * Returns the array of routes. If not defined the array is undefined.
-	 * <p>
+	 *
 	 * <b>Important:</b></br>
 	 * If a Component is loaded using the manifest URL (or according the
 	 * "manifest first" strategy), this function ignores the entries of the

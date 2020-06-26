@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,7 +14,28 @@ sap.ui.define([
 	var oLogger = Log.getLogger("sap.ui.test.matchers.Properties");
 
 	/**
-	 * @class Properties - checks if a control's properties have the provided values - all properties have to match their values.
+	 * @class
+	 * Checks if a control's properties have the provided values - all properties have to match their values.
+	 *
+	 * As of version 1.72, it is available as a declarative matcher with the following syntax:
+	 * <code><pre>{
+	 *     properties: {
+	 *         propertyName: "propertyValue"
+	 *     }
+	 * }
+	 * </code></pre>
+	 * @sine 1.74, you can use regular expressions in declarative syntax:
+	 * <code><pre>{
+	 *     properties: {
+	 *         propertyName: {
+	 *             regex: {
+	 *                 source: "propertyValue$",
+	 *                 flags: "ig"
+	 *             }
+	 *         }
+	 *     }
+	 * }
+	 * </code></pre>
 	 * @param {object} oProperties the object with the properties to be checked. Example:
 	 * <pre>
 	 * // Would filter for an enabled control with the text "Accept".
@@ -35,7 +56,8 @@ sap.ui.define([
 	return function (oProperties) {
 		return function (oControl) {
 			var bIsMatching = true;
-			jQueryDOM.each(oProperties, function(sPropertyName, oPropertyValue) {
+
+			jQueryDOM.each(oProperties, function (sPropertyName, oPropertyValue) {
 				var fnProperty = oControl["get" + capitalize(sPropertyName, 0)];
 
 				if (!fnProperty) {
@@ -45,8 +67,13 @@ sap.ui.define([
 				}
 
 				var vCurrentPropertyValue = fnProperty.call(oControl);
+				// propertyValue is set in parent frame (on matcher instantiation), so match it against the parent's RegExp constructor
 				if (oPropertyValue instanceof RegExp) {
 					bIsMatching = oPropertyValue.test(vCurrentPropertyValue);
+				} else if (jQueryDOM.isPlainObject(oPropertyValue) && oPropertyValue.regex && oPropertyValue.regex.source) {
+					// declarative syntax
+					var oRegExp = new RegExp(oPropertyValue.regex.source, oPropertyValue.regex.flags);
+					bIsMatching = oRegExp.test(vCurrentPropertyValue);
 				} else {
 					bIsMatching = vCurrentPropertyValue === oPropertyValue;
 				}

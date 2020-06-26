@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides base class for controllers (part of MVC concept)
 sap.ui.define([
 	'sap/base/util/ObjectPath',
+	'sap/base/util/extend',
 	'sap/ui/base/EventProvider',
 	'sap/ui/base/ManagedObject',
 	'sap/ui/core/mvc/ControllerMetadata',
@@ -16,6 +17,7 @@ sap.ui.define([
 	"sap/ui/thirdparty/jquery"
 ], function(
 	ObjectPath,
+	extend,
 	EventProvider,
 	ManagedObject,
 	ControllerMetadata,
@@ -69,7 +71,7 @@ sap.ui.define([
 				EventProvider.apply(this,arguments);
 
 				if (oToExtend) {
-					jQuery.extend(this, mRegistry[sName]);
+					extend(this, mRegistry[sName]);
 				}
 
 				if (this.extension) {
@@ -182,7 +184,7 @@ sap.ui.define([
 							//apply lifecycle hooks even if they don't exist on controller
 							ControllerExtension.overrideMethod(sOverrideMember, oController, oOverrides, oExtension, oControllerMetadata.getOverrideExecution(sOverrideMember));
 						} else {
-							Log.error("Method '" + sExtensionOverride + "' of extension '" + oOrigExtensionInfo.namespace + " does not exist in controller " + oController.getMetadata().getName() + " and cannot be overridden");
+							Log.error("Method '" + sOverrideMember + "' does not exist in controller " + oController.getMetadata().getName() + " and cannot be overridden");
 						}
 					}
 					//handle non member extension overrides
@@ -282,7 +284,7 @@ sap.ui.define([
 					if (!ControllerClass) {
 						sap.ui.require([sControllerName], function (ControllerClass) {
 							resolve(resolveClass(ControllerClass));
-						});
+						}, reject);
 					} else {
 						resolve(ControllerClass);
 					}
@@ -315,7 +317,7 @@ sap.ui.define([
 								oProvider = new ExtensionProvider();
 								mExtensionProvider[sProviderName] = oProvider;
 								resolve(oProvider);
-							});
+							}, reject);
 						}
 					} else {
 						resolve();
@@ -655,7 +657,7 @@ sap.ui.define([
 				Object.keys(oExtensionInterface).forEach(function(sMethod) {
 					//extension member should not be exposed
 					delete mPublicFunctions[oExtensionInfo.location];
-					var oMethodMetadata = jQuery.extend({}, mAllMethods[sMethod], {reloadNeeded: oExtensionInfo.reloadNeeded});
+					var oMethodMetadata = extend({}, mAllMethods[sMethod], {reloadNeeded: oExtensionInfo.reloadNeeded});
 					mPublicFunctions[oExtensionInfo.location + "." + sMethod] = oMethodMetadata;
 				});
 			});

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,9 +11,10 @@ sap.ui.define([
 	'sap/ui/Device',
 	'./CalendarLegendRenderer',
 	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/unified/CalendarLegendItem"
 ],
-	function(Control, library, Device, CalendarLegendRenderer, Log, jQuery) {
+	function(Control, library, Device, CalendarLegendRenderer, Log, jQuery, CalendarLegendItem) {
 	"use strict";
 
 	// shortcut for sap.ui.unified.CalendarDayType
@@ -33,7 +34,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -49,7 +50,7 @@ sap.ui.define([
 				/**
 				 * Determines the standard items related to the calendar days, such as, today, selected, working and non-working.
 				 * Values must be one of <code>sap.ui.unified.StandardCalendarLegendItem</code>.
-				 * Note: for versions 1.50 and 1.52, this property was defined in the the subclass <code>sap.m.PlanningCalendarLegend</code>
+				 * Note: for versions 1.50 and 1.52, this property was defined in the subclass <code>sap.m.PlanningCalendarLegend</code>
 				 * @since 1.54
 				 */
 				standardItems: {type: "string[]", group: "Misc", defaultValue: ['Today', 'Selected', 'WorkingDay', 'NonWorkingDay']},
@@ -82,6 +83,9 @@ sap.ui.define([
 			if (!mSettings || (mSettings && !mSettings.standardItems)) {
 				this._addStandardItems(this.getStandardItems()); // Default items should be used if nothing is given
 			}
+
+			//don't render standardItems unless it's a PC legend
+			this._bShouldRenderStandardItems = true;
 		}
 	});
 
@@ -124,7 +128,7 @@ sap.ui.define([
 		}
 
 		for (i = 0; i < aStandardItems.length; i++) {
-			var oItem = new sap.ui.unified.CalendarLegendItem(sId + "-" + aStandardItems[i], {
+			var oItem = new CalendarLegendItem(sId + "-" + aStandardItems[i], {
 				text: rb.getText(CalendarLegend._Standard_Items_TextKeys[aStandardItems[i]])
 			});
 			this.addAggregation("_standardItems", oItem);

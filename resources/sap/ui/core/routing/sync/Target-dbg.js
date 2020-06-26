@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/Log"], function(Log) {
@@ -17,7 +17,11 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 		/**
 		 * Creates a view and puts it in an aggregation of a control that has been defined in the {@link #constructor}.
 		 *
+		 * This method can be used to display a target without changing the browser hash. If the browser hash should be changed,
+		 *  the {@link sap.ui.core.routing.Router#navTo} method should be used instead
+		 *
 		 * @param {*} [vData] an object that will be passed to the display event in the data property. If the target has parents, the data will also be passed to them.
+		 * @returns {object} The place info
 		 * @private
 		 */
 		display : function (vData) {
@@ -31,6 +35,26 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 		},
 
 		/**
+		 * Suspends the object which is loaded by the target.
+		 *
+		 * Currently this function doesn't do anything because the sync
+		 * version of the Target can only load Views but no Components.
+		 *
+		 * @return {sap.ui.core.routing.Target} The 'this' to chain the call
+		 * @private
+		 */
+		suspend : function () {
+			// the sync target can only load view and not component
+			// therefore it's not needed to do anything in this function
+			return this;
+		},
+
+		/**
+		 * Places the target on the screen
+		 *
+		 * @param {object} [oParentInfo] The information about the target parent
+		 * @param {*} vData An object that will be passed to the display event in the data property
+		 * @returns {object | undefined} The place info if the placement was successful, if not <code>undefined</code> is returned
 		 * @private
 		 */
 		_place : function (oParentInfo, vData) {
@@ -43,7 +67,7 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 
 			// validate config and log errors if necessary
 			if (!this._isValid(oParentInfo, true)) {
-				return;
+				return undefined;
 			}
 
 			//no parent view - see if there is a targetParent in the config
@@ -52,7 +76,7 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 
 				if (!oViewContainingTheControl) {
 					Log.error("Did not find the root view with the id " + oOptions.rootView, this);
-					return;
+					return undefined;
 				}
 			}
 
@@ -71,7 +95,7 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 
 				if (!oControl) {
 					Log.error("Control with ID " + oOptions.controlId + " could not be found", this);
-					return;
+					return undefined;
 				}
 
 			}
@@ -80,7 +104,7 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 
 			if (!oAggregationInfo) {
 				Log.error("Control " + oOptions.controlId + " does not have an aggregation called " + oOptions.controlAggregation, this);
-				return;
+				return undefined;
 			}
 
 			//Set view for content
@@ -131,9 +155,9 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 		/**
 		 * Validates the target options, will also be called from the route but route will not log errors
 		 *
-		 * @param oParentInfo
-		 * @param {boolean} bLog
-		 * @returns {boolean}
+		 * @param {object} [oParentInfo] The information about the target parent
+		 * @param {boolean} [bLog] Determines if the validation should log errors
+		 * @returns {boolean} <code>True</code>, if the target is valid, <code>False</code> if not
 		 * @private
 		 */
 		_isValid : function (oParentInfo, bLog) {

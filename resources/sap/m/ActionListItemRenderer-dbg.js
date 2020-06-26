@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['./ListItemBaseRenderer', 'sap/ui/core/Renderer'],
+sap.ui.define(["./ListItemBaseRenderer", "sap/ui/core/Renderer"],
 	function(ListItemBaseRenderer, Renderer) {
 	"use strict";
 
@@ -14,6 +14,7 @@ sap.ui.define(['./ListItemBaseRenderer', 'sap/ui/core/Renderer'],
 	 * @namespace
 	 */
 	var ActionListItemRenderer = Renderer.extend(ListItemBaseRenderer);
+	ActionListItemRenderer.apiVersion = 2;
 
 	/**
 	 * Renders the HTML for the given control, using the provided
@@ -27,18 +28,17 @@ sap.ui.define(['./ListItemBaseRenderer', 'sap/ui/core/Renderer'],
 	 *          rendered
 	 */
 	ActionListItemRenderer.renderLIAttributes = function(rm, oLI) {
-		rm.addClass("sapMALI");
+		rm.class("sapMALI");
 	};
 
 	ActionListItemRenderer.renderLIContent = function(rm, oLI) {
 
-		var isText = oLI.getText();
-
 		// List item label
-		if (isText) {
-			rm.write("<div class='sapMALIText'>");
-			rm.writeEscaped(isText);
-			rm.write("</div>");
+		var sText = oLI.getText();
+		if (sText) {
+			rm.openStart("div").class("sapMALIText").openEnd();
+			rm.text(sText);
+			rm.close("div");
 		}
 	};
 

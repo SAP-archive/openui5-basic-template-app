@@ -1,18 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
+/*global HTMLImageElement*/
 // Provides control sap.m.Carousel.
 sap.ui.define([
 	'./library',
+	'sap/ui/core/Core',
 	'sap/ui/core/Control',
 	'sap/ui/Device',
 	'sap/ui/core/ResizeHandler',
 	'sap/ui/core/library',
 	'sap/ui/core/HTML',
 	'sap/m/ScrollContainer',
+	'sap/m/MessagePage',
 	'sap/ui/core/theming/Parameters',
 	'sap/ui/dom/units/Rem',
 	'./CarouselRenderer',
@@ -26,12 +29,14 @@ sap.ui.define([
 ],
 function(
 	library,
+	Core,
 	Control,
 	Device,
 	ResizeHandler,
 	coreLibrary,
 	HTML,
 	ScrollContainer,
+	MessagePage,
 	Parameters,
 	DomUnitsRem,
 	CarouselRenderer,
@@ -84,6 +89,7 @@ function(
 	 *</ul>
 	 * Additionally, you can also change the location of the navigation arrows.
 	 * By setting <code>arrowsPlacement</code> to <code>sap.m.CarouselArrowsPlacement.PageIndicator</code>, the arrows will be located at the bottom by the paging indicator.
+	 * Note: When the content is of type <code>sap.m.Image</code> add "Image" text at the end of the <code>"alt"</code> description in order to provide accessibility info for the UI element.
 	 * <h3>Usage</h3>
 	 * <h4> When to use</h4>
 	 * <ul>
@@ -104,7 +110,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -296,6 +302,8 @@ function(
 		this._onAfterPageChangedRef = this._onAfterPageChanged.bind(this);
 
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
+
+		this._oRb = Core.getLibraryResourceBundle("sap.m");
 	};
 
 	/**
@@ -321,6 +329,10 @@ function(
 		if (this._sResizeListenerId) {
 			ResizeHandler.deregister(this._sResizeListenerId);
 			this._sResizeListenerId = null;
+		}
+		if (this.oMessagePage) {
+			this.oMessagePage.destroy();
+			this.oMessagePage = null;
 		}
 		this.$().off('afterSlide');
 
@@ -357,6 +369,11 @@ function(
 	 */
 	Carousel.prototype.ontouchstart = function(oEvent) {
 		if (this._oMobifyCarousel) {
+			if (oEvent.target instanceof HTMLImageElement) {
+				// When swiped, image elements begin dragging as ghost images (eg. dragstart event).
+				// This dragging behaviour is not desired when inside a Carousel, so we prevent it.
+				oEvent.preventDefault();
+			}
 			this._oMobifyCarousel.touchstart(oEvent);
 		}
 	};
@@ -379,6 +396,10 @@ function(
 	 */
 	Carousel.prototype.ontouchend = function(oEvent) {
 		if (this._oMobifyCarousel) {
+
+			if (this._oMobifyCarousel.hasActiveTransition()) {
+				this._oMobifyCarousel.onTransitionComplete();
+			}
 			this._oMobifyCarousel.touchend(oEvent);
 		}
 	};
@@ -393,10 +414,12 @@ function(
 	Carousel.prototype.onBeforeRendering = function() {
 		//make sure, active page has an initial value
 		var sActivePage = this.getActivePage();
+
 		if (!sActivePage && this.getPages().length > 0) {
 			//if no active page is specified, set first page.
 			this.setAssociation("activePage", this.getPages()[0].getId(), true);
 		}
+
 		if (this._sResizeListenerId) {
 			ResizeHandler.deregister(this._sResizeListenerId);
 			this._sResizeListenerId = null;
@@ -452,7 +475,7 @@ function(
 		});
 		this._oMobifyCarousel = this.getDomRef()._carousel;
 		this._oMobifyCarousel.setLoop(this.getLoop());
-		this._oMobifyCarousel.setRTL(sap.ui.getCore().getConfiguration().getRTL());
+		this._oMobifyCarousel.setRTL(Core.getConfiguration().getRTL());
 
 		if (iNumberOfItemsToShow > 1) {
 			this._setWidthOfPages(iNumberOfItemsToShow);
@@ -463,6 +486,7 @@ function(
 		var sActivePage = this.getActivePage();
 
 		if (sActivePage) {
+			this._updateActivePages(sActivePage);
 			var iIndex = this._getPageNumber(sActivePage);
 			if (isNaN(iIndex) || iIndex == 0) {
 				if (this.getPages().length > 0) {
@@ -472,14 +496,11 @@ function(
 					this._adjustHUDVisibility(1);
 				}
 			} else {
-
-				var oCore = sap.ui.getCore();
-
-				if (oCore.isThemeApplied()) {
+				if (Core.isThemeApplied()) {
 					// mobify carousel is 1-based
 					this._moveToPage(iIndex + 1);
 				} else {
-					oCore.attachThemeChanged(this._handleThemeLoad, this);
+					Core.attachThemeChanged(this._handleThemeLoad, this);
 				}
 
 				// BCP: 1580078315
@@ -502,13 +523,13 @@ function(
 
 		this._sResizeListenerId = ResizeHandler.register(this._$InnerDiv, this._fnAdjustAfterResize);
 
-		// Fixes wrong focusing in IE// TODO remove after 1.62 version
+		// Fixes wrong focusing in IE// TODO remove after the end of support for Internet Explorer
 		// BCP: 1670008915
-		this.$().find('.sapMCrslItemTableCell').focus(function(e) {
+		this.$().find('.sapMCrslItemTableCell').on("focus", function(e) {
 
 			e.preventDefault();
 
-			jQuery(e.target).parents('.sapMCrsl').focus();
+			jQuery(e.target).parents('.sapMCrsl').trigger("focus");
 
 			return false;
 		});
@@ -576,7 +597,7 @@ function(
 		}
 
 		if (iNextSlide > 0) {
-			this._changePage(iNextSlide);
+			this._changePage(iPreviousSlide, iNextSlide);
 		}
 	};
 
@@ -595,7 +616,7 @@ function(
 	};
 
 	/**
-	 * Calculates the correct width of the visible pages, rendered in the <code>Carousel>/code> control.
+	 * Calculates the correct width of the visible pages, rendered in the <code>Carousel</code> control.
 	 *
 	 * @param {int} iNumberOfItemsToShow number of items to be shown from 'pages' aggregation.
 	 * @returns {float} width of each page in percentage
@@ -617,8 +638,7 @@ function(
 	 */
 	Carousel.prototype._handleThemeLoad = function() {
 
-		var oCore,
-			sActivePage = this.getActivePage();
+		var sActivePage = this.getActivePage();
 
 		if (sActivePage) {
 			var iIndex = this._getPageNumber(sActivePage);
@@ -628,8 +648,7 @@ function(
 			}
 		}
 
-		oCore = sap.ui.getCore();
-		oCore.detachThemeChanged(this._handleThemeLoad, this);
+		Core.detachThemeChanged(this._handleThemeLoad, this);
 	};
 
 	/**
@@ -640,19 +659,27 @@ function(
 	Carousel.prototype._moveToPage = function(iIndex) {
 		this._oMobifyCarousel.changeAnimation('sapMCrslNoTransition');
 		this._oMobifyCarousel.move(iIndex);
-		this._changePage(iIndex);
+		this._changePage(undefined, iIndex);
 	};
 
 	/**
 	 * Private method which adjusts the Hud visibility and fires a page change
 	 * event when the active page changes
 	 *
+	 * @param {int} [iOldPageIndex] Optional index of the old page. If not specified, the current active page index will be taken.
 	 * @param {int} iNewPageIndex index of new page in 'pages' aggregation.
 	 * @private
 	 */
-	Carousel.prototype._changePage = function(iNewPageIndex) {
+	Carousel.prototype._changePage = function(iOldPageIndex, iNewPageIndex) {
 		this._adjustHUDVisibility(iNewPageIndex);
 		var sOldActivePageId = this.getActivePage();
+
+		// If setActivePage is called through API, getActivePage will return the wrong page.
+		// In this case iOldPageIndex must be passed.
+		if (iOldPageIndex) {
+			sOldActivePageId = this.getPages()[iOldPageIndex - 1].getId();
+		}
+
 		var sNewActivePageId = this.getPages()[iNewPageIndex - 1].getId();
 
 		this.setAssociation("activePage", sNewActivePageId, true);
@@ -663,7 +690,7 @@ function(
 
 		// close the soft keyboard
 		if (!Device.system.desktop) {
-			jQuery(document.activeElement).blur();
+			jQuery(document.activeElement).trigger("blur");
 		}
 
 		this.firePageChanged({
@@ -684,8 +711,7 @@ function(
 	 * @private
 	 */
 	Carousel.prototype._getPageIndicatorText = function (iNewPageIndex) {
-		return sap.ui.getCore().getLibraryResourceBundle("sap.m")
-				.getText("CAROUSEL_PAGE_INDICATOR_TEXT", [iNewPageIndex, this.getPages().length  - this._getNumberOfItemsToShow() + 1]);
+		return this._oRb.getText("CAROUSEL_PAGE_INDICATOR_TEXT", [iNewPageIndex, this.getPages().length  - this._getNumberOfItemsToShow() + 1]);
 	};
 
 	/**
@@ -867,7 +893,7 @@ function(
 							"<div class='" + cellClasses + "'></div>" +
 						"</div>",
 			afterRendering : function(e) {
-				var rm = sap.ui.getCore().createRenderManager();
+				var rm = Core.createRenderManager();
 				oPage.addStyleClass("sapMCrsPage");
 				rm.render(oPage, this.getDomRef().firstChild);
 				rm.destroy();
@@ -885,6 +911,27 @@ function(
 		oScrollContainer.setParent(this, null, true);
 		this._aScrollContainers.push(oScrollContainer);
 		return oScrollContainer;
+	};
+
+	/**
+	 * Private method that creates error message page when no pages are loaded
+	 *
+	 * @private
+	 */
+	Carousel.prototype._getErrorPage = function () {
+		var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var sErrorMessage = oRb.getText("CAROUSEL_ERROR_MESSAGE");
+
+		if (!this.oMessagePage ) {
+			this.oMessagePage = new MessagePage({
+				text: sErrorMessage,
+				description: "",
+				icon: "sap-icon://document",
+				showHeader: false
+			});
+		}
+
+		return this.oMessagePage;
 	};
 
 	/**
@@ -1017,7 +1064,7 @@ function(
 		switch (oEvent.keyCode) {
 
 			// Minus keys
-			// TODO  jQuery.sap.KeyCodes.MINUS is not returning 189
+			// TODO  KeyCodes.MINUS is not returning 189
 			case 189:
 			case KeyCodes.NUMPAD_MINUS:
 				this._fnSkipToIndex(oEvent, -1);
@@ -1044,7 +1091,7 @@ function(
 			lastActivePageNumber = this._lastActivePageNumber + 1;
 
 			this._oMobifyCarousel.move(lastActivePageNumber);
-			this._changePage(lastActivePageNumber);
+			this._changePage(undefined, lastActivePageNumber);
 		}
 	};
 
@@ -1209,10 +1256,10 @@ function(
 
 		// Prevent the event and focus Carousel control
 		oEvent.preventDefault();
-		this.$().focus();
+		this.$().trigger("focus");
 
 		oEventF6.target = oEvent.target;
-		oEventF6.keyCode = KeyCodes.F6;
+		oEventF6.key = 'F6';
 		oEventF6.shiftKey = bShiftKey;
 
 		F6Navigation.handleF6GroupNavigation(oEventF6);
@@ -1331,6 +1378,10 @@ function(
 
 		oEvent.preventDefault();
 
+		if (this._oMobifyCarousel.hasActiveTransition()) {
+			this._oMobifyCarousel.onTransitionComplete();
+		}
+
 		// Calculate the index of the next page that will be shown
 		if (nIndex !== 0) {
 			nNewIndex = this._getPageNumber(this.getActivePage()) + 1 + nIndex;
@@ -1347,7 +1398,7 @@ function(
 	Carousel.prototype._handleF7Key = function (oEvent) {
 		var oActivePageLastFocusedElement;
 
-		// Needed for IE// TODO remove after 1.62 version
+		// Needed for IE// TODO remove after the end of support for Internet Explorer
 		oEvent.preventDefault();
 
 		oActivePageLastFocusedElement = this._getActivePageLastFocusedElement();
@@ -1358,7 +1409,7 @@ function(
 		if (oEvent.target === this.$()[0] && oActivePageLastFocusedElement) {
 			oActivePageLastFocusedElement.focus();
 		} else {
-			this.$().focus();
+			this.$().trigger("focus");
 		}
 	};
 

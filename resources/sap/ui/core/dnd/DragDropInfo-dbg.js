@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["./DragInfo", "./DropInfo", "sap/base/Log"],
-	function(DragInfo, DropInfo, Log) {
+sap.ui.define(["./DragInfo", "./DropInfo", "sap/ui/Device", "sap/base/Log"],
+	function(DragInfo, DropInfo, Device, Log) {
 	"use strict";
 
 	/**
@@ -16,12 +16,13 @@ sap.ui.define(["./DragInfo", "./DropInfo", "sap/base/Log"],
 	 *
 	 * @class
 	 * Provides the configuration for drag-and-drop operations.
+	 *
 	 * <b>Note:</b> This configuration might be ignored due to control {@link sap.ui.core.Element.extend metadata} restrictions.
 	 *
 	 * @extends sap.ui.core.dnd.DropInfo
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @public
 	 * @since 1.52
@@ -88,7 +89,15 @@ sap.ui.define(["./DragInfo", "./DropInfo", "sap/base/Log"],
 	// Mixin the DragInfo implementation
 	DragDropInfo.prototype.isDraggable = DragInfo.prototype.isDraggable;
 	DragDropInfo.prototype.fireDragEnd = DragInfo.prototype.fireDragEnd;
-	DragDropInfo.prototype.fireDragStart = DragInfo.prototype.fireDragStart;
+
+	DragDropInfo.prototype.fireDragStart = function(oEvent) {
+		// In IE, we can only control the cursor by setting effectAllowed in the dragstart.
+		if (Device.browser.msie) {
+			oEvent.originalEvent.dataTransfer.effectAllowed = this.getDropEffect().toLowerCase();
+		}
+
+		return DragInfo.prototype.fireDragStart.apply(this, arguments);
+	};
 
 	DragDropInfo.prototype.getDropTarget = function() {
 		var sTargetElement = this.getTargetElement();
@@ -112,4 +121,4 @@ sap.ui.define(["./DragInfo", "./DropInfo", "sap/base/Log"],
 
 	return DragDropInfo;
 
-}, /* bExport= */ true);
+});

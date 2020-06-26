@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,6 +14,7 @@ sap.ui.define([],
 	 * @namespace
 	 */
 	var ScrollContainerRenderer = {
+		apiVersion: 2
 	};
 
 
@@ -24,43 +25,35 @@ sap.ui.define([],
 	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
 	 */
 	ScrollContainerRenderer.render = function(oRm, oControl) {
-		oRm.write("<div");
-		oRm.writeControlData(oControl);
-
-		var width = oControl.getWidth(),
-		height = oControl.getHeight();
-		if (width) {
-			oRm.addStyle("width", width);
-		}
-		if (height) {
-			oRm.addStyle("height", height);
-		}
-		oRm.writeStyles();
+		oRm.openStart("div", oControl)
+			.style("width", oControl.getWidth())
+			.style("height", oControl.getHeight());
 
 		if (oControl.getVertical()) {
 			if (!oControl.getHorizontal()) {
-				oRm.addClass("sapMScrollContV");
+				oRm.class("sapMScrollContV");
 			} else {
-				oRm.addClass("sapMScrollContVH");
+				oRm.class("sapMScrollContVH");
 			}
-		} else if (oControl.getHorizontal()) {
-			oRm.addClass("sapMScrollContH");
+		} else {
+			oRm.class("sapMScrollContH");
 		}
 
-		oRm.addClass("sapMScrollCont");
-		oRm.writeClasses();
+		oRm.class("sapMScrollCont");
 
 		var sTooltip = oControl.getTooltip_AsString();
 		if (sTooltip) {
-			oRm.writeAttributeEscaped("title", sTooltip);
+			oRm.attr("title", sTooltip);
 		}
 
 		if (oControl.getFocusable()) {
-			oRm.writeAttributeEscaped("tabindex","0");
+			oRm.attr("tabindex","0");
 		}
+		oRm.openEnd();
 
-		oRm.write("><div id='" + oControl.getId() + "-scroll' class='sapMScrollContScroll'>");
-
+		oRm.openStart("div", oControl.getId() + "-scroll")
+			.class("sapMScrollContScroll")
+			.openEnd();
 		// render child controls
 		var aContent = oControl.getContent(),
 		l = aContent.length;
@@ -68,7 +61,8 @@ sap.ui.define([],
 			oRm.renderControl(aContent[i]);
 		}
 
-		oRm.write("</div></div>");
+		oRm.close("div");
+		oRm.close("div");
 	};
 
 

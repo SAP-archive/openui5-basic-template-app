@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -136,9 +136,8 @@ sap.ui.define([
 				aParentContent = oBlockLayout && oBlockLayout.getContent(),
 				oPrevBlockRow = (iThisIndexInParent && aParentContent[iThisIndexInParent - 1]) || null,
 				oNextBlockRow = (aParentContent && aParentContent[iThisIndexInParent + 1]) || null,
-				oBlockRowColorSets = BlockRowColorSets,
-				aColorSets = Object.keys(oBlockRowColorSets).map(function (sKey) {
-					return oBlockRowColorSets[sKey];
+				aColorSets = Object.keys(BlockRowColorSets).map(function (sKey) {
+					return BlockRowColorSets[sKey];
 				}),
 				bInvertedColorSet = false;
 
@@ -161,7 +160,7 @@ sap.ui.define([
 
 			// If the next row is of the same type and has the same CSS class, recalculate it and cascade
 			if (oNextBlockRow && oNextBlockRow._hasStyleClass(sClassName, sBackground, bInvertedColorSet, sType)) {
-				oNextBlockRow.setRowColorSet.apply(oNextBlockRow, aArgs);
+				oNextBlockRow.setRowColorSet(sType);
 			}
 
 			// Invalidate the whole row as the background dependencies, row color sets and accent cells should be resolved properly
@@ -173,26 +172,18 @@ sap.ui.define([
 		BlockLayoutRow.prototype.addAccentCell = function (vId) {
 			var oObject,
 				sId = vId && vId.getId ? vId.getId() : vId,
-				args = Array.prototype.slice.call(arguments),
-				oBackgrounds = BlockBackgroundType,
 				oBlockLayout = this.getParent(),
 				sLayoutBackground = oBlockLayout && (oBlockLayout.getBackground() || "");
 
-			oObject = this.addAssociation.apply(this, ["accentCells"].concat(args));
+			oObject = this.addAssociation("accentCells", vId);
 
 			if (!oBlockLayout) {
 				return this;
 			}
 
-			if ([oBackgrounds.Accent, oBackgrounds.Mixed].indexOf(sLayoutBackground) === -1) {
-				Log.warning(sId + " was not se as accent cell. Accent cells could be set only for 'Accent' and 'Mixed' layout backgrounds.");
+			if ([BlockBackgroundType.Accent, BlockBackgroundType.Mixed].indexOf(sLayoutBackground) === -1) {
+				Log.warning(sId + " was not set as accent cell. Accent cells could be set only for 'Accent' and 'Mixed' layout backgrounds.");
 				return this;
-			}
-
-			if (oBackgrounds.Mixed === sLayoutBackground) {
-				this._processMixedCellStyles(sId, this.getContent());
-			} else if (oBackgrounds.Accent === sLayoutBackground) {
-				this._processAccentCellStyles(this.getAccentCells(), this.getContent());
 			}
 
 			return oObject;

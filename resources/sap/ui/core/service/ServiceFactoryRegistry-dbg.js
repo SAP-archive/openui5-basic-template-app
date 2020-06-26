@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,10 +18,10 @@ sap.ui.define(['./ServiceFactory', "sap/base/assert"],
 	 * The service factory registry.
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @alias sap.ui.core.service.ServiceFactoryRegistry
 	 * @private
-	 * @sap-restricted sap.ushell
+	 * @ui5-restricted sap.ushell
 	 * @since 1.37.0
 	 */
 	var ServiceFactoryRegistry = Object.create(null);
@@ -35,7 +35,7 @@ sap.ui.define(['./ServiceFactory', "sap/base/assert"],
 	 * @return {sap.ui.core.service.ServiceFactoryRegistry} <code>this</code> to allow method chaining
 	 * @static
 	 * @private
-	 * @sap-restricted sap.ushell
+	 * @ui5-restricted sap.ushell
 	 */
 	ServiceFactoryRegistry.register = function(sServiceFactoryName, oServiceFactory) {
 
@@ -56,7 +56,7 @@ sap.ui.define(['./ServiceFactory', "sap/base/assert"],
 	 * @return {sap.ui.core.service.ServiceFactoryRegistry} <code>this</code> to allow method chaining
 	 * @static
 	 * @private
-	 * @sap-restricted sap.ushell
+	 * @ui5-restricted sap.ushell
 	 */
 	ServiceFactoryRegistry.unregister = function(sServiceFactoryName) {
 
@@ -76,7 +76,7 @@ sap.ui.define(['./ServiceFactory', "sap/base/assert"],
 	 * @return {sap.ui.core.service.ServiceFactory} Service factory instance
 	 * @static
 	 * @private
-	 * @sap-restricted sap.ushell
+	 * @ui5-restricted sap.ushell
 	 */
 	ServiceFactoryRegistry.get = function(sServiceFactoryName) {
 		return mServiceFactories[sServiceFactoryName];

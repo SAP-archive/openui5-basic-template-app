@@ -1,13 +1,13 @@
 /*
  * ! OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.P13nDialog.
 sap.ui.define([
-	'./Dialog', './library', 'sap/ui/core/EnabledPropagator', './DialogRenderer', 'sap/ui/core/library', 'sap/ui/Device', './Bar', './Button', './Title', 'sap/m/OverflowToolbarLayoutData', 'sap/ui/base/ManagedObjectObserver', "sap/ui/thirdparty/jquery", "sap/base/Log"
-], function(Dialog, library, EnabledPropagator, DialogRenderer, coreLibrary, Device, Bar, Button, Title, OverflowToolbarLayoutData, ManagedObjectObserver, jQuery, Log) {
+	'./Dialog', './library', 'sap/ui/core/EnabledPropagator', './DialogRenderer', 'sap/ui/core/library', 'sap/ui/Device', './Bar', './Button', './Title', 'sap/m/OverflowToolbarLayoutData', 'sap/ui/base/ManagedObjectObserver', "sap/ui/thirdparty/jquery", "sap/base/Log", "sap/base/util/isEmptyObject"
+], function(Dialog, library, EnabledPropagator, DialogRenderer, coreLibrary, Device, Bar, Button, Title, OverflowToolbarLayoutData, ManagedObjectObserver, jQuery, Log, isEmptyObject) {
 	"use strict";
 
 	// shortcut for sap.m.OverflowToolbarPriority
@@ -41,7 +41,7 @@ sap.ui.define([
 	 *        tables.
 	 * @extends sap.m.Dialog
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @constructor
 	 * @public
 	 * @since 1.26.0
@@ -506,7 +506,7 @@ sap.ui.define([
 	 */
 	P13nDialog.prototype._callValidationExecutor = function() {
 		var fValidate = this.getValidationExecutor();
-		if (fValidate && !jQuery.isEmptyObject(this._mValidationListener)) {
+		if (fValidate && !isEmptyObject(this._mValidationListener)) {
 			var that = this;
 			fValidate(this._getPayloadOfPanels()).then(function(aValidationResult) {
 				var oResult = that._distributeValidationResult(aValidationResult);
@@ -640,6 +640,7 @@ sap.ui.define([
 			visible: this.getShowReset(),
 			enabled: this.getShowResetEnabled(),
 			press: function() {
+				sap.ui.getCore().byId(that.getId() + "-ok").focus();//set focus back to 'Ok' button after 'Restore' has been pressed
 				that.setShowResetEnabled(false);
 				var oPayload = {};
 				that.getPanels().forEach(function(oPanel) {
@@ -686,7 +687,7 @@ sap.ui.define([
 					aPanels.forEach(function(oPanel) {
 						switch (oChanges.mutation) {
 							case "insert":
-								this._mVisibleNavigationItems[oPanel.getType()] = oPanel.getVisible();
+								this._mVisibleNavigationItems[oPanel.sId] = oPanel.getVisible();
 								// We have to make the panel invisible until the promise in _updateDialog method is
 								// resolved. Otherwise the panel is flickering e.g. in phone mode.
 								oPanel.setVisible(false);
@@ -705,7 +706,7 @@ sap.ui.define([
 								oPanel.setValidationListener(jQuery.proxy(this._registerValidationListener, this));
 								break;
 							case "remove":
-								delete this._mVisibleNavigationItems[oPanel.getType()];
+								delete this._mVisibleNavigationItems[oPanel.sId];
 								this._oObserver.unobserve(oPanel);
 								oPanel.setValidationExecutor();
 								oPanel.setValidationListener();
@@ -759,8 +760,8 @@ sap.ui.define([
 	};
 	P13nDialog.prototype._getCountOfVisibleNavigationItems = function() {
 		var iCountVisibleNavigationItems = 0;
-		for ( var sType in this._mVisibleNavigationItems) {
-			iCountVisibleNavigationItems = this._mVisibleNavigationItems[sType] ? iCountVisibleNavigationItems + 1 : iCountVisibleNavigationItems;
+		for ( var sId in this._mVisibleNavigationItems) {
+			iCountVisibleNavigationItems = this._mVisibleNavigationItems[sId] ? iCountVisibleNavigationItems + 1 : iCountVisibleNavigationItems;
 		}
 		return iCountVisibleNavigationItems;
 	};
@@ -810,7 +811,7 @@ sap.ui.define([
 		var oNavigationControl = this._getNavigationControl();
 		oNavigationControl.destroyItems();
 
-		var sInitialVisiblePanelType = this._determineInitialVisiblePanelType();
+		var sInitialVisiblePanelId = this._determineInitialVisiblePanel();
 
 		this.getPanels().forEach(function(oPanel) {
 			// Create navigation item based on panel
@@ -820,7 +821,7 @@ sap.ui.define([
 
 			// Update 'visible' property for current panel regarding the 'initialVisiblePanelType' property and number of content objects.
 			// Note: if panel with 'visible=false' is passed via API then it has higher priority then 'initialVisiblePanelType' property or number of content objects
-			var bVisible = Device.system.phone ? this._mVisibleNavigationItems[oPanel.getType()] && this._getCountOfVisibleNavigationItems() === 1 : this._mVisibleNavigationItems[oPanel.getType()] && sInitialVisiblePanelType === oPanel.getType();
+			var bVisible = Device.system.phone ? this._mVisibleNavigationItems[oPanel.sId] && this._getCountOfVisibleNavigationItems() === 1 : this._mVisibleNavigationItems[oPanel.sId] && sInitialVisiblePanelId === oPanel.sId;
 			oPanel.setVisible(bVisible);
 
 			if (bVisible) {
@@ -830,7 +831,7 @@ sap.ui.define([
 			}
 
 			// Update NavigationControl
-			oNavigationItem.setVisible(this._mVisibleNavigationItems[oPanel.getType()]);
+			oNavigationItem.setVisible(this._mVisibleNavigationItems[oPanel.sId]);
 			if (bVisible && oNavigationControl.setSelectedItem) {
 				oNavigationControl.setSelectedItem(oNavigationItem);
 			}
@@ -843,20 +844,24 @@ sap.ui.define([
 		this._setVisibleOfNavigationControl(this._isNavigationControlExpected());
 	};
 
-	P13nDialog.prototype._determineInitialVisiblePanelType = function() {
+	P13nDialog.prototype._determineInitialVisiblePanel = function() {
 		// If provided 'initialVisiblePanelType' is not contained in 'panels' aggregation then ignore 'initialVisiblePanelType'
-		if (this.getInitialVisiblePanelType() && this._mVisibleNavigationItems[this.getInitialVisiblePanelType()]) {
-			return this.getInitialVisiblePanelType();
+		if (this.getInitialVisiblePanelType()) {
+			for (var i = 0; i < this.getPanels().length; i++){
+				if (this.getPanels()[i].getType() == this.getInitialVisiblePanelType()) {
+					return this.getPanels()[i].sId;
+				}
+			}
 		}
 		// Set 'initialVisiblePanelType' to the first visible navigation item if not defined
-		var sType;
+		var sId;
 		this.getPanels().some(function(oPanel) {
-			if (this._mVisibleNavigationItems[oPanel.getType()]) {
-				sType = oPanel.getType();
+			if (this._mVisibleNavigationItems[oPanel.sId]) {
+				sId = oPanel.sId;
 				return true;
 			}
 		}.bind(this));
-		return sType;
+		return sId;
 	};
 
 	P13nDialog.prototype._requestRequiredNavigationControls = function() {

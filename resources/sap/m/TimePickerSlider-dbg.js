@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,9 +10,10 @@ sap.ui.define([
 	'sap/ui/core/IconPool',
 	'sap/ui/Device',
 	"sap/ui/events/KeyCodes",
+	"sap/m/Button",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(Control, TimePickerSliderRenderer, IconPool, Device, KeyCodes, jQuery) {
+	function(Control, TimePickerSliderRenderer, IconPool, Device, KeyCodes, Button, jQuery) {
 		"use strict";
 
 		/**
@@ -26,7 +27,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @private
@@ -179,6 +180,8 @@ sap.ui.define([
 					sItemText = jQuery(oScrElement).text();
 					sItemKey  = fnFindKeyByText.call(this, sItemText);
 
+					this._iClickedIndex =
+						Array.prototype.slice.call(oScrElement.parentElement.children).indexOf(oScrElement);
 					this._bOneTimeValueSelectionAnimation = true;
 					this.setSelectedValue(sItemKey);
 					this._fireSelectedValueChange(sItemKey);
@@ -225,6 +228,7 @@ sap.ui.define([
 				}
 
 				if (this._bOneTimeValueSelectionAnimation) {
+					$Slider.scrollTop((iIndex - this._iClickedIndex + this._iSelectedItemIndex) * iItemHeightInPx - this._selectionOffset);
 					this._animatingSnap = true;
 					$Slider.animate({scrollTop: iIndex * iItemHeightInPx - this._selectionOffset}, SCROLL_ANIMATION_DURATION, 'linear', function () {
 						$Slider.clearQueue();
@@ -287,7 +291,7 @@ sap.ui.define([
 					//Be careful not to invoke this method twice (the first time is on animate finish callback).
 					//If this is the first animation, the _iSelectedIndex will remain its initial value, so no need
 					//to notify the scroller about any snap completion
-					if (this._animatingTargetIndex !== null) {
+					if (this._animatingTargetIndex !== null && this._animatingTargetIndex !== undefined) {
 						this._scrollerSnapped(this._animatingTargetIndex);
 						this._animatingTargetIndex = null;
 					} else if (this._iSelectedIndex !== -1) {
@@ -310,23 +314,6 @@ sap.ui.define([
 
 
 			return this;
-		};
-
-		/*
-		 * Sets the slider isCyclic property.
-		 * @param {boolean} bValue If the slider is cyclic or not
-		 * @returns {*} this
-		 */
-		TimePickerSlider.prototype.setIsCyclic = function(bValue) {
-			if (this.getDomRef()) {
-				if (bValue) {
-					this.$().removeClass("sapMTimePickerSliderShort");
-				} else {
-					this.$().addClass("sapMTimePickerSliderShort");
-				}
-			}
-
-			return this.setProperty("isCyclic", bValue, false);
 		};
 
 		/**
@@ -363,49 +350,57 @@ sap.ui.define([
 		};
 
 		TimePickerSlider.prototype._onmousewheel = function(oEvent) {
+			var oOriginalEvent,
+				bDirectionPositive,
+				wheelData;
+
 			// prevent the default behavior
 			oEvent.preventDefault();
 			oEvent.stopPropagation();
 
-			if (!this.getIsExpanded()) {
+			if (!this.getIsExpanded() || this._intervalId) {
 				return false;
 			}
 
-			var oOriginalEvent = oEvent.originalEvent,
-					bDirectionPositive = oOriginalEvent.detail ? (-oOriginalEvent.detail > 0) : (oOriginalEvent.wheelDelta > 0),
-					fnRound = bDirectionPositive ? Math.ceil : Math.floor,
-					wheelData = oOriginalEvent.detail ? (-oOriginalEvent.detail / 3) : (oOriginalEvent.wheelDelta / 120),
-					that = this,
-					iResultOffset;
+			oOriginalEvent = oEvent.originalEvent;
+			bDirectionPositive = oOriginalEvent.detail ? (-oOriginalEvent.detail > 0) : (oOriginalEvent.wheelDelta > 0);
+			wheelData = oOriginalEvent.detail ? (-oOriginalEvent.detail / 3) : (oOriginalEvent.wheelDelta / 120);
 
 			if (!wheelData) {
 				return false;
 			}
 
+			this._handleWheelScroll(bDirectionPositive, wheelData);
+		};
+
+		TimePickerSlider.prototype._handleWheelScroll = function(bDirectionPositive, wheelData) {
+			var fnRound = bDirectionPositive ? Math.ceil : Math.floor,
+				iResultOffset;
+
 			if (!this._aWheelDeltas) {
 				this._aWheelDeltas = [];
 			}
 
-			that._aWheelDeltas.push(wheelData);
+			this._aWheelDeltas.push(wheelData);
 
 			if (!this._bWheelScrolling) {
 				this._bWheelScrolling = true;
 
 				this._intervalId = setInterval(function () {
-					if (!that._aWheelDeltas.length) {
-						clearInterval(that._intervalId);
-						that._intervalId = null;
-						that._bWheelScrolling = false;
+					if (!this._aWheelDeltas.length) {
+						clearInterval(this._intervalId);
+						this._intervalId = null;
+						this._bWheelScrolling = false;
 					} else {
-						iResultOffset = that._aWheelDeltas[0]; //simplification, we could still use the array in some cases
-						that._aWheelDeltas = [];
+						iResultOffset = this._aWheelDeltas[0]; //simplification, we could still use the array in some cases
+						this._aWheelDeltas = [];
 
 						iResultOffset = fnRound(iResultOffset);
 						if (iResultOffset) { // !== 0, actually move
-							that._offsetSlider(iResultOffset);
+							this._offsetSlider(iResultOffset);
 						}
 					}
-				}, 150);
+				}.bind(this), 150);
 			}
 
 			return false;
@@ -987,7 +982,7 @@ sap.ui.define([
 		 */
 		TimePickerSlider.prototype._removeSelectionStyle = function() {
 			var $aItems = this.$("content").find("li:not(.TPSliderItemHidden)");
-			$aItems.eq(this._iSelectedItemIndex).removeClass("sapMTimePickerItemSelected").attr("aria-selected", "false");
+			$aItems.eq(this._iSelectedItemIndex).removeClass("sapMTimePickerItemSelected");
 		};
 
 		/**
@@ -1155,7 +1150,7 @@ sap.ui.define([
 		TimePickerSlider.prototype._initArrows = function() {
 			var that = this, oArrowUp, oArrowDown;
 
-			oArrowUp = new sap.m.Button({
+			oArrowUp = new Button({
 				icon: IconPool.getIconURI("slim-arrow-up"),
 				press: function (oEvent) {
 					that._offsetValue(-1);
@@ -1170,7 +1165,7 @@ sap.ui.define([
 
 			this.setAggregation("_arrowUp", oArrowUp);
 
-			oArrowDown = new sap.m.Button({
+			oArrowDown = new Button({
 				icon: IconPool.getIconURI("slim-arrow-down"),
 				press: function (oEvent) {
 					that._offsetValue(1);
@@ -1244,7 +1239,9 @@ sap.ui.define([
 			this._stopAnimation();
 			this._startDrag(iPageY);
 
-			oEvent.preventDefault();
+			if (!Device.system.desktop) {
+				oEvent.preventDefault();
+			}
 			this._mousedown = true;
 		};
 
@@ -1307,7 +1304,7 @@ sap.ui.define([
 				return el.getText() === sText;
 			});
 
-			return aItems[index].getKey();
+			return aItems[index] ? aItems[index].getKey() : '';
 		};
 
 		/*

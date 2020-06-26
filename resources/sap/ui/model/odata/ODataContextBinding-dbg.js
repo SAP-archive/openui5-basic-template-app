@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,6 +22,7 @@ sap.ui.define(['sap/ui/model/ContextBinding', 'sap/ui/model/ChangeReason'],
 	 * @param {object} [mParameters]
 	 * @abstract
 	 * @public
+	 * @deprecated As of version 1.66, please use {@link sap.ui.model.odata.v2.ODataContextBinding} instead.
 	 * @alias sap.ui.model.odata.ODataContextBinding
 	 * @extends sap.ui.model.ContextBinding
 	 */

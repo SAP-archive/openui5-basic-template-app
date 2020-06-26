@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -50,7 +50,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -199,7 +199,7 @@ sap.ui.define([
 
 			this.$().on('selectstart', fnFalse);
 
-			if (!Device.browser.msie && this._getShouldOpenSliderAfterRendering()) {
+			if (this._getShouldOpenSliderAfterRendering()) {
 				/* This method is called here prematurely to ensure slider loading on time.
 				 * Make sure _the browser native focus_ is not actually set on the early call (the "true" param)
 				 * because that fires events and results in unexpected behaviors */
@@ -276,28 +276,6 @@ sap.ui.define([
 		};
 
 		/**
-		 * Sets the text for the picker label.
-		 *
-		 * @param {string} sLabelText A text for the label
-		 * @returns {sap.m.TimePickerSliders} this instance, used for chaining
-		 * @public
-		 */
-		TimePickerSliders.prototype.setLabelText = function(sLabelText) {
-			var $ContainerLabel;
-
-			this.setProperty("labelText", sLabelText, true);
-
-			if (!Device.system.desktop) {
-				$ContainerLabel = jQuery(this.getDomRef("label"));
-				if ($ContainerLabel) {
-					$ContainerLabel.html(sLabelText);
-				}
-			}
-
-			return this;
-		};
-
-		/**
 		 * Sets the minutes slider step.
 		 * @param {int} value The step used to generate values for the minutes slider
 		 * @returns {sap.m.TimePickerSliders} <code>this</code> to allow method chaining
@@ -325,34 +303,6 @@ sap.ui.define([
 
 			this._destroyColumns();
 			this._setupLists();
-
-			return this;
-		};
-
-		/**
-		 * Sets the width of the <code>TimepickerSliders</code> container.
-		 * @param {sap.ui.core.CSSSize} sWidth The width of the <code>TimepickerSliders</code< as CSS size
-		 * @returns {sap.m.TimePickerSliders} Pointer to the control instance to allow method chaining
-		 * @public
-		 */
-		TimePickerSliders.prototype.setWidth = function (sWidth) {
-			this.setProperty("width", sWidth, true);
-
-			this.$().css("width", sWidth);
-
-			return this;
-		};
-
-		/**
-		 * Sets the height of the <code>TimepickerSliders</code> container.
-		 * @param {sap.ui.core.CSSSize} sHeight The height of the <code>TimepickerSliders</code> as CSS size
-		 * @returns {sap.m.TimePickerSliders} Pointer to the control instance to allow method chaining
-		 * @public
-		 */
-		TimePickerSliders.prototype.setHeight = function (sHeight) {
-			this.setProperty("height", sHeight, true);
-
-			this.$().css("height", sHeight);
 
 			return this;
 		};

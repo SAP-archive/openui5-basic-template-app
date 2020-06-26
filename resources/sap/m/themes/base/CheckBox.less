@@ -13,10 +13,33 @@
 	vertical-align: top;
 	text-align: left;
 	padding: 0 0 0 3rem;
-	cursor: default;
 
-	&:not(.sapMCbBgDis).sapMCbHasLabel:focus:before {
-		pointer-events: none;
+	&:not(.sapMCbBgDis) {
+		&:hover,
+		.sapMCbLabel:hover {
+			cursor: pointer;
+		}
+		&.sapMCbHasLabel:focus:before {
+			pointer-events: none;
+		}
+	}
+
+	&.sapMCbDisplayOnly {
+		&.sapMCbErr,
+		&.sapMCbInfo,
+		&.sapMCbWarn,
+		&.sapMCbSucc {
+			.sapMCbBg {
+				border: none;
+				&.sapMCbMarkChecked:before {
+					color: @sapUiBaseText;
+				}
+				&.sapMCbMarkPartiallyChecked{
+					border: solid 0.0625rem #89919a
+				}
+
+			}
+		}
 	}
 }
 
@@ -64,6 +87,7 @@ html[dir="rtl"] .sapMCb {
 
 .sapMCb .sapMLabel {
 	cursor: default;
+	line-height: inherit;
 
 	&.sapMLabelNoText {
 		position: absolute;
@@ -93,6 +117,7 @@ html[dir="rtl"] .sapMCb {
 	line-height: 1.125rem;
 	padding: 0;
 	text-align: center;
+	font-size: 1rem;
 
 	// note: some browsers like Samsung Galaxy S4 with Android 4.2 does not support the "border-radius" shorthand property
 	// but does support the long-hand properties for each corner like "border-top-left-radius"
@@ -114,7 +139,7 @@ html[dir="rtl"] .sapMCb {
 	display: inline-block;
 }
 
-.sapMCbBg.sapMCbMarkChecked.sapMCbMarkPartiallyChecked:before {
+.sapMCbBg.sapMCbMarkChecked.sapMCbMarkPartiallyChecked:before{
 	content: "";
 	width: 100%;
 	height: 100%;
@@ -159,13 +184,23 @@ html[data-sap-ui-browser^=ff] .sapMCbBg > input {
 .sapMCbDisplayOnly {
 	font-family: "SAP-icons";
 
-	.sapMCbBg {
+	.sapMCbBg.sapMCbMark.sapMCbMarkChecked.sapMCbMarkPartiallyChecked{
+		border-radius: 0.0625rem;
+		border: 1px solid @sapUiBaseText ;
+
+		&:before {
+			background-color: @sapUiBaseText;
+		}
+	}
+
+	.sapMCbBg:not(.sapMCbMarkPartiallyChecked) {
 		background-color: initial;
 		border: none;
 		margin: 0.125rem;
 
 		&:before {
 			content: "\e19a";
+			font-size: 1rem;
 		}
 
 		&.sapMCbMarkChecked:before {

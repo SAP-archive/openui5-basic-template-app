@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -37,7 +37,7 @@ sap.ui.define([
 	 * @return {int} The generated hash-code
 	 * @since 1.39
 	 * @private
-	 * @sap-restricted sap.ui.core
+	 * @ui5-restricted sap.ui.core
 	 * @function
 	 * @deprecated since 1.58 use {@link module:sap/base/strings/hash} instead
 	 */
@@ -47,7 +47,7 @@ sap.ui.define([
 	/**
 	 * Sorts the given array in-place and removes any duplicates (identified by "===").
 	 *
-	 * Use <code>jQuery.unique()</code> for arrays of DOMElements.
+	 * Use <code>jQuery.uniqueSort()</code> for arrays of DOMElements.
 	 *
 	 * @param {Array} a An Array of any type
 	 * @return {Array} Same array as given (for chaining)
@@ -268,7 +268,7 @@ sap.ui.define([
 	 * Use {@link jQuery.sap.getUriParameters} to create an instance of jQuery.sap.util.UriParameters.
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @since 0.9.0
 	 * @name jQuery.sap.util.UriParameters
 	 * @public
@@ -314,10 +314,11 @@ sap.ui.define([
 	 * @public
 	 * @param {string} sUri Uri to determine the parameters for
 	 * @return {jQuery.sap.util.UriParameters} A new URI parameters instance
+	 * @deprecated As of 1.68, use {@link module:sap/base/util/UriParameters.fromQuery UriParameters.fromQuery}
+	 *    or {@link module:sap/base/util/UriParameters.fromURL UriParameters.fromURL} instead.
 	 */
 	jQuery.sap.getUriParameters = function getUriParameters(sUri) {
-		sUri = sUri ? sUri : window.location.href;
-		return new UriParameters(sUri);
+		return UriParameters.fromURL(sUri || window.location.href);
 	};
 
 	/**

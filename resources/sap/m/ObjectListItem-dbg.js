@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,8 @@ sap.ui.define([
 	'sap/ui/core/IconPool',
 	'sap/m/ObjectNumber',
 	'sap/ui/core/library',
+	'./ObjectMarker',
+	'./Text',
 	'./ObjectListItemRenderer'
 ],
 function(
@@ -23,6 +25,8 @@ function(
 	IconPool,
 	ObjectNumber,
 	coreLibrary,
+	ObjectMarker,
+	Text,
 	ObjectListItemRenderer
 	) {
 		"use strict";
@@ -57,7 +61,7 @@ function(
 		 *
 		 * <b>Note:</b> The control must only be used in the context of a list.
 		 * @extends sap.m.ListItemBase
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -605,7 +609,7 @@ function(
 			}
 
 			if (!bHasMarker) {
-				this.insertAggregation("markers", new sap.m.ObjectMarker({
+				this.insertAggregation("markers", new ObjectMarker({
 					id: this.getId() + oIds[markerType],
 					type: markerType,
 					visible: bMarked
@@ -623,7 +627,7 @@ function(
 		ObjectListItem.prototype._getTitleText = function() {
 
 			if (!this._oTitleText) {
-				this._oTitleText = new sap.m.Text(this.getId() + "-titleText", {
+				this._oTitleText = new Text(this.getId() + "-titleText", {
 					maxLines: 2
 				});
 

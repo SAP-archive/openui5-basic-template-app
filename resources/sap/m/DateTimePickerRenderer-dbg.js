@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/core/Renderer', './DatePickerRenderer', './InputBaseRenderer'],
@@ -12,6 +12,8 @@ sap.ui.define(['sap/ui/core/Renderer', './DatePickerRenderer', './InputBaseRende
 	 * @namespace
 	 */
 	var DateTimePickerRenderer = Renderer.extend(DatePickerRenderer);
+
+	DateTimePickerRenderer.apiVersion = 2;
 
 	DateTimePickerRenderer.getDescribedByAnnouncement = function(oDP) {
 

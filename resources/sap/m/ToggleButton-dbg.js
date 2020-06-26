@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @extends sap.m.Button
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -50,6 +50,20 @@ sap.ui.define([
 			 * The property is “true” when the control is toggled. The default state of this property is "false".
 			 */
 			pressed : {type : "boolean", group : "Data", defaultValue : false}
+		},
+		events: {
+			/**
+			 * Fired when the user clicks or taps on the control.
+			 */
+			press: {
+				parameters: {
+
+					/**
+					 * The current pressed state of the control.
+					 */
+					pressed: { type: "boolean" }
+				}
+			}
 		}
 	}});
 
@@ -73,7 +87,7 @@ sap.ui.define([
 	ToggleButton.prototype.setPressed = function(bPressed) {
 		bPressed = !!bPressed;
 		if (bPressed != this.getPressed()) {
-			this.setProperty("pressed", bPressed, true);
+			this.setProperty("pressed", bPressed);
 			this.$().attr("aria-pressed", bPressed);
 			this.$("inner").toggleClass("sapMToggleBtnPressed",bPressed && !this._isUnstyled());
 		}

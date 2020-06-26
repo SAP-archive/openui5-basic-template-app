@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,7 +11,7 @@ sap.ui.define([
 	'sap/ui/model/FormatException',
 	'sap/ui/model/ParseException',
 	'sap/ui/model/ValidateException',
-	"sap/ui/thirdparty/jquery"
+	"sap/base/util/isEmptyObject"
 ],
 	function(
 		DateFormat,
@@ -19,7 +19,7 @@ sap.ui.define([
 		FormatException,
 		ParseException,
 		ValidateException,
-		jQuery
+		isEmptyObject
 	) {
 	"use strict";
 
@@ -33,7 +33,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.CompositeType
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.DateFormat.getDateInstance DateFormat}.
@@ -249,7 +249,7 @@ sap.ui.define([
 		this.oFormatOptions.interval = true;
 		this.oOutputFormat = DateFormat.getDateInstance(this.oFormatOptions);
 		if (oSourceOptions) {
-			if (jQuery.isEmptyObject(oSourceOptions)) {
+			if (isEmptyObject(oSourceOptions)) {
 				// set the default pattern if oSourceOptions is given as an empty object
 				oSourceOptions = {pattern: "yyyy-MM-dd"};
 			}

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,7 +16,7 @@ sap.ui.define([
 	 * @alias sap.ui.core.BlockLayerUtils
 	 * @static
 	 * @private
-	 * @sap-restricted sap.ui.core.Control
+	 * @ui5-restricted sap.ui.core.Control
 	 */
 	var BlockLayerUtils = {},
 		aPreventedEvents = ["focusin", "focusout", "keydown", "keypress", "keyup", "mousedown", "touchstart", "touchmove", "mouseup", "touchend", "click"],
@@ -118,11 +118,15 @@ sap.ui.define([
 	 * @private
 	 */
 	BlockLayerUtils.addAriaAttributes = function(oDOM) {
+		var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.ui.core");
+
 		oDOM.setAttribute("role", "progressbar");
 		oDOM.setAttribute("aria-valuemin", "0");
 		oDOM.setAttribute("aria-valuemax", "100");
+		oDOM.setAttribute("aria-valuetext", oResourceBundle.getText("BUSY_VALUE_TEXT"));
 		oDOM.setAttribute("alt", "");
-		oDOM.setAttribute("tabIndex", "0");
+		oDOM.setAttribute("tabindex", "0");
+		oDOM.setAttribute("title", oResourceBundle.getText("BUSY_TEXT"));
 	};
 
 	/**
@@ -265,6 +269,7 @@ sap.ui.define([
 			var oBlockSpan = document.createElement("span");
 
 			oBlockSpan.setAttribute("tabindex", 0);
+			oBlockSpan.classList.add("sapUiBlockLayerTabbable");
 			oBlockSpan.addEventListener('focusin', fnRedirectFocus);
 
 			return oBlockSpan;
@@ -301,7 +306,7 @@ sap.ui.define([
 				aSuppressHandler.push(EventTriggerHook.suppress(aPreventedEvents[i], oParentDOM, oBlockLayerDOM));
 			}
 			//for jQuery triggered events we also need the keydown handler
-			this.$blockLayer.bind('keydown', fnHandler);
+			this.$blockLayer.on('keydown', fnHandler);
 
 			return aSuppressHandler;
 		}
@@ -330,7 +335,7 @@ sap.ui.define([
 				}
 			}
 			if (oBlockLayerDOM) {
-				this.$blockLayer.unbind('keydown', fnHandler);
+				this.$blockLayer.off('keydown', fnHandler);
 			}
 		}
 	}

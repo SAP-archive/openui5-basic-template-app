@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -20,6 +20,7 @@ sap.ui.define(["sap/base/assert"], function (assert) {
 
 	/**
 	 * @class A Storage API for JavaScript.
+	 *
 	 * <b>Note:</b> The Web Storage API stores the data on the client. Therefore, you must not use this API for confidential information.
  	 *
 	 * Provides a unified interface and methods to store data on the client using the Web Storage API or a custom implementation.
@@ -243,7 +244,7 @@ sap.ui.define(["sap/base/assert"], function (assert) {
 	 *
 	 * @enum {string}
 	 * @public
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 */
 	Storage.Type = {
 		/**

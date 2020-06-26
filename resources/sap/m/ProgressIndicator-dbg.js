@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -48,7 +48,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -111,7 +111,26 @@ sap.ui.define([
 			 * Determines whether the control is in display-only state where the control has different visualization and cannot be focused.
 			 * @since 1.50
 			 */
-			displayOnly : {type : "boolean", group : "Behavior", defaultValue : false}
+			displayOnly : {type : "boolean", group : "Behavior", defaultValue : false},
+
+			/**
+			 * Determines whether a percentage change is displayed with animation.
+			 * @since 1.73
+			 */
+			displayAnimation : {type : "boolean", group : "Behavior", defaultValue : true}
+		},
+		associations : {
+			/**
+			 * Association to controls / IDs which describe this control (see WAI-ARIA attribute aria-describedby).
+			 * @since 1.69
+			 */
+			ariaDescribedBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaDescribedBy"},
+
+			/**
+			 * Association to controls / IDs which label this control (see WAI-ARIA attribute aria-labelledBy).
+			 * @since 1.69
+			 */
+			ariaLabelledBy: {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
 		},
 		designtime: "sap/m/designtime/ProgressIndicator.designtime"
 	}});
@@ -152,12 +171,12 @@ sap.ui.define([
 				$progressIndicator.removeClass(sClass);
 			});
 
-			$progressIndicator.addClass(this._getCSSClassByPercentValue(fPercentValue));
+			$progressIndicator.addClass(this._getCSSClassByPercentValue(fPercentValue).join(" "));
 			$progressIndicator.addClass("sapMPIAnimate")
 				.attr("aria-valuenow", fPercentValue)
 				.attr("aria-valuetext", this._getAriaValueText({fPercent: fPercentValue}));
 
-			fAnimationDuration = bUseAnimations ? Math.abs(fPercentDiff) * 20 : 0;
+			fAnimationDuration = bUseAnimations && this.getDisplayAnimation() ? Math.abs(fPercentDiff) * 20 : 0;
 			$progressBar = this.$("bar");
 			// Stop currently running animation and start new one.
 			// In case of multiple setPercentValue calls all animations will run and it will take some time until the last value is animated,
@@ -179,27 +198,6 @@ sap.ui.define([
 		return this;
 	};
 
-	ProgressIndicator.prototype.setDisplayValue = function(sDisplayValue) {
-		// change of value without rerendering
-		this.setProperty("displayValue", sDisplayValue, true);
-		var $textLeft = this.$("textLeft");
-		var $textRight = this.$("textRight");
-		$textLeft.text(sDisplayValue);
-		$textRight.text(sDisplayValue);
-		this.$().attr("aria-valuetext", this._getAriaValueText({sText: sDisplayValue}));
-
-		return this;
-	};
-
-	ProgressIndicator.prototype.setDisplayOnly = function(bDisplayOnly) {
-		// change of value without re-rendering
-		this.setProperty("displayOnly", bDisplayOnly, true);
-		if (this.getDomRef()) {
-			this.$().toggleClass("sapMPIDisplayOnly", bDisplayOnly);
-		}
-		return this;
-	};
-
 	/**
 	 * Determines the CSS class, which should be applied to the <code>ProgressIndicator</code>
 	 * for the given <code>percentValue</code>.
@@ -210,18 +208,18 @@ sap.ui.define([
 	 */
 	ProgressIndicator.prototype._getCSSClassByPercentValue = function(fPercentValue) {
 		if (fPercentValue === 100) {
-			return "sapMPIValueMax sapMPIValueGreaterHalf";
+			return ["sapMPIValueMax", "sapMPIValueGreaterHalf"];
 		}
 
 		if (fPercentValue === 0) {
-			return "sapMPIValueMin";
+			return ["sapMPIValueMin"];
 		}
 
 		if (fPercentValue <= 50) {
-			return "sapMPIValueNormal";
+			return ["sapMPIValueNormal"];
 		}
 
-		return "sapMPIValueNormal sapMPIValueGreaterHalf";
+		return ["sapMPIValueNormal", "sapMPIValueGreaterHalf"];
 	};
 
 	ProgressIndicator.prototype._getAriaValueText = function (oParams) {

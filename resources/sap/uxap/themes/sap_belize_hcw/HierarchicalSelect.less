@@ -64,8 +64,7 @@ html.sap-desktop .sapUxAPHierarchicalSelect {
 	width: 3rem;
 }
 
-.sapUxAPObjectPageLayout-Std-Phone .sapUxAPHierarchicalSelect.sapMSltHoverable > .sapMSltArrow,
-html .sapUiContainer-Narrow .sapUxAPHierarchicalSelect.sapMSltHoverable > .sapMSltArrow {
+.sapUxAPObjectPageLayout-Std-Phone .sapUxAPHierarchicalSelect.sapMSlt > .sapMSltArrow{
 	border-left: none;
 }
 
@@ -103,7 +102,7 @@ html .sapUiContainer-Narrow .sapUxAPHierarchicalSelect.sapMSltHoverable > .sapMS
 }
 
 /* styling needed to achieve underline of the select label on phone */
-html .sapUxAPObjectPageLayout-Std-Phone, html.sap-phone, html .sapUiContainer-Narrow {
+html .sapUxAPObjectPageLayout-Std-Phone, html.sap-phone {
 	.sapMSltPressed > .sapMSltArrow {
 		background: @sapUiFieldActiveBackground;
 	}
@@ -134,7 +133,7 @@ html[data-sap-ui-browser^="cr4"].sap-phone {
 	}
 }
 
-/* TODO remove after 1.62 version */
+/* TODO remove after the end of support for Internet Explorer */
 html[data-sap-ui-browser^="ie"].sap-desktop,
 html[data-sap-ui-browser^="ed"].sap-desktop {
 	.sapUxAPHierarchicalSelect.sapMSltHoverable.sapMSltIconOnly.sapMSlt:not(.sapMSltPressed):focus {

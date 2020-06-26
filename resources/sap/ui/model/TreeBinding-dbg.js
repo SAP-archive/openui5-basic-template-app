@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -140,72 +140,48 @@ sap.ui.define(['./Binding', './Filter', './Sorter'],
 	 */
 
 	/**
-	 * Attach event-handler <code>fnFunction</code> to the '_filter' event of this <code>sap.ui.model.TreeBinding</code>.<br/>
-	 * @param {function} fnFunction The function to call, when the event occurs.
-	 * @param {object} [oListener] object on which to call the given function.
+	 * Attaches event handler <code>fnFunction</code> to the {@link #event:_filter _filter} event of this
+	 * <code>sap.ui.model.TreeBinding</code>.
+	 *
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code> if specified,
+	 * otherwise it will be bound to this <code>sap.ui.model.TreeBinding</code> itself.
+	 *
+	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {object} [oListener] Context object to call the event handler with,
+	 *            defaults to this <code>TreeBinding</code> itself
 	 * @protected
-	 * @deprecated As of version 1.11, use the change event. It now contains a parameter (reason : "filter") when a filter event is fired.
+	 * @deprecated As of version 1.11, use the <code>change</code> event. It now contains a parameter
+	 *             <code>(reason : "filter")</code> when a filter event is fired.
 	 */
 	TreeBinding.prototype.attachFilter = function(fnFunction, oListener) {
 		this.attachEvent("_filter", fnFunction, oListener);
 	};
 
 	/**
-	 * Detach event-handler <code>fnFunction</code> from the '_filter' event of this <code>sap.ui.model.TreeBinding</code>.<br/>
-	 * @param {function} fnFunction The function to call, when the event occurs.
-	 * @param {object} [oListener] object on which to call the given function.
+	 * Detaches event handler <code>fnFunction</code> from the {@link #event:_filter _filter} event of this
+	 * <code>sap.ui.model.TreeBinding</code>.
+	 *
+	 * The passed function and listener object must match the ones used for event registration.
+	 *
+	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {object} [oListener] Context object on which the given function had to be called
 	 * @protected
-	 * @deprecated As of version 1.11, use the change event.
+	 * @deprecated As of version 1.11, use the <code>change</code> event.
 	 */
 	TreeBinding.prototype.detachFilter = function(fnFunction, oListener) {
 		this.detachEvent("_filter", fnFunction, oListener);
 	};
 
 	/**
-	 * Fire event _filter to attached listeners.
-	 * @param {Map} [mArguments] the arguments to pass along with the event.
-	 * @private
-	 * @deprecated As of version 1.11, use the change event. It now contains a parameter (reason : "filter") when a filter event is fired.
-	 */
-	TreeBinding.prototype._fireFilter = function(mArguments) {
-		this.fireEvent("_filter", mArguments);
-	};
-
-	/**
-	 * Checks whether an update of the data state of this binding is required.
+	 * Fires event {@link #event:_filter _filter} to attached listeners.
 	 *
-	 * @param {map} mPaths A Map of paths to check if update needed
+	 * @param {object} [oParameters] Parameters to pass along with the event
 	 * @private
-	 * @since 1.58
+	 * @deprecated As of version 1.11, use the <code>change</code> event. It now contains a parameter
+	 *             <code>(reason : "filter")</code> when a filter event is fired.
 	 */
-	TreeBinding.prototype.checkDataState = function(mPaths) {
-		var oDataState = this.getDataState(),
-			sResolvedPath = this.oModel ? this.oModel.resolve(this.sPath, this.oContext) : null,
-			that = this;
-
-		function fireChange() {
-			that.fireEvent("AggregatedDataStateChange", { dataState: oDataState });
-			oDataState.changed(false);
-			that._sDataStateTimout = null;
-		}
-
-		if (!mPaths || sResolvedPath && sResolvedPath in mPaths) {
-			if (sResolvedPath) {
-				oDataState.setModelMessages(this.oModel.getMessagesByPath(sResolvedPath));
-			}
-			if (oDataState && oDataState.changed()) {
-				if (this.mEventRegistry["DataStateChange"]) {
-					this.fireEvent("DataStateChange", { dataState: oDataState });
-				}
-				if (this.bIsBeingDestroyed) {
-					fireChange();
-				} else if (this.mEventRegistry["AggregatedDataStateChange"]) {
-					if (!this._sDataStateTimout) {
-						this._sDataStateTimout = setTimeout(fireChange, 0);
-					}
-				}
-			}
-		}
+	TreeBinding.prototype._fireFilter = function(oParameters) {
+		this.fireEvent("_filter", oParameters);
 	};
 
 	/**

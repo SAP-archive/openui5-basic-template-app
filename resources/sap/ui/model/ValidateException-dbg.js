@@ -1,35 +1,39 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides a filter for list bindings
+// Provides class sap.ui.model.ValidateException
 sap.ui.define(['sap/ui/base/Exception'],
-	function(Exception) {
+	function (Exception) {
 	"use strict";
-
 
 	/**
 	 * Creates a new ValidateException.
 	 *
-	 * @class Instances of this exception are thrown when a validation error
-	 * occurs while checking the defined constraints for a type.
+	 * @param {string} message
+	 *   A message explaining why the validation failed; this message is language dependent as it
+	 *   may be displayed on the UI
+	 * @param {string[]} [violatedConstraints]
+	 *   Names of the constraints that are violated; the names should be the same as documented in
+	 *   the type's constructor
 	 *
-	 * @param {string} message Message explaining how the validation failed
-	 * @param {string[]} [violatedConstraints] Names of the constraints that will be violated;
-	 *   names should be the same as documented for the type constructor
 	 * @alias sap.ui.model.ValidateException
+	 * @class
+	 * @classdesc
+	 *   Instances of this exception are thrown when constraints of a type are violated.
+	 *
 	 * @public
+	 * @see sap.ui.model.SimpleType#validateValue
 	 */
-	var ValidateException = function(message, violatedConstraints) {
+	var ValidateException = function (message, violatedConstraints) {
 		this.name = "ValidateException";
 		this.message = message;
 		this.violatedConstraints = violatedConstraints;
 	};
+
 	ValidateException.prototype = Object.create(Exception.prototype);
 
-
 	return ValidateException;
-
 }, /* bExport= */ true);

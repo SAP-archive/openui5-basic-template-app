@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,9 +8,8 @@
 sap.ui.define([
 	"./_Helper",
 	"./_MetadataConverter",
-	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
-], function (_Helper, _MetadataConverter, Log, jQuery) {
+	"sap/base/Log"
+], function (_Helper, _MetadataConverter, Log) {
 	"use strict";
 
 	var sClassName = "sap.ui.model.odata.v4.lib._V2MetadataConverter",
@@ -655,7 +654,7 @@ sap.ui.define([
 
 		for (sAnnotatablePath in mConvertedV2Annotations) {
 			if (sAnnotatablePath in mV4Annotations) {
-				mV4Annotations[sAnnotatablePath] = jQuery.extend(
+				mV4Annotations[sAnnotatablePath] = Object.assign(
 					mConvertedV2Annotations[sAnnotatablePath],
 					mV4Annotations[sAnnotatablePath]);
 			} else {
@@ -687,8 +686,7 @@ sap.ui.define([
 					continue;
 				}
 				sTarget = sEntityContainerName + "/" + sEntitySetName;
-				mAnnotations = jQuery.extend(true,
-					this.convertedV2Annotations[sTarget] || {},
+				mAnnotations = _Helper.merge(this.convertedV2Annotations[sTarget] || {},
 					this.mEntityType2EntitySetAnnotation[oEntitySet.$Type]);
 				if (Object.keys(mAnnotations).length) {
 					this.convertedV2Annotations[sTarget] = mAnnotations;
@@ -824,9 +822,8 @@ sap.ui.define([
 		var sQualifiedName = this.namespace + oElement.getAttribute("Name");
 
 		this.mEntityContainersOfSchema[sQualifiedName]
-			= this.result[sQualifiedName] = this.entityContainer = {
-			"$kind" : "EntityContainer"
-		};
+			= this.entityContainer = {"$kind" : "EntityContainer"};
+		this.addToResult(sQualifiedName, this.entityContainer);
 		if (oElement.getAttributeNS(sMicrosoftNamespace, "IsDefaultEntityContainer") === "true") {
 			this.defaultEntityContainer = sQualifiedName;
 		}
@@ -959,7 +956,7 @@ sap.ui.define([
 			}
 
 			// add operation to the result
-			this.result[sQualifiedName] = [oOperation];
+			this.addToResult(sQualifiedName, [oOperation]);
 
 			sAnnotationActionFor = this.consumeSapAnnotation("action-for");
 			if (sAnnotationActionFor) {
@@ -1053,9 +1050,8 @@ sap.ui.define([
 		var sSchemaVersion = this.consumeSapAnnotation("schema-version");
 
 		this.namespace = oElement.getAttribute("Namespace") + ".";
-		this.result[this.namespace] = this.schema = {
-			"$kind" : "Schema"
-		};
+		this.schema = {"$kind" : "Schema"};
+		this.addToResult(this.namespace, this.schema);
 		if (sSchemaVersion) {
 			this.schema["@Org.Odata.Core.V1.SchemaVersion"] = sSchemaVersion;
 		}
@@ -1071,7 +1067,8 @@ sap.ui.define([
 		var sQualifiedName = this.namespace + oElement.getAttribute("Name");
 
 		this.sTypeName = sQualifiedName;
-		this.result[sQualifiedName] = this.type = oType;
+		this.type = oType;
+		this.addToResult(sQualifiedName, oType);
 		this.v2annotatable(sQualifiedName);
 	};
 
@@ -1340,7 +1337,7 @@ sap.ui.define([
 				i,
 				n = aUnitPathSegments.length;
 
-			for (i = 0; i < n; i++) {
+			for (i = 0; i < n; i += 1) {
 				oType = that.result[sTypeName];
 				oUnitProperty = oType[aUnitPathSegments[i]];
 				if (!oUnitProperty) {

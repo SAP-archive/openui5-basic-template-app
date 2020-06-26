@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,9 +11,9 @@ sap.ui.define([
 	'sap/ui/core/LocaleData',
 	'sap/base/Log',
 	'sap/base/assert',
-	'sap/ui/thirdparty/jquery'
+	'sap/base/util/extend'
 ],
-	function(BaseObject, Locale, LocaleData, Log, assert, jQuery) {
+	function(BaseObject, Locale, LocaleData, Log, assert, extend) {
 	"use strict";
 
 
@@ -70,41 +70,49 @@ sap.ui.define([
 		/**
 		 * Rounding mode to round towards negative infinity
 		 * @public
+		 * @type {string}
 		 */
 		FLOOR: "floor",
 		/**
 		 * Rounding mode to round towards positive infinity
 		 * @public
+		 * @type {string}
 		 */
 		CEILING: "ceiling",
 		/**
 		 * Rounding mode to round towards zero
 		 * @public
+		 * @type {string}
 		 */
 		TOWARDS_ZERO: "towards_zero",
 		/**
 		 * Rounding mode to round away from zero
 		 * @public
+		 * @type {string}
 		 */
 		AWAY_FROM_ZERO: "away_from_zero",
 		/**
 		 * Rounding mode to round towards the nearest neighbor unless both neighbors are equidistant, in which case round towards negative infinity.
 		 * @public
+		 * @type {string}
 		 */
 		HALF_FLOOR: "half_floor",
 		/**
 		 * Rounding mode to round towards the nearest neighbor unless both neighbors are equidistant, in which case round towards positive infinity.
 		 * @public
+		 * @type {string}
 		 */
 		HALF_CEILING: "half_ceiling",
 		/**
 		 * Rounding mode to round towards the nearest neighbor unless both neighbors are equidistant, in which case round towards zero.
 		 * @public
+		 * @type {string}
 		 */
 		HALF_TOWARDS_ZERO: "half_towards_zero",
 		/**
 		 * Rounding mode to round towards the nearest neighbor unless both neighbors are equidistant, in which case round away from zero.
 		 * @public
+		 * @type {string}
 		 */
 		HALF_AWAY_FROM_ZERO: "half_away_from_zero"
 	};
@@ -324,7 +332,7 @@ sap.ui.define([
 		var oFormat = this.createInstance(oFormatOptions, oLocale),
 			oLocaleFormatOptions = this.getLocaleFormatOptions(oFormat.oLocaleData, mNumberType.FLOAT);
 
-		oFormat.oFormatOptions = jQuery.extend(false, {}, this.oDefaultFloatFormat, oLocaleFormatOptions, oFormatOptions);
+		oFormat.oFormatOptions = extend({}, this.oDefaultFloatFormat, oLocaleFormatOptions, oFormatOptions);
 		return oFormat;
 	};
 
@@ -379,7 +387,7 @@ sap.ui.define([
 		var oFormat = this.createInstance(oFormatOptions, oLocale),
 			oLocaleFormatOptions = this.getLocaleFormatOptions(oFormat.oLocaleData, mNumberType.INTEGER);
 
-		oFormat.oFormatOptions = jQuery.extend(false, {}, this.oDefaultIntegerFormat, oLocaleFormatOptions, oFormatOptions);
+		oFormat.oFormatOptions = extend({}, this.oDefaultIntegerFormat, oLocaleFormatOptions, oFormatOptions);
 		return oFormat;
 	};
 
@@ -465,13 +473,15 @@ sap.ui.define([
 	 * @param {sap.ui.core.format.NumberFormat.RoundingMode} [oFormatOptions.roundingMode=HALF_AWAY_FROM_ZERO] specifies a rounding behavior for discarding the digits after the maximum fraction digits
 	 *  defined by maxFractionDigits. Rounding will only be applied, if the passed value if of type number. This can be assigned by value in {@link sap.ui.core.format.NumberFormat.RoundingMode RoundingMode}
 	 *  or a function which will be used for rounding the number. The function is called with two parameters: the number and how many decimal digits should be reserved.
+	 * @param {boolean} [oFormatOptions.trailingCurrencyCode] Overrides the global configuration value {@link sap.ui.core.Configuration.FormatSettings#getTrailingCurrencyCode} whose default value is <code>true</>.
+	 *  This is ignored if <code>oFormatOptions.currencyCode</code> is set to false or if <code>oFormatOptions.pattern</code> is supplied
 	 * @param {boolean} [oFormatOptions.showMeasure=true] defines whether the measure according to the format is shown in the formatted string
 	 * @param {boolean} [oFormatOptions.currencyCode=true] defines whether the currency is shown as code in currency format. The currency symbol is displayed when this is set to false and there is a symbol defined
 	 *  for the given currency code.
 	 * @param {string} [oFormatOptions.currencyContext=standard] It can be set either with 'standard' (the default value) or with 'accounting' for an accounting specific currency display
 	 * @param {number} [oFormatOptions.emptyString=NaN] @since 1.30.0 defines what empty string is parsed as and what is formatted as empty string. The allowed values are "" (empty string), NaN, null or 0.
-	 *  The 'format' and 'parse' are done in a symmetric way. For example when this parameter is set to NaN, empty string is parsed as NaN and NaN is formatted as empty string.
-	 * @param {map} [oFormatOptions.customCurrencies] defines a set of custom currencies exclusive to this NumberFormat instance.
+	 *  The 'format' and 'parse' are done in a symmetric way. For example when this parameter is set to NaN, empty string is parsed as [NaN, undefined] and NaN is formatted as empty string.
+	 * @param {Object<string,object>} [oFormatOptions.customCurrencies] defines a set of custom currencies exclusive to this NumberFormat instance.
 	 *  If custom currencies are defined on the instance, no other currencies can be formatted and parsed by this instance.
 	 *  Globally available custom currencies can be added via the global configuration.
 	 *  See the above examples.
@@ -482,12 +492,32 @@ sap.ui.define([
 	 * @public
 	 */
 	NumberFormat.getCurrencyInstance = function(oFormatOptions, oLocale) {
-		var oFormat = this.createInstance(oFormatOptions, oLocale),
-			sContext = oFormatOptions && oFormatOptions.currencyContext,
-			oLocaleFormatOptions = this.getLocaleFormatOptions(oFormat.oLocaleData, mNumberType.CURRENCY, sContext);
+		var oFormat = this.createInstance(oFormatOptions, oLocale);
+		var sContext = oFormatOptions && oFormatOptions.currencyContext;
 
-		oFormat.oFormatOptions = jQuery.extend(false, {}, this.oDefaultCurrencyFormat, oLocaleFormatOptions, oFormatOptions);
+		// currency code trailing
+		var bShowTrailingCurrencyCode = showTrailingCurrencyCode(oFormatOptions);
 
+
+		// prepend "sap-" to pattern params to load (context and short)
+		if (bShowTrailingCurrencyCode) {
+			sContext = sContext || this.oDefaultCurrencyFormat.style;
+			sContext = "sap-" + sContext;
+		}
+		var oLocaleFormatOptions = this.getLocaleFormatOptions(oFormat.oLocaleData, mNumberType.CURRENCY, sContext);
+
+		oFormat.oFormatOptions = extend({}, this.oDefaultCurrencyFormat, oLocaleFormatOptions, oFormatOptions);
+
+		// Trailing currency code option
+		//
+		// The format option "trailingCurrencyCode" is influenced by other options, such as pattern, currencyCode, global config
+		// Therefore set it manually without modifying the original oFormatOptions.
+		// E.g. the "pattern" option would overwrite this option, even if the "trailingCurrencyCode" option is set
+		// oFormatOptions.pattern = "###"
+		// oFormatOptions.trailingCurrencyCode = true
+		// ->
+		// oFormatOptions.trailingCurrencyCode = false
+		oFormat.oFormatOptions.trailingCurrencyCode = bShowTrailingCurrencyCode;
 		oFormat._defineCustomCurrencySymbols();
 
 		return oFormat;
@@ -524,7 +554,7 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.groupingSize=3] defines the grouping size in digits, the default is three
 	 * @param {int} [oFormatOptions.groupingBaseSize=3] defines the grouping base size in digits, in case it is different from the grouping size (e.g. indian grouping)
 	 * @param {string} [oFormatOptions.decimalSeparator] defines the used decimal separator
-	 * @param {map} [oFormatOptions.customUnits] defines a set of custom units, e.g. {"electric-inductance": {
+	 * @param {Object<string,object>} [oFormatOptions.customUnits] defines a set of custom units, e.g. {"electric-inductance": {
 				"displayName": "henry",
 				"unitPattern-count-one": "{0} H",
 				"unitPattern-count-other": "{0} H",
@@ -544,7 +574,7 @@ sap.ui.define([
 	 *  or a function which will be used for rounding the number. The function is called with two parameters: the number and how many decimal digits should be reserved.
 	 * @param {boolean} [oFormatOptions.showMeasure=true] defines whether the measure according to the format is shown in the formatted string
 	 * @param {number} [oFormatOptions.emptyString=NaN] @since 1.30.0 defines what empty string is parsed as and what is formatted as empty string. The allowed values are "" (empty string), NaN, null or 0.
-	 *  The 'format' and 'parse' are done in a symmetric way. For example when this parameter is set to NaN, empty string is parsed as NaN and NaN is formatted as empty string.
+	 *  The 'format' and 'parse' are done in a symmetric way. For example when this parameter is set to NaN, empty string is parsed as [NaN, undefined] and NaN is formatted as empty string.
 	 * @param {sap.ui.core.Locale} [oLocale] Locale to get the formatter for
 	 * @return {sap.ui.core.format.NumberFormat} unit instance of the NumberFormat
 	 * @static
@@ -554,7 +584,7 @@ sap.ui.define([
 		var oFormat = this.createInstance(oFormatOptions, oLocale),
 			oLocaleFormatOptions = this.getLocaleFormatOptions(oFormat.oLocaleData, mNumberType.UNIT);
 
-		oFormat.oFormatOptions = jQuery.extend(false, {}, this.oDefaultUnitFormat, oLocaleFormatOptions, oFormatOptions);
+		oFormat.oFormatOptions = extend({}, this.oDefaultUnitFormat, oLocaleFormatOptions, oFormatOptions);
 		return oFormat;
 	};
 
@@ -610,7 +640,7 @@ sap.ui.define([
 		var oFormat = this.createInstance(oFormatOptions, oLocale),
 			oLocaleFormatOptions = this.getLocaleFormatOptions(oFormat.oLocaleData, mNumberType.PERCENT);
 
-		oFormat.oFormatOptions = jQuery.extend(false, {}, this.oDefaultPercentFormat, oLocaleFormatOptions, oFormatOptions);
+		oFormat.oFormatOptions = extend({}, this.oDefaultPercentFormat, oLocaleFormatOptions, oFormatOptions);
 		return oFormat;
 	};
 
@@ -640,8 +670,9 @@ sap.ui.define([
 		if (oFormatOptions) {
 			if (oFormatOptions.pattern) {
 				oPatternOptions = this.parseNumberPattern(oFormatOptions.pattern);
-				jQuery.each(oPatternOptions, function(sName, vOption) {
-					oFormatOptions[sName] = vOption;
+
+				Object.keys(oPatternOptions).forEach(function(sName) {
+					oFormatOptions[sName] = oPatternOptions[sName];
 				});
 			}
 			if (oFormatOptions.emptyString !== undefined) {
@@ -671,8 +702,8 @@ sap.ui.define([
 	 *
 	 * @param {string} sShortName the short name of the unit used in the created pattern
 	 * @returns {string} a pattern, which can be used for formatting and parsing a custom unit of measure
-	 * @sap-restricted sap.ui.model.odata.type
 	 * @private
+	 * @ui5-restricted sap.ui.model.odata.type
 	 */
 	NumberFormat.getDefaultUnitPattern = function(sShortName) {
 		return "{0} " + sShortName;
@@ -908,7 +939,7 @@ sap.ui.define([
 			iBaseGroupSize = 0,
 			bNegative = vValue < 0,
 			iDotPos = -1,
-			oOptions = jQuery.extend({}, this.oFormatOptions),
+			oOptions = Object.assign({}, this.oFormatOptions),
 			oOrigOptions = this.oOriginalFormatOptions,
 			bIndianCurrency = oOptions.type === mNumberType.CURRENCY && sMeasure === "INR" &&
 				this.oLocale.getLanguage() === "en" && this.oLocale.getRegion() === "IN",
@@ -1140,12 +1171,20 @@ sap.ui.define([
 			sPattern = oOptions.pattern;
 
 			if (oShortFormat && oShortFormat.formatString && oOptions.showScale) {
+				var sStyle;
+				// Currency formatting only supports short style (no long)
+				if (oOptions.trailingCurrencyCode) {
+					sStyle = "sap-short";
+				} else {
+					sStyle = "short";
+				}
+
 				// Get correct format string based on actual decimal/fraction digits
 				sPluralCategory = this.oLocaleData.getPluralCategory(sIntegerPart + "." + sFractionPart);
 				if (bIndianCurrency) {
-					sPattern = getIndianCurrencyFormat("short", oShortFormat.key, sPluralCategory);
+					sPattern = getIndianCurrencyFormat(sStyle, oShortFormat.key, sPluralCategory);
 				} else {
-					sPattern = this.oLocaleData.getCurrencyFormat("short", oShortFormat.key, sPluralCategory);
+					sPattern = this.oLocaleData.getCurrencyFormat(sStyle, oShortFormat.key, sPluralCategory);
 				}
 				//formatString may contain '.' (quoted to differentiate them decimal separator)
 				//which must be replaced with .
@@ -1305,7 +1344,9 @@ sap.ui.define([
 	 */
 	NumberFormat.prototype.parse = function(sValue) {
 		var oOptions = this.oFormatOptions,
-			sPlusMinusSigns = quote(oOptions.plusSign + oOptions.minusSign),
+			sPlusSigns = oOptions.plusSign + this.oLocaleData.getLenientNumberSymbols("plusSign") ,
+			sMinusSigns = oOptions.minusSign + this.oLocaleData.getLenientNumberSymbols("minusSign") ,
+			sPlusMinusSigns = quote(sPlusSigns + sMinusSigns),
 			sGroupingSeparator = quote(oOptions.groupingSeparator),
 			sDecimalSeparator = quote(oOptions.decimalSeparator),
 			sRegExpFloat = "^\\s*([" + sPlusMinusSigns + "]?(?:[0-9" + sGroupingSeparator + "]+|[0-9" + sGroupingSeparator + "]*" + sDecimalSeparator + "[0-9]*)(?:[eE][+-][0-9]+)?)\\s*$",
@@ -1362,6 +1403,7 @@ sap.ui.define([
 			}
 
 			var oPatternAndResult = parseNumberAndUnit(mUnitPatterns, sValue);
+			var bUnitIsAmbiguous = false;
 
 			aUnitCode = oPatternAndResult.cldrCode;
 			if (aUnitCode.length === 1) {
@@ -1381,6 +1423,20 @@ sap.ui.define([
 				//ambiguous unit
 				assert(aUnitCode.length === 1, "Ambiguous unit [" + aUnitCode.join(", ") + "] for input: '" + (sValue) + "'");
 				sMeasure = undefined;
+				bUnitIsAmbiguous = true;
+			}
+
+			// TODO: better error handling in strict mode
+			// Next steps will be to implement a more helpful error message for these cases.
+			// Right now we simply return null. For now this will force the types to throw
+			// a default ParseException with a non-descriptive error.
+			if (oOptions.strictParsing) {
+				// two cases:
+				// 1. showMeasure is set to false, but still a unit was parsed
+				// 2. no unit (either none could be found OR the unit is ambiguous, should be separate error logs later on)
+				if ((sMeasure && !oOptions.showMeasure) || bUnitIsAmbiguous) {
+					return null;
+				}
 			}
 
 			sValue = oPatternAndResult.numberValue || sValue;
@@ -1398,6 +1454,19 @@ sap.ui.define([
 
 			if (!oResult) {
 				return null;
+			}
+
+			// TODO: better error handling in strict mode
+			// Next steps will be to implement a more helpful error message for these cases.
+			// Right now we simply return null. For now this will force the types to throw
+			// a default ParseException with a non-descriptive error.
+			if (oOptions.strictParsing) {
+				if ((oOptions.showMeasure && !oResult.currencyCode) || oResult.duplicatedSymbolFound) {
+					// here we need an error log for:
+					// 1. missing currency code/symbol (CLDR & custom)
+					// 2. duplicated symbol was found (only custom, CLDR has no duplicates)
+					return null;
+				}
 			}
 
 			sValue = oResult.numberValue;
@@ -1435,8 +1504,23 @@ sap.ui.define([
 		// Remove grouping separator and replace locale dependant decimal separator,
 		// before calling parseInt/parseFloat
 		sValue = sValue.replace(oGroupingRegExp, "");
-		sValue = sValue.replace(oOptions.plusSign, "+");
-		sValue = sValue.replace(oOptions.minusSign, "-");
+
+		// Replace "minus/plus" sign with a parsable symbol
+		// e.g. "➖47" (cannot be parsed using parseInt) --> "-47" (can be parsed using parseInt)
+		var iValueLength = sValue.length;
+		for (var iValuePos = 0; iValuePos < iValueLength; iValuePos++) {
+			var sCurrentValueChar = sValue[iValuePos];
+
+			// it can either be a minus or a plus
+			// if one was found break because there can only be one in a value
+			if (sPlusSigns.includes(sCurrentValueChar)) {
+				sValue = sValue.replace(sCurrentValueChar, "+");
+				break;
+			} else if (sMinusSigns.includes(sCurrentValueChar)) {
+				sValue = sValue.replace(sCurrentValueChar, "-");
+				break;
+			}
+		}
 
 		// Remove the leading "+" sign because when "parseAsString" is set to true the "parseInt" or "parseFloat" isn't called and the leading "+" has to be moved manually
 		sValue = sValue.replace(/^\+/, "");
@@ -1649,8 +1733,16 @@ sap.ui.define([
 
 		// Use "other" format to find the right magnitude, the actual format will be retrieved later
 		// after the value has been calculated
-		if (bIndianCurrency) {
-			sCldrFormat = getIndianCurrencyFormat(sStyle, sKey, "other", true);
+		if (oOptions.type === mNumberType.CURRENCY) {
+			if (oOptions.trailingCurrencyCode) {
+				sStyle = "sap-short";
+			}
+			if (bIndianCurrency) {
+				sCldrFormat = getIndianCurrencyFormat(sStyle, sKey, "other", true);
+			} else {
+				// Use currency specific format because for some languages there is a difference between the decimalFormat and the currencyFormat
+				sCldrFormat = oLocaleData.getCurrencyFormat(sStyle, sKey, "other");
+			}
 		} else {
 			sCldrFormat = oLocaleData.getDecimalFormat(sStyle, sKey, "other");
 		}
@@ -1778,9 +1870,36 @@ sap.ui.define([
 
 	}
 
+	/**
+	 * Based on the format options and the global config, determine whether to display a trailing currency code
+	 * @param oFormatOptions
+	 * @returns {boolean}
+	 */
+	function showTrailingCurrencyCode(oFormatOptions) {
+		var bShowTrailingCurrencyCodes = sap.ui.getCore().getConfiguration().getFormatSettings().getTrailingCurrencyCode();
+		if (oFormatOptions) {
+
+			// overwritten by instance configuration
+			if (oFormatOptions.trailingCurrencyCode !== undefined) {
+				bShowTrailingCurrencyCodes = oFormatOptions.trailingCurrencyCode;
+			}
+
+			// is false when custom pattern is used
+			if (oFormatOptions.pattern) {
+				bShowTrailingCurrencyCodes = false;
+			}
+
+			// is false when currencyCode is not used
+			if (oFormatOptions.currencyCode === false) {
+				bShowTrailingCurrencyCodes = false;
+			}
+		}
+		return bShowTrailingCurrencyCodes;
+	}
+
 	function getIndianCurrencyFormat(sStyle, sKey, sPlural, bDecimal) {
 		var sFormat,
-			oFormats = {
+			oCurrencyFormats = {
 				"short": {
 					"1000-one": "¤0000",
 					"1000-other": "¤0000",
@@ -1806,16 +1925,75 @@ sap.ui.define([
 					"10000000000000-other": "¤00 Lk Cr",
 					"100000000000000-one": "¤0 Cr Cr",
 					"100000000000000-other": "¤0 Cr Cr"
+				},
+				"sap-short": {
+					"1000-one": "0000 ¤",
+					"1000-other": "0000 ¤",
+					"10000-one": "00000 ¤",
+					"10000-other": "00000 ¤",
+					"100000-one": "0 Lk ¤",
+					"100000-other": "0 Lk ¤",
+					"1000000-one": "00 Lk ¤",
+					"1000000-other": "00 Lk ¤",
+					"10000000-one": "0 Cr ¤",
+					"10000000-other": "0 Cr ¤",
+					"100000000-one": "00 Cr ¤",
+					"100000000-other": "00 Cr ¤",
+					"1000000000-one": "000 Cr ¤",
+					"1000000000-other": "000 Cr ¤",
+					"10000000000-one": "0000 Cr ¤",
+					"10000000000-other": "0000 Cr ¤",
+					"100000000000-one": "00000 Cr ¤",
+					"100000000000-other": "00000 Cr ¤",
+					"1000000000000-one": "0 Lk Cr ¤",
+					"1000000000000-other": "0 Lk Cr ¤",
+					"10000000000000-one": "00 Lk Cr ¤",
+					"10000000000000-other": "00 Lk Cr ¤",
+					"100000000000000-one": "0 Cr Cr ¤",
+					"100000000000000-other": "0 Cr Cr ¤"
+				}
+			},
+			oDecimalFormats = {
+				"short": {
+					"1000-one": "0000",
+					"1000-other": "0000",
+					"10000-one": "00000",
+					"10000-other": "00000",
+					"100000-one": "0 Lk",
+					"100000-other": "0 Lk",
+					"1000000-one": "00 Lk",
+					"1000000-other": "00 Lk",
+					"10000000-one": "0 Cr",
+					"10000000-other": "0 Cr",
+					"100000000-one": "00 Cr",
+					"100000000-other": "00 Cr",
+					"1000000000-one": "000 Cr",
+					"1000000000-other": "000 Cr",
+					"10000000000-one": "0000 Cr",
+					"10000000000-other": "0000 Cr",
+					"100000000000-one": "00000 Cr",
+					"100000000000-other": "00000 Cr",
+					"1000000000000-one": "0 Lk Cr",
+					"1000000000000-other": "0 Lk Cr",
+					"10000000000000-one": "00 Lk Cr",
+					"10000000000000-other": "00 Lk Cr",
+					"100000000000000-one": "0 Cr Cr",
+					"100000000000000-other": "0 Cr Cr"
 				}
 			};
-		sStyle = "short";
+		// decimal format for short and sap-short is the same
+		oDecimalFormats["sap-short"] = oDecimalFormats["short"];
+
+		// use the appropriate format (either decimal or currency)
+		var oTargetFormat = bDecimal ? oDecimalFormats : oCurrencyFormats;
+		var oStyledFormat = oTargetFormat[sStyle];
+		if (!oStyledFormat) {
+			oStyledFormat = oTargetFormat["short"];
+		}
 		if (sPlural !== "one") {
 			sPlural = "other";
 		}
-		sFormat = oFormats[sStyle][sKey + "-" + sPlural];
-		if (sFormat && bDecimal) {
-			sFormat = sFormat.substr(1);
-		}
+		sFormat = oStyledFormat[sKey + "-" + sPlural];
 		return sFormat;
 	}
 
@@ -2053,15 +2231,18 @@ sap.ui.define([
 
 		// Set currency code to undefined, as the defined custom currencies
 		// contain multiple currencies having the same symbol.
+		var bDuplicatedSymbolFound = false;
 		if (oConfig.duplicatedSymbols && oConfig.duplicatedSymbols[oMatch.symbol]) {
 			oMatch.code = undefined;
+			bDuplicatedSymbolFound = true;
 			Log.error("The parsed currency symbol '" + oMatch.symbol + "' is defined multiple " +
 					"times in custom currencies.Therefore the result is not distinct.");
 		}
 
 		return {
 			numberValue: sValue,
-			currencyCode: oMatch.code || undefined
+			currencyCode: oMatch.code || undefined,
+			duplicatedSymbolFound: bDuplicatedSymbolFound
 		};
 	}
 

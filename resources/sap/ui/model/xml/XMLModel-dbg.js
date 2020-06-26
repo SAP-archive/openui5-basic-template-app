@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,7 +21,7 @@ sap.ui.define([
 	'./XMLTreeBinding',
 	"sap/ui/util/XMLHelper",
 	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
+	"sap/base/util/each"
 ],
 	function(
 		ClientModel,
@@ -31,7 +31,7 @@ sap.ui.define([
 		XMLTreeBinding,
 		XMLHelper,
 		Log,
-		jQuery
+		each
 	) {
 	"use strict";
 
@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.ClientModel
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @param {object} oData either the URL where to load the XML from or an XML
 	 * @public
@@ -235,7 +235,7 @@ sap.ui.define([
 		} else {
 			oObject = this._getObject(sPath, oContext);
 			if (oObject[0]) {
-				jQuery(oObject[0]).text(oValue);
+				oObject[0].textContent = oValue;
 				this.checkUpdate(false, bAsyncUpdate);
 				return true;
 			}
@@ -256,7 +256,7 @@ sap.ui.define([
 	XMLModel.prototype.getProperty = function(sPath, oContext) {
 		var oResult = this._getObject(sPath, oContext);
 		if (oResult && typeof oResult != "string") {
-			oResult = jQuery(oResult[0]).text(); // TODO is this right? shouldn't we return the object?!
+			oResult = oResult[0] ? oResult[0].textContent : ""; // TODO is this right? shouldn't we return the object?!
 		}
 		return oResult;
 	};
@@ -314,7 +314,7 @@ sap.ui.define([
 			if (sPart.indexOf("@") == 0) {
 				oNode = this._getAttribute(oNode[0], sPart.substr(1));
 			} else if (sPart == "text()") {
-				oNode = jQuery(oNode[0]).text();
+				oNode = oNode[0] ? oNode[0].textContent : "";
 			} else if (isNaN(sPart)) {
 				oNode = this._getChildElementsByTagName(oNode[0], sPart);
 			} else {
@@ -361,14 +361,14 @@ sap.ui.define([
 			var sNameSpace = this._getNameSpace(sName),
 				sLocalName = this._getLocalName(sName),
 				sChildLocalName;
-			jQuery.each(aChildNodes, function(i, oChild){
+			each(aChildNodes, function(i, oChild){
 				sChildLocalName =  oChild.localName || oChild.baseName;
 				if (oChild.nodeType == 1 && sChildLocalName == sLocalName && oChild.namespaceURI == sNameSpace) {
 					aResult.push(oChild);
 				}
 			});
 		} else {
-			jQuery.each(aChildNodes, function(i, oChild){
+			each(aChildNodes, function(i, oChild){
 				if (oChild.nodeType == 1 && oChild.nodeName == sName) {
 					aResult.push(oChild);
 				}
@@ -415,7 +415,7 @@ sap.ui.define([
 			return oPrefixes;
 		}
 		var aAttributes = oDocumentElement.attributes;
-		jQuery.each(aAttributes, function(i, oAttribute) {
+		each(aAttributes, function(i, oAttribute) {
 			var name = oAttribute.name,
 				value = oAttribute.value;
 			if (name == "xmlns") {

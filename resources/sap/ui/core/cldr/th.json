@@ -663,6 +663,7 @@
 		"Egyh": "เฮียราติกอียิปต์",
 		"Egyp": "เฮียโรกลิฟส์อียิปต์",
 		"Elba": "เอลบ์ซาน",
+		"Elym": "Elym",
 		"Ethi": "เอธิโอปิก",
 		"Geok": "คัตซูรีจอร์เจีย",
 		"Geor": "จอร์เจีย",
@@ -687,6 +688,7 @@
 		"Hira": "ฮิระงะนะ",
 		"Hluw": "อักขระอานาโตเลีย",
 		"Hmng": "ปาเฮาห์ม้ง",
+		"Hmnp": "Hmnp",
 		"Hrkt": "คะตะกะนะหรือฮิระงะนะ",
 		"Hung": "ฮังการีโบราณ",
 		"Inds": "อินดัส",
@@ -735,6 +737,7 @@
 		"Mtei": "เมเทมาเยก",
 		"Mult": "Mult",
 		"Mymr": "พม่า",
+		"Nand": "Nand",
 		"Narb": "อาระเบียเหนือโบราณ",
 		"Nbat": "นาบาทาเอียน",
 		"Newa": "Newa",
@@ -801,6 +804,7 @@
 		"Vaii": "ไว",
 		"Visp": "คำพูดที่มองเห็นได้",
 		"Wara": "วารังกสิติ",
+		"Wcho": "Wcho",
 		"Wole": "โอลีเอ",
 		"Xpeo": "เปอร์เซียโบราณ",
 		"Xsux": "อักษรรูปลิ่มสุเมเรีย-อัคคาเดีย",
@@ -952,7 +956,7 @@
 		"GU": "กวม",
 		"GW": "กินี-บิสเซา",
 		"GY": "กายอานา",
-		"HK": "เขตปกครองพิเศษฮ่องกงแห่งสาธารณรัฐประชาชนจีน",
+		"HK": "ฮ่องกง ประเทศจีน",
 		"HK-alt-short": "ฮ่องกง",
 		"HM": "เกาะเฮิร์ดและหมู่เกาะแมกดอนัลด์",
 		"HN": "ฮอนดูรัส",
@@ -1003,12 +1007,12 @@
 		"MF": "เซนต์มาร์ติน",
 		"MG": "มาดากัสการ์",
 		"MH": "หมู่เกาะมาร์แชลล์",
-		"MK": "มาซิโดเนีย",
-		"MK-alt-variant": "มาซิโดเนีย (FYROM)",
+		"MK": "มาซิโดเนียเหนือ",
+		"MK-alt-variant": "MK",
 		"ML": "มาลี",
 		"MM": "เมียนมาร์ (พม่า)",
 		"MN": "มองโกเลีย",
-		"MO": "เขตปกครองพิเศษมาเก๊าแห่งสาธารณรัฐประชาชนจีน",
+		"MO": "มาเก๊า ประเทศจีน",
 		"MO-alt-short": "มาเก๊า",
 		"MP": "หมู่เกาะนอร์เทิร์นมาเรียนา",
 		"MQ": "มาร์ตินีก",
@@ -1076,7 +1080,8 @@
 		"SV": "เอลซัลวาดอร์",
 		"SX": "ซินต์มาร์เทน",
 		"SY": "ซีเรีย",
-		"SZ": "สวาซิแลนด์",
+		"SZ": "เอสวาตีนี",
+		"SZ-alt-variant": "สวาซิแลนด์",
 		"TA": "ทริสตันดาคูนา",
 		"TC": "หมู่เกาะเติกส์และหมู่เกาะเคคอส",
 		"TD": "ชาด",
@@ -1093,7 +1098,7 @@
 		"TR": "ตุรกี",
 		"TT": "ตรินิแดดและโตเบโก",
 		"TV": "ตูวาลู",
-		"TW": "ไต้หวัน",
+		"TW": "ไต้หวัน ประเทศจีน",
 		"TZ": "แทนซาเนีย",
 		"UA": "ยูเครน",
 		"UG": "ยูกันดา",
@@ -1214,6 +1219,15 @@
 			},
 			"intervalFormats": {
 				"intervalFormatFallback": "{0} – {1}",
+				"Bh": {
+					"B": "h B – h B",
+					"h": "h – h B"
+				},
+				"Bhm": {
+					"B": "h:mm B – h:mm B",
+					"h": "h:mm – h:mm B",
+					"m": "h:mm – h:mm B"
+				},
 				"d": {
 					"d": "d–d"
 				},
@@ -1702,6 +1716,15 @@
 			},
 			"intervalFormats": {
 				"intervalFormatFallback": "{0} - {1}",
+				"Bh": {
+					"B": "h B – h B",
+					"h": "h – h B"
+				},
+				"Bhm": {
+					"B": "h:mm B – h:mm B",
+					"h": "h:mm – h:mm B",
+					"m": "h:mm – h:mm B"
+				},
 				"d": {
 					"d": "d–d"
 				},
@@ -2172,6 +2195,15 @@
 			},
 			"intervalFormats": {
 				"intervalFormatFallback": "{0} - {1}",
+				"Bh": {
+					"B": "h B – h B",
+					"h": "h – h B"
+				},
+				"Bhm": {
+					"B": "h:mm B – h:mm B",
+					"h": "h:mm – h:mm B",
+					"m": "h:mm – h:mm B"
+				},
 				"d": {
 					"d": "d–d"
 				},
@@ -2272,44 +2304,53 @@
 					"M": "EEEEที่ d MMM – EEEEที่ d MMM"
 				},
 				"y": {
-					"y": "G y–y"
+					"y": "G y–y",
+					"G": "G y–G y"
 				},
 				"yM": {
 					"M": "M/y – M/y G",
-					"y": "M/y – M/y G"
+					"y": "M/y – M/y G",
+					"G": "M/y G – M/y G"
 				},
 				"yMd": {
 					"d": "d/M/y – d/M/y G",
 					"M": "d/M/y – d/M/y G",
-					"y": "d/M/y – d/M/y G"
+					"y": "d/M/y – d/M/y G",
+					"G": "d/M/y G – d/M/y G"
 				},
 				"yMEd": {
 					"d": "E d/M/y – E d/M/y G",
 					"M": "E d/M/y – E d/M/y G",
-					"y": "E d/M/y – E d/M/y G"
+					"y": "E d/M/y – E d/M/y G",
+					"G": "E d/M/y G – E d/M/y G"
 				},
 				"yMMM": {
 					"M": "MMM–MMM G y",
-					"y": "MMM G y – MMM y"
+					"y": "MMM G y – MMM y",
+					"G": "MMM G y – MMM G y"
 				},
 				"yMMMd": {
 					"d": "d–d MMM G y",
 					"M": "d MMM – d MMM G y",
-					"y": "d MMM G y – d MMM y"
+					"y": "d MMM G y – d MMM y",
+					"G": "d MMM G y – d MMM G y"
 				},
 				"yMMMEd": {
 					"d": "E d MMM – E d MMM G y",
 					"M": "E d MMM – E d MMM G y",
-					"y": "E d MMM G y – E d MMM y"
+					"y": "E d MMM G y – E d MMM y",
+					"G": "E d MMM G y – E d MMM G y"
 				},
 				"yMMMEEEEd": {
 					"d": "EEEEที่ d – EEEEที่ d MMM G y",
 					"M": "EEEEที่ d MMM – EEEEที่ d MMM G y",
-					"y": "EEEEที่ d MMM G y – EEEEที่ d MMM y"
+					"y": "EEEEที่ d MMM G y – EEEEที่ d MMM y",
+					"G": "EEEEที่ d MMM G y – EEEEที่ d MMM G y"
 				},
 				"yMMMM": {
 					"M": "MMMM – MMMM G y",
-					"y": "MMMM G y – MMMM y"
+					"y": "MMMM G y – MMMM y",
+					"G": "MMMM G y – MMMM G y"
 				}
 			}
 		},
@@ -2557,19 +2598,22 @@
 			"232": "เมจิ",
 			"233": "ทะอิโช",
 			"234": "โชวะ",
-			"235": "เฮเซ"
+			"235": "เฮเซ",
+			"236": "เรวะ"
 		},
 		"era-abbreviated": {
 			"232": "เมจิ",
 			"233": "ทะอิโช",
 			"234": "โชวะ",
-			"235": "เฮเซ"
+			"235": "เฮเซ",
+			"236": "เรวะ"
 		},
 		"era-narrow": {
 			"232": "M",
 			"233": "T",
 			"234": "S",
-			"235": "H"
+			"235": "H",
+			"236": "R"
 		}
 	},
 	"ca-persian": {
@@ -2651,6 +2695,15 @@
 			},
 			"intervalFormats": {
 				"intervalFormatFallback": "{0} - {1}",
+				"Bh": {
+					"B": "h B – h B",
+					"h": "h – h B"
+				},
+				"Bhm": {
+					"B": "h:mm B – h:mm B",
+					"h": "h:mm – h:mm B",
+					"m": "h:mm – h:mm B"
+				},
 				"d": {
 					"d": "d–d"
 				},
@@ -3123,6 +3176,15 @@
 			},
 			"intervalFormats": {
 				"intervalFormatFallback": "{0} - {1}",
+				"Bh": {
+					"B": "h B – h B",
+					"h": "h – h B"
+				},
+				"Bhm": {
+					"B": "h:mm B – h:mm B",
+					"h": "h:mm – h:mm B",
+					"m": "h:mm – h:mm B"
+				},
 				"d": {
 					"d": "d–d"
 				},
@@ -3855,7 +3917,9 @@
 				"surroundingMatch": "[:digit:]",
 				"insertBetween": " "
 			}
-		}
+		},
+		"sap-standard": "#,##0.00¤",
+		"sap-accounting": "#,##0.00¤;(#,##0.00¤)"
 	},
 	"miscPattern": {
 		"approximately": "~{0}",
@@ -3932,7 +3996,7 @@
 		"end": "{0} หรือ {1}"
 	},
 	"listPattern-standard-short": {
-		"2": "{0} และ {1}",
+		"2": "{0}และ{1}",
 		"start": "{0} {1}",
 		"middle": "{0} {1}",
 		"end": "{0} และ{1}"
@@ -4011,6 +4075,10 @@
 				"unitPattern-count-other": "{0} ตร.นิ้ว",
 				"perUnitPattern": "{0}/ตร.นิ้ว"
 			},
+			"area-dunam": {
+				"displayName": "ดูนัม",
+				"unitPattern-count-other": "{0} ดูนัม"
+			},
 			"concentr-karat": {
 				"displayName": "กะรัต",
 				"unitPattern-count-other": "{0} กะรัต"
@@ -4034,6 +4102,14 @@
 			"concentr-permille": {
 				"displayName": "‰",
 				"unitPattern-count-other": "{0}‰"
+			},
+			"concentr-permyriad": {
+				"displayName": "เปอร์มีเรียด",
+				"unitPattern-count-other": "{0}‱"
+			},
+			"concentr-mole": {
+				"displayName": "โมล",
+				"unitPattern-count-other": "{0} mol"
 			},
 			"consumption-liter-per-kilometer": {
 				"displayName": "ลิตร/กม.",
@@ -4186,6 +4262,22 @@
 				"displayName": "กว.-ชม.",
 				"unitPattern-count-other": "{0} กว.-ชม."
 			},
+			"energy-electronvolt": {
+				"displayName": "อิเล็กตรอนโวลต์",
+				"unitPattern-count-other": "{0} eV"
+			},
+			"energy-british-thermal-unit": {
+				"displayName": "บีทียู",
+				"unitPattern-count-other": "{0} BTU"
+			},
+			"force-pound-force": {
+				"displayName": "แรงปอนด์",
+				"unitPattern-count-other": "{0} lbf"
+			},
+			"force-newton": {
+				"displayName": "นิวตัน",
+				"unitPattern-count-other": "{0} N"
+			},
 			"frequency-gigahertz": {
 				"displayName": "GHz",
 				"unitPattern-count-other": "{0} GHz"
@@ -4287,9 +4379,17 @@
 				"displayName": "จุด",
 				"unitPattern-count-other": "{0} จุด"
 			},
+			"length-solar-radius": {
+				"displayName": "รัศมีวงกลมของดวงอาทิตย์",
+				"unitPattern-count-other": "{0} R☉"
+			},
 			"light-lux": {
 				"displayName": "ลักซ์",
 				"unitPattern-count-other": "{0} ลักซ์"
+			},
+			"light-solar-luminosity": {
+				"displayName": "ความสว่างดวงอาทิตย์",
+				"unitPattern-count-other": "{0} L☉"
 			},
 			"mass-metric-ton": {
 				"displayName": "ต.",
@@ -4339,6 +4439,18 @@
 				"displayName": "กะรัต",
 				"unitPattern-count-other": "{0} กะรัต"
 			},
+			"mass-dalton": {
+				"displayName": "ดัลตัน",
+				"unitPattern-count-other": "{0} Da"
+			},
+			"mass-earth-mass": {
+				"displayName": "มวลของโลก",
+				"unitPattern-count-other": "{0} M⊕"
+			},
+			"mass-solar-mass": {
+				"displayName": "มวลดวงอาทิตย์",
+				"unitPattern-count-other": "{0} M☉"
+			},
 			"power-gigawatt": {
 				"displayName": "กิกะวัตต์",
 				"unitPattern-count-other": "{0} กิกะวัตต์"
@@ -4387,6 +4499,14 @@
 				"displayName": "บรรยากาศ",
 				"unitPattern-count-other": "{0} atm"
 			},
+			"pressure-kilopascal": {
+				"displayName": "kPa",
+				"unitPattern-count-other": "{0} kPa"
+			},
+			"pressure-megapascal": {
+				"displayName": "MPa",
+				"unitPattern-count-other": "{0} MPa"
+			},
 			"speed-kilometer-per-hour": {
 				"displayName": "กม./ชั่วโมง",
 				"unitPattern-count-other": "{0} กม./ชม."
@@ -4418,6 +4538,14 @@
 			"temperature-kelvin": {
 				"displayName": "K",
 				"unitPattern-count-other": "{0} K"
+			},
+			"torque-pound-foot": {
+				"displayName": "lbf⋅ft",
+				"unitPattern-count-other": "{0} lbf⋅ft"
+			},
+			"torque-newton-meter": {
+				"displayName": "N⋅m",
+				"unitPattern-count-other": "{0} N⋅m"
 			},
 			"volume-cubic-kilometer": {
 				"displayName": "ลบ.กม.",
@@ -4516,6 +4644,10 @@
 				"displayName": "ฟลูอิดออนซ์",
 				"unitPattern-count-other": "{0} ฟลูอิดออนซ์"
 			},
+			"volume-fluid-ounce-imperial": {
+				"displayName": "Imp. fl oz",
+				"unitPattern-count-other": "{0} fl oz Imp."
+			},
 			"volume-tablespoon": {
 				"displayName": "ชต.",
 				"unitPattern-count-other": "{0} ชต."
@@ -4523,6 +4655,10 @@
 			"volume-teaspoon": {
 				"displayName": "ชช.",
 				"unitPattern-count-other": "{0} ชช."
+			},
+			"volume-barrel": {
+				"displayName": "บาร์เรล",
+				"unitPattern-count-other": "{0} bbl"
 			},
 			"coordinateUnit": {
 				"displayName": "ทิศหลัก",
@@ -4532,6 +4668,25 @@
 				"west": "{0} ตต"
 			}
 		}
+	},
+	"lenient-scope-number": {
+		"minusSign": "-‒⁻₋−➖﹣－",
+		"commaSign": ",،٫、︐︑﹐﹑，､",
+		"plusSign": "+⁺₊➕﬩﹢＋"
+	},
+	"currencyFormat-sap-short": {
+		"1000-other": "0K ¤",
+		"10000-other": "00K ¤",
+		"100000-other": "000K ¤",
+		"1000000-other": "0M ¤",
+		"10000000-other": "00M ¤",
+		"100000000-other": "000M ¤",
+		"1000000000-other": "0B ¤",
+		"10000000000-other": "00B ¤",
+		"100000000000-other": "000B ¤",
+		"1000000000000-other": "0T ¤",
+		"10000000000000-other": "00T ¤",
+		"100000000000000-other": "000T ¤"
 	},
 	"currencyDigits": {
 		"ADP": 0,
@@ -4633,6 +4788,9 @@
 		},
 		"235": {
 			"_start": "1989-1-8"
+		},
+		"236": {
+			"_start": "2019-5-1"
 		}
 	},
 	"calendarPreference": "buddhist gregorian"

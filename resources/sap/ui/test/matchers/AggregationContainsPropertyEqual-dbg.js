@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,13 +8,23 @@ sap.ui.define([
 	"sap/ui/test/matchers/Matcher",
 	"sap/base/strings/capitalize",
 	"sap/ui/thirdparty/jquery"
-], function(Matcher, capitalize, jQueryDOM) {
+], function (Matcher, capitalize, jQueryDOM) {
 	"use strict";
 
 	/**
-	 * AggregationContainsPropertyEqual - checks if an aggregation contains at least one item that has a Property set to a certain value.
+	 * @class
+	 * Checks if an aggregation contains at least one item that has a property set to a certain value.
 	 *
-	 * @class AggregationContainsPropertyEqual - checks if an aggregation contains at least one item that has a Property set to a certain value
+	 * As of version 1.72, it is available as a declarative matcher with the following syntax:
+	 * <pre><code>{
+	 *     aggregationContainsPropertyEqual: {
+	 *         aggregationName: "string",
+	 *         propertyName: "string",
+	 *         propertyValue: "string"
+	 *     }
+	 * }
+	 * </code></pre>
+	 *
 	 * @extends sap.ui.test.matchers.Matcher
 	 * @param {object} [mSettings] optional map/JSON-object with initial settings for the new AggregationContainsPropertyEqualMatcher
 	 * @public
@@ -24,26 +34,26 @@ sap.ui.define([
 	 */
 	return Matcher.extend("sap.ui.test.matchers.AggregationContainsPropertyEqual", /** @lends sap.ui.test.matchers.AggregationContainsPropertyEqual.prototype */ {
 
-		metadata : {
-			publicMethods : [ "isMatching" ],
-			properties : {
+		metadata: {
+			publicMethods: ["isMatching"],
+			properties: {
 				/**
 				 * The Name of the aggregation that is used for matching.
 				 */
-				aggregationName : {
-					type : "string"
+				aggregationName: {
+					type: "string"
 				},
 				/**
 				 * The Name of the property that is used for matching.
 				 */
-				propertyName : {
-					type : "string"
+				propertyName: {
+					type: "string"
 				},
 				/**
 				 * The value of the Property that is used for matching.
 				 */
-				propertyValue : {
-					type : "any"
+				propertyValue: {
+					type: "any"
 				}
 			}
 		},
@@ -55,7 +65,7 @@ sap.ui.define([
 		 * @return {boolean} true if the Aggregation set in the property aggregationName is filled, false if it is not.
 		 * @public
 		 */
-		isMatching : function (oControl) {
+		isMatching: function (oControl) {
 			var sAggregationName = this.getAggregationName(),
 				sPropertyName = this.getPropertyName(),
 				vPropertyValue = this.getPropertyValue(),
@@ -63,6 +73,7 @@ sap.ui.define([
 
 			if (!fnAggregation) {
 				this._oLogger.error("Control '" + oControl + "' does not have an aggregation called '" + sAggregationName + "'");
+				this._oLogger.trace("Control '" + oControl + "' has aggregations: '" + Object.keys(oControl.mAggregations) + "'");
 				return false;
 			}
 
@@ -74,11 +85,12 @@ sap.ui.define([
 
 				//aggregation item does not have such a property
 				if (!fnPropertyGetter) {
+					this._oLogger.trace("Control '" + oControl + "' aggregation '" + sAggregationName + "': controls do not have a property '" + sPropertyName + "'");
 					return false;
 				}
 
 				return fnPropertyGetter.call(vAggregationItem) === vPropertyValue;
-			});
+			}.bind(this));
 
 			if (!bMatches) {
 				this._oLogger.debug("Control '" + oControl + "' has no property '" + sPropertyName + "' with the value '" +
@@ -91,4 +103,4 @@ sap.ui.define([
 
 	});
 
-}, /* bExport= */ true);
+});

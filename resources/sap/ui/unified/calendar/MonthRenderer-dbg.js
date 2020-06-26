@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar/CalendarDate', 'sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarLegendRenderer',
-	'sap/ui/core/library', 'sap/ui/unified/library', "sap/base/Log"],
-	function(CalendarUtils, CalendarDate, CalendarLegend, CalendarLegendRenderer, coreLibrary, library, Log) {
+	'sap/ui/core/library', 'sap/ui/unified/library', "sap/base/Log", 'sap/ui/core/InvisibleText'],
+	function(CalendarUtils, CalendarDate, CalendarLegend, CalendarLegendRenderer, coreLibrary, library, Log, InvisibleText) {
 	"use strict";
 
 
@@ -22,6 +22,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 	 * @namespace
 	 */
 	var MonthRenderer = {
+		apiVersion: 2
 	};
 
 	/**
@@ -32,55 +33,72 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 	 */
 	MonthRenderer.render = function(oRm, oMonth){
 
-		var oDate = this.getStartDate(oMonth);
-		var sTooltip = oMonth.getTooltip_AsString();
-		var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
-		var sId = oMonth.getId();
-		var oAriaLabel = {value: sId + "-Descr", append: true};
-		var sWidth = oMonth.getWidth();
+		var oDate = this.getStartDate(oMonth),
+			sTooltip = oMonth.getTooltip_AsString(),
+			rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified"),
+			sId = oMonth.getId(),
+			oAriaLabel = {value: "", append: true},
+			sDescribedBy = "",
+			sWidth = oMonth.getWidth();
 
-		oRm.write("<div");
-		oRm.writeControlData(oMonth);
-		oRm.addClass(this.getClass(oRm, oMonth));
+		oRm.openStart("div", oMonth);
+		this.getClass(oRm, oMonth).forEach(function (sClass) {
+			oRm.class(sClass);
+		});
 		if (oMonth._getSecondaryCalendarType()) {
-			oRm.addClass("sapUiCalMonthSecType");
+			oRm.class("sapUiCalMonthSecType");
 		}
-		oRm.writeClasses();
+
+		this.addWrapperAdditionalStyles(oRm, oMonth);
 
 		if (sTooltip) {
-			oRm.writeAttributeEscaped("title", sTooltip);
+			oRm.attr("title", sTooltip);
 		}
 
 		if (oMonth._getShowHeader()) {
 			oAriaLabel.value = oAriaLabel.value + " " + sId + "-Head";
 		}
 
-		if (sWidth) {
-			oRm.addStyle("width", sWidth);
-			oRm.writeStyles();
+		if (oMonth._bCalendar) {
+			sDescribedBy += " " + InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_MONTH_PICKER_OPEN_HINT") +
+				" " + InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_YEAR_PICKER_OPEN_HINT");
 		}
 
-		oRm.writeAccessibilityState(oMonth, {
+		if (sWidth) {
+			oRm.style("width", sWidth);
+		}
+
+		oRm.accessibilityState(oMonth, {
 			role: "grid",
-			readonly: "true",
+			roledescription: rb.getText("CALENDAR_DIALOG"),
 			multiselectable: !oMonth.getSingleSelection() || oMonth.getIntervalSelection(),
-			labelledby: oAriaLabel
+			labelledby: oAriaLabel,
+			describedby: sDescribedBy
 		});
 
-		oRm.write(">"); // div element
-
-		oRm.write("<span id=\"" + sId + "-Descr\" style=\"display: none;\">" + rb.getText("CALENDAR_DIALOG") + "</span>");
+		oRm.openEnd(); // div element
 
 		if (oMonth.getIntervalSelection()) {
-			oRm.write("<span id=\"" + sId + "-Start\" style=\"display: none;\">" + rb.getText("CALENDAR_START_DATE") + "</span>");
-			oRm.write("<span id=\"" + sId + "-End\" style=\"display: none;\">" + rb.getText("CALENDAR_END_DATE") + "</span>");
+			oRm.openStart("span", sId + "-Start");
+			oRm.style("display", "none");
+			oRm.openEnd();
+			oRm.text(rb.getText("CALENDAR_START_DATE"));
+			oRm.close("span");
+
+			oRm.openStart("span", sId + "-End");
+			oRm.style("display", "none");
+			oRm.openEnd();
+			oRm.text(rb.getText("CALENDAR_END_DATE"));
+			oRm.close("span");
 		}
 
 		this.renderMonth(oRm, oMonth, oDate);
 
-		oRm.write("</div>");
+		oRm.close("div");
 
 	};
+
+	MonthRenderer.addWrapperAdditionalStyles = function() {};
 
 	/**
 	 * @param {sap.ui.unified.calendar.Month} oMonth The month which start date will be returned
@@ -94,16 +112,16 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 
 	MonthRenderer.getClass = function(oRm, oMonth){
 
-		var sClasses = "sapUiCalMonthView",
+		var aClasses = ["sapUiCalMonthView"],
 			sCalendarType = oMonth.getPrimaryCalendarType(),
 			bShowWeekNumbers = oMonth.getShowWeekNumbers();
 
-		if (sCalendarType == CalendarType.Islamic || !bShowWeekNumbers) {
+		if (sCalendarType === CalendarType.Islamic || !bShowWeekNumbers) {
 			// on Islamic calendar week numbers are not used
-			sClasses = sClasses + " sapUiCalNoWeekNum";
+			aClasses.push("sapUiCalNoWeekNum");
 		}
 
-		return sClasses;
+		return aClasses;
 
 	};
 
@@ -113,17 +131,10 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 	 * @param {sap.ui.unified.calendar.CalendarDate} oDate The date which month and year will be set to the header
 	 */
 	MonthRenderer.renderMonth = function(oRm, oMonth, oDate){
-
-		var sId = oMonth.getId();
-
 		// header line
 		this.renderHeader(oRm, oMonth, oDate);
-
 		// days
-		oRm.write("<div id=\"" + sId + "-days\" class=\"sapUiCalItems\">"); // extra DIV around the days to allow rerendering only it's content
 		this.renderDays(oRm, oMonth, oDate);
-		oRm.write("</div>");
-
 	};
 
 	/**
@@ -135,30 +146,18 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 
 		var oLocaleData = oMonth._getLocaleData();
 		var iFirstDayOfWeek = oMonth._getFirstDayOfWeek();
-		var sId = oMonth.getId();
-		var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
 
 		// header
 		this.renderHeaderLine(oRm, oMonth, oLocaleData, oDate);
 
-		oRm.write("<div");
-		oRm.writeAttribute("id", sId + "-CW");
-		oRm.addStyle("display", "none");
-		oRm.writeStyles();
-		oRm.writeAccessibilityState(null, {role: "columnheader"});
-		oRm.write(">"); // div
-		oRm.write(rb.getText("CALENDAR_WEEK"));
-		oRm.write("</div>");
-
-		oRm.write("<div");
-		oRm.writeAccessibilityState(null, {role: "row"});
-		oRm.addStyle("overflow", "hidden");
-		oRm.writeStyles();
-		oRm.write(">"); // div
+		oRm.openStart("div");
+		oRm.accessibilityState(null, {role: "row"});
+		oRm.style("overflow", "hidden");
+		oRm.openEnd(); // div
 
 		this.renderDayNames(oRm, oMonth, oLocaleData, iFirstDayOfWeek, 7, true, undefined);
 
-		oRm.write("</div>");
+		oRm.close("div");
 
 	};
 
@@ -175,9 +174,12 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 			var sId = oMonth.getId();
 			var sCalendarType = oMonth.getPrimaryCalendarType();
 			var aMonthNames = oLocaleData.getMonthsStandAlone("wide", sCalendarType);
-			oRm.write("<div id=\"" + sId + "-Head\"class=\"sapUiCalHeadText\" >");
-			oRm.write(aMonthNames[oDate.getMonth()]);
-			oRm.write("</div>");
+
+			oRm.openStart("div", sId + "-Head");
+			oRm.class("sapUiCalHeadText");
+			oRm.openEnd(); // div
+			oRm.text(aMonthNames[oDate.getMonth()]);
+			oRm.close("div");
 		}
 
 	};
@@ -197,9 +199,11 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 		}
 		var aWeekDaysWide = oLocaleData.getDaysStandAlone("wide", sCalendarType);
 
+		if (oMonth.getShowWeekNumbers()) {
+			this.renderDummyCell(oRm, "sapUiCalWH", true, "columnheader");
+		}
+
 		for ( var i = 0; i < iDays; i++) {
-			oRm.write("<div");
-			oRm.addClass("sapUiCalWH");
 			if (bDayNumberAsId) {
 				// month mode -> use the day number as ID
 				sDayId = sId + "-WH" + ((i + iFirstDayOfWeek) % 7);
@@ -207,19 +211,18 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 				// just use counter as ID
 				sDayId = sId + "-WH" + i;
 			}
-			oRm.writeAttribute("id", sDayId );
-			if (i == 0) {
-				oRm.addClass("sapUiCalFirstWDay");
+			oRm.openStart("div", sDayId);
+			oRm.class("sapUiCalWH");
+			if (i === 0) {
+				oRm.class("sapUiCalFirstWDay");
 			}
 			if (sWidth) {
-				oRm.addStyle("width", sWidth);
+				oRm.style("width", sWidth);
 			}
-			oRm.writeAccessibilityState(null, {role: "columnheader", label: aWeekDaysWide[(i + iStartDay) % 7]});
-			oRm.writeClasses();
-			oRm.writeStyles();
-			oRm.write(">"); // div element
-			oRm.write(aWeekDays[(i + iStartDay) % 7]);
-			oRm.write("</div>");
+			oRm.accessibilityState(null, {role: "columnheader", label: aWeekDaysWide[(i + iStartDay) % 7]});
+			oRm.openEnd(); // div element
+			oRm.text(aWeekDays[(i + iStartDay) % 7]);
+			oRm.close("div");
 		}
 
 	};
@@ -235,7 +238,8 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 			aDays,
 			iLength,
 			oHelper,
-			i, iTimestamp,
+			i,
+			iTimestamp,
 			bShowWeekNumbers;
 
 		CalendarUtils._checkCalendarDate(oDate);
@@ -260,8 +264,46 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 
 		iLength = aDays.length;
 		for (i = 0; i < iLength; i++) {
+			if (i % 7 === 0) {
+				oRm.openStart("div");
+				oRm.attr("role", "row");
+				oRm.openEnd();
+
+				if (bWeekNum) {
+					this._renderWeekNumber(oRm, aDays[i], oHelper);
+				}
+			}
+
 			this.renderDay(oRm, oMonth, aDays[i], oHelper, true, bWeekNum, -1);
+
+			if (i % 7 === 6) {
+				oRm.close("div");
+			}
 		}
+
+		if (iLength === 28) {
+			// there are only 4 full weeks (28 days), add one hidden 'day' div in order to open space for 5-th week
+			this.renderDummyCell(oRm, "sapUiCalItem", false, "");
+		}
+	};
+
+	/**
+	 * Generates empty 'day' div that adds space for one more week in the calendar, in case of 4 full weeks only (28 days)
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
+	 * @param {string} sClassName css class that will be added to the dummy element styles
+	 * @param {boolean} bVisible if set to true the dummy element will be visible
+	 * @param {string} sRole aria role attribute
+	 * @private
+	 */
+	MonthRenderer.renderDummyCell = function(oRm, sClassName, bVisible, sRole) {
+		oRm.openStart("div");
+		oRm.class(sClassName);
+		oRm.class("sapUiCalDummy");
+		oRm.style("visibility", bVisible ? "visible" : "hidden");
+		oRm.attr("role", sRole);
+		oRm.attr("tabindex", "-1");
+		oRm.openEnd();
+		oRm.close('div');
 	};
 
 	/**
@@ -345,101 +387,86 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 			bEnabled = false;
 		}
 
-		var iWeekNumber = 0;
-		if (bWeekNum) {
-			iWeekNumber = CalendarUtils.calculateWeekNumber(oDay.toUTCJSDate(), oHelper.iYear, oHelper.sLocale, oHelper.oLocaleData);
-			mAccProps["describedby"] = oHelper.sId + "-CW" + " " + oHelper.sId + "-WNum-" +  iWeekNumber;
-		}
-
-		if (!bDayName) {
-			var sWHId = "";
-			if (iNumber < 0) {
-				sWHId = oHelper.sId + "-WH" + iWeekDay;
-			} else {
-				sWHId = oHelper.sId + "-WH" + iNumber;
-			}
-			mAccProps["describedby"] = mAccProps["describedby"] + " " + sWHId;
-		}
-
-		oRm.write("<div");
-		oRm.writeAttribute("id", oHelper.sId + "-" + sYyyymmdd);
-		oRm.addClass("sapUiCalItem");
-		oRm.addClass("sapUiCalWDay" + iWeekDay);
+		oRm.openStart("div", oHelper.sId + "-" + sYyyymmdd);
+		oRm.class("sapUiCalItem");
+		oRm.class("sapUiCalWDay" + iWeekDay);
 		if (sWidth) {
-			oRm.addStyle("width", sWidth);
+			oRm.style("width", sWidth);
 		}
-		if (iWeekDay == oHelper.iFirstDayOfWeek) {
-			oRm.addClass("sapUiCalFirstWDay");
+		if (iWeekDay === oHelper.iFirstDayOfWeek) {
+			oRm.class("sapUiCalFirstWDay");
 		}
-		if (bOtherMonth && oHelper.iMonth != oDay.getMonth()) {
-			oRm.addClass("sapUiCalItemOtherMonth");
+		if (bOtherMonth && oHelper.iMonth !== oDay.getMonth()) {
+			oRm.class("sapUiCalItemOtherMonth");
 			mAccProps["disabled"] = true;
 		}
 		if (oDay.isSame(oHelper.oToday)) {
-			oRm.addClass("sapUiCalItemNow");
+			oRm.class("sapUiCalItemNow");
 			mAccProps["label"] = oHelper.sToday + " ";
 		}
 
 		if (iSelected > 0) {
-			oRm.addClass("sapUiCalItemSel"); // day selected
+			oRm.class("sapUiCalItemSel"); // day selected
 			mAccProps["selected"] = true;
 		} else {
 			mAccProps["selected"] = false;
 		}
-		if (iSelected == 2) {
-			oRm.addClass("sapUiCalItemSelStart"); // interval start
+		if (iSelected === 2) {
+			oRm.class("sapUiCalItemSelStart"); // interval start
 			mAccProps["describedby"] = mAccProps["describedby"] + " " + oHelper.sId + "-Start";
-		} else if (iSelected == 3) {
-			oRm.addClass("sapUiCalItemSelEnd"); // interval end
+		} else if (iSelected === 3) {
+			oRm.class("sapUiCalItemSelEnd"); // interval end
 			mAccProps["describedby"] = mAccProps["describedby"] + " " + oHelper.sId + "-End";
-		} else if (iSelected == 4) {
-			oRm.addClass("sapUiCalItemSelBetween"); // interval between
-		} else if (iSelected == 5) {
-			oRm.addClass("sapUiCalItemSelStart"); // interval start
-			oRm.addClass("sapUiCalItemSelEnd"); // interval end
+		} else if (iSelected === 4) {
+			oRm.class("sapUiCalItemSelBetween"); // interval between
+		} else if (iSelected === 5) {
+			oRm.class("sapUiCalItemSelStart"); // interval start
+			oRm.class("sapUiCalItemSelEnd"); // interval end
 			mAccProps["describedby"] = mAccProps["describedby"] + " " + oHelper.sId + "-Start";
 			mAccProps["describedby"] = mAccProps["describedby"] + " " + oHelper.sId + "-End";
 		}
 
 		aDayTypes.forEach(function(oDayType) {
-			if (oDayType.type != CalendarDayType.None) {
+			if (oDayType.type !== CalendarDayType.None) {
 				if (oDayType.type === CalendarDayType.NonWorking) {
-					oRm.addClass("sapUiCalItemWeekEnd");
+					oRm.class("sapUiCalItemWeekEnd");
 					return;
 				}
-				oRm.addClass("sapUiCalItem" + oDayType.type);
+				oRm.class("sapUiCalItem" + oDayType.type);
 				sAriaType = oDayType.type;
 				if (oDayType.tooltip) {
-					oRm.writeAttributeEscaped('title', oDayType.tooltip);
+					oRm.attr('title', oDayType.tooltip);
 				}
 			}
 		});
 
 
 		//oMonth.getDate() is a public date object, so it is always considered local timezones.
-		if (oMonth.getParent() && oMonth.getParent().getMetadata().getName() === "sap.ui.unified.CalendarOneMonthInterval" && oDay.getMonth() !== oMonth.getStartDate().getMonth()){
-			oRm.addClass("sapUiCalItemOtherMonth");
+		if (((oMonth.getParent() && oMonth.getParent().getMetadata().getName() === "sap.ui.unified.CalendarOneMonthInterval")
+			|| (oMonth.getMetadata().getName() === "sap.ui.unified.calendar.OneMonthDatesRow"))
+			&& oMonth.getStartDate() && oDay.getMonth() !== oMonth.getStartDate().getMonth()) {
+			oRm.class("sapUiCalItemOtherMonth");
 		}
 
 		if (!bEnabled) {
-			oRm.addClass("sapUiCalItemDsbl"); // day disabled
+			oRm.class("sapUiCalItemDsbl"); // day disabled
 			mAccProps["disabled"] = true;
 		}
 
 		if (oHelper.aNonWorkingDays) {
 			for (i = 0; i < oHelper.aNonWorkingDays.length; i++) {
-				if (iWeekDay == oHelper.aNonWorkingDays[i]) {
-					oRm.addClass("sapUiCalItemWeekEnd");
+				if (iWeekDay === oHelper.aNonWorkingDays[i]) {
+					oRm.class("sapUiCalItemWeekEnd");
 					break;
 				}
 			}
 		} else if ((iWeekDay >= oHelper.iWeekendStart && iWeekDay <= oHelper.iWeekendEnd) ||
 				( oHelper.iWeekendEnd < oHelper.iWeekendStart && ( iWeekDay >= oHelper.iWeekendStart || iWeekDay <= oHelper.iWeekendEnd))) {
-			oRm.addClass("sapUiCalItemWeekEnd");
+			oRm.class("sapUiCalItemWeekEnd");
 		}
 
-		oRm.writeAttribute("tabindex", "-1");
-		oRm.writeAttribute("data-sap-day", sYyyymmdd);
+		oRm.attr("tabindex", "-1");
+		oRm.attr("data-sap-day", sYyyymmdd);
 		if (bDayName) {
 			mAccProps["label"] = mAccProps["label"] + oHelper.aWeekDaysWide[iWeekDay] + " ";
 		}
@@ -453,54 +480,64 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 			mAccProps["label"] = mAccProps["label"] + " " + oMonth._oFormatSecondaryLong.format(oSecondaryDay.toUTCJSDate(), true);
 		}
 
-		oRm.writeAccessibilityState(null, mAccProps);
-		oRm.writeClasses();
-		oRm.writeStyles();
-		oRm.write(">"); // div element
+		oRm.accessibilityState(null, mAccProps);
+		oRm.openEnd(); // div element
 
-		oRm.write("<span");
-		oRm.addClass("sapUiCalItemText");
-		oRm.writeClasses();
-		oRm.write(">"); // span
+		if (aDayTypes[0]){ //if there's a special date, render it
+			oRm.openStart("div");
+			oRm.class("sapUiCalSpecialDate");
+			if (aDayTypes[0].color) { // if there's a custom color, render it
+
+				oRm.style("background-color", aDayTypes[0].color);
+			}
+			oRm.openEnd(); // div
+			oRm.close("div");
+		}
+
+		oRm.openStart("span");
+		oRm.class("sapUiCalItemText");
+		if (!!aDayTypes[0] && aDayTypes[0].color) {
+			oRm.class("sapUiCalItemTextCustomColor");
+		}
+		oRm.openEnd(); // span
 
 		// Date text for days before 0001.01.01 should not be visible.
 		if (!bBeforeFirstYear) {
-			oRm.write(oDay.getDate());
+			oRm.text(oDay.getDate());
 		}
-		oRm.write("</span>");
-
-		if (bWeekNum && iWeekDay == oHelper.iFirstDayOfWeek) {
-			// add week number - inside first day of the week to allow better position and make it easier for ItemNavigation
-			oRm.write("<span");
-			oRm.writeAttribute("id", oHelper.sId + "-WNum-" +  iWeekNumber);
-			oRm.addClass("sapUiCalWeekNum");
-			oRm.writeClasses();
-			oRm.writeAccessibilityState(null, {role: "rowheader", desribedby: oHelper.sId + "-CW"});
-			oRm.write(">"); // span
-			oRm.write(iWeekNumber);
-			oRm.write("</span>");
-		}
+		oRm.close("span");
 
 		if (bDayName) {
-			oRm.write("<span");
-			oRm.addClass("sapUiCalDayName");
-			oRm.writeClasses();
-			oRm.write(">"); // span
-			oRm.write(oHelper.aWeekDays[iWeekDay]);
-			oRm.write("</span>");
+			oRm.openStart("span");
+			oRm.class("sapUiCalDayName");
+			oRm.openEnd(); // span
+			oRm.text(oHelper.aWeekDays[iWeekDay]);
+			oRm.close("span");
 		}
 
 		if (oHelper.sSecondaryCalendarType) {
-			oRm.write("<span");
-			oRm.addClass("sapUiCalItemSecText");
-			oRm.writeClasses();
-			oRm.write(">"); // span
-			oRm.write(oSecondaryDay.getDate());
-			oRm.write("</span>");
+			oRm.openStart("span");
+			oRm.class("sapUiCalItemSecText");
+			oRm.openEnd(); // span
+			oRm.text(oSecondaryDay.getDate());
+			oRm.close("span");
 		}
 
-		oRm.write("</div>");
+		oRm.close("div");
 
+	};
+
+	MonthRenderer._renderWeekNumber = function(oRm, oDay, oHelper) {
+		var iWeekNumber = CalendarUtils.calculateWeekNumber(oDay.toUTCJSDate(), oHelper.iYear, oHelper.sLocale, oHelper.oLocaleData),
+			sId = oHelper.sId + "-WNum-" + iWeekNumber;
+
+		// add week number - inside first day of the week to allow better position and make it easier for ItemNavigation
+		oRm.openStart("div", sId);
+		oRm.class("sapUiCalWeekNum");
+		oRm.accessibilityState(null, { role: "rowheader", labelledby: InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_WEEK") + " " +  sId});
+		oRm.openEnd(); // span
+		oRm.text(iWeekNumber);
+		oRm.close("div");
 	};
 
 	return MonthRenderer;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.unified.MenuItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -103,12 +103,18 @@ sap.ui.define([
 
 		rm.write("<li ");
 		rm.writeAttribute("class", sClass);
+
+		if (!bIsEnabled) {
+			rm.writeAttribute("disabled", "disabled");
+		}
+
 		rm.writeElementData(oItem);
 
 		// ARIA
 		if (oInfo.bAccessible) {
 			rm.writeAttribute("role", "menuitem");
-			rm.writeAttribute("aria-disabled", !bIsEnabled);
+			rm.writeAttribute("aria-posinset", oInfo.iItemNo);
+			rm.writeAttribute("aria-setsize", oInfo.iTotalItems);
 		}
 
 		// Left border
@@ -137,11 +143,9 @@ sap.ui.define([
 		if (oInfo.bAccessible) {
 			rm.writeAccessibilityState(oItem, {
 				role: "textbox",
-				disabled: !bIsEnabled,
+				disabled: null, // Prevent aria-disabled as a disabled attribute is enough
 				multiline: false,
 				autocomplete: "none",
-				posinset: oInfo.iItemNo,
-				setsize: oInfo.iTotalItems,
 				labelledby: {value: /*oMenu.getId() + "-label " + */itemId + "-lbl", append: true}
 			});
 		}
@@ -159,23 +163,16 @@ sap.ui.define([
 
 		if (bHovered && oMenu.checkEnabled(this)) {
 			oMenu.closeSubmenu(false, true);
-			/* TODO remove after 1.62 version */
-			if (Device.browser.msie) {
-				setTimeout(function () {
-					var fnMethod = function () {
-						this.$("tf").focus();
-					}.bind(this);
-					if (typeof fnMethod === "string" || fnMethod instanceof String) {
-						fnMethod = this[fnMethod];
-					}
-					fnMethod.apply(this, []);
-				}.bind(this), 0);
-			} else {
-				this.$("tf").focus();
-			}
 		}
 	};
 
+	MenuTextFieldItem.prototype.focus = function(oMenu){
+		if (this.getEnabled() && this.getVisible()) {
+			this.$("tf").trigger("focus");
+		} else {
+			oMenu.focus();
+		}
+	};
 
 	MenuTextFieldItem.prototype.onAfterRendering = function(){
 		this._adaptSizes();
@@ -247,7 +244,7 @@ sap.ui.define([
 
 	MenuTextFieldItem.prototype.onkeyup = function(oEvent){
 		//like sapenter but on keyup -> see Menu.prototype.onkeyup
-		if (!PseudoEvents.events.sapenter.fnCheck(oEvent)) {
+		if (!PseudoEvents.events.sapenter.fnCheck(oEvent) && oEvent.key !== "Enter") {
 			return;
 		}
 		var sValue = this.$("tf").val();

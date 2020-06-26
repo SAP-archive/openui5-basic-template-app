@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,7 +15,8 @@ sap.ui.define([
 	'sap/m/Label',
 	'sap/m/Link',
 	'sap/ui/core/HTML',
-	'sap/ui/core/Title'
+	'sap/ui/core/Title',
+	"sap/ui/thirdparty/jquery"
 ],
     function(
 		ManagedObject,
@@ -28,7 +29,8 @@ sap.ui.define([
 	   Label,
 	   Link,
 	   HTML,
-	   Title
+	   Title,
+	   jQuery
 	) {
        'use strict';
 
@@ -146,7 +148,7 @@ sap.ui.define([
           this.gridContainer = jQuery('.sapUiInteractionTreeContainer .sapUiInteractionGridLinesContainer');
           this.gridContainerWidth = 0;
 
-          interactionTree.bind('click', function (event) {
+          interactionTree.on('click', function (event) {
 
              var $target = jQuery(event.target);
 
@@ -155,11 +157,11 @@ sap.ui.define([
              }
           });
 
-          this.gridContainer.resize(function (event) {
+          this.gridContainer.on("resize", function (event) {
              that.updateGridLines();
           });
 
-          jQuery(window).resize(function (event) {
+          jQuery(window).on("resize", function (event) {
              that.updateGridLines();
           });
 
@@ -686,7 +688,7 @@ sap.ui.define([
              }).addStyleClass('sapUiSupportPopover');
 
              oPopover.attachAfterOpen(function(oEvent){
-                oEvent.getSource().$().focus();
+                oEvent.getSource().$().trigger("focus");
              });
 
              return oPopover;
@@ -829,7 +831,7 @@ sap.ui.define([
              }).addStyleClass('sapUiSupportPopover');
 
              oPopover.attachAfterOpen(function(oEvent){
-                oEvent.getSource().$().focus();
+                oEvent.getSource().$().trigger("focus");
              });
              return oPopover;
           }

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,8 +28,7 @@ sap.ui.define(["sap/base/Log", "sap/base/util/defineLazyProperty", "sap/ui/third
 					"denormalizeScrollBeginRTL",
 					"ownerWindow",
 					"scrollbarSize",
-					"syncStyleClass",
-					"replaceDOM"
+					"syncStyleClass"
 				],
 				"jquery.sap.encoder": [
 					"encodeHTML",
@@ -202,7 +201,7 @@ sap.ui.define(["sap/base/Log", "sap/base/util/defineLazyProperty", "sap/ui/third
 			}
 		},
 		"jQuery Selector :": {
-			target: jQuery.expr[":"],
+			target: jQuery.expr.pseudos,
 			stubs: {
 				"sap/ui/dom/jquery/Selectors": [
 					"focusable",

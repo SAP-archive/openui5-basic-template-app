@@ -3,10 +3,17 @@
 }
 
 .sapUiLayoutCSSGridBoxLayoutPolyfill {
+	white-space: normal; // 1980317947
+
 	> .sapUiLayoutCSSGridItem {
 		display: inline-block;
 		vertical-align: top;
 		margin: 0 0.5rem 0.5rem 0;
+
+		.sapUiDnDGridIndicator {
+			display: inline-block;
+			margin: 0 0.5rem 0.5rem 0;
+		}
 	}
 
 	.sapMGHLI {
@@ -63,4 +70,39 @@
 
 .sapUiLayoutCSSGridItem.sapUiLayoutCSSGridItemLastOnRow {
 	margin-right: 0;
+}
+
+.sapUiLayoutCSSGrid .sapUiBlockLayerTabbable {
+	// There are "span" helpers, which purpose is to block navigation into the blocked controls content.
+	// If the focus reaches the span before the blocked/busy control it is forwarded to the one after the control.
+	// These spans should not be visible.
+	position: absolute;
+}
+
+/* ResponsiveColumnLayout */
+.sapUiLayoutCSSResponsiveColumnLayoutGrid {
+	.sapUiLayoutCSSResponsiveColumnLayoutS &,
+	.sapUiLayoutCSSResponsiveColumnLayoutS& {
+		grid-template-columns: repeat(4, minmax(0px, 1fr));
+		grid-gap: 0.5rem 0.5rem;
+	}
+	.sapUiLayoutCSSResponsiveColumnLayoutM &,
+	.sapUiLayoutCSSResponsiveColumnLayoutM& {
+		grid-template-columns: repeat(8, minmax(0px, 1fr));
+		grid-gap: 1rem 1rem;
+	}
+	.sapUiLayoutCSSResponsiveColumnLayoutL &,
+	.sapUiLayoutCSSResponsiveColumnLayoutL& {
+		grid-template-columns: repeat(12, minmax(0px, 1fr));
+		grid-gap: 1rem 1rem;
+	}
+	.sapUiLayoutCSSResponsiveColumnLayoutXL &,
+	.sapUiLayoutCSSResponsiveColumnLayoutXL& {
+		grid-template-columns: repeat(16, minmax(0px, 1fr));
+		grid-gap: 1rem 1rem;
+	}
+}
+
+.sapUiLayoutCSSResponsiveColumnLayoutGridPolyfill {
+	position: relative;
 }

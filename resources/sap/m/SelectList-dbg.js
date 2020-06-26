@@ -1,21 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.SelectList.
 sap.ui.define([
 	'./library',
+	'sap/ui/core/Core',
 	'sap/ui/core/Control',
 	'sap/ui/core/delegate/ItemNavigation',
 	'sap/ui/core/Item',
 	'./SelectListRenderer',
+	'sap/base/Log',
 	"sap/ui/thirdparty/jquery",
 	// jQuery Plugin "control"
 	"sap/ui/dom/jquery/control"
 ],
-	function(library, Control, ItemNavigation, Item, SelectListRenderer, jQuery) {
+	function(library, Core, Control, ItemNavigation, Item, SelectListRenderer, Log, jQuery) {
 		"use strict";
 
 		// shortcut for sap.m.touch
@@ -35,7 +37,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -528,29 +530,15 @@ sap.ui.define([
 		 * @protected
 		 */
 		SelectList.prototype.setSelection = function(vItem) {
-			var oSelectedItem = this.getSelectedItem(),
-				CSS_CLASS = this.getRenderer().CSS_CLASS;
-
 			this.setAssociation("selectedItem", vItem, true);
-			this.setProperty("selectedItemId", (vItem instanceof Item) ? vItem.getId() : vItem, true);
+			this.setProperty("selectedItemId", (vItem instanceof Item) ? vItem.getId() : vItem);
 
 			if (typeof vItem === "string") {
-				vItem = sap.ui.getCore().byId(vItem);
+				vItem = Core.byId(vItem);
 			}
 
 			this.setProperty("selectedKey", vItem ? vItem.getKey() : "", true);
-
-			if (oSelectedItem) {
-				oSelectedItem.$().removeClass(CSS_CLASS + "ItemBaseSelected")
-								.attr("aria-selected", "false");
-			}
-
-			oSelectedItem = this.getSelectedItem();
-
-			if (oSelectedItem) {
-				oSelectedItem.$().addClass(CSS_CLASS + "ItemBaseSelected")
-								.attr("aria-selected", "true");
-			}
+			return this;
 		};
 
 		/*
@@ -588,7 +576,13 @@ sap.ui.define([
 			// the aggregation items is not bound or
 			// it is bound and the data is already available
 			} else if (bForceSelection && this.getDefaultSelectedItem() && (!this.isBound("items") || this.bItemsUpdated)) {
-				this.setSelection(this.getDefaultSelectedItem());
+				try {
+					this.setSelection(this.getDefaultSelectedItem());
+				} catch (e) {
+					Log.warning('Update failed due to exception. Loggable in support mode log', null, null, function () {
+						return { exception: e };
+					});
+				}
 			}
 		};
 
@@ -856,7 +850,7 @@ sap.ui.define([
 
 			if (typeof vItem === "string") {
 				this.setAssociation("selectedItem", vItem, true);
-				vItem = sap.ui.getCore().byId(vItem);
+				vItem = Core.byId(vItem);
 			}
 
 			if (!(vItem instanceof Item) && vItem !== null) {
@@ -921,7 +915,7 @@ sap.ui.define([
 		 */
 		SelectList.prototype.getSelectedItem = function() {
 			var vSelectedItem = this.getAssociation("selectedItem");
-			return (vSelectedItem === null) ? null : sap.ui.getCore().byId(vSelectedItem) || null;
+			return (vSelectedItem === null) ? null : Core.byId(vSelectedItem) || null;
 		};
 
 		/**

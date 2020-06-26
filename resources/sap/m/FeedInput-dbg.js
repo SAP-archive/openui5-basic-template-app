@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,7 +33,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -250,6 +250,15 @@ sap.ui.define([
 
 	FeedInput.prototype.setEnabled = function (bEnabled) {
 		this.setProperty("enabled", bEnabled, true);
+
+	  //Dynamically adding or removing the css
+        if (this.getDomRef("outerContainer")) {
+			if (bEnabled) {
+				this.getDomRef("outerContainer").classList.remove("sapMFeedInDisabled");
+			} else {
+				this.getDomRef("outerContainer").classList.add("sapMFeedInDisabled");
+			}
+		}
 		this._getTextArea().setEnabled(bEnabled);
 		this._enablePostButton();
 		return this;

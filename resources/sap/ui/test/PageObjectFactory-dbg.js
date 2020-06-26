@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,7 +13,7 @@ sap.ui.define([
 		"use strict";
 
 		/**
-		 * @class Page Object Factory
+		 * @class Page Object Factory.
 		 * @extends sap.ui.base.Object
 		 * @protected
 		 * @alias sap.ui.test.PageObjectFactory
@@ -23,16 +23,17 @@ sap.ui.define([
 		var PageObjectFactory = Ui5Object.extend("sap.ui.test.PageObjectFactory");
 
 		/**
-		 * Create page objects and add them to OPA configuration
-		 * A page object consists of arrangements, actions and assertions
-		 * Use page objects to separate your arrangements, actions and assertions based on parts of the screen to avoid name clashes and help structuring your tests.
+		 * Creates a set of page objects, each consisting of actions and assertions, and adds them to
+		 * the Opa configuration.
+		 *
+		 * Use page objects to structure your actions and assertions based on parts of the screen.
+		 * This helps to avoid name clashes and to structure your tests.
+		 *
 		 * @see sap.ui.test.Opa5.createPageObjects
 		 * @protected
-		 * @function
-		 * @param {object} mPageDefinitions definitions of 1 or more page objects
-		 * @param {sap.ui.test.Opa5} Opa5 Opa5 prototype - avoid circular dependency
-		 * @returns {object} page objects
-		 * @static
+		 * @param {Object<string,sap.ui.test.PageObjectDefinition>} mPageDefinitions Definitions of 1 or more page objects
+		 * @param {sap.ui.test.Opa5} Opa5 Opa5 class, provided as parameter to avoid a circular dependency
+		 * @returns {Object<string,Object>} Map of created page objects
 		 */
 		PageObjectFactory.create = function(mPageDefinitions, Opa5) {
 			var mPageObjects = {};

@@ -1,17 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],
-	function() {
+sap.ui.define([
+		"sap/ui/core/InvisibleText"
+	],
+	function(InvisibleText) {
 	"use strict";
 
 	/**
 	 * PlanningCalendar renderer.
 	 * @namespace
 	 */
-	var PlanningCalendarRenderer = {};
+	var PlanningCalendarRenderer = {
+		apiVersion: 2
+	};
 
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
@@ -23,61 +27,79 @@ sap.ui.define([],
 
 		var sId = oPC.getId();
 		var sTooltip = oPC.getTooltip_AsString();
+		var oHeader = oPC._getHeader();
 
-		oRm.write("<div");
-		oRm.writeControlData(oPC);
-		oRm.addClass("sapMPlanCal");
+		oRm.openStart("div", oPC);
+		oRm.class("sapMPlanCal");
+		oRm.accessibilityState({
+			role: "region",
+			labelledby: InvisibleText.getStaticId("sap.m", "PLANNINGCALENDAR")
+		});
+		this.addAdditionalClasses(oRm, oPC);
 		if (oPC._iSize !== undefined && oPC._iSize !== null) {
-			oRm.addClass("sapMSize" + oPC._iSize);
+			oRm.class("sapMSize" + oPC._iSize);
 		}
 
 		if (!oPC.getSingleSelection()) {
-			oRm.addClass("sapMPlanCalMultiSel");
+			oRm.class("sapMPlanCalMultiSel");
 		}
 
 		if (!oPC.getShowRowHeaders()) {
-			oRm.addClass("sapMPlanCalNoHead");
+			oRm.class("sapMPlanCalNoHead");
 		}
 
 		if (oPC.getShowWeekNumbers() && oPC._viewAllowsWeekNumbers(oPC.getViewKey())) {
-			oRm.addClass("sapMPlanCalWithWeekNumbers");
+			oRm.class("sapMPlanCalWithWeekNumbers");
 		}
 
 		if (oPC.getShowDayNamesLine() && oPC._viewAllowsDayNamesLine(oPC.getViewKey())) {
-			oRm.addClass("sapMPlanCalWithDayNamesLine");
+			oRm.class("sapMPlanCalWithDayNamesLine");
 		}
 
 		if (sTooltip) {
-			oRm.writeAttributeEscaped('title', sTooltip);
+			oRm.attr('title', sTooltip);
 		}
 
 		var sWidth = oPC.getWidth();
 		if (sWidth) {
-			oRm.addStyle("width", sWidth);
+			oRm.style("width", sWidth);
 		}
 
 		var sHeight = oPC.getHeight();
 		if (sHeight) {
-			oRm.addStyle("height", sHeight);
+			oRm.style("height", sHeight);
 		}
 
-		oRm.writeAccessibilityState(oPC);
+		oRm.accessibilityState(oPC);
+		oRm.openEnd(); // div element
 
-		oRm.writeClasses();
-		oRm.writeStyles();
-		oRm.write(">"); // div element
+		oRm.renderControl(oHeader);
 
 		var oTable = oPC.getAggregation("table");
 		oRm.renderControl(oTable);
 
 		var sAriaText = oPC._oRB.getText("PLANNINGCALENDAR");
-		oRm.write("<span id=\"" + sId + "-Descr\" class=\"sapUiInvisibleText\">" + sAriaText + "</span>");
+		oRm.openStart("span", sId + "-Descr");
+		oRm.class("sapUiInvisibleText");
+		oRm.openEnd(); //span
+		oRm.text(sAriaText);
+		oRm.close("span");
 
 		sAriaText = oPC._oRB.getText("PLANNINGCALENDAR_VIEW");
-		oRm.write("<span id=\"" + sId + "-SelDescr\" class=\"sapUiInvisibleText\">" + sAriaText + "</span>");
-
-		oRm.write("</div>");
+		oRm.openStart("span", sId + "-SelDescr");
+		oRm.class("sapUiInvisibleText");
+		oRm.openEnd(); //span
+		oRm.text(sAriaText);
+		oRm.close("span");
+		oRm.close("div");
 	};
+
+	/**
+	 * A hook for extended classes to include additional classes.
+	 *
+	 * @private
+	 */
+	PlanningCalendarRenderer.addAdditionalClasses = function () {};
 
 	return PlanningCalendarRenderer;
 

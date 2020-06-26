@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,7 +27,8 @@ sap.ui.define([
 	"sap/base/util/deepClone",
 	"sap/base/util/deepEqual",
 	"sap/base/util/uid",
-	"sap/ui/thirdparty/jquery"
+	"sap/base/util/extend",
+	"sap/base/util/isEmptyObject"
 ], function(
 	BindingParser,
 	DataType,
@@ -50,7 +51,8 @@ sap.ui.define([
 	deepClone,
 	deepEqual,
 	uid,
-	jQuery
+	extend,
+	isEmptyObject
 ) {
 
 	"use strict";
@@ -71,12 +73,6 @@ sap.ui.define([
 	 * of the current class and its base classes. Note that for 0..n aggregations and associations this
 	 * name usually is the plural name, whereas it is the singular name in case of 0..1 relations.
 	 *
-	 * If a key name is ambiguous for a specific managed object class (e.g. a property has the same
-	 * name as an event), then this method prefers property, aggregation, association and
-	 * event in that order. To resolve such ambiguities, the keys can be prefixed with
-	 * <code>aggregation:</code>, <code>association:</code> or <code>event:</code>
-	 * (such keys containing a colon (':') must be quoted to be valid Javascript).
-	 *
 	 * The possible values for a setting depend on its kind:
 	 * <ul>
 	 * <li>for simple properties, the value has to match the documented type of the property (no type conversion occurs)</li>
@@ -84,8 +80,12 @@ sap.ui.define([
 	 * <li>for 0..n aggregations, the value has to be an array of instances of the aggregated type or a single instance</li>
 	 * <li>for 0..1 associations, an instance of the associated type or an id (string) is accepted</li>
 	 * <li>for 0..n associations, an array of instances of the associated type or of IDs is accepted</li>
-	 * <li>for events either a function (event handler) is accepted or an array of length 2
-	 *     where the first element is a function and the 2nd element is an object to invoke the method on.</li>
+	 * <li>for events, either a function (event handler) is accepted or an array of length 2
+	 *     where the first element is a function and the 2nd element is an object to invoke the method on;
+	 *     or an array of length 3, where the first element is an arbitrary payload object, the
+	 *     second one is a function and the 3rd one is an object to invoke the method on;
+	 *     or an array of arrays where each nested array has the 2 or 3 element structure
+	 *     described before (multiple listeners).</li>
 	 * </ul>
 	 *
 	 * Each subclass should document the name and type of its supported settings in its constructor documentation.
@@ -165,7 +165,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @abstract
-	 * @class Base Class that introduces some basic concepts like state management or databinding.
+	 * @class Base Class that introduces some basic concepts, such as, state management and data binding.
 	 *
 	 * New subclasses of ManagedObject are created with a call to {@link #.extend ManagedObject.extend} and can make use
 	 * of the following managed features:
@@ -266,7 +266,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @public
 	 * @alias sap.ui.base.ManagedObject
 	 */
@@ -645,10 +645,15 @@ sap.ui.define([
 	 * The value can either be a simple string which then will be assumed to be the type of the new property or it can be
 	 * an object literal with the following properties
 	 * <ul>
-	 * <li><code>type: <i>string</i></code> type of the new property. Must either be one of the built-in types 'string',
-	 *     'boolean', 'int', 'float', 'object', 'array', 'function' or 'any', or a type created and registered with
-	 *     {@link sap.ui.base.DataType.createType} or an array type based on one of the previous types.</li>
-	 * <li><code>byValue: <i>boolean<i></code> (either can be omitted or set to the boolean value <code>true</code>)
+	 * <li><code>type: <i>string</i></code> type of the new property. Must either be one of the built-in types
+	 *     'string', 'boolean', 'int', 'float', 'object', 'function' or 'any', or a type created and registered with
+	 *     {@link sap.ui.base.DataType.createType} or an array type based on one of the previous types (e.g. 'int[]'
+	 *     or 'string[]', but not just 'array').</li>
+	 * <li><code>visibility: <i>string</i></code> either 'hidden' or 'public', defaults to 'public'. Properties that
+	 *     belong to the API of a class must be 'public' whereas 'hidden' properties can only be used internally.
+	 *     Only public properties are accepted by the constructor or by <code>applySettings</code> or in declarative
+	 *     representations like an <code>XMLView</code>. Equally, only public properties are cloned.</li>
+	 * <li><code>byValue: <i>boolean</i></code> (either can be omitted or set to the boolean value <code>true</code>)
 	 *     If set to <code>true</code>, the property value will be {@link module:sap/base/util/deepClone deep cloned}
 	 *     on write and read operations to ensure that the internal value can't be modified by the outside. The property
 	 *     <code>byValue</code> is currently limited to a <code>boolean</code> value. Other types are reserved for future
@@ -700,6 +705,7 @@ sap.ui.define([
 	 * <li>bindFoo(c) - (only if property was defined to be 'bindable'): convenience function that wraps {@link #bindProperty}</li>
 	 * <li>unbindFoo() - (only if property was defined to be 'bindable'): convenience function that wraps {@link #unbindProperty}</li>
 	 * </ul>
+	 * For hidden properties, no methods are generated.
 	 *
 	 *
 	 * <b>'defaultProperty'</b> : <i>string</i><br>
@@ -712,14 +718,17 @@ sap.ui.define([
 	 * The value can either be a simple string which then will be assumed to be the type of the new aggregation or it can be
 	 * an object literal with the following properties
 	 * <ul>
-	 * <li><code>type: <i>string</i></code> type of the new aggregation. must be the full global name of a ManagedObject subclass (in dot notation, e.g. 'sap.m.Button')</li>
+	 * <li><code>type: <i>string</i></code> type of the new aggregation. must be the full global name of a ManagedObject subclass or UI5 interface (in dot notation, e.g. 'sap.m.Button')</li>
 	 * <li><code>[multiple]: <i>boolean</i></code> whether the aggregation is a 0..1 (false) or a 0..n aggregation (true), defaults to true </li>
 	 * <li><code>[singularName]: <i>string</i></code>. Singular name for 0..n aggregations. For 0..n aggregations the name by convention should be the plural name.
 	 *     Methods affecting multiple objects in an aggregation will use the plural name (e.g. getItems(), whereas methods that deal with a single object will use
 	 *     the singular name (e.g. addItem). The framework knows a set of common rules for building plural form of English nouns and uses these rules to determine
 	 *     a singular name on its own. if that name is wrong, a singluarName can be specified with this property. </li>
-	 * <li><code>[visibility]: <i>string</i></code> either 'hidden' or 'public', defaults to 'public'. Aggregations that belong to the API of a class must be 'public' whereas
-	 *     'hidden' aggregations typically are used for the implementation of composite classes (e.g. composite controls) </li>
+	 * <li><code>[visibility]: <i>string</i></code> either 'hidden' or 'public', defaults to 'public'. Aggregations that
+	 *     belong to the API of a class must be 'public' whereas 'hidden' aggregations typically are used for the
+	 *     implementation of composite classes (e.g. composite controls). Only public aggregations are accepted by
+	 *     the constructor or by <code>applySettings</code> or in declarative representations like an <code>XMLView</code>.
+	 *     Equally, only public aggregations are cloned.</li>
 	 * <li><code>bindable: <i>boolean|string</i></code> (either can be omitted or set to the boolean value <code>true</code> or the magic string 'bindable')
 	 *     If set to <code>true</code> or 'bindable', additional named methods <code>bind<i>Name</i></code> and <code>unbind<i>Name</i></code> are generated as convenience.
 	 *     Despite its name, setting this flag is not mandatory to make the managed aggregation bindable. The generic methods {@link #bindAggregation} and
@@ -810,7 +819,7 @@ sap.ui.define([
 	 * <li>bindItems(c) - (only if aggregation was defined to be 'bindable'): convenience function that wraps {@link #bindAggregation}</li>
 	 * <li>unbindItems() - (only if aggregation was defined to be 'bindable'): convenience function that wraps {@link #unbindAggregation}</li>
 	 * </ul>
-	 * For private or hidden aggregations, no methods are generated.
+	 * For hidden aggregations, no methods are generated.
 	 *
 	 *
 	 * <b>'defaultAggregation'</b> : <i>string</i><br>
@@ -837,6 +846,10 @@ sap.ui.define([
 	 *     Methods affecting multiple objects in an association will use the plural name (e.g. getItems(), whereas methods that deal with a single object will use
 	 *     the singular name (e.g. addItem). The framework knows a set of common rules for building plural form of English nouns and uses these rules to determine
 	 *     a singular name on its own. if that name is wrong, a singluarName can be specified with this property.</li>
+	 * <li><code>visibility: <i>string</i></code> either 'hidden' or 'public', defaults to 'public'. Associations that
+	 *     belong to the API of a class must be 'public' whereas 'hidden' associations can only be used internally.
+	 *     Only public associations are accepted by the constructor or by <code>applySettings</code> or in declarative
+	 *     representations like an <code>XMLView</code>. Equally, only public associations are cloned.</li>
 	 * </ul>
 	 * Association names should use camelCase notation, start with a lowercase letter and only use characters from the set [a-zA-Z0-9_$].
 	 * If an association in the literal is preceded by a JSDoc comment (doclet) and if the UI5 plugin and template are used for JSDoc3 generation, the doclet will
@@ -855,6 +868,7 @@ sap.ui.define([
 	 * <li>removeRef(v) - removes an object from the association 'items'. Internally calls {@link #removeAssociation}</li>
 	 * <li>removeAllRefs() - removes all objects from the association 'items'. Internally calls {@link #removeAllAssociation}</li>
 	 * </ul>
+	 * For hidden associations, no methods are generated.
 	 *
 	 *
 	 * <b>'events'</b> : <i>object</i><br>
@@ -1008,7 +1022,7 @@ sap.ui.define([
 	 * @param {Object} [oThisArg=undefined] Value to use as <code>this</code> when executing <code>fn</code>
 	 * @returns {any} Returns the value that <code>fn</code> returned after execution
 	 * @private
-	 * @sap-restricted sap.ui.base,sap.ui.core
+	 * @ui5-restricted sap.ui.base,sap.ui.core
 	 */
 	ManagedObject.runWithPreprocessors = function(fn, oPreprocessors, oThisArg) {
 		assert(typeof fn === "function", "fn must be a function");
@@ -1051,7 +1065,7 @@ sap.ui.define([
 	ManagedObject.prototype.applySettings = function(mSettings, oScope) {
 
 		// PERFOPT: don't retrieve (expensive) JSONKeys if no settings are given
-		if ( !mSettings || jQuery.isEmptyObject(mSettings) ) {
+		if ( !mSettings || isEmptyObject(mSettings) ) {
 			return this;
 		}
 
@@ -1073,6 +1087,10 @@ sap.ui.define([
 					that[oKeyInfo._sMutator](makeObject(vObject, oKeyInfo, oScope));
 				}
 			}
+		}
+
+		function attachListener(aArgs) {
+			that[oKeyInfo._sMutator](aArgs[0], aArgs[1], aArgs[2]);
 		}
 
 		// checks whether given type name has an object/any primitive type
@@ -1195,8 +1213,10 @@ sap.ui.define([
 				case 5: // EVENT
 					if ( typeof oValue == "function" ) {
 						this[oKeyInfo._sMutator](oValue);
+					} else if (Array.isArray(oValue[0]) && (oValue.length <= 1 || Array.isArray(oValue[1])) ) {
+						oValue.forEach(attachListener);
 					} else {
-						this[oKeyInfo._sMutator](oValue[0], oValue[1], oValue[2]);
+						attachListener(oValue);
 					}
 					break;
 				case -1: // SPECIAL_SETTING
@@ -1321,6 +1341,8 @@ sap.ui.define([
 
 		// check whether property is bound and update model in case of two way binding
 		this.updateModelProperty(sPropertyName, oValue, oOldValue);
+		// refresh new value as model might have changed it
+		oValue = this.mProperties[sPropertyName];
 
 		// fire property change event (experimental, only for internal use)
 		if ( this.mEventRegistry["_change"] ) {
@@ -2409,10 +2431,19 @@ sap.ui.define([
 
 
 	/**
-	 * This triggers rerendering of itself and its children.
+	 * Marks this object and its aggregated children as 'invalid'.
 	 *
-	 * As <code>sap.ui.base.ManagedObject</code> "bubbles up" the invalidate, changes to
-	 * child-<code>Elements</code> will also result in rerendering of the whole sub tree.
+	 * The term 'invalid' originally was introduced by controls where a change to the object's state made the
+	 * rendered DOM <i>invalid</i>. Later, the concept of invalidation was moved up in the inheritance hierarchy
+	 * to <code>ManagedObject</code>, but the term was kept for compatibility reasons.
+	 *
+	 * Managed settings (properties, aggregations, associations) invalidate the corresponding object automatically.
+	 * Changing the state via the standard mutators, therefore, does not require an explicit call to <code>invalidate</code>.
+	 * The same applies to changes made via data binding, as it internally uses the standard mutators.
+	 *
+	 * By default, a <code>ManagedObject</code> propagates any invalidation to its parent. Controls or UIAreas
+	 * handle invalidation on their own by triggering a re-rendering.
+	 *
 	 * @protected
 	 */
 	ManagedObject.prototype.invalidate = function() {
@@ -2521,13 +2552,15 @@ sap.ui.define([
 	 */
 	ManagedObject.prototype.setParent = function(oParent, sAggregationName, bSuppressInvalidate) {
 		assert(oParent == null || oParent instanceof ManagedObject, "oParent either must be null, undefined or a ManagedObject");
+		var observer;
 
 		if ( !oParent ) {
 
 			//fire aggregation lifecycle event on current parent as the control is removed, but not inserted to a new parent
 			if (this.oParent) {
-				if (this.oParent._observer) {
-					this.oParent._observer.aggregationChange(this.oParent, this.sParentAggregationName, "remove", this);
+				observer = this._observer || this.oParent._observer;
+				if (observer) {
+					observer.parentChange(this,this.sParentAggregationName,"unset", this.oParent);
 				}
 
 				// "this" is now moved to a different place; remove any forwarding information
@@ -2564,12 +2597,12 @@ sap.ui.define([
 
 			this._oContextualSettings = ManagedObject._defaultContextualSettings;
 			if (!this._bIsBeingDestroyed) {
-				setTimeout(function() {
+				Promise.resolve().then(function() {
 					// if object is being destroyed or parent is set again (move) no propagation is needed
 					if (!this.oParent) {
 						this._propagateContextualSettings();
 					}
-				}.bind(this), 0);
+				}.bind(this));
 			}
 
 			ActivityDetection.refresh();
@@ -2602,19 +2635,21 @@ sap.ui.define([
 		this.oParent = oParent;
 		this.sParentAggregationName = sAggregationName;
 
-		//get properties to propagate - get them from the original API parent in case this control was moved by aggregation forwarding
-		var oPropagatedProperties = this.aAPIParentInfos ? this.aAPIParentInfos[0].parent._getPropertiesToPropagate() : oParent._getPropertiesToPropagate();
+		if (!oParent.mSkipPropagation[sAggregationName]) {
+			//get properties to propagate - get them from the original API parent in case this control was moved by aggregation forwarding
+			var oPropagatedProperties = this.aAPIParentInfos ? this.aAPIParentInfos[0].parent._getPropertiesToPropagate() : oParent._getPropertiesToPropagate();
 
-		if (oPropagatedProperties !== this.oPropagatedProperties) {
-			this.oPropagatedProperties = oPropagatedProperties;
-			// update bindings
-			if (this.hasModel()) {
-				this.updateBindings(true, null); // TODO could be restricted to models that changed
-				this.updateBindingContext(false, undefined, true);
-				this.propagateProperties(true);
+			if (oPropagatedProperties !== this.oPropagatedProperties) {
+				this.oPropagatedProperties = oPropagatedProperties;
+				// update bindings
+				if (this.hasModel()) {
+					this.updateBindings(true, null); // TODO could be restricted to models that changed
+					this.updateBindingContext(false, undefined, true);
+					this.propagateProperties(true);
+				}
+				this._callPropagationListener();
+				this.fireModelContextChange();
 			}
-			this._callPropagationListener();
-			this.fireModelContextChange();
 		}
 
 		this._applyContextualSettings(oParent._oContextualSettings);
@@ -2629,9 +2664,10 @@ sap.ui.define([
 			this.iSuppressInvalidate--;
 		}
 
-		//fire aggregation lifecycle event on the new parent
-		if (oParent._observer) {
-			oParent._observer.aggregationChange(oParent, sAggregationName, "insert", this);
+		//observe the aggregation change
+		observer = this._observer || this.oParent._observer;
+		if (observer) {
+			observer.parentChange(this, sAggregationName, "set", this.oParent);
 		}
 		return this;
 	};
@@ -2653,7 +2689,7 @@ sap.ui.define([
 	/**
 	 * Hook method to let descendants of ManagedObject know when propagated contextual settings have changed
 	 * @private
-	 * @sap-restricted sap.ui.core.Element
+	 * @ui5-restricted sap.ui.core.Element
 	 */
 	ManagedObject.prototype._onContextualSettingsChanged = function () {};
 
@@ -2745,7 +2781,7 @@ sap.ui.define([
 	/**
 	 * Cleans up the resources associated with this object and all its aggregated children.
 	 *
-	 * After an object has been destroyed, it can no longer be used in!
+	 * After an object has been destroyed, it can no longer be used!
 	 *
 	 * Applications should call this method if they don't need the object any longer.
 	 *
@@ -2754,6 +2790,7 @@ sap.ui.define([
 	 * @public
 	 */
 	ManagedObject.prototype.destroy = function(bSuppressInvalidate) {
+		var sName;
 		// ignore repeated calls
 		if (this.bIsDestroyed) {
 			return;
@@ -2801,17 +2838,17 @@ sap.ui.define([
 		delete this.oParent;
 
 		// Data Binding
-		jQuery.each(this.mBindingInfos, function(sName, oBindingInfo) {
-			if (oBindingInfo.factory) {
-				that.unbindAggregation(sName, true);
+		for (sName in this.mBindingInfos) {
+			if (this.mBindingInfos[sName].factory) {
+				this.unbindAggregation(sName, true);
 			} else {
-				that.unbindProperty(sName, true);
+				this.unbindProperty(sName, true);
 			}
-		});
+		}
 
-		jQuery.each(this.mObjectBindingInfos, function(sName, oBoundObject) {
-			that.unbindObject(sName, /* _bSkipUpdateBindingContext */ true);
-		});
+		for (sName in this.mObjectBindingInfos) {
+			this.unbindObject(sName, /* _bSkipUpdateBindingContext */ true);
+		}
 
 		// reset suppress invalidate flag
 		if (bSuppressInvalidate) {
@@ -3447,7 +3484,9 @@ sap.ui.define([
 		// because the formatter gets the context of the element we have to set the context via proxy to ensure compatibility
 		// for formatter function which is now called by the property binding
 		// proxy formatter here because "this" is the correct cloned object
-		oBinding.setFormatter(jQuery.proxy(oBindingInfo.formatter, this));
+		if (oBindingInfo.formatter) {
+			oBinding.setFormatter(oBindingInfo.formatter.bind(this));
+		}
 
 		// Set additional information on the binding info
 		oBindingInfo.binding = oBinding;
@@ -3471,15 +3510,19 @@ sap.ui.define([
 	 * @public
 	 */
 	ManagedObject.prototype.unbindProperty = function(sName, bSuppressReset){
-		var oBindingInfo = this.mBindingInfos[sName];
+		var oBindingInfo = this.mBindingInfos[sName],
+			oBinding;
 		if (oBindingInfo) {
-			if (oBindingInfo.binding) {
-				oBindingInfo.binding.detachChange(oBindingInfo.modelChangeHandler);
+			oBinding = oBindingInfo.binding;
+			if (oBinding) {
+				oBinding.detachChange(oBindingInfo.modelChangeHandler);
+				oBinding.detachEvents(oBindingInfo.events);
+				oBinding.destroy();
+				/* to reset messages on a control we need to detach the datastate handler after destroy,
+				   as binding destroy clears up validation messages */
 				if (this.refreshDataState) {
-					oBindingInfo.binding.detachAggregatedDataStateChange(oBindingInfo.dataStateChangeHandler);
+					oBinding.detachAggregatedDataStateChange(oBindingInfo.dataStateChangeHandler);
 				}
-				oBindingInfo.binding.detachEvents(oBindingInfo.events);
-				oBindingInfo.binding.destroy();
 			}
 
 			if (this._observer) {
@@ -3686,7 +3729,9 @@ sap.ui.define([
 	 *            <code>bindList</code> method of the corresponding model class or with the model specific
 	 *            subclass of <code>sap.ui.model.ListBinding</code>
 	 * @param {function} [oBindingInfo.groupHeaderFactory]
-	 *            A factory function to generate custom group visualization (optional)
+	 *            A factory function to generate custom group visualization (optional). It should return a
+	 *            control suitable to visualize a group header (e.g. a <code>sap.m.GroupHeaderListItem</code>
+	 *            for a <code>sap.m.List</code>).
 	 * @param {object} [oBindingInfo.events=null]
 	 *            Map of event handler functions keyed by the name of the binding events that they should be attached to
 	 *
@@ -3801,26 +3846,14 @@ sap.ui.define([
 	ManagedObject.prototype._bindAggregation = function(sName, oBindingInfo) {
 		var that = this,
 			oBinding,
+			oAggregationInfo = this.getMetadata().getAggregation(sName),
 			fnModelChangeHandler = function(oEvent){
-				var sUpdater = "update" + sName.substr(0,1).toUpperCase() + sName.substr(1);
-				if (that[sUpdater]) {
-					var sChangeReason = oEvent && oEvent.getParameter("reason");
-					if (sChangeReason) {
-						that[sUpdater](sChangeReason);
-					} else {
-						that[sUpdater]();
-					}
-				} else {
-					that.updateAggregation(sName);
-				}
+				oAggregationInfo.update(that, oEvent.getParameter("reason"), {
+					detailedReason: oEvent.getParameter("detailedReason")
+				});
 			},
 			fnModelRefreshHandler = function(oEvent){
-				var sRefresher = "refresh" + sName.substr(0,1).toUpperCase() + sName.substr(1);
-				if (that[sRefresher]) {
-					that[sRefresher](oEvent.getParameter("reason"));
-				} else {
-					fnModelChangeHandler(oEvent);
-				}
+				oAggregationInfo.refresh(that, oEvent.getParameter("reason"));
 			},
 			fnDataStateChangeHandler = function(oEvent) {
 				var oDataState = oBinding.getDataState();
@@ -3839,7 +3872,8 @@ sap.ui.define([
 			} else {
 				oBinding = oModel.bindList(oBindingInfo.path, this.getBindingContext(oBindingInfo.model), oBindingInfo.sorter, oBindingInfo.filters, oBindingInfo.parameters);
 				if (this.bUseExtendedChangeDetection) {
-					oBinding.enableExtendedChangeDetection(!oBindingInfo.template, oBindingInfo.key);
+					assert(!this.oExtendedChangeDetectionConfig || !this.oExtendedChangeDetectionConfig.symbol, "symbol function must not be set by controls");
+					oBinding.enableExtendedChangeDetection(!oBindingInfo.template, oBindingInfo.key, this.oExtendedChangeDetectionConfig);
 				}
 			}
 
@@ -3870,11 +3904,14 @@ sap.ui.define([
 	};
 
 	/**
-	 * Unbind the aggregation from the model
+	 * Unbind the aggregation from the model.
 	 *
-	 * @param {string} sName the name of the aggregation
-	 * @param {boolean} bSuppressReset whether the reset to empty aggregation when unbinding should be suppressed
-	 * @return {sap.ui.base.ManagedObject} reference to the instance itself
+	 * After unbinding, the current content of the aggregation is destroyed by default.
+	 * When the <code>bSuppressReset</code> parameter is set, it is however retained.
+	 *
+	 * @param {string} sName Name of the aggregation
+	 * @param {boolean} bSuppressReset Indicates whether destroying the content of the aggregation is skipped
+	 * @returns {sap.ui.base.ManagedObject} Reference to this instance itself
 	 * @public
 	 */
 	ManagedObject.prototype.unbindAggregation = function(sName, bSuppressReset){
@@ -3927,16 +3964,22 @@ sap.ui.define([
 	 *
 	 * In case a managed object needs special handling for an aggregation binding, it can create
 	 * a named update method (e.g. <code>update<i>Rows</i></code> for an aggregation <code>rows</code>)
-	 * which then will be called by the framework instead of this generic method.
+	 * which then will be called by the framework instead of this generic method. THe method will be
+	 * called with two arguments <code>sChangeReason</code> and <code>oEventInfo</code>.
 	 *
 	 * Subclasses should call this method only in the implementation of such a named update method
 	 * and for no other purposes. The framework might change the conditions under which the method
 	 * is called and the method implementation might rely on those conditions.
 	 *
-	 * @param {string} sName name of the aggregation to update
+	 * @param {string} sName Name of the aggregation to update
+	 * @param {sap.ui.model.ChangeReason} sChangeReason One of the predefined reasons for the change event
+	 * @param {object} oEventInfo Additional information about the change event
+	 * @param {string} [oEventInfo.detailedReason] A non-standardized string that further classifies the
+	 *   change event. Model implementations should document any value that they might provide as detailed
+	 *   reason, and describe under what circumstances each value will be used.
 	 * @protected
 	 */
-	ManagedObject.prototype.updateAggregation = function(sName) {
+	ManagedObject.prototype.updateAggregation = function(sName, sChangeReason, oEventInfo) {
 		var oBindingInfo = this.mBindingInfos[sName],
 			oBinding = oBindingInfo.binding,
 			fnFactory = oBindingInfo.factory,
@@ -4023,7 +4066,7 @@ sap.ui.define([
 			// indexed contexts, where inserting/deleting entries shifts the index of all following items
 			aChildren = oControl[oAggregationInfo._sGetter]() || [];
 			for (i = 0; i < aChildren.length; i++) {
-				aChildren[i].setBindingContext(aContexts[i]);
+				aChildren[i].setBindingContext(aContexts[i], oBindingInfo.model);
 			}
 		}
 
@@ -4087,6 +4130,7 @@ sap.ui.define([
 	 * is called and the method implementation might rely on those conditions.
 	 *
 	 * @param {string} sName name of the aggregation to refresh
+	 * @param {sap.ui.model.ChangeReason} sChangeReason the change reason
 	 * @protected
 	 */
 	ManagedObject.prototype.refreshAggregation = function(sName) {
@@ -4194,17 +4238,18 @@ sap.ui.define([
 		 * Remove binding, detach all events and destroy binding object
 		 */
 		function removeBinding(oBindingInfo) {
+			var oBinding = oBindingInfo.binding;
 			// Also tell the Control that the messages have been removed (if any)
 			if (that.refreshDataState) {
-				that.refreshDataState(sName, oBindingInfo.binding.getDataState());
+				that.refreshDataState(sName, oBinding.getDataState());
 			}
 
-			oBindingInfo.binding.detachChange(oBindingInfo.modelChangeHandler);
+			oBinding.detachChange(oBindingInfo.modelChangeHandler);
 			if (oBindingInfo.modelRefreshHandler) { // only list bindings currently have a refresh handler attached
-				oBindingInfo.binding.detachRefresh(oBindingInfo.modelRefreshHandler);
+				oBinding.detachRefresh(oBindingInfo.modelRefreshHandler);
 			}
-			oBindingInfo.binding.detachEvents(oBindingInfo.events);
-			oBindingInfo.binding.destroy();
+			oBinding.detachEvents(oBindingInfo.events);
+			oBinding.destroy();
 			// remove all binding related data from the binding info
 			delete oBindingInfo.binding;
 			delete oBindingInfo.modelChangeHandler;
@@ -4335,7 +4380,7 @@ sap.ui.define([
 	 * Omitting the model name (or using the value <code>undefined</code>) is explicitly allowed and
 	 * refers to the default model.
 	 *
-	 * A value of<code>null</code> for <code>oContext</code> hides the parent context. The parent context will
+	 * A value of <code>null</code> for <code>oContext</code> hides the parent context. The parent context will
 	 * no longer be propagated to aggregated child controls. A value of <code>undefined</code> removes a currently
 	 * active context or a <code>null</code> context and the parent context gets visible and propagated again.
 	 *
@@ -4367,7 +4412,7 @@ sap.ui.define([
 	 * Set the ObjectBinding context for this ManagedObject for the model with the given name. Only set internally
 	 * from a ContextBinding.
 	 *
-	 * A value of<code>null</code> for <code>oContext</code> hides the parent context. The parent context will
+	 * A value of <code>null</code> for <code>oContext</code> hides the parent context. The parent context will
 	 * no longer be propagated to aggregated child controls. A value of <code>undefined</code> removes a currently
 	 * active context or a <code>null</code> context and the parent context gets visible and propagated again.
 	 *
@@ -4599,7 +4644,7 @@ sap.ui.define([
 	 * @param {function} listener function
 	 * @returns {sap.ui.base.ManagedObject} Returns <code>this</code> to allow method chaining
 	 * @private
-	 * @sap-restricted sap.ui.fl
+	 * @ui5-restricted sap.ui.fl
 	 */
 	ManagedObject.prototype.addPropagationListener = function(listener) {
 		assert(typeof listener === 'function', "listener must be a function");
@@ -4615,7 +4660,7 @@ sap.ui.define([
 	 * @param {function} listener function
 	 * @returns {sap.ui.base.ManagedObject} Returns <code>this</code> to allow method chaining
 	 * @private
-	 * @sap-restricted sap.ui.fl
+	 * @ui5-restricted sap.ui.fl
 	 */
 	ManagedObject.prototype.removePropagationListener = function(listener) {
 		assert(typeof listener === 'function', "listener must be a function");
@@ -4632,7 +4677,7 @@ sap.ui.define([
 	 * get propagation listeners
 	 * @returns {array} aPropagationListeners Returns registered propagationListeners
 	 * @private
-	 * @sap-restricted sap.ui.fl
+	 * @ui5-restricted sap.ui.fl
 	 */
 	ManagedObject.prototype.getPropagationListeners = function() {
 		return this.oPropagatedProperties.aPropagationListeners.concat(this.aPropagationListeners);
@@ -4662,8 +4707,6 @@ sap.ui.define([
 
 	ManagedObject._oEmptyPropagatedProperties = {oModels:{}, oBindingContexts:{}, aPropagationListeners:[]};
 
-	var fnObjectAssign = Object.assign || jQuery.extend; // Object.assign is ~30% faster across modern browsers in 2018, but not supported in IE
-
 	function _hasAsRealChild(oParent, oChild) {
 		return !oChild.aAPIParentInfos || oChild.aAPIParentInfos[0].parent === oParent;
 	}
@@ -4682,7 +4725,7 @@ sap.ui.define([
 			bUpdateListener = vName === false, //update only propagation listeners
 			sName = bUpdateAll ? undefined : vName,
 			sAggregationName, oAggregation, i,
-			mAllAggregations = fnObjectAssign({}, this.mAggregations, this.mForwardedAggregations);
+			mAllAggregations = Object.assign({}, this.mAggregations, this.mForwardedAggregations);
 
 		for (sAggregationName in mAllAggregations) {
 			if (this.mSkipPropagation[sAggregationName]) {
@@ -4734,16 +4777,16 @@ sap.ui.define([
 	 * @private
 	 */
 	ManagedObject.prototype._getPropertiesToPropagate = function() {
-		var bNoOwnModels = jQuery.isEmptyObject(this.oModels),
-			bNoOwnContexts = jQuery.isEmptyObject(this.oBindingContexts),
+		var bNoOwnModels = isEmptyObject(this.oModels),
+			bNoOwnContexts = isEmptyObject(this.oBindingContexts),
 			bNoOwnListeners = this.aPropagationListeners.length === 0,
-			bNoOwnElementContexts = jQuery.isEmptyObject(this.mElementBindingContexts);
+			bNoOwnElementContexts = isEmptyObject(this.mElementBindingContexts);
 
 		function merge(empty,o1,o2,o3) {
-			// jQuery.extend ignores 'undefined' values but not 'null' values.
+			// extend ignores 'undefined' values but not 'null' values.
 			// So 'null' values get propagated and block a parent propagation.
 			// 'undefined' values are ignored and therefore not propagated.
-			return empty ? o1 : jQuery.extend({}, o1, o2, o3);
+			return empty ? o1 : extend({}, o1, o2, o3);
 		}
 
 		function concat(empty,a1,a2) {
@@ -4797,7 +4840,7 @@ sap.ui.define([
 	 * @public
 	 */
 	ManagedObject.prototype.hasModel = function() {
-		return !(jQuery.isEmptyObject(this.oModels) && jQuery.isEmptyObject(this.oPropagatedProperties.oModels));
+		return !(isEmptyObject(this.oModels) && isEmptyObject(this.oPropagatedProperties.oModels));
 	};
 
 	/**
@@ -4812,20 +4855,26 @@ sap.ui.define([
 	 * <li>The boolean value <code>cloneChildren</code> specifies whether associations/aggregations will be cloned</li>
 	 * <li>The boolean value <code>cloneBindings</code> specifies if bindings will be cloned</li>
 	 * </ul>
+	 * Note:
+	 * In case the configuration <code>oOptions</code> is specified, the default values <code>true</code> no longer apply,
+	 * which means in case <code>cloneChildren</code> or <code>cloneBindings</code> is not specified, then this ia
+	 * assumed to be <code>false</code> and associations/aggregations or bindings are not cloned.
 	 *
-	 * For each cloned object the following settings are cloned based on the metadata of the object and the defined options:
+	 * For each cloned object, the following settings are cloned based on the metadata of the object and the defined options:
 	 * <ul>
-	 * <li>all properties that are not bound. If <code>cloneBinding</code> is <code>false</code>,
-	 *     even these properties will be cloned; the values are used by reference, they are not cloned</li>
-	 * <li>all aggregated objects that are not bound. If <code>cloneBinding</code> is <code>false</code>,
-	 *     even the ones that are bound will be cloned; they are all cloned recursively using the same
+	 * <li>All properties that are not bound. If <code>cloneBindings</code> is <code>false</code>,
+	 *     also the bound properties will be cloned; in general, values are referenced 1:1, not cloned.
+	 *     For some property types, however, the getters or setters might clone the value (e.g. array types
+	 *     and properties using metadata option <code>byValue</code>)</li>
+	 * <li>All aggregated objects that are not bound. If <code>cloneBindings</code> is <code>false</code>,
+	 *     also the ones that are bound will be cloned; they are all cloned recursively using the same
 	 *     <code>sIdSuffix</code></li>
-	 * <li>all associated controls; when an association points to an object inside the cloned object tree,
-	 *     then the cloned association will be modified to that it points to the clone of the target object.
+	 * <li>All associated controls; when an association points to an object inside the cloned object tree,
+	 *     then the cloned association will be modified so that it points to the clone of the target object.
 	 *     When the association points to a managed object outside of the cloned object tree, then its
 	 *     target won't be changed.</li>
-	 * <li>all models set via <code>setModel()</code>; used by reference </li>
-	 * <li>all property and aggregation bindings (if <code>cloneBindings</code> is <code>true</code>);
+	 * <li>All models set via <code>setModel()</code>; used by reference.</li>
+	 * <li>All property and aggregation bindings (if <code>cloneBindings</code> is <code>true</code>);
 	 *     the pure binding information (path, model name) is cloned, but all other information like
 	 *     template control or factory function, data type or formatter function are copied by reference.
 	 *     The bindings themselves are created anew as they are specific for the combination (object, property, model).
@@ -4848,11 +4897,13 @@ sap.ui.define([
 	 *
 	 * @param {string} [sIdSuffix] a suffix to be appended to the cloned object ID
 	 * @param {string[]} [aLocalIds] an array of local IDs within the cloned hierarchy (internally used)
-	 * @param {Object} [oOptions] configuration object
-	 * @param {boolean} [cloneChildren=true] Whether associations and aggregations will be cloned
-	 * @param {boolean} [cloneBindings=true] Whether bindings will be cloned
+	 * @param {Object} [oOptions='\{cloneChildren:true, cloneBindings:true\}'] Configuration object; when
+	 *                      omitted, both properties default to <code>true</code>; when specified,
+	 *                      undefined properties default to <code>false</code>
+	 * @param {boolean} [oOptions.cloneChildren=false] Whether associations and aggregations will be cloned
+	 * @param {boolean} [oOptions.cloneBindings=false] Whether bindings will be cloned
 	 * @returns {sap.ui.base.ManagedObject} Reference to the newly created clone
-	 * @protected
+	 * @public
 	 */
 	ManagedObject.prototype.clone = function(sIdSuffix, aLocalIds, oOptions) {
 		var bCloneChildren = true,
@@ -4912,7 +4963,7 @@ sap.ui.define([
 
 		if (bCloneChildren) {
 			// Clone aggregations
-			var mAggregationsToClone = fnObjectAssign({}, this.mAggregations, this.mForwardedAggregations);
+			var mAggregationsToClone = Object.assign({}, this.mAggregations, this.mForwardedAggregations);
 			for (sName in mAggregationsToClone) {
 				var oAggregation = mAggregationsToClone[sName];
 				//do not clone aggregation if aggregation is bound and bindings are cloned; aggregation is filled on update
@@ -4926,7 +4977,9 @@ sap.ui.define([
 						}
 					} else {
 						// must be an alt type
-						mSettings[sName] = oAggregation;
+						mSettings[sName] =
+							typeof oAggregation === "string"
+								? escape(oAggregation) : oAggregation;
 					}
 				}
 			}
@@ -4976,7 +5029,7 @@ sap.ui.define([
 		function cloneBinding(oSource, sName, oClone, sTargetName) {
 			var oBindingInfo = oSource.mBindingInfos[sName];
 			oBindingInfo = oBindingInfo || oSource.getBindingInfo(sName); // fallback for forwarded bindings
-			var oCloneBindingInfo = jQuery.extend({}, oBindingInfo);
+			var oCloneBindingInfo = Object.assign({}, oBindingInfo);
 
 			// clone the template if it is not sharable
 			if (!oBindingInfo.templateShareable && oBindingInfo.template && oBindingInfo.template.clone) {
@@ -5010,7 +5063,7 @@ sap.ui.define([
 		 * Maybe we have to call updateBindingContext() here?
 		 */
 		for (sName in this.mObjectBindingInfos) {
-			oClone.mObjectBindingInfos[sName] = jQuery.extend({}, this.mObjectBindingInfos[sName]);
+			oClone.mObjectBindingInfos[sName] = Object.assign({}, this.mObjectBindingInfos[sName]);
 		}
 
 		// Clone events
@@ -5061,30 +5114,32 @@ sap.ui.define([
 	 * </ol>
 	 * This separation is necessary as the models for the bindings might be updated
 	 * in some ManagedObject or in the Core and the order in which the objects are visited
-	 * is not defined (order of Core.mElements)
+	 * is not defined.
 	 *
 	 * @private
 	 */
 	ManagedObject._handleLocalizationChange = function(iPhase) {
-		var i;
+		var oModel, sName, oBindingInfo, i;
 
 		if ( iPhase === 1 ) {
 
 			/*
 			 * phase 1: update the models
 			 */
-			jQuery.each(this.oModels, function(sName, oModel) {
+			for (sName in this.oModels) {
+				oModel = this.oModels[sName];
 				if ( oModel && oModel._handleLocalizationChange ) {
 					oModel._handleLocalizationChange();
 				}
-			});
+			}
 
 		} else if ( iPhase === 2 ) {
 
 			/*
 			 * phase 2: update bindings and types
 			 */
-			jQuery.each(this.mBindingInfos, function(sName, oBindingInfo) {
+			for (sName in this.mBindingInfos) {
+				oBindingInfo = this.mBindingInfos[sName];
 				var aParts = oBindingInfo.parts;
 				if (aParts) {
 					// property or composite binding: visit all parts
@@ -5098,7 +5153,7 @@ sap.ui.define([
 					}
 				} // else: don't update list bindings
 				// Note: the template for a list binding will be visited by the core!
-			});
+			}
 
 		}
 	};

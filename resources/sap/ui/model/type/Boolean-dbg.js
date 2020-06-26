@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,11 +19,15 @@ sap.ui.define(['sap/ui/model/SimpleType', 'sap/ui/model/FormatException', 'sap/u
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @public
-	 * @param {object} [oFormatOptions] formatting options. Boolean doesn't support any specific format options
-	 * @param {object} [oConstraints] value constraints. Boolean doesn't support additional constraints
+	 * @param {object} [oFormatOptions]
+	 *   Format options as defined in the interface of {@link sap.ui.model.SimpleType}; this
+	 *   type ignores them, since it does not support any format options
+	 * @param {object} [oConstraints]
+	 *   Constraints as defined in the interface of {@link sap.ui.model.SimpleType}; this
+	 *   type ignores them, since it does not support any constraints
 	 * @alias sap.ui.model.type.Boolean
 	 */
 	var BooleanType = SimpleType.extend("sap.ui.model.type.Boolean", /** @lends sap.ui.model.type.Boolean.prototype */ {
@@ -40,13 +44,11 @@ sap.ui.define(['sap/ui/model/SimpleType', 'sap/ui/model/FormatException', 'sap/u
 			return null;
 		}
 		switch (this.getPrimitiveType(sInternalType)) {
-			case "boolean":
 			case "any":
+			case "boolean":
 				return bValue;
 			case "string":
 				return bValue.toString();
-			case "int": // TODO return 1 for true?!
-			case "float":
 			default:
 				throw new FormatException("Don't know how to format Boolean to " + sInternalType);
 		}
@@ -66,19 +68,12 @@ sap.ui.define(['sap/ui/model/SimpleType', 'sap/ui/model/FormatException', 'sap/u
 				}
 				oBundle = sap.ui.getCore().getLibraryResourceBundle();
 				throw new ParseException(oBundle.getText("Boolean.Invalid"));
-			case "int": // TODO return 1 for true?!
-			case "float":
 			default:
 				throw new ParseException("Don't know how to parse Boolean from " + sInternalType);
 		}
 	};
 
-	BooleanType.prototype.validateValue = function(sValue) {
-
-	};
-
-
+	BooleanType.prototype.validateValue = function() {};
 
 	return BooleanType;
-
 });

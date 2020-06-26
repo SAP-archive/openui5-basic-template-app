@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,7 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -41,7 +41,7 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 			rootRole : {type : "sap.ui.core.AccessibleLandmarkRole", defaultValue : "Region"},
 
 			/**
-			 * Texts which describes the landmark of the root container of the corresponding <code>sap.m.Page</code> control.
+			 * Texts that describe the landmark of the root container of the corresponding <code>sap.m.Page</code> control.
 			 *
 			 * If not set (and a landmark different than <code>sap.ui.core.AccessibleLandmarkRole.None</code> is defined), a predefined text
 			 * is used.
@@ -56,7 +56,7 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 			contentRole : {type : "sap.ui.core.AccessibleLandmarkRole", defaultValue : "Main"},
 
 			/**
-			 * Texts which describes the landmark of the content container of the corresponding <code>sap.m.Page</code> control.
+			 * Texts that describe the landmark of the content container of the corresponding <code>sap.m.Page</code> control.
 			 *
 			 * If not set (and a landmark different than <code>sap.ui.core.AccessibleLandmarkRole.None</code> is defined), a predefined text
 			 * is used.
@@ -71,7 +71,7 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 			headerRole : {type : "sap.ui.core.AccessibleLandmarkRole", defaultValue : "Region"},
 
 			/**
-			 * Texts which describes the landmark of the header container of the corresponding <code>sap.m.Page</code> control.
+			 * Texts that describe the landmark of the header container of the corresponding <code>sap.m.Page</code> control.
 			 *
 			 * If not set (and a landmark different than <code>sap.ui.core.AccessibleLandmarkRole.None</code> is defined), a predefined text
 			 * is used.
@@ -86,7 +86,7 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 			subHeaderRole : {type : "sap.ui.core.AccessibleLandmarkRole", defaultValue : "None"},
 
 			/**
-			 * Texts which describes the landmark of the subheader container of the corresponding <code>sap.m.Page</code> control.
+			 * Texts that describe the landmark of the subheader container of the corresponding <code>sap.m.Page</code> control.
 			 *
 			 * If not set (and a landmark different than <code>sap.ui.core.AccessibleLandmarkRole.None</code> is defined), a predefined text
 			 * is used.
@@ -101,7 +101,7 @@ sap.ui.define(['sap/ui/core/Element', './library'],
 			footerRole : {type : "sap.ui.core.AccessibleLandmarkRole", defaultValue : "Region"},
 
 			/**
-			 * Texts which describes the landmark of the header container of the corresponding <code>sap.m.Page</code> control.
+			 * Texts that describe the landmark of the footer container of the corresponding <code>sap.m.Page</code> control.
 			 *
 			 * If not set (and a landmark different than <code>sap.ui.core.AccessibleLandmarkRole.None</code> is defined), a predefined text
 			 * is used.

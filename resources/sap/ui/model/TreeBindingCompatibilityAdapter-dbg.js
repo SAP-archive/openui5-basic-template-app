@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.model.odata.TreeBindingAdapter
-sap.ui.define(["sap/ui/thirdparty/jquery"],
-	function(jQuery) {
+sap.ui.define(["sap/base/util/each"],
+	function(each) {
 		"use strict";
 
 		/**
@@ -22,7 +22,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"],
 		var TreeBindingCompatibilityAdapter = function (oBinding, oTable) {
 			// Code necessary for ClientTreeBinding
 			var that = oTable;
-			jQuery.extend(oBinding, {
+			Object.assign(oBinding, {
 				_init: function(bExpandFirstLevel) {
 					this._bExpandFirstLevel = bExpandFirstLevel;
 					// load the root contexts and create the context info map
@@ -54,7 +54,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"],
 				_expandFirstLevel: function (bSkipFirstLevelLoad) {
 					var that = this;
 					if (this.aContexts && this.aContexts.length > 0) {
-						jQuery.each(this.aContexts.slice(), function(iIndex, oContext) {
+						each(this.aContexts.slice(), function(iIndex, oContext) {
 							if (!bSkipFirstLevelLoad) {
 								that._loadChildContexts(oContext);
 							}
@@ -80,7 +80,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"],
 				_restoreContexts: function(aContexts) {
 					var that = this;
 					var aNewChildContexts = [];
-					jQuery.each(aContexts.slice(), function(iIndex, oContext) {
+					each(aContexts.slice(), function(iIndex, oContext) {
 						var oContextInfo = that._getContextInfo(oContext);
 						if (oContextInfo && oContextInfo.bExpanded) {
 							aNewChildContexts.push.apply(aNewChildContexts, that._loadChildContexts(oContext));
@@ -221,7 +221,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"],
 				storeSelection: function() {
 					var aSelectedIndices = that.getSelectedIndices();
 					var aSelectedContexts = [];
-					jQuery.each(aSelectedIndices, function(iIndex, iValue) {
+					each(aSelectedIndices, function(iIndex, iValue) {
 						aSelectedContexts.push(that.getContextByIndex(iValue));
 					});
 					this._aSelectedContexts = aSelectedContexts;
@@ -229,7 +229,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"],
 				restoreSelection: function() {
 					that.clearSelection();
 					var _aSelectedContexts = this._aSelectedContexts;
-					jQuery.each(this.aContexts, function(iIndex, oContext) {
+					each(this.aContexts, function(iIndex, oContext) {
 						if (((_aSelectedContexts ? _aSelectedContexts.indexOf(oContext) : -1)) >= 0) {
 							that.addSelectionInterval(iIndex, iIndex);
 						}
@@ -240,6 +240,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"],
 					// for compatibility reasons (OData Tree Binding)
 					return undefined;
 				},
+				detachSelectionChanged: function() {}, // for compatibility
 				clearSelection: function () {
 					that._oSelection.clearSelection();
 				},

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,6 +23,7 @@ sap.ui.define([
 	"sap/ui/events/KeyCodes",
 	"sap/base/Log",
 	"sap/ui/core/InvisibleText",
+	'./Button',
 	"sap/ui/thirdparty/jquery"
 ],
 function(
@@ -43,13 +44,16 @@ function(
 	KeyCodes,
 	Log,
 	InvisibleText,
+	Button,
 	jQuery
 ) {
 		"use strict";
 
-		// shortcut for sap.m.PlacementType
+		// shortcut for sap.m.PlacementType, sap.m.TimePickerMaskMode, sap.m.ButtonType and default step for minutes
+		// and seconds
 		var PlacementType = library.PlacementType,
 			TimePickerMaskMode = library.TimePickerMaskMode,
+			ButtonType = library.ButtonType,
 			DEFAULT_STEP = 1;
 
 		/**
@@ -125,7 +129,7 @@ function(
 		 * @extends sap.m.DateTimeField
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -318,7 +322,8 @@ function(
 				id: this.getId() + "-icon",
 				src: this.getIconSrc(),
 				noTabStop: true,
-				title: ""
+				title: "",
+				tooltip: this._oResourceBundle.getText("OPEN_PICKER_TEXT")
 			});
 
 			// idicates whether the picker is still open
@@ -508,7 +513,7 @@ function(
 			}
 
 			this.setProperty("value", sThatValue, true); // no rerendering
-			this._lastValue = sValue;
+			this.setLastValue(sValue);
 			if (this._bValid) {
 				this.setProperty("dateValue", oDate, true); // no rerendering
 			}
@@ -604,7 +609,7 @@ function(
 					this.updateDomValue(sValue);
 				} else {
 					this.setProperty("value", sValue, true); // no rerendering
-					this._lastValue = sValue;
+					this.setLastValue(sValue);
 					this._sLastChangeValue = sValue;
 				}
 			}
@@ -652,7 +657,7 @@ function(
 
 			var sOutputValue = this._formatValue(oDateValue);
 			this.updateDomValue(sOutputValue);
-			this._lastValue = sOutputValue;
+			this.setLastValue(sOutputValue);
 
 			return this;
 		};
@@ -714,10 +719,15 @@ function(
 
 			// do not call InputBase.setValue because the displayed value and the output value might have different pattern
 			this.updateDomValue(sOutputValue);
-			this._lastValue = sOutputValue;
+			this.setLastValue(sOutputValue);
 
 			return this;
 
+		};
+
+		TimePicker.prototype.setDateValue = function(sValue) {
+			this._initMask();
+			return DateTimeField.prototype.setDateValue.apply(this, arguments);
 		};
 
 		/**
@@ -751,47 +761,7 @@ function(
 				oDomRef.removeAttribute("title");
 			}
 
-			this._handleTooltipHiddenTextLifecycle();
-
 			return this;
-		};
-
-		/**
-		 * Handles the addition/removal of the hidden span element (used as an hidden aria description) and its correct
-		 * reference with the TP inner input. This method requires <code>TimePicker</code> to be rendered in the DOM.
-		 * @private
-		 * @returns {void}
-		 */
-		TimePicker.prototype._handleTooltipHiddenTextLifecycle = function () {
-			var oRenderer,
-				sDescribedByReferences,
-				sAnnouncement,
-				sHiddenTextIdPattern,
-				bCreateHiddenText,
-				oHiddenAriaTooltipElement;
-
-			if (!sap.ui.getCore().getConfiguration().getAccessibility()) {
-				return;
-			}
-
-			oRenderer = this.getRenderer();
-			sDescribedByReferences = oRenderer.getAriaDescribedBy(this);
-			sAnnouncement = oRenderer.getDescribedByAnnouncement(this);
-			sHiddenTextIdPattern = this.getId() + "-describedby";
-			bCreateHiddenText = sDescribedByReferences.indexOf(sHiddenTextIdPattern) > -1;
-			oHiddenAriaTooltipElement = this.getDomRef("describedby");
-
-			if (bCreateHiddenText) {
-				oHiddenAriaTooltipElement = document.createElement("span");
-				oHiddenAriaTooltipElement.id = sHiddenTextIdPattern;
-				oHiddenAriaTooltipElement.setAttribute("aria-hidden", "true");
-				oHiddenAriaTooltipElement.className = "sapUiInvisibleText";
-				oHiddenAriaTooltipElement.textContent = sAnnouncement;
-				this.getDomRef().appendChild(oHiddenAriaTooltipElement);
-			} else {
-				this.getDomRef().removeChild(oHiddenAriaTooltipElement);
-			}
-			this._$input.attr("aria-describedby", sDescribedByReferences);
 		};
 
 		/**
@@ -1079,8 +1049,8 @@ function(
 				horizontalScrolling: false,
 				verticalScrolling: false,
 				placement: PlacementType.VerticalPreferedBottom,
-				beginButton: new sap.m.Button({ text: sOKButtonText, press: jQuery.proxy(this._handleOkPress, this) }),
-				endButton: new sap.m.Button({ text: sCancelButtonText, press: jQuery.proxy(this._handleCancelPress, this) }),
+				beginButton: new Button({ text: sOKButtonText, type: ButtonType.Emphasized, press: jQuery.proxy(this._handleOkPress, this) }),
+				endButton: new Button({ text: sCancelButtonText, press: jQuery.proxy(this._handleCancelPress, this) }),
 				content: [
 					new TimePickerSliders(this.getId() + "-sliders", {
 						support2400: this.getSupport2400(),
@@ -1716,7 +1686,6 @@ function(
 				role: oRenderer.getAriaRole(this),
 				type: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_TIMEINPUT"),
 				description: [sValue, oRenderer.getLabelledByAnnouncement(this), oRenderer.getDescribedByAnnouncement(this)].join(" ").trim(),
-				multiline: false,
 				autocomplete: "none",
 				expanded: false,
 				haspopup: true,
@@ -1755,7 +1724,7 @@ function(
 		 * <li>valid parameter of type <code>boolean</code> - indicator for a valid time</li>
 		 * </ul>
 		 *
-		 * @param {Map} [mArguments] The arguments to pass along with the event
+		 * @param {object} [mArguments] The arguments to pass along with the event
 		 * @return {sap.m.TimePicker} <code>this</code> to allow method chaining
 		 * @protected
 		 * @name sap.m.TimePicker#fireChange

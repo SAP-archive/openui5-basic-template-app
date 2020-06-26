@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,7 +20,8 @@ sap.ui.define([
 	"sap/m/library",
 	"sap/ui/util/Storage",
 	"sap/ui/core/syncStyleClass",
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/ui/thirdparty/jquery"
 ], function(
 	moduleTreeHelper,
 	Device,
@@ -37,7 +38,8 @@ sap.ui.define([
 	mobileLibrary,
 	Storage,
 	syncStyleClass,
-	Log
+	Log,
+	jQuery
 ) {
 	"use strict";
 
@@ -296,6 +298,18 @@ sap.ui.define([
 			}
 			oSupport.openSupportTool();
 			this.close();
+		},
+
+		/**
+		 * Opens the test recorder iframe
+		 */
+		onOpenTestRecorderInIFrame: function () {
+			this.close();
+			sap.ui.require(["sap/ui/testrecorder/Bootstrap"], function (oBootstrap) {
+				oBootstrap.init(["true"]);
+			}, function (oError) {
+				Log.error("Could not load module 'sap/ui/testrecorder/Bootstrap'! Details: " + oError);
+			});
 		},
 
 		/**
@@ -716,7 +730,7 @@ sap.ui.define([
 		 * @private
 		 */
 		_generateLocalizedBuildDate: function (sBuildTimestamp) {
-			var oDateFormat = sap.ui.core.format.DateFormat.getDateInstance({pattern: "dd.MM.yyyy HH:mm:ss"}),
+			var oDateFormat = DateFormat.getDateInstance({pattern: "dd.MM.yyyy HH:mm:ss"}),
 				sBuildDate = oDateFormat.format(this._convertBuildDate(sBuildTimestamp));
 
 			return this._getText("TechInfo.VersionBuildTime.Text", sBuildDate);
@@ -907,7 +921,7 @@ sap.ui.define([
 
 			try {
 				jQuery("body").append($temp);
-				$temp.val(sString).select();
+				$temp.val(sString).trigger("select");
 				document.execCommand("copy");
 				$temp.remove();
 				MessageToast.show(this._getText(sConfirmTextPrefix + ".Success"));

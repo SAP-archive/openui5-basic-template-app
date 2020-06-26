@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,7 +13,9 @@ sap.ui.define([],
 	 * <code>ObjectMarker</code> renderer.
 	 * @namespace
 	 */
-	var ObjectMarkerRenderer = {};
+	var ObjectMarkerRenderer = {
+		apiVersion: 2
+	};
 
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
@@ -24,21 +26,13 @@ sap.ui.define([],
 	ObjectMarkerRenderer.render = function(oRm, oControl) {
 
 		// start control wrapper
-		oRm.write("<span ");
-		oRm.writeControlData(oControl);
-		oRm.addClass("sapMObjectMarker");
-		if (oControl._isIconVisible()) {
-			oRm.addClass("sapMObjectMarkerIcon");
-		}
-		if (oControl._isTextVisible()) {
-			oRm.addClass("sapMObjectMarkerText");
-		}
-		oRm.writeClasses();
-		oRm.write(">");
+		oRm.openStart("span", oControl);
+		oRm.class("sapMObjectMarker");
+		oRm.openEnd();
 		oRm.renderControl(oControl._getInnerControl());
 
 		// end control wrapper
-		oRm.write("</span>");
+		oRm.close("span");
 	};
 
 	return ObjectMarkerRenderer;

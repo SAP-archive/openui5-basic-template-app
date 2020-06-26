@@ -1,12 +1,11 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides base class sap.ui.core.Component for all components
 sap.ui.define([
-	'sap/ui/thirdparty/jquery',
 	'sap/ui/base/Object',
 	'sap/ui/thirdparty/URI',
 	'sap/base/util/Version',
@@ -14,11 +13,12 @@ sap.ui.define([
 	'sap/ui/dom/includeStylesheet',
 	'sap/base/i18n/ResourceBundle',
 	'sap/base/util/uid',
+	'sap/base/util/merge',
 	'sap/base/util/isPlainObject',
-	'sap/base/util/LoaderExtensions'
+	'sap/base/util/LoaderExtensions',
+	"sap/base/util/isEmptyObject"
 ],
 	function(
-		jQuery,
 		BaseObject,
 		URI,
 		Version,
@@ -26,8 +26,10 @@ sap.ui.define([
 		includeStylesheet,
 		ResourceBundle,
 		uid,
+		merge,
 		isPlainObject,
-		LoaderExtensions
+		LoaderExtensions,
+		isEmptyObject
 	) {
 	"use strict";
 
@@ -45,34 +47,6 @@ sap.ui.define([
 	function getVersionWithoutSuffix(sVersion) {
 		var oVersion = Version(sVersion);
 		return oVersion.getSuffix() ? Version(oVersion.getMajor() + "." + oVersion.getMinor() + "." + oVersion.getPatch()) : oVersion;
-	}
-
-	/**
-	 * Utility function to process strings in an object/array recursively
-	 *
-	 * @param {object/Array} oObject Object or array that will be processed
-	 * @param {function} fnCallback function(oObject, sKey, sValue) to call for all strings. Use "oObject[sKey] = X" to change the value.
-	 */
-	function processObject(oObject, fnCallback) {
-		for (var sKey in oObject) {
-			if (!oObject.hasOwnProperty(sKey)) {
-				continue;
-			}
-			var vValue = oObject[sKey];
-			switch (typeof vValue) {
-				case "object":
-					// ignore null objects
-					if (vValue) {
-						processObject(vValue, fnCallback);
-					}
-					break;
-				case "string":
-						fnCallback(oObject, sKey, vValue);
-						break;
-				default:
-					// do nothing in case of other types
-			}
-		}
 	}
 
 	/**
@@ -150,6 +124,14 @@ sap.ui.define([
 	 * @param {boolean}
 	 *            [mOptions.process=true] (optional) Flag whether the manifest object should be processed or not
 	 *            which means that the placeholders will be replaced with resource bundle values
+	 * @param {string[]}
+	 *            [mOptions.activeTerminologies] (optional) A list of active terminologies. If the <code>mOptions.process</code>
+	 *            flag is set to <code>true</code>, the given terminologies will be respected when replacing placeholders with resource
+	 *            bundle values.
+	 *            To use active terminologies, the <code>sap.app.i18n</code> section in the manifest
+	 *            must be defined in object syntax as described here: {@link topic:eba8d25a31ef416ead876e091e67824e Text Verticalization}.
+	 *            The order of the given active terminologies is significant. The {@link sap.base.i18n.ResourceBundle ResourceBundle} API
+	 *            documentation describes the processing behavior in more detail.
 	 *
 	 *
 	 * @public
@@ -157,7 +139,7 @@ sap.ui.define([
 	 * @class The Manifest class.
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @alias sap.ui.core.Manifest
 	 * @since 1.33.0
 	 */
@@ -180,6 +162,7 @@ sap.ui.define([
 			this._oRawManifest = oManifest;
 			this._bProcess = !(mOptions && mOptions.process === false);
 			this._bAsync = !(mOptions && mOptions.async === false);
+			this._activeTerminologies = mOptions && mOptions.activeTerminologies;
 
 			// component name is passed via options (overrides the one defined in manifest)
 			this._sComponentName = mOptions && mOptions.componentName;
@@ -206,7 +189,7 @@ sap.ui.define([
 			// store the raw manifest for the time being and process the
 			// i18n placeholders in the manifest later
 			// remark: clone the frozen raw manifest to enable changes
-			this._oManifest = jQuery.extend(true, {}, this._oRawManifest);
+			this._oManifest = merge({}, this._oRawManifest);
 
 			// resolve the i18n texts immediately when manifest should be processed
 			if (this._bProcess) {
@@ -227,7 +210,7 @@ sap.ui.define([
 			// find i18n property paths in the manifest if i18n texts in
 			// the manifest which should be processed
 			var aI18nProperties = [];
-			processObject(this._oManifest, function(oObject, sKey, vValue) {
+			Manifest.processObject(this._oManifest, function(oObject, sKey, vValue) {
 				var match = vValue.match(rManifestTemplate);
 				if (match) {
 					aI18nProperties.push({
@@ -270,18 +253,39 @@ sap.ui.define([
 		 * @private
 		 */
 		_loadI18n: function(bAsync) {
-
 			// extract the i18n URI from the manifest
 			var oManifest = this._oRawManifest,
-				sI18n = (oManifest["sap.app"] && oManifest["sap.app"]["i18n"]) || "i18n/i18n.properties",
-				oI18nURI = new URI(sI18n);
+				oI18nURI,
+				// a bundle url given in the "sap.app.i18n" section is by default always resolved relative to the manifest
+				// when using the object syntax for the "sap.app.i18n" section a "bundleRelativeTo" property can be given to change the default
+				sBaseBundleUrlRelativeTo = "manifest",
+				vI18n = (oManifest["sap.app"] && oManifest["sap.app"]["i18n"]) || "i18n/i18n.properties";
 
-			// load the ResourceBundle relative to the manifest
-			return ResourceBundle.create({
-				url: this._resolveUri(oI18nURI, "manifest").toString(),
-				async: bAsync
-			});
+			if (typeof vI18n === "string") {
+				oI18nURI = new URI(vI18n);
 
+				// load the ResourceBundle relative to the manifest
+				return ResourceBundle.create({
+					url: this.resolveUri(oI18nURI, sBaseBundleUrlRelativeTo),
+					async: bAsync
+				});
+
+			} else if (typeof vI18n === "object") {
+				// make a copy as manifest is frozen
+				vI18n = JSON.parse(JSON.stringify(vI18n));
+				sBaseBundleUrlRelativeTo = vI18n.bundleUrlRelativeTo || sBaseBundleUrlRelativeTo;
+
+				// resolve bundleUrls of terminologies
+				this._processResourceConfiguration(vI18n, sBaseBundleUrlRelativeTo);
+
+				// merge activeTerminologies and settings object into mParams
+				var mParams = Object.assign({
+					activeTerminologies: this._activeTerminologies,
+					async: bAsync
+				}, vI18n);
+
+				return ResourceBundle.create(mParams);
+			}
 		},
 
 
@@ -697,7 +701,7 @@ sap.ui.define([
 			// activate the customizing configuration
 			var oUI5Manifest = this.getEntry("sap.ui5", true),
 				mExtensions = oUI5Manifest && oUI5Manifest["extends"] && oUI5Manifest["extends"].extensions;
-			if (!jQuery.isEmptyObject(mExtensions)) {
+			if (!isEmptyObject(mExtensions)) {
 				var CustomizingConfiguration = sap.ui.requireSync('sap/ui/core/CustomizingConfiguration');
 				if (!oInstance) {
 					CustomizingConfiguration.activateForComponent(this.getComponentName());
@@ -746,6 +750,48 @@ sap.ui.define([
 		return oUri.absoluteTo(oBase).relativeTo(oPageBase);
 	};
 
+	/**
+	 * Function that loops through the model config and resolves the bundle urls
+	 * of terminologies relative to the component or relative to the manifest
+	 *
+	 * @example
+	 * {
+	 *   "oil": {
+	 *     "bundleUrl": "i18n/terminologies/oil.i18n.properties"
+	 *   },
+	 *   "retail": {
+	 *     "bundleName": "i18n.terminologies.retail.i18n.properties"
+	 *   }
+	 * }
+	 *
+	 * @param mSettings Map with model config settings
+	 * @param sBaseBundleUrlRelativeTo BundleUrlRelativeTo info from base config
+	 * @param bAlreadyResolvedOnRoot Whether the bundleUrl was already resolved (usually by the sap.ui.core.Component)
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.core.Component
+	 */
+	Manifest.prototype._processResourceConfiguration = function (mSettings, sBaseBundleUrlRelativeTo, bAlreadyResolvedOnRoot) {
+		var that = this;
+		Object.keys(mSettings).forEach(function(sKey) {
+			if (sKey === "bundleUrl" && !bAlreadyResolvedOnRoot) {
+				var sBundleUrl = mSettings[sKey];
+				mSettings[sKey] = that.resolveUri(sBundleUrl, mSettings["bundleUrlRelativeTo"] || sBaseBundleUrlRelativeTo);
+			}
+			if (sKey === "terminologies") {
+				var mTerminologies = mSettings[sKey];
+				for (var sTerminology in mSettings[sKey]) {
+					that._processResourceConfiguration(mTerminologies[sTerminology], sBaseBundleUrlRelativeTo);
+				}
+			}
+			if (sKey === "enhanceWith") {
+				var aEnhanceWith = mSettings[sKey];
+				for (var i = 0; i < aEnhanceWith.length; i++) {
+					that._processResourceConfiguration(aEnhanceWith[i], sBaseBundleUrlRelativeTo);
+				}
+			}
+		});
+	};
 
 	/**
 	 * Function to load the manifest by URL
@@ -753,16 +799,27 @@ sap.ui.define([
 	 * @param {object} mOptions the configuration options
 	 * @param {string} mOptions.manifestUrl URL of the manifest
 	 * @param {string} [mOptions.componentName] name of the component
-	 * @param {boolean} [mOptions.async] Flag whether to load the manifest async or not (defaults to false)
-	 * @param {boolean} [mOptions.failOnError] Flag whether to fail if an error occurs or not (defaults to true)
+	 * @param {boolean} [mOptions.async=false] Flag whether to load the manifest async or not
+	 * @param {boolean} [mOptions.failOnError=true] Flag whether to fail if an error occurs or not
+	 * If set to <code>false</code>, errors during the loading of the manifest.json file (e.g. 404) will be ignored and
+	 * the resulting manifest object will be <code>null</code>.
+	 * For asynchronous calls the returned Promise will not reject but resolve with <code>null</code>.
+	 * @param {function} [mOptions.processJson] Callback for asynchronous processing of the loaded manifest.
+	 * The callback receives the parsed manifest object and must return a Promise which resolves with an object.
+	 * It allows to early access and modify the manifest object.
+	 * @param {string[]} [mOptions.activeTerminologies] A list of active terminologies.
+	 * The order of the given active terminologies is significant. The {@link sap.base.i18n.ResourceBundle ResourceBundle} API
+	 * documentation describes the processing behavior in more detail.
+	 * Please have a look at this dev-guide chapter for general usage instructions: {@link topic:eba8d25a31ef416ead876e091e67824e Text Verticalization}.
 	 * @return {sap.ui.core.Manifest|Promise} Manifest object or for asynchronous calls an ECMA Script 6 Promise object will be returned.
 	 * @protected
 	 */
 	Manifest.load = function(mOptions) {
 		var sManifestUrl = mOptions && mOptions.manifestUrl,
-		    sComponentName = mOptions && mOptions.componentName,
-		    bAsync = mOptions && mOptions.async,
-		    bFailOnError = mOptions && mOptions.failOnError;
+			sComponentName = mOptions && mOptions.componentName,
+			bAsync = mOptions && mOptions.async,
+			bFailOnError = mOptions && mOptions.failOnError,
+			fnProcessJson = mOptions && mOptions.processJson;
 
 		// When loading the manifest via URL the language and client should be
 		// added as query parameter as it may contain language dependent texts
@@ -805,12 +862,51 @@ sap.ui.define([
 			process: false
 		};
 
+		if (mOptions.activeTerminologies) {
+			mSettings["activeTerminologies"] = mOptions.activeTerminologies;
+		}
+
 		if (bAsync) {
 			return oManifestJSON.then(function(oManifestJSON) {
+				// callback for preprocessing the json, e.g. via flex-hook in Component
+				if (fnProcessJson) {
+					return fnProcessJson(oManifestJSON);
+				} else {
+					return oManifestJSON;
+				}
+			}).then(function(oManifestJSON) {
 				return new Manifest(oManifestJSON, mSettings);
 			});
 		}
 		return new Manifest(oManifestJSON, mSettings);
+	};
+
+	/**
+	 * Utility function to process strings in an object/array recursively
+	 *
+	 * @param {object/Array} oObject Object or array that will be processed
+	 * @param {function} fnCallback function(oObject, sKey, sValue) to call for all strings. Use "oObject[sKey] = X" to change the value.
+	 */
+	Manifest.processObject = function (oObject, fnCallback) {
+		for (var sKey in oObject) {
+			if (!oObject.hasOwnProperty(sKey)) {
+				continue;
+			}
+			var vValue = oObject[sKey];
+			switch (typeof vValue) {
+				case "object":
+					// ignore null objects
+					if (vValue) {
+						Manifest.processObject(vValue, fnCallback);
+					}
+					break;
+				case "string":
+					fnCallback(oObject, sKey, vValue);
+					break;
+				default:
+				// do nothing in case of other types
+			}
+		}
 	};
 
 	return Manifest;

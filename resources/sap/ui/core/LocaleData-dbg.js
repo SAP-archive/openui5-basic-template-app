@@ -1,24 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides the locale object sap.ui.core.LocaleData
-sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType', './Locale', 'sap/base/assert', 'sap/base/util/LoaderExtensions'],
-	function(jQuery, BaseObject, CalendarType, Locale, assert, LoaderExtensions) {
+sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', './Locale', 'sap/base/assert', 'sap/base/util/LoaderExtensions'],
+	function(extend, BaseObject, CalendarType, Locale, assert, LoaderExtensions) {
 	"use strict";
 
 	/**
 	 * Creates an instance of LocaleData for the given locale.
 	 *
-	 * @class Provides access to locale-specific data, like date formats, number formats, currencies, etc.
+	 * @class Provides access to locale-specific data, such as, date formats, number formats, and currencies.
 	 *
 	 * @param {sap.ui.core.Locale} oLocale the locale
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @public
 	 * @alias sap.ui.core.LocaleData
 	 */
@@ -30,6 +30,10 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 			this.mData = getData(oLocale);
 		},
 
+		/**
+		 * @private
+		 * @ui5-restricted UI5 Web Components
+		 */
 		_get: function() {
 			return this._getDeep(this.mData, arguments);
 		},
@@ -388,7 +392,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 		_createFormatPattern: function(sSkeleton, oAvailableFormats, sCalendarType, vDiff) {
 			var aTokens = this._parseSkeletonFormat(sSkeleton), aPatterns,
 				oBestMatch = this._findBestMatch(aTokens, sSkeleton, oAvailableFormats),
-				oToken, oAvailableDateTimeFormats,
+				oToken, oAvailableDateTimeFormats, oSymbol, oGroup,
 				sPattern, sSinglePattern, sDiffSymbol, sDiffGroup,
 				rMixedSkeleton = /^([GyYqQMLwWEecdD]+)([hHkKjJmszZvVOXx]+)$/,
 				bSingleDate,
@@ -408,6 +412,20 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 					sDiffSymbol = vDiff;
 				} else {
 					bSingleDate = true;
+					// Special handling of "y" (Year) in case patterns contains also "G" (Era)
+					if (aTokens[0].symbol === "y" && oBestMatch && oBestMatch.pattern.G) {
+						oSymbol = mCLDRSymbols["G"];
+						oGroup = mCLDRSymbolGroups[oSymbol.group];
+						aTokens.splice(0, 0, {
+							symbol: "G",
+							group: oSymbol.group,
+							match: oSymbol.match,
+							index: oGroup.index,
+							field: oGroup.field,
+							length: 1
+						});
+					}
+
 					// Check if at least one token's group appears in the interval diff
 					// If not, a single date pattern is returned
 					for (i = aTokens.length - 1; i >= 0; i--){
@@ -659,13 +677,11 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 					i = 0,
 					iSkeletonLength,
 					iPatternLength,
-					iOldLength,
+					iBestLength,
 					iNewLength,
 					oSkeletonToken,
 					oBestToken,
 					oSymbol,
-					oSkeletonSymbol,
-					oBestSymbol,
 					sChar;
 
 				// Create a map of group names to token
@@ -687,32 +703,30 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 					} else {
 						oSymbol = mCLDRSymbols[sChar];
 						// If symbol is a CLDR symbol and is contained in the group, expand length
-					if (oSymbol && mGroups[oSymbol.group] && mPatternGroups[oSymbol.group]) {
+						if (oSymbol && mGroups[oSymbol.group] && mPatternGroups[oSymbol.group]) {
 							oSkeletonToken = mGroups[oSymbol.group];
 							oBestToken = mPatternGroups[oSymbol.group];
-							oSkeletonSymbol = mCLDRSymbols[oSkeletonToken.symbol];
-							oBestSymbol = mCLDRSymbols[oBestToken.symbol];
 
 							iSkeletonLength = oSkeletonToken.length;
-							iPatternLength = oBestToken.length;
+							iBestLength = oBestToken.length;
 
-							iOldLength = 1;
+							iPatternLength = 1;
 							while (sPattern.charAt(i + 1) == sChar) {
 								i++;
-								iOldLength++;
+								iPatternLength++;
 							}
 
 							// Prevent expanding the length of the field when:
-							// 1. The length in the best matching skeleton (iPatternLength) matches the length of the application provided skeleton (iSkeletonLength) or
-							// 2. The length of the provided skeleton (iSkeletonLength) and the length of the result pattern (iOldLength) are not in the same category (numeric or text)
+							// 1. The length in the best matching skeleton (iBestLength) matches the length of the application provided skeleton (iSkeletonLength) or
+							// 2. The length of the provided skeleton (iSkeletonLength) and the length of the result pattern (iPatternLength) are not in the same category (numeric or text)
 							//	because switching between numeric to text representation is wrong in all cases
-							if (iSkeletonLength === iPatternLength ||
-								((iSkeletonLength < oSkeletonSymbol.numericCeiling) ?
-									(iPatternLength >= oBestSymbol.numericCeiling) : (iPatternLength < oBestSymbol.numericCeiling)
+							if (iSkeletonLength === iBestLength ||
+								((iSkeletonLength < oSymbol.numericCeiling) ?
+									(iPatternLength >= oSymbol.numericCeiling) : (iPatternLength < oSymbol.numericCeiling)
 								)) {
-								iNewLength = iOldLength;
+								iNewLength = iPatternLength;
 							} else {
-								iNewLength = Math.max(iOldLength, iSkeletonLength);
+								iNewLength = Math.max(iPatternLength, iSkeletonLength);
 							}
 
 							for (var j = 0; j < iNewLength; j++) {
@@ -799,6 +813,18 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 		},
 
 		/**
+		 * Get lenient number symbols for "plusSign" or "minusSign".
+		 *
+		 * @param {string} sType the required type of symbol
+		 * @returns {string} the selected lenient number symbols, e.g. "-‒⁻₋−➖﹣"
+		 * @public
+		 */
+		getLenientNumberSymbols: function(sType) {
+			assert(sType == "plusSign" || sType == "minusSign", "sType must be plusSign or minusSign");
+			return this._get("lenient-scope-number")[sType];
+		},
+
+		/**
 		 * Get decimal format pattern.
 		 *
 		 * @returns {string} The pattern
@@ -811,11 +837,26 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 		/**
 		 * Get currency format pattern.
 		 *
+		 * CLDR format pattern:
+		 *
+		 * @example standard with currency symbol in front of the number
+		 * ¤#,##0.00
+		 * $100,000.00
+		 * $-100,000.00
+		 *
+		 * @example accounting with negative number pattern after the semicolon
+		 * ¤#,##0.00;(¤#,##0.00)
+		 * $100,000.00
+		 * ($100,000.00)
+		 *
+		 * @see http://cldr.unicode.org/translation/numbers-currency/number-patterns
+		 *
 		 * @param {string} sContext the context of the currency pattern (standard or accounting)
 		 * @returns {string} The pattern
 		 * @public
 		 */
 		getCurrencyPattern: function(sContext) {
+			// Undocumented contexts for NumberFormat internal use: "sap-standard" and "sap-accounting"
 			return this._get("currencyFormat")[sContext] || this._get("currencyFormat").standard;
 		},
 
@@ -925,8 +966,8 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 		 *     "EUR": "EUR",
 		 *     "GBP": "GBP",
 		 * }
-		 * @sap-restricted sap.ui.core.format.NumberFormat
 		 * @private
+		 * @ui5-restricted sap.ui.core.format.NumberFormat
 		 * @since 1.63
 		 */
 		getCustomCurrencyCodes: function () {
@@ -1345,12 +1386,14 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 		getCurrencyFormat: function(sStyle, sNumber, sPlural) {
 
 			var sFormat;
-			var oFormats;
+			var oFormats = this._get("currencyFormat-" + sStyle);
 
-			switch (sStyle) {
-			default: //short
+			// Defaults to "short" if not found
+			if (!oFormats) {
+				if (sStyle === "sap-short") {
+					throw new Error("Failed to get CLDR data for property \"currencyFormat-sap-short\"");
+				}
 				oFormats = this._get("currencyFormat-short");
-				break;
 			}
 
 			if (oFormats) {
@@ -2417,6 +2460,11 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 				_allowed: "H h",
 				_preferred: "H"
 			},
+			"lenient-scope-number": {
+				"minusSign": "-‐‒–⁻₋−➖﹣",
+				"commaSign": ",،٫、︐︑﹐﹑，",
+				"plusSign": "+⁺₊➕﬩﹢"
+			},
 			"plurals": {},
 			"units": {
 			"short": {
@@ -3337,7 +3385,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery', 'sap/ui/base/Object', './CalendarType
 			var mData = this._getDeep(this.mData, arguments);
 			var mCustomData = this._getDeep(this.mCustomData, arguments);
 
-			return jQuery.extend({}, mData, mCustomData);
+			return extend({}, mData, mCustomData);
 		}
 	});
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -281,7 +281,7 @@ sap.ui.define([
 					var currentTouches = oEvent.touches.length;
 
 					if (Device.browser.mobile &&
-						(Device.browser.name === Device.browser.BROWSER.INTERNET_EXPLORER ||// TODO remove after 1.62 version
+						(Device.browser.name === Device.browser.BROWSER.INTERNET_EXPLORER ||// TODO remove after the end of support for Internet Explorer
 						Device.browser.name === Device.browser.BROWSER.EDGE)) {
 						windowsPhoneTouches = currentTouches;
 					}
@@ -312,7 +312,7 @@ sap.ui.define([
 			//function is triggered when a touch is removed e.g. the user’s finger is removed from the touchscreen.
 			function onTouchEnd(oEvent) {
 				var windowsPhoneTouchCondition = Device.browser.mobile &&
-					(Device.browser.name === Device.browser.BROWSER.INTERNET_EXPLORER ||// TODO remove after 1.62 version
+					(Device.browser.name === Device.browser.BROWSER.INTERNET_EXPLORER ||// TODO remove after the end of support for Internet Explorer
 					Device.browser.name === Device.browser.BROWSER.EDGE) &&
 					windowsPhoneTouches == maxFingersAllowed;
 

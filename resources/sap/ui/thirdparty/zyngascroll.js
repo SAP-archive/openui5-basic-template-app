@@ -26,21 +26,7 @@
  * http://unify-project.org
  * Copyright 2011, Deutsche Telekom AG
  * License: MIT + Apache (V2)
- */
-/*
- * Scroller
- * http://github.com/zynga/scroller
- *
- * Copyright 2011, Zynga Inc.
- * Licensed under the MIT License.
- * https://raw.github.com/zynga/scroller/master/MIT-LICENSE.txt
- *
- * Based on the work of: Unify Project (unify-project.org)
- * http://unify-project.org
- * Copyright 2011, Deutsche Telekom AG
- * License: MIT + Apache (V2)
- */
-(function(e){var t=Date.now||function(){return+new Date};var i=60;var o=1e3;var _={};var l=1;if(!e.core){e.core={effect:{}}}else if(!core.effect){core.effect={}}core.effect.Animate={stop:function(e){var t=_[e]!=null;if(t){_[e]=null}return t},isRunning:function(e){return _[e]!=null},start:function(e,r,a,n,c,s){var f=t();var u=f;var h=0;var v=0;var p=l++;if(!s){s=document.body}if(p%20===0){var m={};for(var g in _){m[g]=true}_=m}var T=function(l){var m=l!==true;var g=t();if(!_[p]||r&&!r(p)){_[p]=null;a&&a(i-v/((g-f)/o),p,false);return}if(m){var d=Math.round((g-u)/(o/i))-1;for(var S=0;S<Math.min(d,4);S++){T(true);v++}}if(n){h=(g-f)/n;if(h>1){h=1}}var L=c?c(h):h;if((e(L,g,m)===false||h===1)&&m){_[p]=null;a&&a(i-v/((g-f)/o),p,h===1||n==null)}else if(m){u=g;requestAnimationFrame(T,s)}};_[p]=true;requestAnimationFrame(T,s);return p}}})(this);
+ */(function(e){var t=Date.now||function(){return+new Date};var i=60;var o=1e3;var _={};var l=1;if(!e.core){e.core={effect:{}}}else if(!core.effect){core.effect={}}core.effect.Animate={stop:function(e){var t=_[e]!=null;if(t){_[e]=null}return t},isRunning:function(e){return _[e]!=null},start:function(e,r,a,n,c,s){var f=t();var u=f;var h=0;var v=0;var p=l++;if(!s){s=document.body}if(p%20===0){var m={};for(var g in _){m[g]=true}_=m}var T=function(l){var m=l!==true;var g=t();if(!_[p]||r&&!r(p)){_[p]=null;a&&a(i-v/((g-f)/o),p,false);return}if(m){var d=Math.round((g-u)/(o/i))-1;for(var S=0;S<Math.min(d,4);S++){T(true);v++}}if(n){h=(g-f)/n;if(h>1){h=1}}var L=c?c(h):h;if((e(L,g,m)===false||h===1)&&m){_[p]=null;a&&a(i-v/((g-f)/o),p,h===1||n==null)}else if(m){u=g;requestAnimationFrame(T,s)}};_[p]=true;requestAnimationFrame(T,s);return p}}})(this);
 /*
  * Scroller
  * http://github.com/zynga/scroller

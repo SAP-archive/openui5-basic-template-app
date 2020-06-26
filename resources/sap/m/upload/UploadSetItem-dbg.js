@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @class Item that represents one file to be uploaded using the {@link sap.m.upload.UploadSet} control.
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @constructor
 	 * @public
 	 * @since 1.62
@@ -144,6 +144,7 @@ sap.ui.define([
 
 	var DynamicItemContent = HTML.extend("sap.m.upload.DynamicItemContent", {
 		metadata: {
+			library: "sap.m",
 			properties: {
 				item: {type: "sap.m.upload.UploadSetItem"}
 			}
@@ -273,8 +274,12 @@ sap.ui.define([
 
 		if (this.getParent()) {
 			this._getRestartButton().setVisible(sUploadState === UploadState.Error);
-			this._getEditButton().setVisible(!bUploading);
-			this._getDeleteButton().setVisible(!bUploading);
+			if (this.getVisibleEdit()) {
+				this._getEditButton().setVisible(!bUploading);
+			}
+			if (this.getVisibleRemove()) {
+				this._getDeleteButton().setVisible(!bUploading);
+			}
 			this._getTerminateButton().setVisible(this.getParent().getTerminationEnabled() && bUploading);
 		}
 
@@ -284,7 +289,9 @@ sap.ui.define([
 	UploadSetItem.prototype.setEnabledRemove = function (bEnable) {
 		if (this.getEnabledRemove() !== bEnable) {
 			this.setProperty("enabledRemove", bEnable, true);
-			this._getDeleteButton().setEnabled(bEnable);
+			if (this.getParent()) {
+				this._getDeleteButton().setEnabled(bEnable);
+			}
 		}
 		return this;
 	};
@@ -292,7 +299,9 @@ sap.ui.define([
 	UploadSetItem.prototype.setVisibleRemove = function (bVisible) {
 		if (this.getVisibleRemove() !== bVisible) {
 			this.setProperty("visibleRemove", bVisible, true);
-			this._getDeleteButton().setVisible(bVisible);
+			if (this.getParent()) {
+				this._getDeleteButton().setVisible(bVisible);
+			}
 		}
 		return this;
 	};
@@ -300,7 +309,9 @@ sap.ui.define([
 	UploadSetItem.prototype.setEnabledEdit = function (bEnable) {
 		if (this.getEnabledEdit() !== bEnable) {
 			this.setProperty("enabledEdit", bEnable, true);
-			this._getEditButton().setEnabled(bEnable);
+			if (this.getParent()) {
+				this._getEditButton().setEnabled(bEnable);
+			}
 		}
 		return this;
 	};
@@ -308,7 +319,36 @@ sap.ui.define([
 	UploadSetItem.prototype.setVisibleEdit = function (bVisible) {
 		if (this.getVisibleEdit() !== bVisible) {
 			this.setProperty("visibleEdit", bVisible, true);
-			this._getEditButton().setVisible(bVisible);
+			if (this.getParent()) {
+				this._getEditButton().setVisible(bVisible);
+			}
+		}
+		return this;
+	};
+
+	UploadSetItem.prototype.setThumbnailUrl = function(sUrl) {
+		if (this.getThumbnailUrl() != sUrl) {
+			this.setProperty("thumbnailUrl", sUrl, true);
+			// Below we handle change of icon case for existing uploadSetItem.For creation of uploadSetItem icon is created using _getIcon method.
+			if (this._oListItem) {
+				for (var i = 0; i < this._oListItem.getContent().length; i++) {
+					if (this._oListItem.getContent()[i] instanceof sap.ui.core.Icon || this._oListItem.getContent()[i] instanceof sap.m.Image) {
+						var oItem = this._oListItem.getContent()[i];
+						this._oListItem.removeContent(oItem);
+						if (this._oIcon) {
+							this._oIcon.destroy();
+							this._oIcon = null;
+						}
+						this._oIcon = IconPool.createControlByURI({
+							id: this.getId() + "-thumbnail",
+							src: sUrl,
+							decorative: false
+						}, Image);
+						this._oIcon.addStyleClass("sapMUCItemImage sapMUCItemIcon");
+						this._oListItem.insertContent(this._oIcon, 0);
+					}
+				}
+			}
 		}
 		return this;
 	};
@@ -317,14 +357,36 @@ sap.ui.define([
 	/* Public methods */
 	/* ============== */
 
+	/**
+	 * Returns file object.
+	 *
+	 * @public
+	 * @returns {File|Blob} File object.
+	 *
+	 */
 	UploadSetItem.prototype.getFileObject = function () {
 		return this._oFileObject;
 	};
 
+	/**
+	 * Returns list item.
+	 *
+	 * @public
+	 * @returns {sap.m.CustomListItem} List item.
+	 *
+	 */
 	UploadSetItem.prototype.getListItem = function () {
 		return this._getListItem();
 	};
 
+	/**
+	 * Set current progress.
+	 * @param {int} iProgress Current progress.
+	 *
+	 * @public
+	 * @returns {sap.m.upload.UploadSetItem} Returns instance for chaining.
+	 *
+	 */
 	UploadSetItem.prototype.setProgress = function (iProgress) {
 		var $busyIndicator;
 
@@ -465,6 +527,7 @@ sap.ui.define([
 			this._oFileNameLink.addStyleClass("sapMUSFileName");
 			this.addDependent(this._oFileNameLink);
 		}
+		this._oFileNameLink.setEnabled(!!this.getUrl());
 
 		return this._oFileNameLink;
 	};

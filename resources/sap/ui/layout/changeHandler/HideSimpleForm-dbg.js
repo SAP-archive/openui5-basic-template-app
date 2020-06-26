@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,7 +11,7 @@ sap.ui.define(['sap/ui/fl/changeHandler/JsControlTreeModifier', "sap/base/Log"],
 	 * Change handler for hiding of a control.
 	 * @alias sap.ui.fl.changeHandler.HideControl
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @experimental Since 1.27.0
 	 */
 	var HideForm = { };
@@ -113,6 +113,7 @@ sap.ui.define(['sap/ui/fl/changeHandler/JsControlTreeModifier', "sap/base/Log"],
 				});
 				if (oRemovedElement) {
 					oModifier.removeAggregation(oControl, "content", oRemovedElement, oView);
+					oModifier.insertAggregation(oControl, "dependents", oRemovedElement, 0, oView);
 				}
 			}
 
@@ -177,7 +178,14 @@ sap.ui.define(['sap/ui/fl/changeHandler/JsControlTreeModifier', "sap/base/Log"],
 		var oModifier = mPropertyBag.modifier;
 		oModifier.removeAllAggregation(oControl, "content");
 		mState.content.forEach(function(oElementState) {
-			var oElement = oModifier.bySelector(oElementState.elementSelector, oAppComponent);
+			var oElement = oModifier.bySelector(oElementState.elementSelector, oAppComponent, mPropertyBag.view);
+			var aDependents = oModifier.getAggregation(oControl, "dependents");
+			aDependents.some(function(oDependent) {
+				if (oModifier.getProperty(oDependent, "id") === oModifier.getProperty(oElement, "id")) {
+					oModifier.removeAggregation(oControl, "dependents", oDependent, mPropertyBag.view);
+					return true;
+				}
+			});
 			oModifier.insertAggregation(oControl, "content", oElement, oElementState.index, mPropertyBag.view);
 			oModifier.setProperty(oElement, "visible", oElementState.visible);
 		});

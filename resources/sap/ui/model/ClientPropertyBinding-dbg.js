@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -51,8 +51,8 @@ sap.ui.define(['./PropertyBinding'],
 	 */
 	ClientPropertyBinding.prototype._getValue = function(){
 		var sProperty = this.sPath.substr(this.sPath.lastIndexOf("/") + 1);
-		if (sProperty == "__name__") {
-			var aPath = this.oContext.split("/");
+		if (this.oContext && sProperty == "__name__") {
+			var aPath = this.oContext.getPath().split("/");
 			return aPath[aPath.length - 1];
 		}
 		return this.oModel.getProperty(this.sPath, this.oContext); // ensure to survive also not set model object

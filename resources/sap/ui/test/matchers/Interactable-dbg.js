@@ -1,20 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/ui/test/matchers/Matcher',
 	'sap/ui/test/matchers/Visible',
-	"sap/ui/thirdparty/jquery"
-], function(Matcher, Visible, jQueryDOM) {
+	'sap/ui/test/matchers/_Busy',
+	'sap/ui/test/matchers/_Visitor'
+], function (Matcher, Visible, _Busy, _Visitor) {
 	"use strict";
+
 	var oVisibleMatcher = new Visible();
+	var oBusyMatcher = new _Busy();
+	var oVisitor = new _Visitor();
 
 	/**
 	 * @class
-	 * Interactable - check if a control is currently able to take user interactions.
+	 * Checks if a control is currently able to take user interactions.
 	 * OPA5 will automatically apply this matcher if you specify actions in {@link sap.ui.test.Opa5#waitFor}.
 	 * A control will be filtered out by this matcher when:
 	 * <ul>
@@ -34,7 +38,7 @@ sap.ui.define([
 	 *         The UIArea of the control needs new rendering
 	 *     </li>
 	 * </ul>
-	 * Since 1.53 Interactable no longer uses internal autoWait functionality.
+	 * Since 1.53, Interactable no longer uses internal autoWait functionality.
 	 * Interactable matcher might be made private in the near future.
 	 * It is recommended to enable autoWait OPA option instead of using the Interactable matcher directly.
 	 * @public
@@ -44,52 +48,36 @@ sap.ui.define([
 	 * @since 1.34
 	 */
 	return Matcher.extend("sap.ui.test.matchers.Interactable", {
-		isMatching:  function(oControl) {
+		isMatching: function (oControl) {
 			// control must be visible
 			if (!oVisibleMatcher.isMatching(oControl)) {
 				return false;
 			}
 
-			// control and its ancestors (including indirect ones) must be enabled and not busy
-			if (oControl.getBusy && oControl.getBusy()) {
-				this._oLogger.debug("Control '" + oControl + "' is busy");
+			// control and ancestors should not be busy
+			if (oBusyMatcher.isMatching(oControl)) {
 				return false;
 			}
 
-			if (oControl.getEnabled && !oControl.getEnabled()) {
-				this._oLogger.debug("Control '" + oControl + "' is not enabled");
+			var bInAreaForRerendering = oVisitor.isMatching(oControl, function (oControl) {
+				return oControl.getMetadata().getName() === "sap.ui.core.UIArea" && oControl.bNeedsRerendering;
+			});
+
+			if (bInAreaForRerendering) {
+				this._oLogger.debug("Control '" + oControl + "' is currently in a UIArea that needs a new rendering");
 				return false;
 			}
 
-			var oParent = oControl.getParent();
-
-			while (oParent) {
-				if (oParent.getBusy && oParent.getBusy()) {
-					this._oLogger.debug("Control '" + oControl + "' has a parent '" + oParent + "' that is busy");
-					return false;
-				}
-
-				if (oParent.getEnabled && !oParent.getEnabled()) {
-					this._oLogger.debug("Control '" + oControl + "' has a parent '" + oParent + "' that is not enabled");
-					return false;
-				}
-
-				var bParentIsUIArea = oParent.getMetadata().getName() === "sap.ui.core.UIArea";
-				if (bParentIsUIArea  && oParent.bNeedsRerendering) {
-					this._oLogger.debug("Control '" + oControl + "' is currently in a UIArea that needs a new rendering");
-					return false;
-				}
-
-				oParent = oParent.getParent();
-			}
-
+			var oAppWindowJQuery = this._getApplicationWindow().jQuery;
 			var bControlIsInStaticArea = oControl.$().closest("#sap-ui-static").length;
-			var bOpenStaticBlockingLayer = jQueryDOM("#sap-ui-blocklayer-popup").is(":visible");
+			var bOpenStaticBlockingLayer = oAppWindowJQuery("#sap-ui-blocklayer-popup").is(":visible");
+
 			if (!bControlIsInStaticArea && bOpenStaticBlockingLayer) {
 				this._oLogger.debug("The control '" + oControl + "' is hidden behind a blocking popup layer");
 				return false;
 			}
 
+			// control is interactable
 			return true;
 		}
 	});

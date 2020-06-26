@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['./ListItemBaseRenderer', 'sap/ui/core/Renderer'],
+sap.ui.define(["./ListItemBaseRenderer", "sap/ui/core/Renderer"],
 	function(ListItemBaseRenderer, Renderer) {
 	"use strict";
 
@@ -14,6 +14,7 @@ sap.ui.define(['./ListItemBaseRenderer', 'sap/ui/core/Renderer'],
 	 * @namespace
 	 */
 	var CustomListItemRenderer = Renderer.extend(ListItemBaseRenderer);
+	CustomListItemRenderer.apiVersion = 2;
 
 	/**
 	 * Renders the HTML for the given control, using the provided
@@ -27,15 +28,11 @@ sap.ui.define(['./ListItemBaseRenderer', 'sap/ui/core/Renderer'],
 	 *            rendered
 	 */
 	CustomListItemRenderer.renderLIAttributes = function(rm, oLI) {
-		rm.addClass("sapMCLI");
+		rm.class("sapMCLI");
 	};
 
 	CustomListItemRenderer.renderLIContent = function(rm, oLI) {
-		var aContent = oLI.getContent();
-		var cLength = aContent.length;
-		for ( var i = 0; i < cLength; i++) {
-			rm.renderControl(aContent[i]);
-		}
+		oLI.getContent().forEach(rm.renderControl, rm);
 	};
 
 	return CustomListItemRenderer;

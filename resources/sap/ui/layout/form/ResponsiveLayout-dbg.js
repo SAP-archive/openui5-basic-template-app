@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -50,7 +50,7 @@ sap.ui.define([
 	 * @extends sap.ui.layout.form.FormLayout
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -103,6 +103,7 @@ sap.ui.define([
 	var Panel = Control.extend("sap.ui.layout.form.ResponsiveLayoutPanel", {
 
 		metadata : {
+			library: "sap.ui.layout",
 			aggregations: {
 				"content"   : {type: "sap.ui.layout.ResponsiveFlowLayout", multiple: false}
 			},
@@ -283,7 +284,7 @@ sap.ui.define([
 					this.mContainers[sContainerId][2][sElementId]) {
 					if (this.mContainers[sContainerId][2][sElementId][1]) {
 						// update fields RF-Layout
-						var aFields = oParent.getFields();
+						var aFields = oParent.getFieldsForRendering();
 						_updateLayoutDataOfContentResponsiveFlowLayout.call(this, this.mContainers[sContainerId][2][sElementId][1], aFields);
 					}
 					this.mContainers[sContainerId][2][sElementId][0].onLayoutDataChange(oEvent);
@@ -494,7 +495,7 @@ sap.ui.define([
 			}
 
 			// if more fields after a label put the fields in an additional ResponsiveFlowLayout
-			var aFields = oElement.getFields();
+			var aFields = oElement.getFieldsForRendering();
 			if (oElement.getLabel() && aFields.length > 1) {
 				if (mRFLayouts[sElementId][1]) {
 					oFieldsRFLayout = mRFLayouts[sElementId][1];
@@ -571,7 +572,7 @@ sap.ui.define([
 					if (oElement) {
 						var aContent = [];
 						var oLabel = oElement.getLabelControl();
-						var aFields = oElement.getFields();
+						var aFields = oElement.getFieldsForRendering();
 						if (!oLabel || aFields.length <= 1) {
 							aContent = aFields;
 							if (oLabel) {
@@ -618,7 +619,7 @@ sap.ui.define([
 				oRFLayout.getContent = function(){
 					var oElement = sap.ui.getCore().byId(this.__myParentElementId);
 					if (oElement) {
-						return oElement.getFields();
+						return oElement.getFieldsForRendering();
 					} else {
 						return false;
 					}

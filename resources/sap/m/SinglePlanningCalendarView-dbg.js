@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,18 +20,13 @@ function (library, Log, Element) {
 	 *
 	 * @class
 	 *
-	 * <h3>Overview</h3>
-	 *
-	 * A {@link sap.m.SinglePlanningCalendarView} element represents a day view of the SinglePlanningCalendar.
+	 * Represents a day view of the {@link sap.m.SinglePlanningCalendar}.
 	 * The purpose of the element is to decouple the view logic from parent control <code>SinglePlanningCalendar</code>.
-	 *
-	 * <b>Disclaimer</b>: This control is in a beta state - incompatible API changes may be done before its official public
-	 * release. Use at your own discretion.
 	 *
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public

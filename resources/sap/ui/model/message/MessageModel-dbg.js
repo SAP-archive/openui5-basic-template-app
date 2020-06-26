@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,7 +27,7 @@ sap.ui.define(['sap/ui/model/BindingMode', 'sap/ui/model/ClientModel', 'sap/ui/m
 	 * @extends sap.ui.model.ClientModel
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @param {sap.ui.core.message.MessageManager} oMessageManager The MessageManager instance
 	 * @public
@@ -61,8 +61,8 @@ sap.ui.define(['sap/ui/model/BindingMode', 'sap/ui/model/ClientModel', 'sap/ui/m
 		this.checkUpdate();
 	};
 
-	MessageModel.prototype.fireMessageChange = function(mArguments) {
-		this.fireEvent("messageChange", mArguments);
+	MessageModel.prototype.fireMessageChange = function(oParameters) {
+		this.fireEvent("messageChange", oParameters);
 		return this;
 	};
 
@@ -85,12 +85,11 @@ sap.ui.define(['sap/ui/model/BindingMode', 'sap/ui/model/ClientModel', 'sap/ui/m
 	};
 
 	/**
-	 * Sets a new value for the given property <code>sPropertyName</code> in the model.
-	 * If the model value changed all interested parties are informed.
+	 * Unsupported operation.
 	 *
-	 * @param {string}  sPath path of the property to set
-	 * @param {any}     oValue value to set the property to
-	 * @param {object} [oContext=null] the context which will be used to set the property
+	 * Other models provide this method to set a new value for a specific property.
+	 * <code>MessageModel</code> does not support it as it supports the <code>OneWay</code> mode only.
+	 *
 	 * @public
 	 */
 	MessageModel.prototype.setProperty = function(sPath, oValue, oContext) {

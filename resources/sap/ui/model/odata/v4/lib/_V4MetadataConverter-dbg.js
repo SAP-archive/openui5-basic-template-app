@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,20 +44,50 @@ sap.ui.define([
 	 */
 	V4MetadataConverter.prototype.processActionOrFunction = function (oElement) {
 		var sKind = oElement.localName,
-			sQualifiedName = this.namespace + oElement.getAttribute("Name"),
-			oAction = {
+			oOperation = {
 				$kind : sKind
-			};
+			},
+			aOverloads,
+			oParametersCollection,
+			sQualifiedName = this.namespace + oElement.getAttribute("Name"),
+			sSignature = "",
+			that = this;
 
-		 this.processAttributes(oElement, oAction, {
+		/*
+		 * Returns the qualified OData type ("foo.Type" or "Collection(foo.Type)") for the given
+		 * parameter, with aliases properly resolved.
+		 *
+		 * @param {object} oParameter
+		 * @returns {string}
+		 */
+		function getType(oParameter) {
+			var oType = {};
+
+			that.processTypedCollection(oParameter.getAttribute("Type"), oType);
+
+			return oType.$isCollection ? "Collection(" + oType.$Type + ")" : oType.$Type;
+		}
+
+		this.processAttributes(oElement, oOperation, {
 			"IsBound" : this.setIfTrue,
 			"EntitySetPath" : this.setValue,
 			"IsComposable" : this.setIfTrue
 		});
+		aOverloads = this.getOrCreateArray(this.result, sQualifiedName);
+		if (!Array.isArray(aOverloads)) {
+			aOverloads = []; // overwrite old value, "last one wins" in case of duplicate names
+			this.addToResult(sQualifiedName, aOverloads);
+		}
+		aOverloads.push(oOperation);
+		this.oOperation = oOperation;
 
-		this.getOrCreateArray(this.result, sQualifiedName).push(oAction);
-		this.oOperation = oAction;
-		this.annotatable(oAction);
+		if (oOperation.$IsBound) {
+			oParametersCollection = oElement.getElementsByTagName("Parameter");
+			sSignature = oElement.localName === "Action"
+				? getType(oParametersCollection[0])
+				: Array.prototype.map.call(oParametersCollection, getType).join(",");
+		}
+		this.annotatable(sQualifiedName + "(" + sSignature + ")");
 	};
 
 	/**
@@ -102,10 +132,9 @@ sap.ui.define([
 	V4MetadataConverter.prototype.processEntityContainer = function (oElement) {
 		var sQualifiedName = this.namespace + oElement.getAttribute("Name");
 
-		this.result[sQualifiedName] = this.entityContainer = {
-			"$kind" : "EntityContainer"
-		};
-		this.result.$EntityContainer = sQualifiedName;
+		this.entityContainer = {"$kind" : "EntityContainer"};
+		this.addToResult(sQualifiedName, this.entityContainer);
+		this.addToResult("$EntityContainer", sQualifiedName);
 		this.annotatable(sQualifiedName);
 	};
 
@@ -122,7 +151,7 @@ sap.ui.define([
 			$Type :
 				this.resolveAlias(oElement.getAttribute("EntityType"))
 		};
-		 this.processAttributes(oElement, this.entitySet, {
+		this.processAttributes(oElement, this.entitySet, {
 			"IncludeInServiceDocument" : this.setIfFalse
 		});
 		this.annotatable(sName);
@@ -169,14 +198,15 @@ sap.ui.define([
 				"$kind" : "EnumType"
 			};
 
-		 this.processAttributes(oElement, oEnumType, {
+		this.processAttributes(oElement, oEnumType, {
 			"IsFlags" : this.setIfTrue,
 			"UnderlyingType" : function (sValue) {
 				return sValue !== "Edm.Int32" ? sValue : undefined;
 			}
 		});
 
-		this.result[sQualifiedName] = this.enumType = oEnumType;
+		this.enumType = oEnumType;
+		this.addToResult(sQualifiedName, oEnumType);
 		this.enumTypeMemberCounter = 0;
 		this.annotatable(sQualifiedName);
 	};
@@ -198,7 +228,7 @@ sap.ui.define([
 			}
 		} else {
 			vValue = this.enumTypeMemberCounter;
-			this.enumTypeMemberCounter++;
+			this.enumTypeMemberCounter += 1;
 		}
 		this.enumType[sName] = vValue;
 		this.annotatable(sName);
@@ -277,14 +307,14 @@ sap.ui.define([
 			oParameter = {};
 
 		this.processTypedCollection(oElement.getAttribute("Type"), oParameter);
-		 this.processAttributes(oElement, oParameter, {
+		this.processAttributes(oElement, oParameter, {
 			"Name" : this.setValue,
 			"Nullable" : this.setIfFalse
 		});
 		this.processFacetAttributes(oElement, oParameter);
 
 		this.getOrCreateArray(oActionOrFunction, "$Parameter").push(oParameter);
-		this.annotatable(oParameter);
+		this.annotatable(oParameter.$Name);
 	};
 
 	/**
@@ -303,7 +333,7 @@ sap.ui.define([
 		this.processFacetAttributes(oElement, oReturnType);
 
 		oActionOrFunction.$ReturnType = oReturnType;
-		this.annotatable(oReturnType);
+		this.annotatable("$ReturnType");
 	};
 
 	/**
@@ -313,9 +343,8 @@ sap.ui.define([
 	 */
 	V4MetadataConverter.prototype.processSchema = function (oElement) {
 		this.namespace = oElement.getAttribute("Namespace") + ".";
-		this.result[this.namespace] = this.schema = {
-			"$kind" : "Schema"
-		};
+		this.schema = {"$kind" : "Schema"};
+		this.addToResult(this.namespace, this.schema);
 		this.annotatable(this.schema);
 	};
 
@@ -355,7 +384,7 @@ sap.ui.define([
 		});
 		this.processFacetAttributes(oElement, oTerm);
 
-		this.result[sQualifiedName] = oTerm;
+		this.addToResult(sQualifiedName, oTerm);
 		this.annotatable(sQualifiedName);
 	};
 
@@ -369,7 +398,7 @@ sap.ui.define([
 		var sQualifiedName = this.namespace + oElement.getAttribute("Name"),
 			that = this;
 
-		 this.processAttributes(oElement, oType, {
+		this.processAttributes(oElement, oType, {
 			"OpenType" : that.setIfTrue,
 			"HasStream" : that.setIfTrue,
 			"Abstract" : that.setIfTrue,
@@ -378,7 +407,8 @@ sap.ui.define([
 			}
 		});
 
-		this.result[sQualifiedName] = this.type = oType;
+		this.type = oType;
+		this.addToResult(sQualifiedName, oType);
 		this.annotatable(sQualifiedName);
 	};
 
@@ -411,7 +441,7 @@ sap.ui.define([
 				"$UnderlyingType" : oElement.getAttribute("UnderlyingType")
 			};
 
-		this.result[sQualifiedName] = oTypeDefinition;
+		this.addToResult(sQualifiedName, oTypeDefinition);
 		this.processFacetAttributes(oElement, oTypeDefinition);
 		this.annotatable(sQualifiedName);
 	};
@@ -428,7 +458,7 @@ sap.ui.define([
 			};
 
 		this.processTypedCollection(oElement.getAttribute("Type"), oProperty);
-		 this.processAttributes(oElement, oProperty, {
+		this.processAttributes(oElement, oProperty, {
 			"Nullable" : this.setIfFalse,
 			"Partner" : this.setValue,
 			"ContainsTarget" : this.setIfTrue

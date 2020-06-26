@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,7 +8,9 @@ sap.ui.define(function () {
 
 	"use strict";
 
-	var WizardStepRenderer = {};
+	var WizardStepRenderer = {
+		apiVersion: 2
+	};
 
 	WizardStepRenderer.render = function (oRm, oStep) {
 		this.startWizardStep(oRm, oStep);
@@ -18,25 +20,21 @@ sap.ui.define(function () {
 	};
 
 	WizardStepRenderer.startWizardStep = function (oRm, oStep) {
-		oRm.write("<article");
-		oRm.writeAccessibilityState(oStep, {
-			"labelledby": oStep._getNumberInvisibleText().getId(),
-			"role": "region"
-		});
-		oRm.writeControlData(oStep);
-		oRm.addClass("sapMWizardStep");
-		oRm.writeClasses();
-		oRm.write(">");
+		oRm.openStart("div", oStep)
+			.accessibilityState(oStep, {
+				labelledby: oStep._getNumberInvisibleText().getId(),
+				role: "region"
+			})
+			.class("sapMWizardStep")
+			.openEnd();
 	};
 
 	WizardStepRenderer.renderWizardStepTitle = function (oRm, oStep) {
-		oRm.write("<h3 class='sapMWizardStepTitle' id='" + this.getTitleId(oStep) + "'>");
-		oRm.writeEscaped(oStep.getTitle());
-		oRm.write("</h3>");
-	};
-
-	WizardStepRenderer.getTitleId = function (oStep) {
-		return oStep.getId() + "-Title";
+		oRm.openStart("h3", oStep.getId() + "-Title")
+			.class("sapMWizardStepTitle")
+			.openEnd()
+			.text(oStep.getTitle())
+			.close("h3");
 	};
 
 	WizardStepRenderer.renderContent = function (oRm, oStep) {
@@ -45,7 +43,7 @@ sap.ui.define(function () {
 	};
 
 	WizardStepRenderer.endWizardStep = function (oRm) {
-		oRm.write("</article>");
+		oRm.close("div");
 	};
 
 	return WizardStepRenderer;

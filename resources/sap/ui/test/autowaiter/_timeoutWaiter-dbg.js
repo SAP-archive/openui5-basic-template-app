@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,10 +33,10 @@ sap.ui.define([
 		CLEARED: "CLEARED"
 	};
 
-    // initiatorId is the timeout id of the currently running timeout callback
-    // for opa poll frame, will have the ID of the poll timeout
-    // undefined means this is native event frame
-    var iInitiatorId;
+	// initiatorId is the timeout id of the currently running timeout callback
+	// for opa poll frame, will have the ID of the poll timeout
+	// undefined means this is native event frame
+	var iInitiatorId;
 
 	function createTimeoutWrapper (sName) {
 		var sSetName = "set" + sName;
@@ -47,10 +47,22 @@ sap.ui.define([
 			return;
 		}
 		var fnOriginalClear = window[sClearName];
+
 		window[sSetName] = function wrappedSetTimeout(fnCallback, iDelay, tracking) {
+			iDelay = iDelay || 0;
+			var aCallbackArgs = Array.prototype.slice.call(arguments, 2);
+			var oNewTimeout = {
+				delay: iDelay,
+				initiator: iInitiatorId,
+				func: _utils.functionToString(fnCallback),
+				stack: _utils.resolveStackTrace(),
+				status: timeoutStatus.TRACKED
+			};
+			var iID;
+
 			// some timeouts do not need to be tracked, like the timeout for long-running promises
 			if (tracking && tracking === 'TIMEOUT_WAITER_IGNORE') {
-				iID = fnOriginal(fnCallback, iDelay);
+				iID = fnOriginal.apply(null, [fnCallback, iDelay].concat(aCallbackArgs.slice(1)));
 				oLogger.trace("Timeout with ID " + iID + " should not be tracked. " +
 					" Delay: " + iDelay +
 					" Initiator: " + iInitiatorId);
@@ -65,7 +77,7 @@ sap.ui.define([
 					oLogger.trace("Timeout data for timeout with ID " + iID + " disapered unexpectedly");
 					oCurrentTimeout = {};
 				}
-                iInitiatorId = iID;
+				iInitiatorId = iID;
 
 				oLogger.trace("Timeout with ID " + iID + " started");
 				oCurrentTimeout.status = timeoutStatus.STARTED;
@@ -78,18 +90,7 @@ sap.ui.define([
 				oCurrentTimeout.status = timeoutStatus.FINISHED;
 			};
 
-            iDelay = iDelay || 0;
-
-			var iID;
-			var oNewTimeout = {
-				delay: iDelay,
-                initiator: iInitiatorId,
-				func: _utils.functionToString(fnCallback),
-				stack: _utils.resolveStackTrace(),
-				status: timeoutStatus.TRACKED
-			};
-
-			iID = fnOriginal(fnWrappedCallback, iDelay);
+			iID = fnOriginal.apply(null, [fnWrappedCallback, iDelay].concat(aCallbackArgs));
 			oLogger.trace("Timeout with ID " + iID + " is tracked. " +
 				" Delay: " + iDelay +
 				" Initiator: " + iInitiatorId);
@@ -100,7 +101,7 @@ sap.ui.define([
 
 		window[sClearName] = function wrappedClearTimeout(iID) {
 			if (!iID) {
-				oLogger.trace("Could not clead timeout with invalid ID: " + iID);
+				oLogger.trace("Could not clean timeout with invalid ID: " + iID);
 				return;
 			}
 
@@ -121,19 +122,19 @@ sap.ui.define([
 
 	function createLogForTimeout(iTimeoutID, oTimeout,bBlocking,bDetails) {
 		return "\nTimeout: ID: " + iTimeoutID +
-			" Type: " + (bBlocking ?  "BLOCKING" : "NOT BLOCKING") +
+			" Type: " + (bBlocking ? "BLOCKING" : "NOT BLOCKING") +
 			" Status: " + oTimeout.status +
-            " Delay: " + oTimeout.delay +
-            " Initiator: " + oTimeout.initiator +
+			" Delay: " + oTimeout.delay +
+			" Initiator: " + oTimeout.initiator +
 			(bDetails ? ("\nFunction: " + oTimeout.func) : "") +
-            (bDetails ? ("\nStack: " + oTimeout.stack) : "");
+			(bDetails ? ("\nStack: " + oTimeout.stack) : "");
 	}
 
 	function logTrackedTimeouts(aBlockingTimeoutIds) {
 		var aTimeoutIds = Object.keys(mTimeouts);
 		// log overview of blocking timeouts at debug
-        var sLogMessage = "Found " + aBlockingTimeoutIds.length + " blocking out of " + aTimeoutIds.length + " tracked timeouts";
-        aBlockingTimeoutIds.forEach(function (iTimeoutID) {
+		var sLogMessage = "Found " + aBlockingTimeoutIds.length + " blocking out of " + aTimeoutIds.length + " tracked timeouts";
+		aBlockingTimeoutIds.forEach(function (iTimeoutID) {
 			sLogMessage += createLogForTimeout(iTimeoutID, mTimeouts[iTimeoutID],aBlockingTimeoutIds.some(function(currentValue){
 				return currentValue == iTimeoutID;
 			}),true);
@@ -151,7 +152,7 @@ sap.ui.define([
 		oHasPendingLogger.trace(sTraceLogMessage);
 	}
 
-    function isBlocking(iID) {
+	function isBlocking(iID) {
 		var oCurrentTimeout = mTimeouts[iID];
 		// we do not care for finished timeouts
 		if (oCurrentTimeout.status !== timeoutStatus.TRACKED){

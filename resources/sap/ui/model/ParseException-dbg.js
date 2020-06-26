@@ -1,31 +1,36 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides a filter for list bindings
+// Provides class sap.ui.model.ParseException
 sap.ui.define(['sap/ui/base/Exception'],
-	function(Exception) {
+	function (Exception) {
 	"use strict";
 
-
 	/**
-	 * Create a new ParseException.
+	 * Creates a new ParseException.
 	 *
-	 * @class Instances of this exception are thrown when an error occurs while
-	 * converting a string value to a specific property type in the model.
+	 * @param {string} message
+	 *   A message explaining why the parsing of a value failed; this message is language dependent
+	 *   as it may be displayed on the UI
 	 *
-	 * @param {string} message Message explaining how the validation failed
 	 * @alias sap.ui.model.ParseException
+	 * @class
+	 * @classdesc
+	 *   Instances of this exception are thrown when converting a string value to its model
+	 *   representation fails.
+	 *
 	 * @public
+	 * @see sap.ui.model.SimpleType#formatValue
 	 */
-	var ParseException = function(message) {
+	var ParseException = function (message) {
 		this.name = "ParseException";
 		this.message = message;
 	};
+
 	ParseException.prototype = Object.create(Exception.prototype);
 
 	return ParseException;
-
 }, /* bExport= */ true);

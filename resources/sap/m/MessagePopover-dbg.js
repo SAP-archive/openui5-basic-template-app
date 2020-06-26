@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,41 +44,52 @@ function(
 		 * @param {object} [mSettings] Initial settings for the new control
 		 *
 		 * @class
-		 * A summarized list of different types of messages.
+		 *
+		 * A <code>MessagePopover</code> is used to display a summarized list of different types of messages (error, warning, success, and information messages).
+		 *
 		 * <h3>Overview</h3>
-		 * A message popover is used to display a summarized list of different types of messages (errors, warnings, success and information).
-		 * It provides a handy and systemized way to navigate and explore details for every message. It also exposes an event {@link sap.m.MessagePopover#activeTitlePress}, which can be used for navigation from a message to the source of the issue.
-		 * <h4>Notes:</h4>
+	 	 *
+		 * It provides a handy and systematized way to navigate and explore details for every message.
+		 * It is adaptive and responsive.
+		 * It renders as a dialog with a Close button in the header on phones, and as a popover on tablets and higher resolution devices.
+		 * It also exposes an event {@link sap.m.MessagePopover#event:activeTitlePress}, which can be used for navigation from a message to the source of the issue.
+		 * <h3>Notes:</h3>
 		 * <ul>
-		 * <li> Messages can have descriptions pre-formatted with HTML markup. In this case, the <code>markupDescription</code> has to be set to <code>true</code>.</li>
-		 * <li> If the message cannot be fully displayed or includes a long description, the message popover provides navigation to the detailed description.</li>
+		 * <li> If your application changes its model between two interactions with the <code>MessagePopover</code>, this could lead to outdated messages being shown.
+		 * To avoid this, you need to call <code>navigateBack</code> when the model is updated.</li>
+		 * <li> Messages can have descriptions preformatted with HTML markup. In this case, the <code>markupDescription</code> has to be set to <code>true</code>.</li>
+		 * <li> If the message cannot be fully displayed or includes a long description, the <code>MessagePopover</code> provides navigation to the detailed description.</li>
 		 * </ul>
 		 * <h3>Structure</h3>
-		 * The message popover stores all messages in an aggregation of type {@link sap.m.MessageItem} named <code>items</code>.
+		 * The <code>MessagePopover</code> stores all messages in an aggregation of type {@link sap.m.MessageItem} named <code>items</code>.
 		 *
 		 * A set of properties determines how the items are rendered:
 		 * <ul>
-		 * <li> counter - An integer that is used to indicate the number of errors for each type </li>
-		 * <li> type - The type of message </li>
-		 * <li> title/subtitle - The title and subtitle of the message</li>
-		 * <li> description - The long text description of the message</li>
-		 * <li> activeTitle - Determines whether the title of the item is interactive</li>
+		 * <li> counter - An integer that is used to indicate the number of errors for each type. </li>
+		 * <li> type - The type of message. </li>
+		 * <li> title/subtitle - The title and subtitle of the message.</li>
+		 * <li> description - The long text description of the message.</li>
+		 * <li> activeTitle - Determines whether the title of the item is interactive.</li>
 		 * </ul>
 		 * <h3>Usage</h3>
-		 * With the message concept, MessagePopover provides a way to centrally manage messages and show them to the user without additional work for the developer.
-		 * The message popover is triggered from a messaging button in the footer toolbar. If an error has occurred at any validation point,
+		 * <h4>When to use:</h4>
+		 * <ul>
+		 * <li>When you want to make sure that all content is visible on any device.</li>
+		 * <li>When you want a way to centrally manage messages and show them to the user without additional work for the developer.
+		 * The <code>MessagePopover</code> is triggered from a messaging button in the footer toolbar. If an error has occurred at any validation point,
 		 * the total number of messages should be incremented, but the user's work shouldn't be interrupted.
 		 * Navigation between the message item and the source of the error can be created, if needed by the application.
-		 * This can be done by setting the <code>activeTitle</code> property to true and providing a handler for the <code>activeTitlePress</code> event.
-		 * In addition, you can achieve the same functionality inside a different container using the sap.m.MessageView control.
+		 * This can be done by setting the <code>activeTitle</code> property to <code>true</code> and providing a handler for the <code>activeTitlePress</code> event.
+		 * In addition, you can achieve the same functionality inside a different container using the {@link sap.m.MessageView} control.</li>
+		 * </ul>
 		 * <h3>Responsive Behavior</h3>
-		 * On mobile phones, the message popover is automatically shown in full screen mode.<br>
+		 * On mobile phones, the <code>MessagePopover</code> is automatically shown in full screen mode.<br>
 		 * On desktop and tablet, the message popover opens in a popover.<br>
-		 * On desktop the opened popover is resizable if it is placed in a {@link sap.m.Toolbar}, {@link sap.m.Bar} or used in {@link sap.f.semantic.SemanticPage}
+		 * On desktop the opened popover is resizable, if it is placed in a {@link sap.m.Toolbar}, {@link sap.m.Bar}, or used in {@link sap.m.semantic.SemanticPage}.
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -92,7 +103,8 @@ function(
 				library: "sap.m",
 				properties: {
 					/**
-					 * Callback function for resolving a promise after description has been asynchronously loaded inside this function
+					 * Callback function for resolving a promise after description has been asynchronously loaded inside this function.
+					 * You can use this function in order to validate the description before displaying it.
 					 * @callback sap.m.MessagePopover~asyncDescriptionHandler
 					 * @param {object} config A single parameter object
 					 * @param {MessagePopoverItem} config.item Reference to respective MessagePopoverItem instance
@@ -103,11 +115,12 @@ function(
 					asyncDescriptionHandler: {type: "any", group: "Behavior", defaultValue: null},
 
 					/**
-					 * Callback function for resolving a promise after a link has been asynchronously validated inside this function
+					 * Callback function for resolving a promise after a link has been asynchronously validated inside this function.
+					 * You can use this function in order to validate URLs before displaying them inside the description.
 					 * @callback sap.m.MessagePopover~asyncURLHandler
 					 * @param {object} config A single parameter object
 					 * @param {string} config.url URL to validate
-					 * @param {string|Int} config.id ID of the validation job
+					 * @param {string|int} config.id ID of the validation job
 					 * @param {object} config.promise Object grouping a promise's reject and resolve methods
 					 * @param {function} config.promise.resolve Method to resolve promise
 					 * @param {function} config.promise.reject Method to reject promise
@@ -115,90 +128,95 @@ function(
 					asyncURLHandler: {type: "any", group: "Behavior", defaultValue: null},
 
 					/**
-					 * Determines the position, where the control will appear on the screen. Possible values are: sap.m.VerticalPlacementType.Top, sap.m.VerticalPlacementType.Bottom and sap.m.VerticalPlacementType.Vertical.
-					 * The default value is sap.m.VerticalPlacementType.Vertical. Setting this property while the control is open, will not cause any re-rendering and changing of the position. Changes will only be applied with the next interaction.
+					 * Determines the position, where the control will appear on the screen.
+					 * The default value is <code>sap.m.VerticalPlacementType.Vertical</code>. Setting this property while the control is open, will not cause any re-rendering and changing of the position. Changes will only be applied with the next interaction.
 					 */
 					placement: {type: "sap.m.VerticalPlacementType", group: "Behavior", defaultValue: "Vertical"},
 
 					/**
 					 * Sets the initial state of the control - expanded or collapsed. By default the control opens as expanded.
+					 * Note: If there is only one message in the control, this state will be ignored and the details page of the message will be shown.
 					 */
-					initiallyExpanded: {type: "boolean", group: "Behavior", defaultValue: true}
+					initiallyExpanded: {type: "boolean", group: "Behavior", defaultValue: true},
+
+					/**
+					 * Defines whether the MessageItems are grouped or not.
+					 */
+					groupItems: { type: "boolean", group: "Behavior", defaultValue: false }
 				},
 				defaultAggregation: "items",
 				aggregations: {
 					/**
-					 * A list with message items
+					 * A list with message items.
 					 */
 					items: {type: "sap.m.MessageItem", altTypes: ["sap.m.MessagePopoverItem"], multiple: true, singularName: "item"},
 
 					/**
-					 * A custom header button
+					 * Sets a custom header button.
 					 */
 					headerButton: {type: "sap.m.Button", multiple: false, forwarding: {idSuffix: "-messageView", aggregation: "headerButton"}}
 				},
 				events: {
 					/**
-					 * This event will be fired after the popover is opened
+					 * Event fired after the popover is opened.
 					 */
 					afterOpen: {
 						parameters: {
 							/**
-							 * This refers to the control which opens the popover
+							 * Refers to the control that opens the popover.
 							 */
 							openBy: {type: "sap.ui.core.Control"}
 						}
 					},
 
 					/**
-					 * This event will be fired after the popover is closed
+					 * Event fired after the popover is closed.
 					 */
 					afterClose: {
 						parameters: {
 							/**
-							 * Refers to the control which opens the popover
+							 * Refers to the control that opens the popover.
 							 */
 							openBy: {type: "sap.ui.core.Control"}
 						}
 					},
 
 					/**
-					 * This event will be fired before the popover is opened
+					 * Event fired before the popover is opened.
 					 */
 					beforeOpen: {
 						parameters: {
 							/**
-							 * Refers to the control which opens the popover
+							 * Refers to the control that opens the popover.
 							 */
 							openBy: {type: "sap.ui.core.Control"}
 						}
 					},
 
 					/**
-					 * This event will be fired before the popover is closed
+					 * Event fired before the popover is closed.
 					 */
 					beforeClose: {
 						parameters: {
 							/**
-							 * Refers to the control which opens the popover
-							 * See sap.ui.core.MessageType enum values for types
+							 * Refers to the control that opens the popover.
+							 * See {@link sap.ui.core.MessageType} enum values for types.
 							 */
 							openBy: {type: "sap.ui.core.Control"}
 						}
 					},
 
 					/**
-					 * This event will be fired when description is shown
+					 * Event fired when description is shown.
 					 */
 					itemSelect: {
 						parameters: {
 							/**
-							 * Refers to the message popover item that is being presented
+							 * Refers to the <code>MessagePopover</code> item that is being presented.
 							 */
 							item: {type: "sap.m.MessagePopoverItem"},
 							/**
-							 * Refers to the type of messages being shown
-							 * See sap.ui.core.MessageType values for types
+							 * Refers to the type of messages being shown.
 							 */
 							messageTypeFilter: {type: "sap.ui.core.MessageType"}
 
@@ -206,7 +224,7 @@ function(
 					},
 
 					/**
-					 * This event will be fired when one of the lists is shown when (not) filtered  by type
+					 * Event fired when one of the lists is shown when (not) filtered  by type.
 					 */
 					listSelect: {
 						parameters: {
@@ -218,23 +236,23 @@ function(
 					},
 
 					/**
-					 * This event will be fired when the long text description data from a remote URL is loaded
+					 * Event fired when the long text description data from a remote URL is loaded.
 					 */
 					longtextLoaded: {},
 
 					/**
-					 * This event will be fired when a validation of a URL from long text description is ready
+					 * Event fired when a validation of a URL from long text description is ready.
 					 */
 					urlValidated: {},
 
 					/**
-					 * This event will be fired when an active title of a MessageItem is clicked
+					 * Event fired when an active title of a <code>MessageItem</code> is clicked.
 					 * @since 1.58
 					 */
 					activeTitlePress: {
 						parameters: {
 							/**
-							 * Refers to the message item that contains the active Title
+							 * Refers to the message item that contains the activeTitle.
 							 */
 							item: { type: "sap.m.MessageItem" }
 						}
@@ -361,6 +379,7 @@ function(
 				}
 			}).addStyleClass(CSS_CLASS);
 
+			this._oPopover._setAriaModal(false);
 			this._oPopover.addContent(this._oMessageView);
 			this._oPopover.addAssociation("ariaLabelledBy", this.getId() + "-messageView-HeadingDescr", true);
 
@@ -390,6 +409,7 @@ function(
 			if (this.getDependents().indexOf(this._oPopover) === -1) {
 				this.addDependent(this._oPopover);
 			}
+			this._oPopover.setPlacement(this.getPlacement());
 		};
 
 		/**
@@ -437,6 +457,8 @@ function(
 			if (this._oOpenByControl && !this._oOpenByControl.getVisible()) {
 				this._oPopover.close();
 			}
+
+			this._syncMessageView();
 		};
 
 		/**
@@ -558,21 +580,6 @@ function(
 			return this;
 		};
 
-		/**
-		 * The method sets the placement position of the MessagePopover. Only accepted Values are:
-		 * sap.m.PlacementType.Top, sap.m.PlacementType.Bottom and sap.m.PlacementType.Vertical
-		 *
-		 * @param {sap.m.PlacementType} sPlacement Placement type
-		 * @returns {sap.m.MessagePopover} Reference to the 'this' for chaining purposes
-		 * @public
-		 */
-		MessagePopover.prototype.setPlacement = function (sPlacement) {
-			this.setProperty("placement", sPlacement, true);
-			this._oPopover.setPlacement(sPlacement);
-
-			return this;
-		};
-
 		MessagePopover.prototype.getDomRef = function (sSuffix) {
 			return this._oPopover && this._oPopover.getAggregation("_popup").getDomRef(sSuffix);
 		};
@@ -596,7 +603,7 @@ function(
 			oMessageView = new MessageView(this.getId() + "-messageView", {
 				activeTitlePress: function (oEvent) {
 					//close the Popover on mobile before navigating because it is on fullscreen
-					if (sap.ui.Device.system.phone) {
+					if (Device.system.phone) {
 						that.close();
 					}
 					that.fireActiveTitlePress({ item: oEvent.getParameter("item")});
@@ -643,7 +650,7 @@ function(
 		 * @private
 		 */
 		MessagePopover.prototype._restoreExpansionDefaults = function () {
-			if (!this.getInitiallyExpanded()) {
+			if (!this.getInitiallyExpanded() && this.getItems().length != 1) {
 				this._collapseMsgPopover();
 				this._oMessageView._oSegmentedButton.setSelectedButton("none");
 			} else {
@@ -681,7 +688,7 @@ function(
 		};
 
 		/**
-		 * Inserts close button in the in the provided location
+		 * Inserts Close button in the provided location
 		 *
 		 * @param {sap.ui.core.Control} oInsertCloseBtnHere The object in which we want to insert the control
 		 * @private
@@ -712,28 +719,18 @@ function(
 			}
 		};
 
+		MessagePopover.prototype._syncMessageView = function () {
+			this._oMessageView.setProperty('asyncDescriptionHandler', this.getAsyncDescriptionHandler(), true);
+			this._oMessageView.setProperty('asyncURLHandler', this.getAsyncURLHandler(), true);
+			this._oMessageView.setProperty("groupItems", this.getGroupItems(), false);
+		};
+
 		/*
 		 * =========================================
 		 * MessagePopover async handlers
 		 * proxy methods
 		 * =========================================
 		 */
-
-		MessagePopover.prototype.setAsyncDescriptionHandler = function (asyncDescriptionHandler) {
-			// MessagePopover is just a proxy to the MessageView
-			this.setProperty('asyncDescriptionHandler', asyncDescriptionHandler, true);
-			this._oMessageView.setProperty('asyncDescriptionHandler', asyncDescriptionHandler, true);
-
-			return this;
-		};
-
-		MessagePopover.prototype.setAsyncURLHandler = function (asyncURLHandler) {
-			// MessagePopover is just a proxy to the MessageView
-			this.setProperty('asyncURLHandler', asyncURLHandler, true);
-			this._oMessageView.setProperty('asyncURLHandler', asyncURLHandler, true);
-
-			return this;
-		};
 
 		MessagePopover.prototype.setModel = function(oModel, sName) {
 			/* When a model is set to the MessagePopover it is propagated to all its aggregation
@@ -743,6 +740,16 @@ function(
 			this._oMessageView.setModel(oModel, sName);
 
 			return Control.prototype.setModel.apply(this, arguments);
+		};
+
+		/**
+		 * Navigates back to the list page.
+		 *
+		 * @public
+		 */
+		MessagePopover.prototype.navigateBack = function () {
+			// MessagePopover is just a proxy to the MessageView
+			this._oMessageView.navigateBack();
 		};
 
 		["invalidate", "addStyleClass", "removeStyleClass", "toggleStyleClass", "hasStyleClass", "getBusyIndicatorDelay",

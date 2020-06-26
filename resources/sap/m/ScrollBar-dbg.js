@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,7 +25,7 @@ function(Control, ScrollBarRenderer) {
 	 * care of only rendering the currently visible rows and use this <code>ScrollBar</code> control to make
 	 * the users think they are actually scrolling through a long list.
 	 * @extends sap.ui.core.Control
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @private
 	 * @alias sap.m.ScrollBar
@@ -92,10 +92,15 @@ function(Control, ScrollBarRenderer) {
 
 	/**
 	 * @override
+	 * Custom setter, helping DOM changes to appear to the element, before DOM event handlers hit on it.
 	 */
 	ScrollBar.prototype.setContentSize = function (sContentSize) {
-		this.$("sbcnt").height(sContentSize);
-		return this.setProperty("contentSize", sContentSize, true);
+		var $SbCnt = this.$("sbcnt");
+		if ($SbCnt.length) {
+			$SbCnt.height(sContentSize);
+		}
+
+		return this.setProperty("contentSize", sContentSize);
 	};
 
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -177,11 +177,10 @@ sap.ui.define([
 
 		// update the binding context
 		var oTree = this.getTree();
-		var oBinding = null;
+		var oBinding = oTree ? oTree.getBinding("items") : null;
 		var iIndex = -1;
 
-		if (oTree) {
-			oBinding = oTree.getBinding("items");
+		if (oTree && oBinding) {
 			iIndex = oTree.indexOfItem(this);
 			if (oTree.getMode() === ListMode.SingleSelect) {
 				oBinding.setSelectedIndex(iIndex);
@@ -206,20 +205,25 @@ sap.ui.define([
 	 * @since 1.42.0
 	 */
 	TreeItemBase.prototype._getExpanderControl = function() {
-		var sSrc = this.CollapsedIconURI;
+		var sSrc = this.CollapsedIconURI,
+			oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+			sIconTooltip = oBundle.getText("TREE_ITEM_EXPAND_NODE");
+
 		if (this.getExpanded()) {
 			sSrc = this.ExpandedIconURI;
+			sIconTooltip = oBundle.getText("TREE_ITEM_COLLAPSE_NODE");
 		}
 
 		if (this._oExpanderControl) {
 			this._oExpanderControl.setSrc(sSrc);
+			this._oExpanderControl.setTooltip(sIconTooltip);
 			return this._oExpanderControl;
 		}
 
 		this._oExpanderControl = new Icon({
 			id: this.getId() + "-expander",
 			src: sSrc,
-			useIconTooltip: false,
+			tooltip: sIconTooltip,
 			noTabStop: true
 		}).setParent(this, null, true).addStyleClass("sapMTreeItemBaseExpander").attachPress(function(oEvent) {
 			this.informTree("ExpanderPressed");
@@ -229,36 +233,64 @@ sap.ui.define([
 	};
 
 	/**
-	 * Gets expander information.
+	 * Updates the item by assigning the relavant expander, styles and attributes.
 	 *
 	 * @private
 	 * @since 1.46.0
 	 */
-	TreeItemBase.prototype._updateExpander = function() {
+	TreeItemBase.prototype._updateItem = function() {
+		if (this._bInvalidated) {
+			return;
+		}
+
+		var oTree = this.getTree();
+		if (oTree && oTree._bInvalidated) {
+			return;
+		}
+
 		if (this._oExpanderControl) {
 			var sSrc = this.CollapsedIconURI;
 			if (this.getExpanded()) {
 				sSrc = this.ExpandedIconURI;
 			}
 			this._oExpanderControl.setSrc(sSrc);
-			this.$().attr("aria-expanded", this.getExpanded());
 
 			// make the expander visible
+			var $this = this.$();
+			// adapt the tree items styles and the expander
 			if (!this.isLeaf()) {
-				this.$().removeClass("sapMTreeItemBaseLeaf");
+				$this.removeClass("sapMTreeItemBaseLeaf");
+				$this.attr("aria-expanded", this.getExpanded());
+			} else {
+				$this.addClass("sapMTreeItemBaseLeaf");
+				$this.removeAttr("aria-expanded");
 			}
+			$this.toggleClass("sapMTreeItemBaseChildren", !this.isTopLevel());
+			// adapt aria-level (in cases like sorting of the tree items is performed)
+			$this.attr("aria-level", this.getLevel() + 1);
 
 			// update the indentation again
 			var iIndentation = this._getPadding(),
 				sStyleRule = sap.ui.getCore().getConfiguration().getRTL() ? "paddingRight" : "paddingLeft";
-			this.$().css(sStyleRule, iIndentation + "rem");
+			$this.css(sStyleRule, iIndentation + "rem");
 
 		}
+
+	};
+
+	TreeItemBase.prototype.invalidate = function() {
+		ListItemBase.prototype.invalidate.apply(this, arguments);
+		this._bInvalidated = true;
+	};
+
+	TreeItemBase.prototype.onAfterRendering = function() {
+		ListItemBase.prototype.onAfterRendering.apply(this, arguments);
+		this._bInvalidated = false;
 	};
 
 	TreeItemBase.prototype.setBindingContext = function() {
 		ListItemBase.prototype.setBindingContext.apply(this, arguments);
-		this._updateExpander();
+		this._updateItem();
 		return this;
 	};
 

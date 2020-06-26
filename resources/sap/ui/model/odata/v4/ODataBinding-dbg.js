@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 //Provides mixin sap.ui.model.odata.v4.ODataBinding for classes extending sap.ui.model.Binding
@@ -9,9 +9,8 @@ sap.ui.define([
 	"sap/ui/base/SyncPromise",
 	"sap/ui/model/ChangeReason",
 	"sap/ui/model/odata/OperationMode",
-	"sap/ui/model/odata/v4/Context",
-	"sap/ui/thirdparty/jquery"
-], function (_Helper, SyncPromise, ChangeReason, OperationMode, Context, jQuery) {
+	"sap/ui/model/odata/v4/Context"
+], function (_Helper, SyncPromise, ChangeReason, OperationMode, Context) {
 	"use strict";
 
 	var aChangeReasonPrecedence = [ChangeReason.Change, ChangeReason.Refresh, ChangeReason.Sort,
@@ -30,11 +29,36 @@ sap.ui.define([
 		// maps a canonical path of a quasi-absolute or relative binding to a cache object that may
 		// be reused
 		this.mCacheByResourcePath = undefined;
+		// the current cache of this binding as delivered by oCachePromise
+		// undefined: unknown whether the binding has an own cache or not
+		// null: binding does not have an own cache
+		this.oCache = null;
+		this.oCachePromise = SyncPromise.resolve(null);
+		this.mCacheQueryOptions = undefined;
 		// used to create cache only for the latest call to #fetchCache
 		this.oFetchCacheCallToken = undefined;
-		// change reason to be used when the binding is resumed
+		// query options resulting from child bindings added when this binding already has data
+		this.mLateQueryOptions = undefined;
+		// the absolute binding path (possibly reduced if the binding uses a parent binding's cache)
+		this.sReducedPath = undefined;
+		// change reason to be used when the binding is resumed, defaults to "Change" for the case
+		// that the binding is created while its root binding is suspended; otherwise it is set
+		// accordingly in suspend
 		this.sResumeChangeReason = ChangeReason.Change;
 	}
+
+	/**
+	 * Adjusts the paths of all contexts of this binding by replacing the given transient predicate
+	 * with the given predicate and adjusts all contexts of child bindings.
+	 *
+	 * @param {string} sTransientPredicate - The transient predicate to be replaced
+	 * @param {string} sPredicate - The new predicate
+	 * @param {sap.ui.model.odata.v4.Context} [oContext] - The only context that changed
+	 *
+	 * @abstract
+	 * @name sap.ui.model.odata.v4.ODataBinding#adjustPredicate
+	 * @private
+	 */
 
 	/**
 	 * Checks binding-specific parameters from the given map. "Binding-specific" parameters are
@@ -49,6 +73,7 @@ sap.ui.define([
 	 * <li> '$$groupId' with allowed values as specified in {@link #checkGroupId}
 	 * <li> '$$updateGroupId' with allowed values as specified in {@link #checkGroupId}
 	 * <li> '$$inheritExpandSelect' with allowed values <code>false</code> and <code>true</code>
+	 * <li> "$$noPatch" with value <code>true</code>
 	 * <li> '$$operationMode' with value {@link sap.ui.model.odata.OperationMode.Server}
 	 * <li> '$$ownRequest' with value <code>true</code>
 	 * <li> '$$patchWithoutSideEffects' with value <code>true</code>
@@ -105,6 +130,7 @@ sap.ui.define([
 					}
 					break;
 				case "$$canonicalPath":
+				case "$$noPatch":
 				case "$$ownRequest":
 				case "$$patchWithoutSideEffects":
 					if (vValue !== true) {
@@ -135,43 +161,149 @@ sap.ui.define([
 	};
 
 	/**
+	 * Calls {@link #checkUpdateInternal}.
+	 *
+	 * @param {boolean} [bForceUpdate]
+	 *   Whether the change event is fired in any case
+	 * @throws {Error}
+	 *   If there are unexpected parameters
+	 *
+	 * @private
+	 */
+	// @override sap.ui.model.Binding#checkUpdate
+	ODataBinding.prototype.checkUpdate = function (bForceUpdate) {
+		var that = this;
+
+		if (arguments.length > 1) {
+			throw new Error("Only the parameter bForceUpdate is supported");
+		}
+
+		this.checkUpdateInternal(bForceUpdate).catch(function (oError) {
+			that.oModel.reportError("Failed to update " + that, sClassName, oError);
+		});
+	};
+
+	/**
+	 * A property binding re-fetches its value and fires a change event if the value has changed. A
+	 * parent binding checks dependent bindings for updates or refreshes the binding if the resource
+	 * path of its parent context changed.
+	 *
+	 * @param {boolean} [bForceUpdate]
+	 *   Whether the change event is fired in any case (only allowed for property bindings)
+	 * @returns {sap.ui.base.SyncPromise}
+	 *   A promise resolving without a defined result when the check is finished, or rejecting in
+	 *   case of an error (e.g. thrown by the change event handler of a control)
+	 * @throws {Error} If called with illegal parameters
+	 *
+	 * @abstract
+	 * @name sap.ui.model.odata.v4.ODataBinding#checkUpdateInternal
+	 * @private
+	 */
+
+	/**
+	 * Destroys the object. The object must not be used anymore after this function was called.
+	 *
+	 * @public
+	 * @since 1.66
+	 */
+	ODataBinding.prototype.destroy = function () {
+		this.mCacheByResourcePath = undefined;
+		this.oCachePromise.then(function (oOldCache) {
+			if (oOldCache) {
+				oOldCache.setActive(false);
+			}
+		}, function () {});
+		this.oCache = null;
+		this.oCachePromise = SyncPromise.resolve(null); // be nice to #withCache
+		this.mCacheQueryOptions = undefined;
+		// resolving functions e.g. for oReadPromise in #checkUpdateInternal may run after destroy
+		// of this binding and must not access the context
+		this.oContext = undefined;
+		this.oFetchCacheCallToken = undefined;
+	};
+
+
+	/**
+	 * Hook method for {@link sap.ui.model.odata.v4.ODataBinding#fetchCache} to create a cache for
+	 * this binding with the given resource path and query options.
+	 *
+	 * @param {string} sResourcePath
+	 *   The resource path, for example "EMPLOYEES"
+	 * @param {object} mQueryOptions
+	 *   The query options
+	 * @param {sap.ui.model.Context} [oContext]
+	 *   The context instance to be used, must be <code>undefined</code> for absolute bindings
+	 * @param {string} [sDeepResourcePath=sResourcePath]
+	 *   The deep resource path to be used to build the target path for bound messages
+	 * @returns {sap.ui.model.odata.v4.lib._Cache}
+	 *   The new cache instance
+	 *
+	 * @abstract
+	 * @function
+	 * @name sap.ui.model.odata.v4.ODataBinding#doCreateCache
+	 * @private
+	 */
+
+	/**
+	 * Deregisters the given change listener from the given path.
+	 *
+	 * @param {string} sPath
+	 *   The path relative to the binding
+	 * @param {object} oListener
+	 *   The change listener
+	 *
+	 * @private
+	 */
+	ODataBinding.prototype.doDeregisterChangeListener = function (sPath, oListener) {
+		this.oCache.deregisterChange(sPath, oListener);
+	};
+
+	/**
 	 * Creates a cache for this binding if a cache is needed and updates <code>oCachePromise</code>.
 	 *
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context instance to be used, may be undefined for absolute bindings
+	 * @param {boolean} [bIgnoreParentCache]
+	 *   Whether the parent cache is ignored and a new cache shall be created. This is for example
+	 *   needed during the resume process in case this binding has changed but its parent
+	 *   binding has not (see {@link sap.ui.model.odata.v4.ODataListBinding#resumeInternal})
 	 *
 	 * @private
 	 */
-	ODataBinding.prototype.fetchCache = function (oContext) {
+	ODataBinding.prototype.fetchCache = function (oContext, bIgnoreParentCache) {
 		var oCachePromise,
 			oCallToken = {},
-			oCurrentCache,
 			aPromises,
 			that = this;
 
 		if (!this.bRelative) {
 			oContext = undefined;
 		}
-		if (this.oCachePromise.isFulfilled()) {
-			oCurrentCache = this.oCachePromise.getResult();
-			if (oCurrentCache) {
-				oCurrentCache.setActive(false);
-			}
+
+		if (this.oCache) {
+			// if oCachePromise is pending no cache will be created because of oFetchCacheCallToken
+			this.oCache.setActive(false);
 		}
-		aPromises = [this.fetchQueryOptionsForOwnCache(oContext), this.oModel.oRequestor.ready()];
+		this.oCache = undefined;
+		aPromises = [
+			this.fetchQueryOptionsForOwnCache(oContext, bIgnoreParentCache),
+			this.oModel.oRequestor.ready()
+		];
 		this.mCacheQueryOptions = undefined;
+		this.mLateQueryOptions = undefined;
 		oCachePromise = SyncPromise.all(aPromises).then(function (aResult) {
-			var mQueryOptions = aResult[0];
+			var mQueryOptions = aResult[0].mQueryOptions;
+
+			that.sReducedPath = aResult[0].sReducedPath;
 
 			// Note: do not create a cache for a virtual context
-			if (mQueryOptions && !(oContext && oContext.getIndex
-					&& oContext.getIndex() === Context.VIRTUAL)) {
+			if (mQueryOptions && !(oContext && oContext.iIndex === Context.VIRTUAL)) {
 				return that.fetchResourcePath(oContext).then(function (sResourcePath) {
-					var oCache, oError, iReturnValueContextId;
+					var oCache, sDeepResourcePath, oError, iReturnValueContextId;
 
 					// create cache only for the latest call to fetchCache
 					if (!oCachePromise || that.oFetchCacheCallToken === oCallToken) {
-						that.mCacheQueryOptions = jQuery.extend(true, {},
+						that.mCacheQueryOptions = Object.assign({},
 							that.oModel.mUriParameters, mQueryOptions);
 						if (that.bRelative) { // quasi-absolute or relative binding
 							// mCacheByResourcePath has to be reset if parameters are changing
@@ -182,16 +314,20 @@ sap.ui.define([
 							if (oCache && oCache.$returnValueContextId === iReturnValueContextId) {
 								oCache.setActive(true);
 							} else {
+								sDeepResourcePath
+									= _Helper.buildPath(oContext.getPath(), that.sPath).slice(1);
 								oCache = that.doCreateCache(sResourcePath, that.mCacheQueryOptions,
-									oContext);
+									oContext, sDeepResourcePath);
 								that.mCacheByResourcePath[sResourcePath] = oCache;
-								oCache.$returnValueContextId = iReturnValueContextId;
+								oCache.$deepResourcePath = sDeepResourcePath;
 								oCache.$resourcePath = sResourcePath;
+								oCache.$returnValueContextId = iReturnValueContextId;
 							}
 						} else { // absolute binding
 							oCache = that.doCreateCache(sResourcePath, that.mCacheQueryOptions,
 								oContext);
 						}
+						that.oCache = oCache;
 						return oCache;
 					} else {
 						oError = new Error("Cache discarded as a new cache has been created");
@@ -200,6 +336,8 @@ sap.ui.define([
 					}
 				});
 			}
+			that.oCache = null;
+			return null;
 		});
 		oCachePromise.catch(function (oError) {
 			//Note: this may also happen if the promise to read data for the canonical path's
@@ -212,33 +350,61 @@ sap.ui.define([
 	};
 
 	/**
-	 * Fetches the query options to create the cache for this binding or <code>undefined</code> if
-	 * no cache is to be created.
+	 * Fetches the query options to create the cache for this binding and the binding's reduced
+	 * path.
 	 *
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context instance to be used, must be undefined for absolute bindings
+	 * @param {boolean} [bIgnoreParentCache]
+	 *   Whether the query options of the parent cache shall be ignored and own query options are
+	 *   determined (see {@link #fetchCache})
 	 * @returns {sap.ui.base.SyncPromise}
-	 *   A promise which resolves with the query options to create the cache for this binding,
-	 *   or with <code>undefined</code> if no cache is to be created
+	 *   A promise resolving with an object having two properties:
+	 *   {object} mQueryOptions - The query options to create the cache for this binding or
+	 *     <code>undefined</code> if no cache is to be created
+	 *   {string} sReducedPath - The binding's absolute, reduced path in the cache hierarchy
 	 *
 	 * @private
 	 */
-	ODataBinding.prototype.fetchQueryOptionsForOwnCache = function (oContext) {
+	ODataBinding.prototype.fetchQueryOptionsForOwnCache = function (oContext, bIgnoreParentCache) {
 		var bHasNonSystemQueryOptions,
 			oQueryOptionsPromise,
+			sResolvedPath = this.oModel.resolve(this.sPath, oContext),
 			that = this;
+
+		/*
+		 * Wraps the given query options (promise) and adds sResolvedPath so that it can be returned
+		 * by fetchQueryOptionsForOwnCache.
+		 *
+		 * @param {object|sap.ui.base.SyncPromise} vQueryOptions
+		 *   The query options (promise)
+		 * @param {string} [sReducedPath=sResolvedPath]
+		 *   The reduced path
+		 * @returns {sap.ui.base.SyncPromise}
+		 *   A promise to be returned by fetchQueryOptionsForOwnCache
+		 */
+		function wrapQueryOptions(vQueryOptions, sReducedPath) {
+			return SyncPromise.resolve(vQueryOptions).then(function (mQueryOptions) {
+				return {
+					mQueryOptions : mQueryOptions,
+					sReducedPath : sReducedPath || sResolvedPath
+				};
+			});
+		}
 
 		if (this.oOperation // operation binding manages its cache on its own
 			|| this.bRelative && !oContext // unresolved binding
 			|| this.isMeta()) {
-			return SyncPromise.resolve(undefined);
+			return wrapQueryOptions(undefined);
 		}
 
 		// auto-$expand/$select and binding is a parent binding, so that it needs to wait until all
 		// its child bindings know via the corresponding promise in this.aChildCanUseCachePromises
 		// if they can use the parent binding's cache
+		// With $$aggregation, no auto-$expand/$select is needed
 		oQueryOptionsPromise = this.doFetchQueryOptions(oContext);
-		if (this.oModel.bAutoExpandSelect && this.aChildCanUseCachePromises) {
+		if (this.oModel.bAutoExpandSelect && this.aChildCanUseCachePromises
+				&& !(this.mParameters && this.mParameters.$$aggregation)) {
 			// For auto-$expand/$select, wait for query options of dependent bindings:
 			// Promise.resolve() ensures all dependent bindings are created and have sent their
 			// query options promise to this binding via fetchIfChildCanUseCache.
@@ -256,9 +422,10 @@ sap.ui.define([
 			});
 		}
 
-		// (quasi-)absolute binding
-		if (!this.bRelative || !oContext.fetchValue) {
-			return oQueryOptionsPromise;
+		// parent cache is ignored or (quasi-)absolute binding
+		if (bIgnoreParentCache || !this.bRelative || !oContext.fetchValue)  {
+			// the binding shall create its own cache
+			return wrapQueryOptions(oQueryOptionsPromise);
 		}
 
 		// auto-$expand/$select: Use parent binding's cache if possible
@@ -268,24 +435,26 @@ sap.ui.define([
 					return sKey[0] !== "$" || sKey[1] === "$";
 				});
 			if (bHasNonSystemQueryOptions) {
-				return oQueryOptionsPromise;
+				return wrapQueryOptions(oQueryOptionsPromise);
 			}
 			return oContext.getBinding()
 				.fetchIfChildCanUseCache(oContext, that.sPath, oQueryOptionsPromise)
-				.then(function (bCanUseCache) {
-					return bCanUseCache ? undefined : oQueryOptionsPromise;
+				.then(function (sReducedPath) {
+					return wrapQueryOptions(sReducedPath ? undefined : oQueryOptionsPromise,
+						sReducedPath);
 				});
 		}
 
 		// relative list or context binding with parameters which are not query options
 		// (such as $$groupId)
 		if (this.mParameters && Object.keys(this.mParameters).length) {
-			return oQueryOptionsPromise;
+			return wrapQueryOptions(oQueryOptionsPromise);
 		}
 
 		// relative binding which may have query options from UI5 filter or sorter objects
 		return oQueryOptionsPromise.then(function (mQueryOptions) {
-			return Object.keys(mQueryOptions).length === 0 ? undefined : mQueryOptions;
+			return wrapQueryOptions(
+				Object.keys(mQueryOptions).length ? mQueryOptions : undefined);
 		});
 	};
 
@@ -318,7 +487,7 @@ sap.ui.define([
 
 		sContextPath = oContext.getPath();
 		bCanonicalPath = oContext.fetchCanonicalPath
-			&& (this.mParameters && this.mParameters["$$canonicalPath"]
+			&& (this.mParameters && this.mParameters.$$canonicalPath
 				|| rIndexOrTransientPredicate.test(sContextPath));
 		oContextPathPromise = bCanonicalPath
 			? oContext.fetchCanonicalPath()
@@ -359,45 +528,39 @@ sap.ui.define([
 	/**
 	 * Returns the relative path for a given absolute path by stripping off the binding's resolved
 	 * path or the path of the binding's return value context. Returns relative paths unchanged.
+	 * The binding must be resolved to call this function.
+	 *
 	 * Note that the resulting path may start with a key predicate.
 	 *
 	 * Example: (The binding's resolved path is "/foo/bar"):
-	 * baz -> baz
-	 * /foo/bar/baz -> baz
-	 * /foo/bar('baz') -> ('baz')
-	 * /foo -> undefined if the binding is relative
+	 * "baz" -> "baz"
+	 * "/foo/bar/baz" -> "baz"
+	 * "/foo/bar('baz')" -> "('baz')"
+	 * "/foo" -> undefined
 	 *
 	 * @param {string} sPath
-	 *   A path
+	 *   A path (absolute or relative to this binding)
 	 * @returns {string}
-	 *   The path relative to the binding's path or <code>undefined</code> if the path is not a sub
-	 *   path and the binding is relative
+	 *   The given path, if it is already relative; otherwise the path relative to the binding's
+	 *   resolved path or return value context path; <code>undefined</code> if the path does not
+	 *   start with either of these paths.
 	 *
 	 * @private
 	 */
 	ODataBinding.prototype.getRelativePath = function (sPath) {
-		var sPathPrefix,
-			sResolvedPath;
+		var sRelativePath;
 
 		if (sPath[0] === "/") {
-			sResolvedPath = this.oModel.resolve(this.sPath, this.oContext);
-			if (sPath.indexOf(sResolvedPath) === 0) {
-				sPathPrefix = sResolvedPath;
-			} else if (this.oReturnValueContext
-					&& sPath.indexOf(this.oReturnValueContext.getPath()) === 0) {
-				sPathPrefix = this.oReturnValueContext.getPath();
-			} else {
-				// A mismatch can only happen when a list binding's context has been parked and is
-				// destroyed later. Such a context does no longer have a subpath of the binding's
-				// path. The only caller in this case is ODataPropertyBinding#deregisterChange
-				// which can safely be ignored.
-				return undefined;
+			sRelativePath = _Helper.getRelativePath(sPath,
+				this.oModel.resolve(this.sPath, this.oContext));
+			if (sRelativePath === undefined && this.oReturnValueContext) {
+				sRelativePath = _Helper.getRelativePath(sPath, this.oReturnValueContext.getPath());
 			}
-			sPath = sPath.slice(sPathPrefix.length);
-
-			if (sPath[0] === "/") {
-				sPath = sPath.slice(1);
-			}
+			// Can only become undefined when a list binding's context has been parked and is
+			// destroyed later. Such a context does no longer have a subpath of the binding's
+			// path. The only caller in this case is ODataPropertyBinding#deregisterChange
+			// which can safely be ignored.
+			return sRelativePath;
 		}
 		return sPath;
 	};
@@ -421,16 +584,22 @@ sap.ui.define([
 	 * {@link topic:54e0ddf695af4a6c978472cecb01c64d Initialization and Read Requests}.
 	 *
 	 * @returns {sap.ui.model.odata.v4.ODataContextBinding|sap.ui.model.odata.v4.ODataListBinding|sap.ui.model.odata.v4.ODataPropertyBinding}
-	 *   The root binding or <code>undefined</code> if this binding is not yet resolved.
+	 *   The root binding or <code>undefined</code> if this binding is unresolved (see
+	 *   {@link sap.ui.model.Binding#isResolved}).
 	 *
 	 * @public
 	 * @since 1.53.0
 	 */
 	ODataBinding.prototype.getRootBinding = function () {
-		if (this.bRelative && this.oContext && this.oContext.getBinding) {
-			return this.oContext.getBinding().getRootBinding();
+		if (this.bRelative) {
+			if (!this.oContext) {
+				return undefined;
+			}
+			if (this.oContext.getBinding) {
+				return this.oContext.getBinding().getRootBinding();
+			}
 		}
-		return this.bRelative && !this.oContext ? undefined : this;
+		return this;
 	};
 
 	/**
@@ -468,17 +637,26 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns <code>true</code> if this binding or its dependent bindings have pending changes,
-	 * meaning updates that have not yet been successfully sent to the server.
+	 * Returns <code>true</code> if this binding or its dependent bindings have pending property
+	 * changes or created entities which have not been sent successfully to the server. This
+	 * function does not take into account the deletion of entities (see
+	 * {@link sap.ui.model.odata.v4.Context#delete}) and the execution of OData operations
+	 * (see {@link sap.ui.model.odata.v4.ODataContextBinding#execute}).
+	 *
+	 * Note: If this binding is relative, its data is cached separately for each parent context
+	 * path. This method returns <code>true</code> if there are pending changes for the current
+	 * parent context path of this binding. If this binding is unresolved (see
+	 * {@link sap.ui.model.Binding#isResolved}), it returns <code>false</code>.
 	 *
 	 * @returns {boolean}
-	 *   <code>true</code> if the binding has pending changes
+	 *   <code>true</code> if the binding is resolved and has pending changes
 	 *
 	 * @public
 	 * @since 1.39.0
 	 */
 	ODataBinding.prototype.hasPendingChanges = function () {
-		return this.hasPendingChangesForPath("") || this.hasPendingChangesInDependents();
+		return this.isResolved()
+			&& (this.hasPendingChangesForPath("") || this.hasPendingChangesInDependents());
 	};
 
 	/**
@@ -486,23 +664,16 @@ sap.ui.define([
 	 * be inherited from the parent).
 	 *
 	 * @param {string} sPath
-	 *   The path
+	 *   The path (absolute or relative to this binding)
 	 * @returns {boolean}
 	 *   <code>true</code> if there are pending changes for the path
 	 *
 	 * @private
 	 */
 	ODataBinding.prototype.hasPendingChangesForPath = function (sPath) {
-		var that = this,
-			oPromise = this.withCache(function (oCache, sCachePath) {
+		return this.withCache(function (oCache, sCachePath) {
 				return oCache.hasPendingChangesForPath(sCachePath);
-			}, sPath).catch(function (oError) {
-				that.oModel.reportError("Error in hasPendingChangesForPath", sClassName, oError);
-				return false;
-			});
-
-		// If the cache is still being determined, there can be no changes in it
-		return oPromise.isFulfilled() ? oPromise.getResult() : false;
+			}, sPath, true).unwrap();
 	};
 
 	/**
@@ -523,8 +694,10 @@ sap.ui.define([
 			return false;
 		}
 		return Object.keys(this.mCacheByResourcePath).some(function (sResourcePath) {
-			return sResourcePath.startsWith(sResourcePathPrefix)
-				&& that.mCacheByResourcePath[sResourcePath].hasPendingChangesForPath("");
+			var oCache = that.mCacheByResourcePath[sResourcePath];
+
+			return oCache.$deepResourcePath.startsWith(sResourcePathPrefix)
+				&& oCache.hasPendingChangesForPath("");
 		});
 	};
 
@@ -591,21 +764,25 @@ sap.ui.define([
 	};
 
 	/**
-	 * Creates or modifies a lock for a group at the model with this as owner.
+	 * Creates a lock for a group with this binding as owner.
 	 *
 	 * @param {string} [sGroupId]
-	 *   The group ID. If not given here, it can be set later on the created lock.
-	 * @param {boolean|sap.ui.model.odata.v4.lib._GroupLock} [vLock]
-	 *   If vLock is a group lock, it is modified and returned. Otherwise a lock is created which
-	 *   locks if vLock is truthy.
+	 *   The group ID; defaults to this binding's group ID
+	 * @param {boolean} [bLocked]
+	 *   Whether the created lock is locked
+	 * @param {boolean} [bModifying]
+	 *   Whether the reason for the group lock is a modifying request
+	 * @param {function} [fnCancel]
+	 *   Function that is called when the group lock is canceled
 	 * @returns {sap.ui.model.odata.v4.lib._GroupLock}
 	 *   The group lock
 	 *
 	 * @private
 	 * @see {sap.ui.model.odata.v4.ODataModel#lockGroup}
 	 */
-	ODataBinding.prototype.lockGroup = function (sGroupId, vLock) {
-		return this.oModel.lockGroup(sGroupId, vLock, this);
+	ODataBinding.prototype.lockGroup = function (sGroupId, bLocked, bModifying, fnCancel) {
+		return this.oModel.lockGroup(sGroupId || this.getGroupId(), this, bLocked, bModifying,
+			fnCancel);
 	};
 
 	/**
@@ -656,7 +833,10 @@ sap.ui.define([
 		this.oModel.checkGroupId(sGroupId);
 
 		// The actual refresh is specific to the binding and is implemented in each binding class.
-		this.refreshInternal("", sGroupId, true);
+		this.refreshInternal("", sGroupId, true).catch(function () {
+			// Nothing to do here, the error is already logged. The catch however is necessary,
+			// because we drop the promise here, so there is no other code to catch it.
+		});
 	};
 
 	/**
@@ -671,8 +851,11 @@ sap.ui.define([
 	 *   The group ID to be used for refresh
 	 * @param {boolean} [bCheckUpdate]
 	 *   If <code>true</code>, a property binding is expected to check for updates
+	 * @param {boolean} [bKeepCacheOnError]
+	 *   If <code>true</code>, the binding data remains unchanged if the refresh fails
 	 * @returns {sap.ui.base.SyncPromise}
-	 *   A promise resolving without a defined result when the refresh is finished
+	 *   A promise resolving without a defined result when the refresh is finished; it is rejected
+	 *   when the refresh fails; the promise is resolved immediately on a suspended binding
 	 * @throws {Error}
 	 *   If the binding's root binding is suspended and a group ID different from the binding's
 	 *   group ID is given
@@ -684,30 +867,42 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Remove this binding's caches and non-persistent messages. Only caches with a resource path
-	 * starting with the given resource path prefix and messages with a target path starting with
-	 * the given prefix are removed.
+	 * Remove this binding's caches and non-persistent messages. Only caches with a deep resource
+	 * path starting with the given resource path prefix and messages with a target path starting
+	 * with the given prefix are removed.
 	 *
 	 * @param {string} sResourcePathPrefix
 	 *   The resource path prefix which is used to delete the dependent caches and corresponding
 	 *   messages; may be "" but not <code>undefined</code>
+	 * @param {boolean} [bCachesOnly] Whether to keep messages untouched
 	 *
 	 * @private
 	 */
-	ODataBinding.prototype.removeCachesAndMessages = function (sResourcePathPrefix) {
+	ODataBinding.prototype.removeCachesAndMessages = function (sResourcePathPrefix, bCachesOnly) {
 		var oModel = this.oModel,
-			sResolvedPath = oModel.resolve(this.sPath, this.oContext),
+			sResolvedPath,
 			that = this;
 
-		if (sResolvedPath) {
-			// The caller of this function replaces the current cache just after this function call;
-			// remove only the related messages
-			oModel.reportBoundMessages(sResolvedPath.slice(1), {});
+		if (!bCachesOnly) {
+			sResolvedPath = oModel.resolve(this.sPath, this.oContext);
+			if (sResolvedPath) {
+				// The caller of this function replaces the current cache just after this function
+				// call; remove only the related messages
+				oModel.reportBoundMessages(sResolvedPath.slice(1), {});
+			}
 		}
 		if (this.mCacheByResourcePath) {
 			Object.keys(this.mCacheByResourcePath).forEach(function (sResourcePath) {
-				if (sResourcePath.startsWith(sResourcePathPrefix)) {
-					oModel.reportBoundMessages(sResourcePath, {});
+				var oCache = that.mCacheByResourcePath[sResourcePath],
+					sDeepResourcePath = that.mCacheByResourcePath[sResourcePath].$deepResourcePath;
+
+				if (sResourcePathPrefix === ""
+						|| sDeepResourcePath === sResourcePathPrefix
+						|| sDeepResourcePath.startsWith(sResourcePathPrefix + "/")
+						|| sDeepResourcePath.startsWith(sResourcePathPrefix + "(")) {
+					if (!bCachesOnly) {
+						oModel.reportBoundMessages(oCache.$deepResourcePath, {});
+					}
 					delete that.mCacheByResourcePath[sResourcePath];
 				}
 			});
@@ -718,18 +913,24 @@ sap.ui.define([
 	 * Resets all pending changes of this binding, see {@link #hasPendingChanges}. Resets also
 	 * invalid user input.
 	 *
+	 * @returns {Promise}
+	 *   A promise which is resolved without a defined result as soon as all changes in the binding
+	 *   itself and all dependent bindings are canceled (since 1.72.0)
 	 * @throws {Error}
 	 *   If the binding's root binding is suspended or if there is a change of this binding which
-	 *   has been sent to the server and for which there is no response yet.
+	 *   has been sent to the server and for which there is no response yet
 	 *
 	 * @public
 	 * @since 1.40.1
 	 */
 	ODataBinding.prototype.resetChanges = function () {
+		var aPromises = [];
+
 		this.checkSuspended();
-		this.resetChangesForPath("");
-		this.resetChangesInDependents();
+		this.resetChangesForPath("", aPromises);
+		this.resetChangesInDependents(aPromises);
 		this.resetInvalidDataState();
+		return Promise.all(aPromises).then(function () {});
 	};
 
 	/**
@@ -737,29 +938,26 @@ sap.ui.define([
 	 * the parent).
 	 *
 	 * @param {string} sPath
-	 *   The path
+	 *   The path (absolute or relative to this binding)
+	 * @param {sap.ui.base.SyncPromise[]} aPromises
+	 *   List of promises which is extended for each call to {@link #resetChangesForPath}
 	 * @throws {Error}
 	 *   If there is a change of this binding which has been sent to the server and for which there
-	 *   is no response yet.
+	 *   is no response yet
 	 *
 	 * @private
 	 */
-	ODataBinding.prototype.resetChangesForPath = function (sPath) {
-		var oPromise = this.withCache(function (oCache, sCachePath) {
+	ODataBinding.prototype.resetChangesForPath = function (sPath, aPromises) {
+		aPromises.push(this.withCache(function (oCache, sCachePath) {
 				oCache.resetChangesForPath(sCachePath);
-			}, sPath),
-			that = this;
-
-		oPromise.catch(function (oError) {
-			that.oModel.reportError("Error in resetChangesForPath", sClassName, oError);
-		});
-		if (oPromise.isRejected()) {
-			throw oPromise.getResult();
-		}
+			}, sPath).unwrap());
 	};
 
 	/**
 	 * Resets pending changes in all dependent bindings.
+	 *
+	 * @param {sap.ui.base.SyncPromise[]} aPromises
+	 *   List of promises which is extended for each call to {@link #resetChangesInDependents}.
 	 * @throws {Error}
 	 *   If there is a change of this binding which has been sent to the server and for which there
 	 *   is no response yet.
@@ -794,6 +992,14 @@ sap.ui.define([
 			this.sResumeChangeReason = sChangeReason;
 		}
 	};
+
+	/**
+	 * Suspends this binding and all dependent bindings.
+	 * @abstract
+	 * @function
+	 * @name sap.ui.model.odata.v4.ODataBinding#suspendInternal
+	 * @private
+	 */
 
 	/**
 	 * Returns a string representation of this object including the binding path. If the binding is
@@ -840,47 +1046,69 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Calls the given processor with the cache containing this binding's data, the path relative
-	 * to the cache and the cache-owning binding. Adjusts the path if the cache is owned by a parent
-	 * binding.
+	 * Calls the given processor with the cache containing this binding's data, with the path
+	 * relative to the cache and with the cache-owning binding. Adjusts the path if the cache is
+	 * owned by a parent binding.
 	 *
 	 * @param {function} fnProcessor The processor
 	 * @param {string} [sPath=""] The path; either relative to the binding or absolute containing
 	 *   the cache's request path (it will become absolute when forwarding the request to the
 	 *   parent binding)
+	 * @param {boolean} [bSync] Whether to use the synchronously available cache
+	 * @param {boolean} [bWithOrWithoutCache] Whether to call the processor even without a cache
+	 *   (currently implemented for operation bindings only)
 	 * @returns {sap.ui.base.SyncPromise} A sync promise that is resolved with either the result of
-	 *   the processor or <code>undefined</code> if there is no cache for this binding currently
+	 *   the processor or <code>undefined</code> if there is no cache for this binding, or if the
+	 *   cache determination is not yet completed
+	 *
+	 * @private
 	 */
-	ODataBinding.prototype.withCache = function (fnProcessor, sPath) {
-		var sRelativePath,
+	ODataBinding.prototype.withCache = function (fnProcessor, sPath, bSync, bWithOrWithoutCache) {
+		var oCachePromise = bSync ? SyncPromise.resolve(this.oCache) : this.oCachePromise,
+			sRelativePath,
 			that = this;
 
 		sPath = sPath || "";
-		return this.oCachePromise.then(function (oCache) {
+		return oCachePromise.then(function (oCache) {
 			if (oCache) {
 				sRelativePath = that.getRelativePath(sPath);
 				if (sRelativePath !== undefined) {
 					return fnProcessor(oCache, sRelativePath, that);
 				}
 				// the path did not match, try to find it in the parent cache
+			} else if (oCache === undefined) {
+				return undefined; // cache determination is still running
 			} else if (that.oOperation) {
-				return undefined; // no cache yet
+				return bWithOrWithoutCache
+					? fnProcessor(null, that.getRelativePath(sPath), that)
+					: undefined; // no cache
 			}
-			if (that.oContext && that.oContext.withCache) {
+			if (that.bRelative && that.oContext && that.oContext.withCache) {
 				return that.oContext.withCache(fnProcessor,
-					sPath[0] === "/" ? sPath : _Helper.buildPath(that.sPath, sPath));
+					sPath[0] === "/" ? sPath : _Helper.buildPath(that.sPath, sPath),
+					bSync, bWithOrWithoutCache);
 			}
 			// no context or base context -> no cache (yet)
 			return undefined;
 		});
 	};
 
-	return function (oPrototype) {
+	function asODataBinding(oPrototype) {
 		if (this) {
 			ODataBinding.apply(this, arguments);
 		} else {
-			jQuery.extend(oPrototype, ODataBinding.prototype);
+			Object.assign(oPrototype, ODataBinding.prototype);
 		}
-	};
+	}
 
+	// #doDeregisterChangeListener is not final, allow for "super" calls
+	asODataBinding.prototype.doDeregisterChangeListener
+		= ODataBinding.prototype.doDeregisterChangeListener;
+	// #destroy is not final, allow for "super" calls
+	asODataBinding.prototype.destroy = ODataBinding.prototype.destroy;
+	// #hasPendingChangesForPath is not final, allow for "super" calls
+	asODataBinding.prototype.hasPendingChangesForPath
+		= ODataBinding.prototype.hasPendingChangesForPath;
+
+	return asODataBinding;
 }, /* bExport= */ false);

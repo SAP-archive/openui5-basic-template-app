@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 		 * The main colors of the sets can be changed in Theme Designer. To change the background of a particular cell, set <code>backgroundColorSet</code> (main color)
 		 * and <code>backgroundColorShade</code> (shade).
 		 *
-		 * <b>Note:</b> Usage of disabled, emphasized or subtle links as titles is not recommended. Dark background designs, for example Accent, are not fully supported with regards to Аccessibility when used with links as titles.
+		 * <b>Note:</b> Usage of disabled, emphasized or subtle links as titles is not recommended. Dark background designs, for example Accent, are not fully supported with regards to Accessibility when used with links as titles.
 		 *
 		 * <h3>Usage</h3>
 		 * <h4>When to use</h4>
@@ -62,7 +62,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -124,30 +124,6 @@ sap.ui.define([
 		BlockLayout.prototype.onAfterRendering = function () {
 			this._onParentResize();
 			this._notifySizeListeners();
-		};
-		/**
-		 * Changes background type
-		 *
-		 * @public
-		 * @param {string} sNewBackground Background's style of type sap.ui.layout.BlockBackgroundType
-		 * @returns {sap.ui.layout.BlockLayout} BlockLayout instance. Allows method chaining
-		 */
-		BlockLayout.prototype.setBackground = function (sNewBackground) {
-			var sCurBackground = this.getBackground(),
-			// Apply here so if there's an exception the code bellow won't be executed
-				oObject = Control.prototype.setProperty.apply(this, ["background"].concat(Array.prototype.slice.call(arguments)));
-
-			if (this.hasStyleClass("sapUiBlockLayoutBackground" + sCurBackground)) {
-				this.removeStyleClass("sapUiBlockLayoutBackground" + sCurBackground, true);
-			}
-
-			sNewBackground = sNewBackground ? sNewBackground : "Default";
-			this.addStyleClass("sapUiBlockLayoutBackground" + sNewBackground, true);
-
-			// Invalidate the whole block layout as the background dependencies, row color sets and accent cells should be resolved properly
-			this.invalidate();
-
-			return oObject;
 		};
 
 		/**

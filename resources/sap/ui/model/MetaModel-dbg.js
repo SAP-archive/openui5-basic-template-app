@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,7 +16,7 @@ sap.ui.define(['./Model'],
 	 * @extends sap.ui.model.Model
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.MetaModel
@@ -75,15 +75,6 @@ sap.ui.define(['./Model'],
 	MetaModel.prototype.destroyBindingContext = function(oContext) {
 		// TODO: what todo here?
 	};
-
-	/**
-	 * Returns the module path to the model specific adapter factory
-	 *
-	 * @see sap.ui.model.meta.AdapterFactory
-	 *
-	 * @return {string} the module path to a factory class that is tailored to create context specific adapters
-	 */
-	MetaModel.prototype.getAdapterFactoryModulePath = null;
 
 	return MetaModel;
 

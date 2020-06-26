@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['jquery.sap.global', './Bar', './Button', './SuggestionsList', './SuggestionItem', 'sap/ui/Device', 'sap/m/library'],
-	function(jQuery, Bar, Button, SuggestionsList, SuggestionItem, Device, library) {
+sap.ui.define(['jquery.sap.global', './Toolbar', './Button', './SuggestionsList', './SuggestionItem', 'sap/ui/Device', 'sap/m/library', 'sap/ui/core/Core'],
+	function(jQuery, Toolbar, Button, SuggestionsList, SuggestionItem, Device, library, Core) {
 	"use strict";
 
 	// shortcut for sap.m.PlacementType
@@ -52,9 +52,11 @@ sap.ui.define(['jquery.sap.global', './Bar', './Button', './SuggestionsList', '.
 			var value;
 			if (item instanceof SuggestionItem ) {
 				value = item.getSuggestionText();
+				self._suggestionItemTapped = true;
 				picker.close();
 				window.setTimeout(function() {
-					oInput.setValue(value);
+					oInput._updateValue(value);
+					oInput._fireChangeEvent();
 					oInput.fireSearch({
 						query: value,
 						suggestionItem: item,
@@ -74,13 +76,14 @@ sap.ui.define(['jquery.sap.global', './Bar', './Button', './SuggestionsList', '.
 				originalValue,
 				dialogSearchField,
 				customHeader,
+				okButton,
 				closeButton;
 
 			// use sap.ui.require to avoid circular dependency between the SearchField and Suggest
 			dialogSearchField = new (sap.ui.require('sap/m/SearchField'))({
 				liveChange : function (oEvent) {
 					var value = oEvent.getParameter("newValue");
-					oInput.setValue(value);
+					oInput._updateValue(value);
 					oInput.fireLiveChange({newValue: value});
 					oInput.fireSuggest({suggestValue: value});
 					self.update();
@@ -92,14 +95,24 @@ sap.ui.define(['jquery.sap.global', './Bar', './Button', './SuggestionsList', '.
 				}
 			});
 
-			customHeader = new Bar({
-				contentLeft: dialogSearchField
+			closeButton = new Button({
+				icon : "sap-icon://decline",
+				press : function() {
+					self._cancelButtonTapped = true;
+					dialog._oCloseTrigger = true;
+					dialog.close();
+
+					oInput._updateValue(originalValue);
+				}
 			});
 
-			closeButton = new Button({
-				text : sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("MSGBOX_CANCEL"),
+			customHeader = new Toolbar({
+				content: [dialogSearchField, closeButton]
+			});
+
+			okButton = new Button({
+				text : Core.getLibraryResourceBundle("sap.m").getText("MSGBOX_OK"),
 				press : function() {
-					dialog._oCloseTrigger = true;
 					dialog.close();
 				}
 			});
@@ -108,21 +121,18 @@ sap.ui.define(['jquery.sap.global', './Bar', './Button', './SuggestionsList', '.
 				stretch: true,
 				customHeader: customHeader,
 				content: getList(),
-				beginButton : closeButton,
+				beginButton : okButton,
+				beforeClose: function () {
+					oInput._bSuggestionSuppressed = true;
+				},
 				beforeOpen: function() {
 					originalValue = oInput.getValue();
-					dialogSearchField.setValue(originalValue);
-				},
-				beforeClose: function(oEvent) {
-					if (oEvent.getParameter("origin")) {
-						// Cancel button: set original value
-						oInput.setValue(originalValue);
-					} else { // set current value
-						oInput.setValue(dialogSearchField.getValue());
-					}
+					dialogSearchField._updateValue(originalValue);
 				},
 				afterClose: function(oEvent) {
-					if (!oEvent.getParameter("origin")) { // fire the search event if not cancelled
+					if (!self._cancelButtonTapped  // fire the search event if not cancelled
+						&& !self._suggestionItemTapped) { // and if not closed from item tap
+						oInput._fireChangeEvent();
 						oInput.fireSearch({
 							query: oInput.getValue(),
 							refreshButtonPressed: false,
@@ -148,10 +158,12 @@ sap.ui.define(['jquery.sap.global', './Bar', './Button', './SuggestionsList', '.
 				initialFocus: parent,
 				bounce: false,
 				afterOpen: function () {
-					oInput.$("I").attr("aria-autocomplete","list").attr("aria-haspopup","true");
+					oInput.$("I").attr("aria-haspopup","true");
+					oInput._applySuggestionAcc();
 				},
 				beforeClose: function() {
-					oInput.$("I").attr("aria-haspopup","false").removeAttr("aria-activedecendant");
+					oInput.$("I").attr("aria-haspopup","false").removeAttr("aria-activedescendant");
+					oInput.$("SuggDescr").text("");
 				},
 				content: getList()
 			})
@@ -230,6 +242,8 @@ sap.ui.define(['jquery.sap.global', './Bar', './Button', './SuggestionsList', '.
 		this.open = function() {
 			if (!this.isOpen()) {
 				this.setSelected(-1); // clear selection before open
+				this._suggestionItemTapped = false;
+				this._cancelButtonTapped = false;
 				getPicker().open();
 			}
 		};
@@ -244,6 +258,7 @@ sap.ui.define(['jquery.sap.global', './Bar', './Button', './SuggestionsList', '.
 			window.clearTimeout(listUpdateTimeout);
 			if (this.isOpen()) { // redraw the list only if it is visible
 				listUpdateTimeout = window.setTimeout(list.update.bind(list), 50);
+				oInput._applySuggestionAcc();
 			}
 		};
 

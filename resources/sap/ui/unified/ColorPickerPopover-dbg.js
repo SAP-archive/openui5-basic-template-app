@@ -1,12 +1,29 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.ColorPickerPopover
-sap.ui.define(['sap/ui/core/Control', 'sap/ui/Device', 'sap/m/Button', 'sap/m/ResponsivePopover', './ColorPicker', './library', 'sap/m/library'],
-	function (Control, Device, Button, ResponsivePopover, ColorPicker, library, mLibrary) {
+sap.ui.define([
+	'sap/ui/core/Control',
+	'sap/ui/Device',
+	'sap/m/Button',
+	'sap/m/ResponsivePopover',
+	'./ColorPicker',
+	'./library',
+	'sap/m/library',
+	"sap/ui/thirdparty/jquery"
+], function (
+	Control,
+	Device,
+	Button,
+	ResponsivePopover,
+	ColorPicker,
+	library,
+	mLibrary,
+	jQuery
+) {
 		"use strict";
 
 		// shortcut for PlacementType
@@ -15,6 +32,9 @@ sap.ui.define(['sap/ui/core/Control', 'sap/ui/Device', 'sap/m/Button', 'sap/m/Re
 		// shortcut for sap.ui.unified.ColorPickerMode & sap.ui.unified.ColorPickerDisplayMode
 		var ColorPickerMode = library.ColorPickerMode,
 			ColorPickerDisplayMode = library.ColorPickerDisplayMode;
+
+		// shortcut for sap.m.ButtonType
+		var ButtonType = mLibrary.ButtonType;
 
 		/**
 		 *
@@ -27,7 +47,7 @@ sap.ui.define(['sap/ui/core/Control', 'sap/ui/Device', 'sap/m/Button', 'sap/m/Re
 		 * A thin wrapper over {@link sap.ui.unified.ColorPicker} allowing the latter to be used in a popover.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -124,7 +144,9 @@ sap.ui.define(['sap/ui/core/Control', 'sap/ui/Device', 'sap/m/Button', 'sap/m/Re
 					}
 				}
 			},
-			renderer: {}
+			renderer: {
+				apiVersion: 2
+			}
 		});
 
 		// get resource translation bundle;
@@ -226,6 +248,7 @@ sap.ui.define(['sap/ui/core/Control', 'sap/ui/Device', 'sap/m/Button', 'sap/m/Re
 				showCloseButton: false,
 				beginButton: new Button({
 					text: oLibraryResourceBundle.getText("COLOR_PICKER_SUBMIT"),
+					type: ButtonType.Emphasized,
 					press: function () {
 						that.fireChange(that._oLastChangeCPParams);
 						oPopover.close();

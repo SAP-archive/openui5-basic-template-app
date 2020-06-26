@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,10 +18,10 @@ sap.ui.define(['./WebSocket', "sap/base/Log"],
 	 *
 	 * @public
 	 *
-	 * @class WebSocket class implementing the pcp-protocol
+	 * @class WebSocket class implementing the pcp-protocol.
 	 * @extends sap.ui.core.ws.WebSocket
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @alias sap.ui.core.ws.SapPcpWebSocket
 	 */
 	var SapPcpWebSocket = WebSocket.extend("sap.ui.core.ws.SapPcpWebSocket", /** @lends sap.ui.core.ws.SapPcpWebSocket.prototype */ {
@@ -33,7 +33,7 @@ sap.ui.define(['./WebSocket', "sap/base/Log"],
 	});
 
 	/**
-	 * The 'message' event is fired, when a message was received.
+	 * The <code>message</code> event is fired, when a message was received.
 	 *
 	 * @name sap.ui.core.ws.SapPcpWebSocket#message
 	 * @event
@@ -46,11 +46,11 @@ sap.ui.define(['./WebSocket', "sap/base/Log"],
 	 */
 
 	/**
-	 * Fire event 'message' to attached listeners.
+	 * Fires event {@link #event:message message} to attached listeners.
 	 *
-	 * @param {object} [mArguments] the arguments to pass along with the event.
-	 * @param {string} [mArguments.data] Received data from the server.
-	 * @param {string} [mArguments.pcpFields] Received pcpFields as a key-value map.
+	 * @param {object} [oParameters] Parameters to pass along with the event
+	 * @param {string} [oParameters.data] Received data from the server.
+	 * @param {string} [oParameters.pcpFields] Received pcpFields as a key-value map.
 	 * @return {sap.ui.core.ws.SapPcpWebSocket} <code>this</code> to allow method chaining
 	 * @protected
 	 * @name sap.ui.core.ws.SapPcpWebSocket#fireMessage
@@ -79,21 +79,21 @@ sap.ui.define(['./WebSocket', "sap/base/Log"],
 	};
 
 	/**
-	 * RegEx to get pcp-header fields
+	 * RegEx to get pcp-header fields.
 	 *
 	 * @private
 	 */
 	SapPcpWebSocket._deserializeRegexp = /((?:[^:\\]|(?:\\.))+):((?:[^:\\\n]|(?:\\.))*)/;
 
 	/**
-	 * Separator between header-fields and message body
+	 * Separator between header-fields and message body.
 	 *
 	 * @private
 	 */
 	SapPcpWebSocket._SEPARATOR = "\n\n";
 
 	/**
-	 * pcp-action value
+	 * pcp-action value.
 	 *
 	 * @private
 	 */
@@ -181,7 +181,7 @@ sap.ui.define(['./WebSocket', "sap/base/Log"],
 	 * Unescapes a string.
 	 *
 	 * @param {string} sEscaped escaped string
-	 * @return sUnescaped Unescaped string
+	 * @return {string} Unescaped string
 	 * @private
 	 */
 	SapPcpWebSocket.prototype._unescape = function(sEscaped) {
@@ -203,7 +203,7 @@ sap.ui.define(['./WebSocket', "sap/base/Log"],
 	 * @param {object} oPcpFields key-value map with pcp-fields
 	 * @param {string} sMessageType message-type, one of 'string', 'blob' or 'arraybuffer'.
 	 * @param {string} sPcpAction pcp-action value
-	 * @return {string} serialized pcp-fields
+	 * @returns {string} serialized pcp-fields
 	 * @private
 	 */
 	SapPcpWebSocket.prototype._serializePcpFields = function(oPcpFields, sMessageType, sPcpAction) {
@@ -232,7 +232,7 @@ sap.ui.define(['./WebSocket', "sap/base/Log"],
 	 * Escapes a string.
 	 *
 	 * @param {string} sUnEscaped unescaped string
-	 * @return {string} sEscaped escaped string
+	 * @returns {string} Escaped string
 	 * @private
 	 */
 	SapPcpWebSocket.prototype._escape = function(sUnEscaped) {
@@ -241,14 +241,14 @@ sap.ui.define(['./WebSocket', "sap/base/Log"],
 
 	// Public Methods
 	/**
-	 * Sends a message and optional pcp-header-fields using the pcp-protocol.<br>
-	 * <br>
+	 * Sends a message and optional pcp-header-fields using the pcp-protocol.
+	 *
 	 * If the connection is not yet opened, the message will be queued and sent
 	 * when the connection is established.
 	 *
 	 * @param {string|Blob|ArrayBuffer} message message to send
 	 * @param {object} [oPcpFields] additional pcp-fields as key-value map
-	 * @return {sap.ui.core.ws.SapPcpWebSocket} <code>this</code> to allow method chaining
+	 * @return {sap.ui.core.ws.SapPcpWebSocket} Reference to <code>this</code> to allow method chaining
 	 * @public
 	 */
 	SapPcpWebSocket.prototype.send = function(message, oPcpFields) {

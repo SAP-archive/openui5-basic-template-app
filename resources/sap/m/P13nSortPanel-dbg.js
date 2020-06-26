@@ -1,6 +1,6 @@
 /*
  * ! OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class The P13nSortPanel control is used to define settings for sorting in table personalization.
 	 * @extends sap.m.P13nPanel
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @constructor
 	 * @public
 	 * @since 1.26.0
@@ -100,35 +100,25 @@ sap.ui.define([
 				updateSortItem: {}
 			}
 		},
-		renderer: function(oRm, oControl) {
-			// Return immediately if control is invisible
-			if (!oControl.getVisible()) {
-				return;
+		renderer: {
+			apiVersion: 2,
+			render: function(oRm, oControl){
+				oRm.openStart("section", oControl);
+				oRm.class("sapMSortPanel");
+				oRm.openEnd();
+
+				oRm.openStart("div");
+				oRm.class("sapMSortPanelContent");
+				oRm.class("sapMSortPanelBG");
+				oRm.openEnd();
+
+				oControl.getAggregation("content").forEach(function(oChildren){
+					oRm.renderControl(oChildren);
+				});
+
+				oRm.close("div");
+				oRm.close("section");
 			}
-
-			// start SortPanel
-			oRm.write("<section");
-			oRm.writeControlData(oControl);
-			oRm.addClass("sapMSortPanel");
-			oRm.writeClasses();
-			oRm.writeStyles();
-			oRm.write(">");
-
-			// render content
-			oRm.write("<div");
-			oRm.addClass("sapMSortPanelContent");
-			oRm.addClass("sapMSortPanelBG");
-
-			oRm.writeClasses();
-			oRm.write(">");
-			var aChildren = oControl.getAggregation("content");
-			var iLength = aChildren.length;
-			for (var i = 0; i < iLength; i++) {
-				oRm.renderControl(aChildren[i]);
-			}
-			oRm.write("</div>");
-
-			oRm.write("</section>");
 		}
 	});
 
@@ -222,7 +212,6 @@ sap.ui.define([
 		sap.ui.getCore().loadLibrary("sap.ui.layout");
 
 		this._aKeyFields = [];
-		this.addStyleClass("sapMSortPanel");
 
 		if (!this._aOperations) {
 			this.setOperations([
@@ -290,9 +279,6 @@ sap.ui.define([
 			var aConditions = [];
 			sModelName = (this.getBindingInfo("sortItems") || {}).model;
 			this.getSortItems().forEach(function(oSortItem_) {
-				// Note: current implementation assumes that the length of sortItems aggregation is equal
-				// to the number of corresponding model items.
-				// Currently the model data is up-to-date so we need to resort to the Binding Context;
 				// the "sortItems" aggregation data - obtained via getSortItems() - has the old state !
 				var oContext = oSortItem_.getBindingContext(sModelName);
 				// Update key of model (in case of 'restore' the key in model gets lost because it is overwritten by Restore Snapshot)

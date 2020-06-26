@@ -1,16 +1,28 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.m.Text
-sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/m/HyphenationSupport'],
-	function(Renderer, coreLibrary, HyphenationSupport) {
+sap.ui.define([
+	'sap/ui/core/Renderer',
+	'sap/ui/core/library',
+	'sap/m/HyphenationSupport',
+	'./library'
+], function(
+	Renderer,
+	coreLibrary,
+	HyphenationSupport,
+	mobileLibrary
+) {
 		"use strict";
 
 		// shortcut for sap.ui.core.TextDirection
 		var TextDirection = coreLibrary.TextDirection;
+
+		// shortcut for sap.ui.core.TextDirection
+		var WrappingType = mobileLibrary.WrappingType;
 
 		/**
 		 * Text renderer.
@@ -18,7 +30,9 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/m/Hyphenation
 		 * @author SAP SE
 		 * @namespace
 		 */
-		var TextRenderer = {};
+		var TextRenderer = {
+			apiVersion: 2
+		};
 
 		/**
 		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
@@ -34,19 +48,22 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/m/Hyphenation
 				sTooltip = oText.getTooltip_AsString(),
 				nMaxLines = oText.getMaxLines(),
 				bWrapping = oText.getWrapping(),
+				sWrappingType = oText.getWrappingType(),
 				sTextAlign = oText.getTextAlign(),
 				bRenderWhitespace = oText.getRenderWhitespace();
 
 			// start writing html
-			oRm.openStart("span");
-			oRm.controlData(oText);
+			oRm.openStart("span", oText);
 			oRm.class("sapMText");
 			oRm.class("sapUiSelectable");
+			if (oText.hasMaxLines()) {
+				oRm.class("sapMTextMaxLineWrapper");
+			}
 
 			// set classes for wrapping
 			if (!bWrapping || nMaxLines == 1) {
 				oRm.class("sapMTextNoWrap");
-			} else if (bWrapping) {
+			} else if (bWrapping && sWrappingType !== WrappingType.Hyphenated) {
 				// no space text must break
 				if (sText && sText.length > 0 && !/\s/.test(sText)) {
 					oRm.class("sapMTextBreakWord");

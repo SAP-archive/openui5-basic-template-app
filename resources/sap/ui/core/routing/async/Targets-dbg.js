@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/Log"], function(Log) {
@@ -16,7 +16,7 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 		/**
 		 * Creates a view and puts it in an aggregation of the specified control.
 		 *
-		 * @param {string|string[]} vTargets the key of the target as specified in the {@link #constructor}. To display multiple targets you may also pass an array of keys.
+		 * @param {string|string[]|object|object[]} vTargets the key of the target as specified in the {@link #constructor}. To display multiple targets you may also pass an array of keys. If the target(s) represents a sap.ui.core.UIComponent, a prefix for its Router is needed. You can set this parameter with an object which has the 'name' property set with the key of the target and the 'prefix' property set with the prefix for the UIComponent's router. To display multiple component targets, you man also pass an array of objects.
 		 * @param {object} [vData] an object that will be passed to the display event in the data property. If the target has parents, the data will also be passed to them.
 		 * @param {string} [sTitleTarget] the name of the target from which the title option is taken for firing the {@link sap.ui.core.routing.Targets#event:titleChanged titleChanged} event
 		 * @private
@@ -28,18 +28,18 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 		},
 
 		/**
-		 * hook to distinguish between the router and an application calling this
-		 * @param {array|object} vTargets targets or single target to be displayed
+		 * Hook to distinguish between the router and an application calling this
+		 *
+		 * @param {string|string[]|object|object[]} vTargets targets or single target to be displayed
 		 * @param {object} vData  an object that will be passed to the display event in the data property. If the
 				target has parents, the data will also be passed to them.
 		 * @param {string} sTitleTarget the name of the target from which the title option is taken for firing the {@link sap.ui.core.routing.Targets#event:titleChanged titleChanged} event
 		 * @param {Promise} oSequencePromise the promise for chaining
-		 * @param {function} [fnAfterCreate] the function which will be called when the Target View/Component is instantiated
 		 * @return {Promise} resolving with {{name: *, view: *, control: *}|undefined} for every vTargets, object for single, array for multiple
 		 *
 		 * @private
 		 */
-		_display : function (vTargets, vData, sTitleTarget, oSequencePromise, fnAfterCreate) {
+		_display : function (vTargets, vData, sTitleTarget, oSequencePromise) {
 			var that = this,
 				aViewInfos = [];
 
@@ -49,18 +49,10 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 
 			this._attachTitleChanged(vTargets, sTitleTarget);
 
-			return vTargets.reduce(function(oPromise, vTarget) {
-				var oTargetInfo = vTarget;
-
-				if (typeof vTarget === "string") {
-					oTargetInfo = {
-						name: vTarget
-					};
-				}
-
+			return this._alignTargetsInfo(vTargets).reduce(function(oPromise, oTargetInfo) {
 				var oTargetCreateInfo = {
-					afterCreate: fnAfterCreate,
-					prefix: oTargetInfo.prefix
+					prefix: oTargetInfo.prefix,
+					propagateTitle: oTargetInfo.propagateTitle || false
 				};
 
 				// gather view infos while processing Promise chain
@@ -77,12 +69,13 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 		/**
 		 * Displays a single target
 		 *
-		 * @param {string} sName name of the single target
+		 * @param {object} oTargetInfo the object containing information (e.g. name) about the single target
 		 * @param {any} vData an object that will be passed to the display event in the data property.
 		 * @param {Promise} oSequencePromise the promise which for chaining
 		 * @param {object} [oTargetCreateInfo] the object which contains extra information for the creation of the target
 		 * @param {function} [oTargetCreateInfo.afterCreate] the function which is called after a target View/Component is instantiated
 		 * @param {string} [oTargetCreateInfo.prefix] the prefix which will be used by the RouterHashChanger of the target
+		 * @returns {Promise} Resolves with {name: *, view: *, control: *} if the target can be successfully displayed otherwise it rejects with error information
 		 * @private
 		 */
 		_displaySingleTarget : function (oTargetInfo, vData, oSequencePromise, oTargetCreateInfo) {

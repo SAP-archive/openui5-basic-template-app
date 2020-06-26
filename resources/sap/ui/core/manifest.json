@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.64.0"
+      "version": "1.79.0"
     },
     "title": "The SAPUI5 Core Runtime.",
     "description": "The SAPUI5 Core Runtime.\n\n  Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,\n  base classes for Controls, Components and the Model View Controller classes.",
@@ -229,7 +229,7 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.64",
+      "minUI5Version": "1.79",
       "libs": {}
     },
     "library": {
@@ -244,7 +244,6 @@
           "sap.ui.core.LocalBusyIndicator",
           "sap.ui.core.ScrollBar",
           "sap.ui.core.TooltipBase",
-          "sap.ui.core.UIComponent",
           "sap.ui.core.XMLComposite",
           "sap.ui.core.mvc.HTMLView",
           "sap.ui.core.mvc.JSONView",
@@ -253,8 +252,8 @@
           "sap.ui.core.mvc.View",
           "sap.ui.core.mvc.XMLView",
           "sap.ui.core.tmpl.DOMElement",
-          "sap.ui.core.tmpl.Template",
-          "sap.ui.core.tmpl.TemplateControl"
+          "sap.ui.core.tmpl.TemplateControl",
+          "sap.ui.core.util.Export"
         ],
         "elements": [
           "sap.ui.core.CustomData",
@@ -272,7 +271,9 @@
           "sap.ui.core.dnd.DragDropInfo",
           "sap.ui.core.search.OpenSearchProvider",
           "sap.ui.core.search.SearchProvider",
-          "sap.ui.core.tmpl.DOMAttribute"
+          "sap.ui.core.tmpl.DOMAttribute",
+          "sap.ui.core.util.ExportCell",
+          "sap.ui.core.InvisibleMessage"
         ],
         "types": [
           "any",
@@ -315,6 +316,7 @@
           "sap.ui.core.ValueState",
           "sap.ui.core.VerticalAlign",
           "sap.ui.core.Wrapping",
+          "sap.ui.core.InvisibleMessageMode",
           "sap.ui.core.dnd.DropEffect",
           "sap.ui.core.dnd.DropLayout",
           "sap.ui.core.dnd.DropPosition",

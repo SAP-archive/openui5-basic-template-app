@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -129,7 +129,7 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 	 * @see sap.ui.core.LabelEnablement#enrich
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @protected
 	 * @alias sap.ui.core.LabelEnablement
 	 * @namespace
@@ -163,7 +163,7 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 
 		// The "for" attribute should only reference labelable HTML elements.
 		if (sControlId && isLabelableControl(oControl)) {
-			oRenderManager.writeAttributeEscaped("for", sControlId);
+			oRenderManager.attr("for", sControlId);
 		}
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/strings/toHex"], function(toHex) {
@@ -40,6 +40,12 @@ sap.ui.define(["sap/base/strings/toHex"], function(toHex) {
 	 * Encode the string for inclusion into a URL parameter.
 	 *
 	 * Unescaped characters: alphabetic, decimal digits, -_. (dash, underscore, point)
+	 *
+	 * @example
+	 * sap.ui.require(['sap/base/security/encodeURL'], function(encodeURL) {
+	 *      var sEncoded = encodeURL('a/b?c=d&e');
+	 *      console.log(sEncoded); // a%2fb%3fc%3dd%26e
+	 * });
 	 *
 	 * @function
 	 * @since 1.58

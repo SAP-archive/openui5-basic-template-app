@@ -1,28 +1,31 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /**
  * Initialization Code and shared classes of library sap.ui.unified.
  */
-sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', 'sap/ui/core/library'], function(Core, BaseObject) {
+sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', "./ColorPickerDisplayMode", 'sap/ui/core/library'], function(Core, BaseObject, ColorPickerDisplayMode) {
 
 	"use strict";
 
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.ui.unified",
-		version: "1.64.0",
+		version: "1.79.0",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/ui/unified/designtime/library.designtime",
 		types: [
+			"sap.ui.unified.CalendarAppointmentVisualization",
 			"sap.ui.unified.CalendarDayType",
-			"sap.ui.unified.GroupAppointmentsMode",
-			"sap.ui.unified.ContentSwitcherAnimation",
+			"sap.ui.unified.CalendarIntervalType",
+			"sap.ui.unified.ColorPickerDisplayMode",
 			"sap.ui.unified.ColorPickerMode",
-			"sap.ui.unified.ColorPickerDisplayMode"
+			"sap.ui.unified.ContentSwitcherAnimation",
+			"sap.ui.unified.GroupAppointmentsMode",
+			"sap.ui.unified.StandardCalendarLegendItem"
 		],
 		interfaces: [
 			"sap.ui.unified.IProcessableBlobs"
@@ -35,6 +38,7 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', 'sap/ui/core/library'],
 			"sap.ui.unified.calendar.MonthsRow",
 			"sap.ui.unified.calendar.TimesRow",
 			"sap.ui.unified.calendar.YearPicker",
+			"sap.ui.unified.calendar.YearRangePicker",
 			"sap.ui.unified.Calendar",
 			"sap.ui.unified.CalendarDateInterval",
 			"sap.ui.unified.CalendarWeekInterval",
@@ -80,7 +84,7 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', 'sap/ui/core/library'],
 	 * @namespace
 	 * @alias sap.ui.unified
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @public
 	 */
 	var thisLib = sap.ui.unified;
@@ -249,25 +253,25 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', 'sap/ui/core/library'],
 	thisLib.StandardCalendarLegendItem = {
 		/**
 		 * Type used for visualization of the current date.
-         * @public
+		 * @public
 		 */
 		Today: "Today",
 
 		/**
 		 * Type used for visualization of the regular work days.
-         * @public
+		 * @public
 		 */
 		WorkingDay: "WorkingDay",
 
 		/**
 		 * Type used for visualization of the non-working days.
-         * @public
+		 * @public
 		 */
 		NonWorkingDay: "NonWorkingDay",
 
 		/**
 		 * Type used for visualization of the currently selected day.
-         * @public
+		 * @public
 		 */
 		Selected: "Selected"
 	};
@@ -447,35 +451,8 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', 'sap/ui/core/library'],
 
 	};
 
-	/**
-	 * Types of a color picker display mode
-	 *
-	 * @enum {string}
-	 * @public
-	 * @since 1.58.0
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
-	 */
-	thisLib.ColorPickerDisplayMode = {
-
-		/**
-		 * Default display mode.
-		 * @public
-		 */
-		Default : "Default",
-
-		/**
-		 * Large display mode.
-		 * @public
-		 */
-		Large : "Large",
-
-		/**
-		 * Simplified display mode.
-		 * @public
-		 */
-		Simplified : "Simplified"
-
-	};
+	// expose imported enum as property of library namespace, for documentation see module
+	thisLib.ColorPickerDisplayMode = ColorPickerDisplayMode;
 
 	/**
 	 * Marker interface for controls that process instances of <code>window.Blob</code>, such as <code>window.File</code>.
@@ -496,8 +473,8 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', 'sap/ui/core/library'],
 	 * One use case could be to create and upload zip archives based on the passed Blobs.
 	 * The default implementation of this API should simply resolve with the received Blobs (parameter <code>aBlobs</code>).
 	 * @public
-         * @since 1.52
-         * @param {Blob[]} aBlobs The initial Blobs which can be used to determine a new array of Blobs for further processing.
+	 * @since 1.52
+	 * @param {Blob[]} aBlobs The initial Blobs which can be used to determine a new array of Blobs for further processing.
 	 * @return {Promise} A Promise that resolves with an array of Blobs which is used for the final uploading.
 	 * @function
 	 * @name sap.ui.unified.IProcessableBlobs.getProcessedBlobsFromArray
@@ -579,7 +556,7 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', 'sap/ui/core/library'],
 		thisLib.FileUploaderHelper = {
 			createTextField: function(sId){ throw new Error("no TextField control available!"); }, /* must return a TextField control */
 			setTextFieldContent: function(oTextField, sWidth){ throw new Error("no TextField control available!"); },
-			createButton: function(){ throw new Error("no Button control available!"); }, /* must return a Button control */
+			createButton: function(sId){ throw new Error("no Button control available!"); }, /* must return a Button control */
 			addFormClass: function(){ return null; },
 			bFinal: false /* if true, the helper must not be overwritten by an other library */
 		};

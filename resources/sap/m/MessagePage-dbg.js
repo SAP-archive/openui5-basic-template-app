@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,6 +15,7 @@ sap.ui.define([
 	'sap/m/Image',
 	'sap/m/Button',
 	'sap/m/Title',
+	'sap/m/Bar',
 	'sap/m/FormattedText',
 	'./MessagePageRenderer',
 	"sap/ui/thirdparty/jquery"
@@ -28,6 +29,7 @@ sap.ui.define([
 	Image,
 	Button,
 	Title,
+	Bar,
 	FormattedText,
 	MessagePageRenderer,
 	jQuery
@@ -67,7 +69,7 @@ sap.ui.define([
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/message-page/ Message Page}
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -200,7 +202,7 @@ sap.ui.define([
 				}, this)
 			});
 
-			this.setAggregation("_internalHeader", new sap.m.Bar(this.getId() + "-intHeader", {
+			this.setAggregation("_internalHeader", new Bar(this.getId() + "-intHeader", {
 				design: BarDesign.Header
 			}));
 
@@ -262,22 +264,6 @@ sap.ui.define([
 				oHeader.addContentLeft(this._oNavButton);
 			} else {
 				oHeader.removeAllContentLeft();
-			}
-
-			return this;
-		};
-
-		MessagePage.prototype.setTextDirection = function(sTextDirection) {
-			this.setProperty("textDirection", sTextDirection, true); // no re-rendering
-
-			var oDomRef = this.getDomRef();
-
-			if (oDomRef) {
-				if (sTextDirection === TextDirection.Inherit) {
-					oDomRef.removeAttribute("dir");
-				} else {
-					oDomRef.dir = sTextDirection.toLowerCase();
-				}
 			}
 
 			return this;

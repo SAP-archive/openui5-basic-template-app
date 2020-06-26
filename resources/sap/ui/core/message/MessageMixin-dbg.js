@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,7 +35,7 @@ sap.ui.define(["sap/ui/core/library", "sap/base/Log"], function(library, Log) {
 	 * - Propagates the value state
 	 */
 	function refreshDataState (sName, oDataState) {
-		if (oDataState.getChanges().messages) {
+		if (oDataState.getChanges().messages && this.getBinding(sName) && this.getBinding(sName).isA("sap.ui.model.PropertyBinding")) {
 			var aMessages = oDataState.getMessages();
 			var aLabels = sap.ui.core.LabelEnablement.getReferencingLabels(this);
 			var sLabelId = aLabels[0];

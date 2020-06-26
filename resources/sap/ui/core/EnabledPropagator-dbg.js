@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,9 +11,7 @@ sap.ui.define(['./Control'],
 
 
 	/**
-	 * @class Helper Class for enhancement of a Control with propagation of enabled property.
-	 *
-	 * <b>This constructor should be applied to the prototype of a control</b>
+	 * <b>This constructor should be applied to the prototype of a control.</b>
 	 *
 	 * Example:
 	 * <code>
@@ -25,7 +23,8 @@ sap.ui.define(['./Control'],
 	 * </code>
 	 *
 	 * @author Daniel Brinkmann
-	 * @version 1.64.0
+	 * @version 1.79.0
+	 * @class Helper Class for enhancement of a Control with propagation of enabled property.
 	 * @param {boolean} [bDefault=true] the value that should be used as default value for the enhancement of the control.
 	 * @param {boolean} [bLegacy=false] whether the introduced property should use the old name 'Enabled'
 	 * @public

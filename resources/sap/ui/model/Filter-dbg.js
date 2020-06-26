@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,10 +8,9 @@
 sap.ui.define([
 	'sap/ui/base/Object',
 	'./FilterOperator',
-	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
+	"sap/base/Log"
 ],
-	function(BaseObject, FilterOperator, Log, jQuery) {
+	function(BaseObject, FilterOperator, Log) {
 	"use strict";
 
 	/**
@@ -149,9 +148,9 @@ sap.ui.define([
 				} else {
 					this.sPath = vFilterInfo;
 				}
-				if (jQuery.type(vOperator) === "boolean") {
+				if (typeof vOperator === "boolean") {
 					this.bAnd = vOperator;
-				} else if (jQuery.type(vOperator) === "function" ) {
+				} else if (typeof vOperator === "function" ) {
 					this.fnTest = vOperator;
 				} else {
 					this.sOperator = vOperator;

@@ -1,20 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([], function() {
 	"use strict";
 
 	/**
-	 * Some private variable used for creation of (pseudo-)unique ids.
+	 * Some private variable used for creation of (pseudo-)unique IDs.
 	 * @type int
 	 * @private
 	 */
 	var iIdCounter = 0;
 
 	/**
-	 * Creates and returns a pseudo-unique id.
+	 * Creates and returns a pseudo-unique ID.
 	 *
 	 * No means for detection of overlap with already present or future UIDs.
 	 *

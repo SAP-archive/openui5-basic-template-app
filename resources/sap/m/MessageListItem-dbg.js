@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,7 @@ sap.ui.define([
 		 * @extends sap.m.StandardListItem
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @private
@@ -39,13 +39,11 @@ sap.ui.define([
 		 */
 		var MessageListItem = StandardListItem.extend("sap.m.MessageListItem", /** @lends sap.m.MessageListItem.prototype */ {
 			metadata: {
-
 				library: "sap.m",
 				properties: {
 					activeTitle: { type: "boolean", group: "Misc", defaultValue: false},
 					messageType: { type: "sap.ui.core.MessageType", group: "Appearance", defaultValue: MessageType.Error }
 				},
-
 				aggregations: {
 					link: { type: "sap.m.Link", group: "Misc", multiple: false },
 					linkAriaDescribedBy: {type: "sap.ui.core.Control", group: "Misc", multiple: false}
@@ -56,12 +54,11 @@ sap.ui.define([
 			}
 		});
 
-		MessageListItem.prototype.setActiveTitle = function (bActive) {
-			this.setProperty("activeTitle", bActive);
+		MessageListItem.prototype.onBeforeRendering = function () {
+			StandardListItem.prototype.onBeforeRendering.apply(this, arguments);
+			var oLink = this.getLink(), oDescribedByText;
 
-			var oLink = this.getLink();
-
-			if (!oLink && bActive) {
+			if (!oLink && this.getActiveTitle()) {
 				oLink = new Link({
 					press: [this.fireActiveTitlePress, this]
 
@@ -69,19 +66,8 @@ sap.ui.define([
 				this.setLink(oLink);
 			}
 
-			return this;
-		};
-
-		MessageListItem.prototype.onBeforeRendering = function () {
-			StandardListItem.prototype.onBeforeRendering.apply(this, arguments);
-			var oLink = this.getLink(), oDescribedByText;
-
-			if (!oLink) {
-				return;
-			}
-
 			//prevent unneeded creation of sap.ui.core.InvisibleText
-			if (!oLink.getAriaDescribedBy().length) {
+			if (oLink && !oLink.getAriaDescribedBy().length) {
 				oDescribedByText = this._getLinkAriaDescribedBy();
 
 				oLink.setProperty("text", this.getTitle(), true);
@@ -115,7 +101,6 @@ sap.ui.define([
 				sAdditionalText, sMessageType;
 
 			if (this.getActiveTitle()) {
-
 				sMessageType = oBundle.getText("MESSAGEVIEW_BUTTON_TOOLTIP_" + this.getMessageType().toUpperCase());
 				sAdditionalText = oBundle.getText("MESSAGE_LIST_ITEM_FOCUS_TEXT", [sMessageType]);
 

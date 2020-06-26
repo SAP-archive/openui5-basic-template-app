@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,12 +33,35 @@ sap.ui.define([
 
 
 	/**
-	 * Constructor for CompositeBinding
+	 * Constructor for CompositeBinding.
 	 *
 	 * @class
-	 * The CompositeBinding is used to bundle multiple property bindings which are be used to provide a single binding against
-	 * these property bindings.
+	 * Combines multiple property bindings (called 'parts') into a single one.
 	 *
+	 * A <code>CompositeBinding</code> combines the values from all its binding parts (each an instance of
+	 * <code>PropertyBinding</code>), either by calling a formatter function or by involving a
+	 * {@link sap.ui.model.CompositeType composite type}. When a formatter function is used, then the
+	 * composite binding is automatically limited to <code>OneWay</code> mode. When a type is used, the binding
+	 * can also operate in <code>TwoWay</code> mode.
+	 *
+	 * Higher layers of the framework derive composite bindings from easy-to-write string representations
+	 * (the following features require complex binding syntax, e.g. <code>data-sap-ui-bindingSyntax="complex"</code>):
+	 *
+	 * XML views, for example, convert attribute values with nested curly braces like
+	 * <pre>
+	 *   text="{fullname} &amp;lt;{email}&amp;gt;"
+	 * </pre>
+	 * into a composite binding with two parts (one property binding for property "fullname" and one for
+	 * property "email") and with a generic formatter function that injects the values of the parts into
+	 * the string literal "{0} &lt;{1}&gt;" accordingly.
+	 *
+	 * Similarly, {@link topic:daf6852a04b44d118963968a1239d2c0 expression bindings} are parsed and converted
+	 * into composite bindings, too. The formatter function is created by the framework and executes the
+	 * calculations as defined by the expression string, taking the values from the binding parts as input.
+	 *
+	 * <b>Note:</b> A nesting of composite bindings is currently not supported (albeit being helpful).
+	 *
+	 * @see {@link topic:a2fe8e763014477e87990ff50657a0d0}
 	 * @public
 	 * @alias sap.ui.model.CompositeBinding
 	 * @extends sap.ui.model.PropertyBinding
@@ -47,12 +70,20 @@ sap.ui.define([
 	var CompositeBinding = PropertyBinding.extend("sap.ui.model.CompositeBinding", /** @lends sap.ui.model.CompositeBinding.prototype */ {
 
 		constructor : function (aBindings, bRawValues, bInternalValues) {
+			var oModel;
+
 			PropertyBinding.apply(this, [null,""]);
 			this.aBindings = aBindings;
 			this.aValues = null;
 			this.bRawValues = bRawValues;
 			this.bPreventUpdate = false;
 			this.bInternalValues = bInternalValues;
+			this.bMultipleModels = this.aBindings.some(function (oBinding) {
+				var oCurrentModel = oBinding.getModel();
+
+				oModel = oModel || oCurrentModel;
+				return oModel && oCurrentModel && oCurrentModel !== oModel;
+			});
 		},
 		metadata : {
 
@@ -62,6 +93,13 @@ sap.ui.define([
 		}
 
 	});
+
+	CompositeBinding.prototype.destroy = function() {
+		PropertyBinding.prototype.destroy.apply(this);
+		this.aBindings.forEach(function(oBinding) {
+			oBinding.destroy();
+		});
+	};
 
 	CompositeBinding.prototype.getPath = function() {
 		assert(null, "Composite Binding has no path!");
@@ -136,8 +174,9 @@ sap.ui.define([
 			return;
 		}
 		this.aBindings.forEach(function(oBinding, i) {
-			var oValue = aValues[i];
-			if (oValue !== undefined) {
+			var oValue = aValues[i],
+				sBindingMode = oBinding.getBindingMode();
+			if (oValue !== undefined  && sBindingMode !== BindingMode.OneWay && sBindingMode !== BindingMode.OneTime) {
 				oBinding.setValue(oValue);
 			}
 		});
@@ -213,7 +252,7 @@ sap.ui.define([
 	 * @public
 	 */
 	CompositeBinding.prototype.setExternalValue = function(oValue) {
-		var oInternalType, oDataState, pValues,
+		var oInternalType, oDataState, vResult, pValues,
 			that = this;
 
 		if (this.sInternalType === "raw") {
@@ -260,11 +299,12 @@ sap.ui.define([
 			pValues = SyncPromise.resolve([oValue]);
 		}
 
-		return pValues.then(function(aValues) {
+		vResult = pValues.then(function(aValues) {
 			that.aBindings.forEach(function(oBinding, iIndex) {
+				var sBindingMode = oBinding.getBindingMode();
 				oValue = aValues[iIndex];
 				// if a value is undefined skip the update of the nestend binding - this allows partial updates
-				if (oValue !== undefined) {
+				if (oValue !== undefined  && sBindingMode !== BindingMode.OneWay && sBindingMode !== BindingMode.OneTime) {
 					if (that.bRawValues) {
 						oBinding.setRawValue(oValue);
 					} else if (that.bInternalValues) {
@@ -276,7 +316,10 @@ sap.ui.define([
 			});
 			oDataState.setValue(that.getValue());
 			oDataState.setInvalidValue(undefined);
-		}).unwrap();
+		});
+		vResult.catch(function () {/*avoid "Uncaught (in promise)"*/});
+
+		return vResult.unwrap();
 	};
 
 	/**
@@ -331,8 +374,9 @@ sap.ui.define([
 
 		return pValues.then(function() {
 			that.aBindings.forEach(function(oBinding, iIndex) {
-				var vValue = aValues[iIndex];
-				if (vValue !== undefined) {
+				var vValue = aValues[iIndex],
+					sBindingMode = oBinding.getBindingMode();
+				if (vValue !== undefined  && sBindingMode !== BindingMode.OneWay && sBindingMode !== BindingMode.OneTime) {
 					oBinding.setInternalValue(vValue);
 				}
 			});
@@ -394,8 +438,9 @@ sap.ui.define([
 
 		return pValues.then(function() {
 			that.aBindings.forEach(function(oBinding, iIndex) {
-				var vValue = aValues[iIndex];
-				if (vValue !== undefined) {
+				var vValue = aValues[iIndex],
+					sBindingMode = oBinding.getBindingMode();
+				if (vValue !== undefined && sBindingMode !== BindingMode.OneWay && sBindingMode !== BindingMode.OneTime) {
 					oBinding.setRawValue(vValue);
 				}
 			});
@@ -487,9 +532,14 @@ sap.ui.define([
 
 	//Eventing and related
 	/**
-	 * Attach event-handler <code>fnFunction</code> to the '_change' event of this <code>sap.ui.model.CompositeBinding</code>.<br/>
-	 * @param {function} fnFunction The function to call, when the event occurs.
-	 * @param {object} [oListener] object on which to call the given function.
+	 * Attaches event handler <code>fnFunction</code> to the <code>change</code> event of this
+	 * <code>sap.ui.model.CompositeBinding</code>.
+	 *
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
+	 * if specified, otherwise it will be bound to this <code>sap.ui.model.CompositeBinding</code> itself.
+	 *
+	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {object} [oListener] object on which to call the given function
 	 * @protected
 	 */
 	CompositeBinding.prototype.attachChange = function(fnFunction, oListener) {
@@ -516,9 +566,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detach event-handler <code>fnFunction</code> from the '_change' event of this <code>sap.ui.model.CompositeBinding</code>.<br/>
-	 * @param {function} fnFunction The function to call, when the event occurs.
-	 * @param {object} [oListener] object on which to call the given function.
+	 * Detaches event handler <code>fnFunction</code> from the <code>change</code> event of this
+	 * <code>sap.ui.model.CompositeBinding</code>.
+	 *
+	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {object} [oListener] object on which to call the given function
 	 * @protected
 	 */
 	CompositeBinding.prototype.detachChange = function(fnFunction, oListener) {
@@ -532,9 +584,14 @@ sap.ui.define([
 	};
 
 	/**
-	 * Attach event-handler <code>fnFunction</code> to the 'DataStateChange' event of this <code>sap.ui.model.CompositeBinding</code>.<br/>
-	 * @param {function} fnFunction The function to call, when the event occurs.
-	 * @param {object} [oListener] object on which to call the given function.
+	 * Attaches event handler <code>fnFunction</code> to the <code>DataStateChange</code> event of this
+	 * <code>sap.ui.model.CompositeBinding</code>.
+	 *
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
+	 * if specified, otherwise it will be bound to this <code>sap.ui.model.CompositeBinding</code> itself.
+	 *
+	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {object} [oListener] object on which to call the given function
 	 * @protected
 	 */
 	CompositeBinding.prototype.attachDataStateChange = function(fnFunction, oListener) {
@@ -556,9 +613,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detach event-handler <code>fnFunction</code> from the 'DataStateChange' event of this <code>sap.ui.model.CompositeBinding</code>.<br/>
-	 * @param {function} fnFunction The function to call, when the event occurs.
-	 * @param {object} [oListener] object on which to call the given function.
+	 * Detaches event handler <code>fnFunction</code> from the <code>DataStateChange</code> event of
+	 * this <code>sap.ui.model.CompositeBinding</code>.
+	 *
+	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {object} [oListener] object on which to call the given function
 	 * @protected
 	 */
 	CompositeBinding.prototype.detachDataStateChange = function(fnFunction, oListener) {
@@ -572,12 +631,14 @@ sap.ui.define([
 	};
 
 	/**
-	 * Attach event-handler <code>fnFunction</code> to the 'AggregatedDataStateChange' event of this
-	 * <code>sap.ui.model.CompositeBinding</code>. The 'AggregatedDataStateChange' event is fired asynchronously, meaning
-	 * that the datastate object given as parameter of the event contains all changes that were applied to the datastate
+	 * Attaches event handler <code>fnFunction</code> to the <code>AggregatedDataStateChange</code> event of this
+	 * <code>sap.ui.model.CompositeBinding</code>.
+	 *
+	 * The <code>AggregatedDataStateChange</code> event is fired asynchronously, meaning that the <code>DataState</code>
+	 * object given as parameter of the event contains all changes that were applied to the <code>DataState</code>
 	 * in the running thread.
 	 *
-	 * @param {function} fnFunction The function to call, when the event occurs.
+	 * @param {function} fnFunction The function to be called, when the event occurs
 	 * @param {object} [oListener] object on which to call the given function.
 	 * @protected
 	 */
@@ -604,9 +665,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detach event-handler <code>fnFunction</code> from the 'AggregatedDataStateChange' event of this <code>sap.ui.model.CompositeBinding</code>.<br/>
-	 * @param {function} fnFunction The function to call, when the event occurs.
-	 * @param {object} [oListener] object on which to call the given function.
+	 * Detaches event handler <code>fnFunction</code> from the <code>AggregatedDataStateChange</code>
+	 * event of this <code>sap.ui.model.CompositeBinding</code>.
+	 *
+	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {object} [oListener] object on which to call the given function
 	 * @protected
 	 */
 	CompositeBinding.prototype.detachAggregatedDataStateChange = function(fnFunction, oListener) {
@@ -635,7 +698,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Initialize the binding. The message should be called when creating a binding.
+	 * Initialize the binding. The method should be called when creating a binding.
 	 * The default implementation calls checkUpdate(true).
 	 * Prevent checkUpdate to be triggered while initializing nestend bindings, it is
 	 * sufficient to call checkUpdate when all nested bindings are initialized.
@@ -713,6 +776,17 @@ sap.ui.define([
 		if (this.bPreventUpdate || (this.bSuspended && !bForceUpdate)) {
 			return;
 		}
+		// do not fire change event in case the destruction of the model for one part leads to the
+		// update of a model for another part of this binding
+		if (this.bMultipleModels
+			&& this.aBindings.some(function (oBinding) {
+				var oModel = oBinding.getModel();
+
+				return oModel && oModel.bDestroyed;
+			})) {
+			return;
+		}
+
 		var oDataState = this.getDataState();
 		var aOriginalValues = this.getOriginalValue();
 		if (bForceUpdate || !deepEqual(aOriginalValues, this.aOriginalValues)) {

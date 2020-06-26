@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/Renderer"],function(e){"use strict";var t={};t.CSS_CLASS="sapMSliderTooltip";t.render=function(e,t){e.write("<div");e.writeControlData(t);e.writeClasses();e.write(">");this.renderTooltipContent(e,t);e.write("</div>")};t.renderTooltipContent=function(e,t){};return t},true);
+sap.ui.define(["sap/ui/core/Renderer"],function(e){"use strict";var n={apiVersion:2};n.CSS_CLASS="sapMSliderTooltip";n.render=function(e,n){e.openStart("div",n).openEnd();this.renderTooltipContent(e,n);e.close("div")};n.renderTooltipContent=function(e,n){};return n},true);

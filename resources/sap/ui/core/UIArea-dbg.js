@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -175,7 +175,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @param {sap.ui.core.Core} oCore internal API of the <core>Core</code> that manages this UIArea
 	 * @param {object} [oRootNode] reference to the DOM element that should be 'hosting' the UI Area.
 	 * @public
@@ -261,11 +261,12 @@ sap.ui.define([
 	};
 
 	/**
-	 * Allows setting the Root Node hosting this instance of <code>UIArea</code>.<br/> The Dom Ref must have an Id that
-	 * will be used as Id for this instance of <code>UIArea</code>.
+	 * Allows setting the root node hosting this instance of <code>UIArea</code>.
+	 *
+	 * The node must have an ID that will be used as ID for this instance of <code>UIArea</code>.
 	 *
 	 * @param {object}
-	 *            oRootNode the hosting Dom Ref for this instance of <code>UIArea</code>.
+	 *            oRootNode the hosting DOM node for this instance of <code>UIArea</code>.
 	 * @public
 	 */
 	UIArea.prototype.setRootNode = function(oRootNode) {
@@ -487,8 +488,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Will be used as end-point for invalidate-bubbling from controls up their hierarchy.<br/> Triggers re-rendering of
-	 * the UIAreas content.
+	 * Triggers asynchronous re-rendering of the <code>UIArea</code>'s content.
+	 *
+	 * Serves as an end-point for the bubbling of invalidation requests along the
+	 * element/control aggregation hierarchy.
+	 *
 	 * @protected
 	 */
 	UIArea.prototype.invalidate = function() {
@@ -496,13 +500,13 @@ sap.ui.define([
 	};
 
 	/**
-	 * Notifies the UIArea about an invalidated control.
+	 * Notifies the <code>UIArea</code> about an invalidated descendant control.
 	 *
-	 * The UIArea internally decides whether to re-render just the modified
-	 * controls or the complete content. It also informs the Core when it
-	 * becomes invalid the first time.
+	 * During re-rendering, the <code>UIArea</code> internally decides whether to re-render just the modified
+	 * controls or the complete content. It also informs the <code>Core</code> when it becomes invalid
+	 * for the first time.
 	 *
-	 * @param {object} oControl
+	 * @param {object} oControl Descendant control that got invalidated
 	 * @private
 	 */
 	UIArea.prototype.addInvalidatedControl = function(oControl){
@@ -537,12 +541,12 @@ sap.ui.define([
 	};
 
 	/**
-	 * Renders any pending UI updates.
+	 * Synchronously renders any pending UI updates.
 	 *
-	 * Either renders the whole UIArea or a set of descendent controls that have been invalidated.
+	 * Either renders the whole <code>UIArea</code> or a set of descendant controls that have been invalidated.
 	 *
-	 * @param {boolean} force true, if the rerendering of the UI area should be forced
-	 * @return {boolean} whether a redraw was necessary or not
+	 * @param {boolean} force Whether a re-rendering of the <code>UIArea</code> should be enforced
+	 * @return {boolean} Whether a redraw was necessary or not
 	 * @private
 	 */
 	UIArea.prototype.rerender = function(force){
@@ -741,7 +745,7 @@ sap.ui.define([
 			var uiArea = oControl.getUIArea();
 			var rm = uiArea ? uiArea.oCore.oRenderManager : sap.ui.getCore().createRenderManager();
 			oRenderLog.debug("Rerender Control '" + oControl.getId() + "'" + (uiArea ? "" : " (using a temp. RenderManager)"));
-			RenderManager.preserveContent(oDomRef, /* bPreserveRoot */ true, /* bPreserveNodesWithId */ false);
+			RenderManager.preserveContent(oDomRef, /* bPreserveRoot */ true, /* bPreserveNodesWithId */ false, oControl /* oControlBeforeRerender */);
 			rm.render(oControl, oParentDomRef);
 		} else {
 			var uiArea = oControl.getUIArea();
@@ -909,40 +913,49 @@ sap.ui.define([
 
 		// dispatch the event to the controls (callback methods: onXXX)
 		while (oElement instanceof Element && oElement.isActive() && !oEvent.isPropagationStopped()) {
+			var sScopeCheckId = oEvent.getMark("scopeCheckId"),
+				oScopeCheckDOM = sScopeCheckId && window.document.getElementById(sScopeCheckId),
+				oDomRef = oElement.getDomRef();
 
-			// for each event type call the callback method
-			// if the execution should be stopped immediately
-			// then no further callback method will be executed
-			for (var i = 0, is = aEventTypes.length; i < is; i++) {
-				var sType = aEventTypes[i];
-				oEvent.type = sType;
-				// ensure currenTarget is the DomRef of the handling Control
-				oEvent.currentTarget = oElement.getDomRef();
-				oElement._handleEvent(oEvent);
-				if (oEvent.isImmediatePropagationStopped()) {
+			// for events which are dependent on the scope DOM (the DOM on which the 'mousedown' event is fired), the
+			// event is dispatched to the element only when the element's root DOM contains or equals the scope check
+			// DOM, so that the simulated 'touchmove' and 'touchend' event is only dispatched to the element when the
+			// 'touchstart' also occurred on the same element
+			if (!oScopeCheckDOM || containsOrEquals(oDomRef, oScopeCheckDOM)) {
+				// for each event type call the callback method
+				// if the execution should be stopped immediately
+				// then no further callback method will be executed
+				for (var i = 0, is = aEventTypes.length; i < is; i++) {
+					var sType = aEventTypes[i];
+					oEvent.type = sType;
+					// ensure currenTarget is the DomRef of the handling Control
+					oEvent.currentTarget = oElement.getDomRef();
+					oElement._handleEvent(oEvent);
+					if (oEvent.isImmediatePropagationStopped()) {
+						break;
+					}
+				}
+				if (!bGroupChanged && !oEvent.isMarked("enterKeyConsumedAsContent")) {
+					bGroupChanged = this._handleGroupChange(oEvent,oElement);
+				}
+
+				// if the propagation is stopped do not bubble up further
+				if (oEvent.isPropagationStopped()) {
 					break;
 				}
-			}
-			if (!bGroupChanged && !oEvent.isMarked("enterKeyConsumedAsContent")) {
-				bGroupChanged = this._handleGroupChange(oEvent,oElement);
-			}
 
-			// if the propagation is stopped do not bubble up further
-			if (oEvent.isPropagationStopped()) {
-				break;
-			}
+				// Secret property on the element to allow to cancel bubbling of all events.
+				// This is a very special case, so there is no API method for this in the control.
+				if (oElement.bStopEventBubbling) {
+					break;
+				}
 
-			// Secret property on the element to allow to cancel bubbling of all events.
-			// This is a very special case, so there is no API method for this in the control.
-			if (oElement.bStopEventBubbling) {
-				break;
-			}
-
-			// This is the (not that common) situation that the element was deleted in its own event handler.
-			// i.e. the Element became 'inactive' (see Element#isActive())
-			var oDomRef = oElement.getDomRef();
-			if (!oDomRef) {
-				break;
+				// This is the (not that common) situation that the element was deleted in its own event handler.
+				// i.e. the Element became 'inactive' (see Element#isActive())
+				oDomRef = oElement.getDomRef();
+				if (!oDomRef) {
+					break;
+				}
 			}
 
 			// bubble up to the parent
@@ -1057,7 +1070,7 @@ sap.ui.define([
 		}
 
 		// mark the DOM as UIArea and bind the required events
-		jQuery(oDomRef).attr("data-sap-ui-area", oDomRef.id).bind(ControlEvents.events.join(" "), this._handleEvent.bind(this));
+		jQuery(oDomRef).attr("data-sap-ui-area", oDomRef.id).on(ControlEvents.events.join(" "), this._handleEvent.bind(this));
 
 	};
 
@@ -1074,18 +1087,18 @@ sap.ui.define([
 		}
 
 		// remove UIArea marker and unregister all event handlers of the control
-		jQuery(oDomRef).removeAttr("data-sap-ui-area").unbind();
+		jQuery(oDomRef).removeAttr("data-sap-ui-area").off();
 
 		// TODO: when optimizing the events => take care to unbind only the
 		//       required. additionally consider not to remove other event handlers.
 	//	var ojQRef = jQuery(oDomRef);
 	//	if (this.sEvents) {
-	//		ojQRef.unbind(this.sEvents, this._handleEvent);
+	//		ojQRef.off(this.sEvents, this._handleEvent);
 	//	}
 	//
 	//	var oFH = this.oCore.oFocusHandler;
-	//	ojQRef.unbind("focus",oFH.onfocusin);
-	//	ojQRef.unbind("blur", oFH.onfocusout);
+	//	ojQRef.off("focus",oFH.onfocusin);
+	//	ojQRef.off("blur", oFH.onfocusout);
 
 	};
 
@@ -1097,11 +1110,12 @@ sap.ui.define([
 	};
 
 	/**
-	 * Handles field group change or validation based on the given event.
-	 * Triggers the changeGroup event (with reason: validate) for current field group control.
+	 * Handles field group change or validation based on the given browser event.
 	 *
-	 * @param {jQuery.Event} oEvent the jQuery event object
-	 * @param {sap.ui.core.Element} oElement the element where the event occured
+	 * Triggers the <code>changeGroup</code> event (with reason: validate) for current field group control.
+	 *
+	 * @param {jQuery.Event} oEvent Browser event
+	 * @param {sap.ui.core.Element} oElement UI5 <code>Element</code> where the event occurred
 	 *
 	 * @return {boolean} true if the field group control was set or validated.
 	 *
@@ -1110,7 +1124,7 @@ sap.ui.define([
 	UIArea.prototype._handleGroupChange = function(oEvent, oElement) {
 		var oKey = UIArea._oFieldGroupValidationKey;
 		if (oEvent.type === "focusin") {
-			//check for field group change delayed to allow focus forwarding and resetting focus after selection
+			// delay the check for a field group change to allow focus forwarding and resetting focus after selection
 			if (UIArea._iFieldGroupDelayTimer) {
 				clearTimeout(UIArea._iFieldGroupDelayTimer);
 				UIArea._iFieldGroupDelayTimer = null;
@@ -1123,7 +1137,7 @@ sap.ui.define([
 				oEvent.shiftKey === oKey.shiftKey &&
 				oEvent.altKey === oKey.altKey &&
 				oEvent.ctrlKey === oKey.ctrlKey) {
-			//check for field group change (validate) after events where processed by elements
+			// check for field group change (validate) only after events where processed by elements
 			if (UIArea._iFieldGroupTriggerDelay) {
 				clearTimeout(UIArea._iFieldGroupTriggerDelay);
 			}

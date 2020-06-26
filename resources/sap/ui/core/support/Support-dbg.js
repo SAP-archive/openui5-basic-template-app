@@ -1,18 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the basic UI5 support functionality
-sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/base/util/UriParameters", "sap/ui/thirdparty/jquery", "sap/base/Log", "sap/base/security/encodeURL"],
+sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/base/util/UriParameters", "sap/ui/thirdparty/jquery", "sap/base/Log", "sap/base/util/deepExtend", "sap/base/security/encodeURL"],
 	function(
 		EventProvider,
 		Plugin,
 		Device,
 		UriParameters,
-		jQueryDOM,
+		jQuery,
 		Log,
+		deepExtend,
 		encodeURL
 	) {
 	"use strict";
@@ -26,7 +27,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 	 * @class This class provides the support tool functionality of UI5. This class is internal and all its functions must not be used by an application.
 	 *
 	 * @extends sap.ui.base.EventProvider
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @private
 	 * @alias sap.ui.core.support.Support
 	 */
@@ -54,8 +55,8 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 					this._isOpen = false;
 					this.attachEvent(mEvents.TEAR_DOWN, function(oEvent){
 						that._isOpen = false;
-						if ( Device.browser.msie ) {// TODO remove after 1.62 version
-							jQueryDOM(document.getElementById(ID_SUPPORT_AREA + "-frame")).remove();
+						if ( Device.browser.msie ) {// TODO remove after the end of support for Internet Explorer
+							jQuery(document.getElementById(ID_SUPPORT_AREA + "-frame")).remove();
 						} else {
 							close(that._oRemoteWindow);
 						}
@@ -77,16 +78,16 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 					break;
 				case mTypes.IFRAME:
 					this._oRemoteWindow = window.parent;
-					this._sRemoteOrigin = new UriParameters(window.location.href).get("sap-ui-xx-support-origin");
+					this._sRemoteOrigin = UriParameters.fromQuery(window.location.search).get("sap-ui-xx-support-origin");
 					this.openSupportTool();
-					jQuery(window).bind("unload", function(oEvent){
+					jQuery(window).on("unload", function(oEvent){
 						close(that._oOpenedWindow);
 					});
 					break;
 				case mTypes.TOOL:
 					this._oRemoteWindow = window.opener;
-					this._sRemoteOrigin = new UriParameters(window.location.href).get("sap-ui-xx-support-origin");
-					jQuery(window).bind("unload", function(oEvent){
+					this._sRemoteOrigin = UriParameters.fromQuery(window.location.search).get("sap-ui-xx-support-origin");
+					jQuery(window).on("unload", function(oEvent){
 						that.sendEvent(mEvents.TEAR_DOWN);
 						Support.exitPlugins(that, true);
 					});
@@ -117,7 +118,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 
 	var mTypes = {
 		APPLICATION: "APPLICATION", //Application stub -> the "standard one"
-		IFRAME: "IFRAME", //Used by the Internet Explorer iFrame bridge only// TODO remove after 1.62 version
+		IFRAME: "IFRAME", //Used by the Internet Explorer iFrame bridge only// TODO remove after the end of support for Internet Explorer
 		TOOL: "TOOL" //Used by the support tool only
 	};
 
@@ -186,7 +187,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 	 * Returns all plugins for the diagnostics tool window
 	 * @returns {sap.ui.core.support.Plugin[]}
 	 * @private
-	 * @sap-restricted
+	 * @ui5-restricted
 	 */
 	Support.getToolPlugins = function() {
 		var aResult = [];
@@ -202,7 +203,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 	 * Returns all plugins for the application window
 	 * @returns {sap.ui.core.support.Plugin[]}
 	 * @private
-	 * @sap-restricted
+	 * @ui5-restricted
 	 */
 	Support.getAppPlugins = function() {
 		var aResult = [];
@@ -231,7 +232,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 	 *
 	 * @returns {boolean} true if this stub is running on the diagnostics tool window, otherwise, false
 	 * @private
-	 * @sap-restricted
+	 * @ui5-restricted
 	 */
 	Support.prototype.isToolStub = function() {
 		return this._sType === Support.StubType.TOOL;
@@ -242,7 +243,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 	 *
 	 * @returns {boolean} true if this stub is running on the application window, otherwise, false
 	 * @private
-	 * @sap-restricted
+	 * @ui5-restricted
 	 */
 	Support.prototype.isAppStub = function() {
 		return this._sType === Support.StubType.APPLICATION;
@@ -288,8 +289,8 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 	 *
 	 * @param {string} sEventId the event id
 	 * @param {Object} [mParams] the parameter map (JSON)
-	 * @sap-restricted
 	 * @private
+	 * @ui5-restricted
 	 */
 	Support.prototype.sendEvent = function(sEventId, mParams) {
 		if (!this._oRemoteWindow) {
@@ -298,15 +299,15 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 
 		mParams = mParams ? mParams : {};
 
-		if ( Device.browser.msie && this._sType === mTypes.TOOL ) {// TODO remove after 1.62 version
+		if ( Device.browser.msie && this._sType === mTypes.TOOL ) {// TODO remove after the end of support for Internet Explorer
 			this._oRemoteWindow.sap.ui.core.support.Support.getStub(mTypes.IFRAME).sendEvent(sEventId, mParams);
 		} else {
 			var mParamsLocal = mParams;
-			if ( Device.browser.msie ) {// TODO remove after 1.62 version
+			if ( Device.browser.msie ) {// TODO remove after the end of support for Internet Explorer
 				//Attention mParams comes from an other window
 				//-> (mParams instanceof Object == false)!
 				mParamsLocal = {};
-				jQuery.extend(true, mParamsLocal, mParams);
+				deepExtend(mParamsLocal, mParams);
 			}
 			var oData = {"eventId": sEventId, "params": mParamsLocal};
 			var sData = "SAPUI5SupportTool*" + JSON.stringify(oData);
@@ -337,7 +338,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 			}
 		} else if (this._sType === mTypes.IFRAME) {
 			// use script name from URI parameter to hand it over to the tool
-			sBootstrapScript = new UriParameters(window.location.href).get("sap-ui-xx-support-bootstrap");
+			sBootstrapScript = UriParameters.fromQuery(window.location.search).get("sap-ui-xx-support-bootstrap");
 		}
 
 		// sap-ui-core.js is the default. no need for passing it to the support window
@@ -353,7 +354,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 
 		if (this._sType === mTypes.APPLICATION) {
 			if (!this._isOpen) {
-				if ( Device.browser.msie ) {// TODO remove after 1.62 version
+				if ( Device.browser.msie ) {// TODO remove after the end of support for Internet Explorer
 					var sIFrameUrl = sap.ui.require.toUrl("sap/ui/core/support/msiebridge.html");
 					getSupportArea().html("").append(getSupportFrame(sIFrameUrl, sParams));
 					this._sRemoteOrigin = checkLocalUrl(sIFrameUrl) ? this._sLocalOrigin : sIFrameUrl;
@@ -370,7 +371,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 		}
 	};
 
-	// TODO remove after 1.62 version
+	// TODO remove after the end of support for Internet Explorer
 	/**
 	 * Event Handler which is bound to the onload event of the Internet Explorer iFrame bridge.
 	 *
@@ -378,7 +379,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 	 * @private
 	 */
 	Support._onSupportIFrameLoaded = function(){
-		_oStubInstance._oRemoteWindow = jQueryDOM(document.getElementById(ID_SUPPORT_AREA + "-frame"))[0].contentWindow;
+		_oStubInstance._oRemoteWindow = jQuery(document.getElementById(ID_SUPPORT_AREA + "-frame"))[0].contentWindow;
 	};
 
 
@@ -401,7 +402,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 	 * @param {Object} [mParameters] the parameter map (JSON)
 	 * @return {sap.ui.core.support.Support} Returns <code>this</code> to allow method chaining
 	 * @private
-	 * @sap-restricted
+	 * @ui5-restricted
 	 */
 
 
@@ -411,7 +412,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 	 * @name sap.ui.core.support.Support.prototype.detachEvent
 	 * @function
 	 * @private
-	 * @sap-restricted
+	 * @ui5-restricted
 	 */
 
 
@@ -421,7 +422,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 	 * @name sap.ui.core.support.Support.prototype.attachEvent
 	 * @function
 	 * @private
-	 * @sap-restricted
+	 * @ui5-restricted
 	 */
 
 
@@ -434,7 +435,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 
 
 	function getSupportArea() {
-		var $support = jQueryDOM(document.getElementById(ID_SUPPORT_AREA));
+		var $support = jQuery(document.getElementById(ID_SUPPORT_AREA));
 		if ($support.length === 0) {
 			$support = jQuery("<DIV/>", {id:ID_SUPPORT_AREA}).
 				addClass("sapUiHidden").
@@ -448,7 +449,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 		var oFrame = document.createElement("iframe");
 		oFrame.id = ID_SUPPORT_AREA + "-frame";
 		oFrame.src = sIFrameUrl + sParams;
-		oFrame.onload = sap.ui.core.support.Support._onSupportIFrameLoaded;
+		oFrame.onload = Support._onSupportIFrameLoaded;
 
 		return oFrame;
 	}
@@ -595,7 +596,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', 'sap/ui/Device', "sap/ba
 				"</div>" +
 			"</div>");
 
-		oPlugin.$("PanelHeader").click(function(){
+		oPlugin.$("PanelHeader").on("click", function(){
 			var jHandleRef = oPlugin.$("PanelHandle");
 			if (jHandleRef.hasClass("sapUiSupportPnlHdrHdlClosed")) {
 				jHandleRef.removeClass("sapUiSupportPnlHdrHdlClosed");

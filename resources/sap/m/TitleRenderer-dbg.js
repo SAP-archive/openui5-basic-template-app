@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,7 +21,9 @@ sap.ui.define(["sap/ui/core/library", "sap/m/HyphenationSupport"],
 	 * Title renderer.
 	 * @namespace
 	 */
-	var TitleRenderer = {};
+	var TitleRenderer = {
+		apiVersion: 2
+	};
 
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
@@ -32,13 +34,12 @@ sap.ui.define(["sap/ui/core/library", "sap/m/HyphenationSupport"],
 		var oAssoTitle = oTitle._getTitle(),
 			sLevel = (oAssoTitle ? oAssoTitle.getLevel() : oTitle.getLevel()) || TitleLevel.Auto,
 			bAutoLevel = sLevel == TitleLevel.Auto,
-			sTag = bAutoLevel ? "div" : sLevel,
+			sTag = bAutoLevel ? "div" : sLevel.toLowerCase(),
 			sText = HyphenationSupport.getTextForRender(oTitle, "main");
 
-		oRm.openStart(sTag);
-		oRm.controlData(oTitle);
+		oRm.openStart(sTag, oTitle);
 		oRm.class("sapMTitle");
-		oRm.class("sapMTitleStyle" + (oTitle.getTitleStyle() || TitleLevel.Auto));
+		oRm.class("sapMTitleStyle" + oTitle.getTitleStyle());
 		oRm.class(oTitle.getWrapping() ? "sapMTitleWrap" : "sapMTitleNoWrap");
 		oRm.class("sapUiSelectable");
 
@@ -65,13 +66,13 @@ sap.ui.define(["sap/ui/core/library", "sap/m/HyphenationSupport"],
 
 		if (bAutoLevel) {
 			oRm.attr("role", "heading");
+			oRm.attr("aria-level", oTitle._getAriaLevel());
 		}
 
 		HyphenationSupport.writeHyphenationClass(oRm, oTitle);
 
 		oRm.openEnd();
-		oRm.openStart("span");
-		oRm.attr("id", oTitle.getId() + "-inner");
+		oRm.openStart("span", oTitle.getId() + "-inner");
 		oRm.openEnd();
 
 		oRm.text(sText);

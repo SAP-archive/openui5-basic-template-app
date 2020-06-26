@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,7 +18,8 @@ sap.ui.define([
 	"./TimesRowRenderer",
 	"sap/ui/dom/containsOrEquals",
 	"sap/base/util/deepEqual",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/unified/DateRange"
 ], function(
 	Control,
 	LocaleData,
@@ -32,7 +33,8 @@ sap.ui.define([
 	TimesRowRenderer,
 	containsOrEquals,
 	deepEqual,
-	jQuery
+	jQuery,
+	DateRange
 ) {
 	"use strict";
 
@@ -60,7 +62,7 @@ sap.ui.define([
 	 *
 	 * The TimesRow works with JavaScript Date objects.
 	 * @extends sap.ui.core.Control
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -228,7 +230,7 @@ sap.ui.define([
 	// overwrite invalidate to recognize changes on selectedDates
 	TimesRow.prototype.invalidate = function(oOrigin) {
 
-		if (!this._bDateRangeChanged && (!oOrigin || !(oOrigin instanceof sap.ui.unified.DateRange))) {
+		if (!this._bDateRangeChanged && (!oOrigin || !(oOrigin instanceof DateRange))) {
 			Control.prototype.invalidate.apply(this, arguments);
 		} else if (this.getDomRef() && !this._sInvalidateTimes) {
 			// DateRange changed -> only rerender months
@@ -436,17 +438,20 @@ sap.ui.define([
 			var iIntervalMinutes = this.getIntervalMinutes();
 			var oLocaleData = this._getLocaleData();
 			var sPattern;
+			var sTimeFormatShort = oLocaleData.getTimePattern("short");
 			this._oFormatTimeAmPm = undefined;
 
+			// don't display minutes
 			if (iIntervalMinutes % 60 == 0) {
-				// don't display minutes
-				sPattern = oLocaleData.getPreferredHourSymbol();
-				if (oLocaleData.getTimePattern("short").search("a") >= 0) {
+				//sPattern determines whether the shown format will be 12 or 24 hrs
+				sPattern = _getPreferredHourSymbol(sTimeFormatShort);
+
+				if (sTimeFormatShort.search("a") >= 0) {
 					// AP/PM indicator used
 					this._oFormatTimeAmPm = DateFormat.getTimeInstance({pattern: "a"}, oLocale);
 				}
 			} else {
-				sPattern = oLocaleData.getTimePattern("short");
+				sPattern = sTimeFormatShort;
 				// no leading zeros
 				sPattern = sPattern.replace("HH", "H");
 				sPattern = sPattern.replace("hh", "h");
@@ -591,6 +596,17 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Sets the parent control instance which contains the legend
+	 * to the TimesRow control instance
+	 * @ui5-restricted sap.m.PlanningCalendar
+	 * @private
+	 * @param {*} oControl containing the legend
+	 */
+	TimesRow.prototype._setLegendControlOrigin = function (oControl) {
+		this._oLegendControlOrigin = oControl;
+	};
+
 	/*
 	 * if used inside CalendarTimeInterval get the value from the parent
 	 * To don't have sync issues...
@@ -598,6 +614,10 @@ sap.ui.define([
 	TimesRow.prototype.getLegend = function(){
 
 		var oParent = this.getParent();
+
+		if (this._oLegendControlOrigin) {
+			return this._oLegendControlOrigin.getLegend();
+		}
 
 		if (oParent && oParent.getLegend) {
 			return oParent.getLegend();
@@ -713,7 +733,7 @@ sap.ui.define([
 			}
 
 			if ((oTimeStamp == oStartTimeStamp && !oEndDate) || (oTimeStamp >= oStartTimeStamp && oTimeStamp <= oEndTimeStamp)) {
-				oType = {type: oRange.getType(), tooltip: oRange.getTooltip_AsString()};
+				oType = {type: oRange.getType(), tooltip: oRange.getTooltip_AsString(), color: oRange.getColor()};
 				break;
 			}
 		}
@@ -785,7 +805,7 @@ sap.ui.define([
 			for ( var i = 0; i < aDomRefs.length; i++) {
 				var $DomRef = jQuery(aDomRefs[i]);
 				if ($DomRef.attr("data-sap-time") == this._oFormatYyyyMMddHHmm.format(oFocusedDate.getJSDate(), true)) {
-					$DomRef.focus();
+					$DomRef.trigger("focus");
 					break;
 				}
 			}
@@ -957,6 +977,18 @@ sap.ui.define([
 
 		return this._ariaRole ? this._ariaRole : "gridcell";
 	};
+
+	TimesRow.prototype._updateItemARIASelected = function($oDomRef, bSelect) {
+		var sRole = this._getAriaRole();
+
+		if (sRole === "gridcell") {
+			// aria-selected is valid only for role=gridcell and not for role=button
+			$oDomRef.attr("aria-selected", bSelect);
+		}
+
+		return this;
+	};
+
 
 	function _initItemNavigation(){
 
@@ -1234,7 +1266,7 @@ sap.ui.define([
 					oStartDate = this._getIntervalStart(oStartDate);
 				}
 			} else {
-				oDateRange = new sap.ui.unified.DateRange();
+				oDateRange = new DateRange();
 				oAggOwner.addAggregation("selectedDates", oDateRange, true); // no re-rendering
 			}
 
@@ -1286,7 +1318,7 @@ sap.ui.define([
 					}
 				} else {
 					// not selected -> select
-					oDateRange = new sap.ui.unified.DateRange({startDate: CalendarUtils._createLocalDate(new Date(oDate.getTime()), true)});
+					oDateRange = new DateRange({startDate: CalendarUtils._createLocalDate(new Date(oDate.getTime()), true)});
 					oAggOwner.addAggregation("selectedDates", oDateRange, true); // no re-rendering
 				}
 				sYyyyMMddHHmm = this._oFormatYyyyMMddHHmm.format(oDate.getJSDate(), true);
@@ -1295,10 +1327,10 @@ sap.ui.define([
 					if ($DomRef.attr("data-sap-time") == sYyyyMMddHHmm) {
 						if (iSelected > 0) {
 							$DomRef.removeClass("sapUiCalItemSel");
-							$DomRef.attr("aria-selected", "false");
+							this._updateItemARIASelected($DomRef, false);
 						} else {
 							$DomRef.addClass("sapUiCalItemSel");
-							$DomRef.attr("aria-selected", "true");
+							this._updateItemARIASelected($DomRef, true);
 						}
 					}
 				}
@@ -1326,11 +1358,11 @@ sap.ui.define([
 				bEnd = false;
 				if ($DomRef.attr("data-sap-time") == sYyyyMMddHHmm) {
 					$DomRef.addClass("sapUiCalItemSel");
-					$DomRef.attr("aria-selected", "true");
+					this._updateItemARIASelected($DomRef, true);
 					bStart = true;
 				} else if ($DomRef.hasClass("sapUiCalItemSel")) {
 					$DomRef.removeClass("sapUiCalItemSel");
-					$DomRef.attr("aria-selected", "false");
+					this._updateItemARIASelected($DomRef, false);
 				}
 				if ($DomRef.hasClass("sapUiCalItemSelStart")) {
 					$DomRef.removeClass("sapUiCalItemSelStart");
@@ -1352,7 +1384,7 @@ sap.ui.define([
 					$DomRef.addClass("sapUiCalItemSelStart");
 					bStart = true;
 					$DomRef.addClass("sapUiCalItemSel");
-					$DomRef.attr("aria-selected", "true");
+					this._updateItemARIASelected($DomRef, true);
 					if (oEndDate && oDay.getTime() == oEndDate.getTime()) {
 						// start day and end day are the same
 						$DomRef.addClass("sapUiCalItemSelEnd");
@@ -1361,7 +1393,7 @@ sap.ui.define([
 					$DomRef.removeClass("sapUiCalItemSelBetween");
 				} else if (oEndDate && oDay.getTime() > oStartDate.getTime() && oDay.getTime() < oEndDate.getTime()) {
 					$DomRef.addClass("sapUiCalItemSel");
-					$DomRef.attr("aria-selected", "true");
+					this._updateItemARIASelected($DomRef, true);
 					$DomRef.addClass("sapUiCalItemSelBetween");
 					$DomRef.removeClass("sapUiCalItemSelStart");
 					$DomRef.removeClass("sapUiCalItemSelEnd");
@@ -1369,13 +1401,13 @@ sap.ui.define([
 					$DomRef.addClass("sapUiCalItemSelEnd");
 					bEnd = true;
 					$DomRef.addClass("sapUiCalItemSel");
-					$DomRef.attr("aria-selected", "true");
+					this._updateItemARIASelected($DomRef, true);
 					$DomRef.removeClass("sapUiCalItemSelStart");
 					$DomRef.removeClass("sapUiCalItemSelBetween");
 				} else {
 					if ($DomRef.hasClass("sapUiCalItemSel")) {
 						$DomRef.removeClass("sapUiCalItemSel");
-						$DomRef.attr("aria-selected", "false");
+						this._updateItemARIASelected($DomRef, false);
 					}
 					if ($DomRef.hasClass("sapUiCalItemSelStart")) {
 						$DomRef.removeClass("sapUiCalItemSelStart");
@@ -1470,16 +1502,33 @@ sap.ui.define([
 
 	function _bindMousemove(){
 
-		jQuery(window.document).bind('mousemove', this._mouseMoveProxy);
+		jQuery(window.document).on('mousemove', this._mouseMoveProxy);
 		this._bMouseMove = true;
 
 	}
 
 	function _unbindMousemove(){
 
-		jQuery(window.document).unbind('mousemove', this._mouseMoveProxy);
+		jQuery(window.document).off('mousemove', this._mouseMoveProxy);
 		this._bMouseMove = undefined;
 
+	}
+
+	/*
+	 * Getter for the time's preferred hour symbol. Possible options are h|H|k|K.
+	 * @param {String} sTimeFormatShort Hours time format
+	 * @return {String} Hours pattern.
+	 * @private
+	 */
+	function _getPreferredHourSymbol(sTimeFormatShort){
+		var sPattern;
+		if (sTimeFormatShort.toUpperCase().indexOf("K") > -1) {
+			sPattern = sTimeFormatShort.indexOf("k") > -1 ? "k" : "K";
+		} else {
+			sPattern = sTimeFormatShort.indexOf("h") > -1 ? "h" : "H";
+		}
+
+		return sPattern;
 	}
 
 	return TimesRow;

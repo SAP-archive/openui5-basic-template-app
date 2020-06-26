@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,7 +10,8 @@ sap.ui.define([
 	'sap/ui/core/Core',
 	'sap/ui/core/ElementMetadata',
 	"sap/base/util/LoaderExtensions",
-	"sap/base/util/UriParameters"
+	"sap/base/util/UriParameters",
+	"jquery.sap.global"
 ],
 	function(
 		library,
@@ -18,7 +19,8 @@ sap.ui.define([
 		Core,
 		ElementMetadata,
 		LoaderExtensions,
-		UriParameters
+		UriParameters,
+		jQuery
 	) {
 		'use strict';
 
@@ -27,31 +29,6 @@ sap.ui.define([
 		// ================================================================================
 		// Technical Information
 		// ================================================================================
-
-		/**
-		 * Returns the framework name.
-		 * @returns {string}
-		 * @private
-		 */
-		function _getFrameworkName() {
-			var versionInfo;
-			var frameworkInfo;
-
-			try {
-				versionInfo = sap.ui.getVersionInfo();
-			} catch (e) {
-				versionInfo = undefined;
-			}
-
-			if (versionInfo) {
-				// Use group artifact version for maven builds or name for other builds (like SAPUI5-on-ABAP)
-				frameworkInfo = versionInfo.gav ? versionInfo.gav : versionInfo.name;
-
-				return frameworkInfo.indexOf('openui5') !== -1 ? 'OpenUI5' : 'SAPUI5';
-			} else {
-				return '';
-			}
-		}
 
 		/**
 		 * Creates an object with the libraries and their version from the version info file.
@@ -88,6 +65,18 @@ sap.ui.define([
 		}
 
 		/**
+		 * Creates a simple object with all URL parameters.
+		 * @returns {Object<string,string[]>} Map of parameter value arrays keyed by parameter names
+		 */
+		function getURLParameters() {
+			var oParams = UriParameters.fromQuery(window.location.search);
+			return Array.from(oParams.keys()).reduce(function(oResult, sKey) {
+				oResult[sKey] = oParams.getAll(sKey);
+				return oResult;
+			}, {});
+		}
+
+		/**
 		 * Gets all the relevant information for the framework.
 		 * @returns {Object}
 		 * @private
@@ -95,7 +84,6 @@ sap.ui.define([
 		function _getFrameworkInformation() {
 			return {
 				commonInformation: {
-					frameworkName: _getFrameworkName(),
 					version: Global.version,
 					buildTime: Global.buildinfo.buildtime,
 					lastChange: Global.buildinfo.lastchange,
@@ -129,7 +117,7 @@ sap.ui.define([
 
 				loadedModules: LoaderExtensions.getAllRequiredModules().sort(),
 
-				URLParameters: new UriParameters(window.location.href).mParams
+				URLParameters: getURLParameters()
 			};
 		}
 

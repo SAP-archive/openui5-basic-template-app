@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,22 +23,22 @@ function (
 
 	/**
 	 * @class
-	 * <h3>Overview</h3>
-	 * This class is responsible for the communication between different window objects.
+	 * Responsible for the communication between different window objects.
 	 *
+	 * <h3>Overview</h3>
 	 * This class is a singleton. The class instance can be retrieved as follows:
 	 * <ul>
 	 *   <li>via the constructor <code>new sap.ui.core.postmessage.Bus()</code></li>
 	 *   <li>via the static method <code>sap.ui.core.postmessage.Bus.getInstance()</code></li>
 	 * </ul>
 	 *
-	 * For supported data types for payload messages see {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm}
+	 * For supported data types for payload messages, see {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm}.
 	 *
 	 * @extends sap.ui.core.EventBus
 	 * @alias sap.ui.core.postmessage.Bus
 	 * @author SAP SE
 	 * @since 1.56.0
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @private
 	 * @ui5-restricted sap.ui.core.support, sap.ui.support, sap.ui.rta
 	 */
@@ -251,7 +251,7 @@ function (
 	 * @private
 	 */
 	PostMessageBus.prototype._processEvent = function (oEvent) {
-		return new Promise(function (fnResolve) {
+		return new Promise(function (fnResolve, fnReject) {
 			var mData = oEvent.data;
 			var sOrigin = oEvent.origin;
 
@@ -307,7 +307,7 @@ function (
 								}.bind(this)
 							)
 							.then(fnResolve);
-						}.bind(this));
+						}.bind(this), fnReject);
 					}
 					break;
 				}

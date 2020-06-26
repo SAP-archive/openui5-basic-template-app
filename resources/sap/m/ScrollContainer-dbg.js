@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -37,7 +37,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -91,6 +91,7 @@ sap.ui.define([
 					 */
 					content: {type: "sap.ui.core.Control", multiple: true, singularName: "content"}
 				},
+				dnd: { draggable: false, droppable: true },
 				designtime: "sap/m/designtime/ScrollContainer.designtime"
 			}
 		});
@@ -189,16 +190,5 @@ sap.ui.define([
 			return this;
 		};
 
-		ScrollContainer.prototype.setHorizontal = function (horizontal) {
-			this._oScroller.setHorizontal(horizontal);
-			return this.setProperty("horizontal", horizontal, true);
-		};
-
-		ScrollContainer.prototype.setVertical = function (vertical) {
-			this._oScroller.setVertical(vertical);
-			return this.setProperty("vertical", vertical, true);
-		};
-
 		return ScrollContainer;
-
 	});

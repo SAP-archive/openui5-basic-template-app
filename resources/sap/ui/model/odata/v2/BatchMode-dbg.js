@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,11 +10,15 @@ sap.ui.define(function() {
 
 
 	/**
-	* Different modes for retrieving the count of collections
+	* Different modes for retrieving the count of collections.
 	*
 	* @enum {string}
 	* @public
-	* @alias sap.ui.model.odata.BatchMode
+	* @alias sap.ui.model.odata.v2.BatchMode
+	* @deprecated Use {@link sap.ui.model.odata.CountMode} to specify how the count of collections
+	*   is retrieved. Use the <code>useBatch</code> parameter of the
+	*   {@link sap.ui.model.odata.v2.ODataModel} constructor to specify whether requests are sent in
+	*   $batch.
 	*/
 	var BatchMode = {
 			/**

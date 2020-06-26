@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @since 1.34
 	 *
 	 * @public
@@ -71,7 +71,12 @@ sap.ui.define([
 				 *  This property has to be set consistently for the <code>SlideTile</code> along with all its inner <code>GenericTile</code>
 				 *  elements, so that they match one another visually.
 				 */
-				sizeBehavior: {type: "sap.m.TileSizeBehavior", defaultValue: TileSizeBehavior.Responsive}
+				sizeBehavior: {type: "sap.m.TileSizeBehavior", defaultValue: TileSizeBehavior.Responsive},
+				/**
+				 * Width of the control.
+				 * @since 1.72
+				 */
+				width: {type: "sap.ui.core.CSSSize", group: "Appearance"}
 			},
 			defaultAggregation: "tiles",
 			aggregations: {
@@ -199,7 +204,7 @@ sap.ui.define([
 	 */
 	SlideTile.prototype.ontap = function (oEvent) {
 		var sScope = this.getScope();
-		this.$().focus();
+		this.$().trigger("focus");
 		if (sScope === library.GenericTileScope.Actions) {
 			var oParams = this._getEventParams(oEvent);
 			this.firePress(oParams);
@@ -297,6 +302,11 @@ sap.ui.define([
 		}
 	};
 
+	SlideTile.prototype.onsapspace = function(oEvent) {
+		// this prevents scrolling down the page (when there is scrollbar) we just want to pause the tile
+		oEvent.preventDefault();
+	};
+
 	/**
 	 * Handler for mouseup event
 	 *
@@ -319,22 +329,6 @@ sap.ui.define([
 	SlideTile.prototype.onmousedown = function (oEvent) {
 		if (jQuery(oEvent.target).hasClass("sapMSTIconClickTapArea")) {
 			this.addStyleClass("sapMSTIconPressed");
-		}
-	};
-
-	/**
-	 * Handles the focusout event.
-	 *
-	 * @private
-	 * @param {jQuery.Event} oEvent Event object
-	 */
-	SlideTile.prototype.onfocusout = function (oEvent) {
-		if (this.getScope() === library.GenericTileScope.Actions) {
-			return;
-		}
-		if (this.getTiles().length > 1 && !this._isFocusInsideST() && this._bAnimationPause) {
-			this._startAnimation();
-			this._updatePausePlayIcon();
 		}
 	};
 
@@ -369,7 +363,7 @@ sap.ui.define([
 			}
 		}.bind(this);
 
-		jQuery(window).resize(fnCheckMedia);
+		jQuery(window).on("resize", fnCheckMedia);
 		fnCheckMedia();
 	};
 

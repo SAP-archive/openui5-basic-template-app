@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,6 +15,7 @@ sap.ui.define([],
 	 * @namespace
 	 */
 	var VerticalLayoutRenderer = {
+		apiVersion: 2
 	};
 
 	/**
@@ -28,28 +29,30 @@ sap.ui.define([],
 		var rm = oRenderManager;
 
 		// write the HTML into the render manager
-		rm.write("<DIV");
-		rm.writeControlData(oVerticalLayout);
-		rm.addClass("sapUiVlt");
-		rm.addClass("sapuiVlt"); // for compatibility keep the old, wrong class name
+		rm.openStart("div", oVerticalLayout);
+		rm.class("sapUiVlt");
+		rm.class("sapuiVlt"); // for compatibility keep the old, wrong class name
 
 		if (oVerticalLayout.getWidth() && oVerticalLayout.getWidth() != '') {
-			rm.addStyle("width", oVerticalLayout.getWidth());
+			rm.style("width", oVerticalLayout.getWidth());
 		}
-		rm.writeStyles();
-		rm.writeClasses();
-		rm.write(">"); // DIV element
+		rm.openEnd(); // DIV element
 
 		// render content
 		var aContent = oVerticalLayout.getContent();
 
 		for ( var i = 0; i < aContent.length; i++) {
-			rm.write("<DIV class=\"sapUiVltCell sapuiVltCell\">"); // for compatibility keep the old, wrong class name
+			// for compatibility keep the old, wrong class name
+			rm.openStart("div");
+			rm.class("sapUiVltCell");
+			rm.class("sapuiVltCell");
+			rm.openEnd();
+
 			rm.renderControl(aContent[i]);
-			rm.write("</DIV>");
+			rm.close("div");
 		}
 
-		rm.write("</DIV>");
+		rm.close("div");
 	};
 
 

@@ -1,9 +1,9 @@
 /*
  * ! OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['./ColumnPopoverItem'], function(ColumnPopoverItem) {
+sap.ui.define(['./ColumnPopoverItem', 'sap/m/Button'], function(ColumnPopoverItem, Button) {
 	"use strict";
 
 	/**
@@ -16,7 +16,7 @@ sap.ui.define(['./ColumnPopoverItem'], function(ColumnPopoverItem) {
 	 * @extends sap.m.ColumnPopoverItem
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @since 1.63
@@ -26,27 +26,47 @@ sap.ui.define(['./ColumnPopoverItem'], function(ColumnPopoverItem) {
 	 */
 	var ColumnPopoverActionItem = ColumnPopoverItem.extend("sap.m.ColumnPopoverActionItem", /** @lends sap.m.ColumnPopoverActionItem.prototype */
 	{
-		library : "sap.m",
-		metadata : {
+		library: "sap.m",
+		metadata: {
 			properties: {
 				/**
 				 * Actionitem button icon
 				 */
-				icon    : { type : "sap.ui.core.URI", group : "Misc", defaultValue : null },
+				icon: {type: "sap.ui.core.URI", group: "Misc", defaultValue: null},
 				/**
 				 * Actionitem button text
 				 */
-				text    : { type : "string", group : "Misc", defaultValue : null}
+				text: {type: "string", group: "Misc", defaultValue: null}
 			},
-			events : {
+			events: {
 				/**
 				 * Press event
 				 */
 				press: {}
 			}
 		}
-
 	});
 
+	ColumnPopoverActionItem.prototype._createButton = function(sId, oCHPopover) {
+		return new Button( sId, {
+			icon: this.getIcon(),
+			type: "Transparent",
+			tooltip: this.getText(),
+			visible: this.getVisible(),
+			press: [
+				function (oEvent) {
+					if (oCHPopover._oShownCustomContent) {
+						oCHPopover._oShownCustomContent.setVisible(false);
+						oCHPopover._oShownCustomContent = null;
+						oCHPopover._cleanSelection(this);
+					}
+					var oPopover = oCHPopover.getAggregation("_popover");
+					// close the popover first to prevent focus lost
+					oPopover.close();
+					this.firePress();
+				}, this
+			]
+		});
+	};
 	return ColumnPopoverActionItem;
 });

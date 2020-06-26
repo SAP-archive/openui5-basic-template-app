@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,12 +8,11 @@
 sap.ui.define([
 	'sap/ui/Device',
 	'sap/ui/base/Object',
-	'sap/ui/thirdparty/URI',
 	"sap/base/Log",
 	"sap/ui/dom/includeStylesheet",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(Device, BaseObject, URI, Log, includeStylesheet, jQuery) {
+	function(Device, BaseObject, Log, includeStylesheet, jQuery) {
 	"use strict";
 
 
@@ -56,6 +55,8 @@ sap.ui.define([
 
 			delayedCheckTheme.apply(this, [true]);
 
+			// Do not fire the event when the theme is already applied initially.
+			// bOnlyOnInitFail=true should only be passed from Core#init.
 			if (!bOnlyOnInitFail && !this._sThemeCheckId) {
 				this._oCore.fireThemeChanged({theme: this._oCore.getConfiguration().getTheme()});
 			}
@@ -151,21 +152,30 @@ sap.ui.define([
 			mLibs[oThemeCheck._CUSTOMID] = {};
 		}
 
-		function checkLib(lib) {
-			var sStyleId = "sap-ui-theme-" + lib;
-			var currentRes = ThemeCheck.checkStyle(sStyleId, true);
+		function checkAndRemoveStyle(sPrefix, sLib) {
+			var currentRes = ThemeCheck.checkStyle(sPrefix + sLib, true);
 			if (currentRes) {
 
 				// removes all old stylesheets (multiple could exist if theme change was triggered
 				// twice in a short timeframe) once the new stylesheet has been loaded
-				var aOldStyles = document.querySelectorAll("link[data-sap-ui-foucmarker='" + sStyleId + "']");
+				var aOldStyles = document.querySelectorAll("link[data-sap-ui-foucmarker='" + sPrefix + sLib + "']");
 				if (aOldStyles.length > 0) {
 					for (var i = 0, l = aOldStyles.length; i < l; i++) {
 						aOldStyles[i].parentNode.removeChild(aOldStyles[i]);
 					}
-					Log.debug("ThemeCheck: Old stylesheets removed for library: " + lib);
+					Log.debug("ThemeCheck: Old stylesheets removed for library: " + sLib);
 				}
 
+			}
+			return currentRes;
+		}
+
+		function checkLib(lib) {
+			var sStyleId = "sap-ui-theme-" + lib;
+			var currentRes = checkAndRemoveStyle("sap-ui-theme-", lib);
+			if (currentRes && document.getElementById("sap-ui-themeskeleton-" + lib)) {
+				// remove also the skeleton if present in the DOM
+				currentRes = checkAndRemoveStyle("sap-ui-themeskeleton-", lib);
 			}
 			res = res && currentRes;
 			if (res) {

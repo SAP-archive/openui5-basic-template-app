@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -40,7 +40,6 @@ sap.ui.define([
 			 * @link{sap.ui.test.pipelines.PipelineFactory.constructor} functionName
 			 * Example:
 			 *
-			 * <code>
 			 * <pre>
 			 * oFactory = new PipelineFactory({
 			 *      name: "myName",
@@ -57,7 +56,6 @@ sap.ui.define([
 			 * })
 			 *
 			 * </pre>
-			 * </code>
 			 *
 			 * @param {function|function[]|object|object[]} input or several functions or objects all of them will have a uniform structure after the create
 			 * @returns {object[]} result - an array of objects implementing the given functionName

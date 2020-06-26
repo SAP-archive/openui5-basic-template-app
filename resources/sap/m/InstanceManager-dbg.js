@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,11 +13,15 @@ sap.ui.define(["sap/base/assert", "sap/base/Log", "sap/ui/thirdparty/jquery"],
 	 * Provides methods to manage instances. This is specifically designed for managing the opened Popover, Dialog, ActionSheet,
 	 * and it's possible to close all of the opened Popover, Dialog, ActionSheet in history handling.
 	 *
-	 * As <code>InstanceManager</code> is a static class, a <code>jQuery.sap.require("sap.m.InstanceManager");</code> statement
-	 * must be explicitly executed before the class can be used. Example:
+	 * Example:
 	 * <pre>
-	 *   jQuery.sap.require("sap.m.InstanceManager");
-	 *   sap.m.InstanceManager.closeAllPopovers();
+	 *   sap.ui.define([
+	 *      "sap/m/InstanceManager"
+	 *   ], function(InstanceManager) {
+	 *     ...
+	 *     InstanceManager.closeAllPopovers();
+	 *     ...
+	 *   });
 	 * </pre>
 	 *
 	 * @namespace
@@ -75,7 +79,6 @@ sap.ui.define(["sap/base/assert", "sap/base/Log", "sap/ui/thirdparty/jquery"],
 		assert(oInstance instanceof Object, "In sap.m.InstanceManager.removeInstance method, the parameter oInstance should be an object");
 
 		if (!aCategory) {
-			Log.warning("Can't remove control from a non-managed category id: " + sCategoryId);
 			return null;
 		}
 
@@ -170,7 +173,7 @@ sap.ui.define(["sap/base/assert", "sap/base/Log", "sap/ui/thirdparty/jquery"],
 	/**
 	 * Adds a control to predefined lightbox category in instance manager.
 	 *
-	 * @param {sap.m.LigthBox} oLightBox Dialog to be added to instance manager. Dialog which doesn't inherit from sap.m.Dialog can also be added as long as it has a close method.
+	 * @param {sap.m.LightBox} oLightBox Dialog to be added to instance manager. Dialog which doesn't inherit from sap.m.Dialog can also be added as long as it has a close method.
 	 * @returns {sap.m.InstanceManager} Enable method chaining.
 	 * @protected
 	 */
@@ -355,6 +358,10 @@ sap.ui.define(["sap/base/assert", "sap/base/Log", "sap/ui/thirdparty/jquery"],
 
 		for (i = 0 ; i < aIntances.length; i++) {
 			dialog = aIntances[i];
+
+			if (!dialog.getCloseOnNavigation()) {
+				continue;
+			}
 
 			if (fnCallback) {
 				oDeferred = new jQuery.Deferred().done();

@@ -1,8 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
+// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
+// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
+// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
+sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 // Provides control sap.m.DateRangeSelection.
 sap.ui.define([
@@ -11,7 +16,10 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/LocaleData',
 	'sap/ui/core/format/DateFormat',
+	'sap/ui/core/date/UniversalDate',
 	'./DateRangeSelectionRenderer',
+	"sap/ui/unified/calendar/CustomMonthPicker",
+	"sap/ui/unified/calendar/CustomYearPicker",
 	"sap/base/util/deepEqual",
 	"sap/base/Log",
 	"sap/base/assert",
@@ -23,7 +31,10 @@ sap.ui.define([
 		library,
 		LocaleData,
 		DateFormat,
+		UniversalDate,
 		DateRangeSelectionRenderer,
+		CustomMonthPicker,
+		CustomYearPicker,
 		deepEqual,
 		Log,
 		assert
@@ -45,7 +56,10 @@ sap.ui.define([
 	 * date range using touch, mouse, keyboard input, or by selecting a date range in
 	 * the calendar. They can also navigate directly from one month or year to another.
 	 *
-	 * <b>Note:</b> The {@link sap.ui.unified.Calendar} is used internally only if the
+	 * <b>Note:</b>
+	 * The control is not UTC aware and the selected date range starts from 00:00:00:000 of the first date and ends in 23:59:59:999 on the second date.
+	 *
+	 * The {@link sap.ui.unified.Calendar} is used internally only if the
 	 * <code>DateRangeSelection</code> is opened (not used for the initial rendering).
 	 * If the <code>sap.ui.unified</code> library is not loaded before the
 	 * <code>DateRangeSelection</code> is opened, it will be loaded upon opening.
@@ -58,7 +72,7 @@ sap.ui.define([
 	 *
 	 * <i>When to use?</i>
 	 *
-	 * If you need a time range and know that your user is a power user who has to
+	 * If you need a date range and know that your user is a power user who has to
 	 * input lots of data. If the keyboard is the primary device used for navigating
 	 * the app, use two input fields. This allows the user to quickly jump from field
 	 * to field. By selecting a date in one of the fields, the other field should
@@ -115,8 +129,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.64.0
-	 * @version 1.64.0
+	 * @version 1.79.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -158,6 +172,10 @@ sap.ui.define([
 		dnd: { draggable: false, droppable: true }
 	}});
 
+	var HYPHEN = String.fromCharCode(45),
+		ENDASH = String.fromCharCode(8211),
+		EMDASH = String.fromCharCode(8212);
+
 	/**
 	 * This file defines behavior for the control
 	 * @public
@@ -171,6 +189,24 @@ sap.ui.define([
 
 		this._bIntervalSelection = true;
 
+	};
+
+	/**
+	 * Override DatePicker's '_createPopupContent' in order to add support for months and years range selection
+	 * @override
+	 */
+	DateRangeSelection.prototype._createPopupContent = function() {
+		DatePicker.prototype._createPopupContent.apply(this, arguments);
+
+		var oCalendar = this._getCalendar();
+
+		if (oCalendar instanceof CustomMonthPicker) {
+			oCalendar._getMonthPicker().setIntervalSelection(true);
+		}
+
+		if (oCalendar instanceof CustomYearPicker) {
+			oCalendar._getYearPicker().setIntervalSelection(true);
+		}
 	};
 
 	DateRangeSelection.prototype.onkeypress = function(oEvent){
@@ -264,7 +300,7 @@ sap.ui.define([
 	DateRangeSelection.prototype.setValue = function(sValue) {
 
 		if (sValue !== this.getValue()) {
-			this._lastValue = sValue;
+			this.setLastValue(sValue);
 		} else {
 			return this;
 		}
@@ -544,7 +580,8 @@ sap.ui.define([
 			sValue = sValue.trim();
 			sValue = _trim(sValue, [sDelimiter, " "]);
 
-			aDates = sValue.split(sDelimiter);
+			aDates = this._splitValueByDelimiter(sValue, sDelimiter);
+
 			if (aDates.length === 2) {
 				// if delimiter only appears once in value (not part of date pattern) remove " " to be more flexible for input
 				if (aDates[0].slice(aDates[0].length - 1,aDates[0].length) == " ") {
@@ -585,6 +622,28 @@ sap.ui.define([
 		}
 
 		return [oDate1, oDate2];
+
+	};
+
+	// Handles the splitting of the value into parts logic regarding a valid delimiter
+	DateRangeSelection.prototype._splitValueByDelimiter = function (sValue, sDelimiter) {
+		var aDelimiters = [HYPHEN, ENDASH, EMDASH],
+			i;
+
+		if (sDelimiter) { // if there is a passed delimiter - use it
+			if (aDelimiters.indexOf(sDelimiter) === -1) { // if the passed delimiter is not a variety of a dash - split by it
+				return sValue.split(sDelimiter);
+			}
+		}
+
+		for (i = 0; i < aDelimiters.length; i++) {
+			if (sValue.indexOf(aDelimiters[i]) > 0) { // there is no delimiter passed - split by dash
+				return sValue.split(aDelimiters[i]);
+			}
+		}
+
+		// only one date value is used
+		return sValue ? sValue.split(" ") : [];
 
 	};
 
@@ -645,9 +704,15 @@ sap.ui.define([
 		var sValue = this._$input.val();
 		var aDates = [undefined, undefined];
 
+		if (this.getShowFooter() && this._oPopup && !sValue) {
+			this._oPopup.getBeginButton().setEnabled(false);
+		}
+
 		this._bValid = true;
 		if (sValue != "") {
 			aDates = this._parseValue(sValue);
+			// the selected range includes all of the hours from the second date
+			aDates[1] && aDates[1].setHours(23, 59, 59, 999);
 			aDates = _dateRangeValidityCheck.call(this, aDates[0], aDates[1]);//aDates can be undefined if don't fit to the min/max range
 			if (aDates[0]) {
 				sValue = this._formatValue( aDates[0], aDates[1] ); // to have the right output format if entered different
@@ -656,12 +721,12 @@ sap.ui.define([
 			}
 		}
 
-		if (sValue !== this._lastValue) {
+		if (sValue !== this.getLastValue()) {
 			if (this.getDomRef() && (this._$input.val() !== sValue)) {
 				this._$input.val(sValue);
 				this._curpos = this._$input.cursorPos();
 			}
-			this._lastValue = sValue;
+			this.setLastValue(sValue);
 			this.setProperty("value", sValue, true);
 			if (this._bValid) {
 				this.setProperty("dateValue", _normalizeDateValue(aDates[0]), true);
@@ -674,7 +739,7 @@ sap.ui.define([
 				if (oStartDate) {
 					if (!this._oDateRange.getStartDate() || this._oDateRange.getStartDate().getTime() !== oStartDate.getTime()) {
 						this._oDateRange.setStartDate(new Date(oStartDate.getTime()));
-						this._oCalendar.focusDate(oStartDate);
+						this._getCalendar().focusDate(oStartDate);
 					}
 				} else {
 					if (this._oDateRange.getStartDate()) {
@@ -686,7 +751,7 @@ sap.ui.define([
 				if (oEndDate) {
 					if (!this._oDateRange.getEndDate() || this._oDateRange.getEndDate().getTime() !== oEndDate.getTime()) {
 						this._oDateRange.setEndDate(new Date(oEndDate.getTime()));
-						this._oCalendar.focusDate(oEndDate);
+						this._getCalendar().focusDate(oEndDate);
 					}
 				} else {
 					if (this._oDateRange.getEndDate()) {
@@ -705,6 +770,10 @@ sap.ui.define([
 	DateRangeSelection.prototype._getInputValue = function(sValue) {
 
 		sValue = (typeof sValue == "undefined") ? this._$input.val() : sValue.toString();
+
+		if (!sValue) {
+			return "";
+		}
 
 		var aDates = this._parseValue(sValue);
 		sValue = this._formatValue( aDates[0], aDates[1]);
@@ -735,14 +804,6 @@ sap.ui.define([
 		return this;
 	};
 
-	//Do nothing in case of PageUp
-	DateRangeSelection.prototype.onsappageup = function(){}; //EXC_JSLINT_021
-	DateRangeSelection.prototype.onsappageupmodifiers = function(){}; //EXC_JSLINT_021
-
-	//Do nothing in case of PageDown
-	DateRangeSelection.prototype.onsappagedown = function(){}; //EXC_JSLINT_021
-	DateRangeSelection.prototype.onsappagedownmodifiers = function(){}; //EXC_JSLINT_021
-
 	//Support of two date range version of Calendar added into original DatePicker's version
 	DateRangeSelection.prototype._fillDateRange = function(){
 
@@ -764,9 +825,8 @@ sap.ui.define([
 
 	};
 
-	DateRangeSelection.prototype._selectDate = function(oEvent){
-
-		var aSelectedDates = this._oCalendar.getSelectedDates();
+	DateRangeSelection.prototype._selectDate = function () {
+		var aSelectedDates = this._getCalendar().getSelectedDates();
 
 		if (aSelectedDates.length > 0) {
 			var oDate1 = aSelectedDates[0].getStartDate();
@@ -777,7 +837,7 @@ sap.ui.define([
 				var oDate2Old = this.getSecondDateValue();
 
 				// the selected range includes all of the hours from the second date
-				oDate2.setHours(11, 59, 59);
+				oDate2.setHours(23, 59, 59, 999);
 
 				var sValue;
 				if (!deepEqual(oDate1, oDate1Old) || !deepEqual(oDate2, oDate2Old)) {
@@ -813,6 +873,19 @@ sap.ui.define([
 		}
 	};
 
+	DateRangeSelection.prototype._handleCalendarSelect = function(){
+		var oSelectedDates = this._getCalendar().getSelectedDates(),
+			oSelectedStartDate = oSelectedDates[0].getStartDate(),
+			oSelectedEndDate = oSelectedDates[0].getEndDate();
+
+		if (this.getShowFooter()) {
+			this._oPopup.getBeginButton().setEnabled(!!(oSelectedStartDate && oSelectedEndDate));
+			return;
+		}
+
+		this._selectDate();
+	};
+
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @returns {Object} Current accessibility state of the control
@@ -840,7 +913,7 @@ sap.ui.define([
 		var sValue = this._formatValue(oDateValue, oSecondDateValue);
 
 		if (sValue !== this.getValue()) {
-			this._lastValue = sValue;
+			this.setLastValue(sValue);
 		}
 		// Set the property in any case but check validity on output
 		this.setProperty("value", sValue);
@@ -896,6 +969,130 @@ sap.ui.define([
 			return [oDate, oSecondDate];
 		}
 
+	}
+
+	/**
+	 * Override DatePicker.protototype._increaseDate method
+	 * @override
+	 *
+	 * @param {int} iNumber to use for increasing the dateValue
+	 * @param {string} sUnit for day, month or year
+	 */
+	DateRangeSelection.prototype._increaseDate = function (iNumber, sUnit) {
+		var sValue = this._$input.val(),
+			aDates = this._parseValue(sValue),
+			oFirstOldDate = aDates[0],
+			oSecondOldDate = aDates[1],
+			oFormat = _getFormatter.call(this),
+			sDelimiter = _getDelimiter.call(this),
+			iCurPos,
+			iFirstDateValueLen,
+			iSecondDateValueLen,
+			iValueLen,
+			bFirstDate,
+			bSecondDate,
+			oDate;
+
+		if (!oFirstOldDate || !this.getEditable() || !this.getEnabled()) {
+			return;
+		}
+
+		//aDates can be undefined if they don't fit to the min/max range
+		if (!_dateRangeValidityCheck.call(this, oFirstOldDate, oSecondOldDate)[0]) {
+			Log.warning("Value can not be converted to a valid dates or dates are outside of the min/max range", this);
+			this._bValid = false;
+			_fireChange.call(this, this._bValid);
+			return;
+		}
+
+		// Clear all spaces and delimiter characters at the beggining and at the end of the value string
+		// as they don't make the input to be considered invalid, but make the cursor position calculations wrong
+		sValue = _trim(sValue, [sDelimiter, " "]);
+		iCurPos = this._$input.cursorPos();
+		iFirstDateValueLen = oFirstOldDate ? oFormat.format(oFirstOldDate).length : 0;
+		iSecondDateValueLen = oSecondOldDate ? oFormat.format(oSecondOldDate).length : 0;
+
+		iValueLen = sValue.length;
+		bFirstDate = iCurPos <= iFirstDateValueLen + 1;
+		bSecondDate = iCurPos >= iValueLen - iSecondDateValueLen - 1 && iCurPos <= iValueLen;
+
+		if (bFirstDate && oFirstOldDate) {
+			oDate = _getIncrementedDate.call(this, oFirstOldDate, iNumber, sUnit);
+
+			if (!deepEqual(this.getDateValue(), oDate.getJSDate())) {
+				this.setDateValue(new Date(oDate.getTime()));
+				this._curpos = iCurPos;
+				this._$input.cursorPos(this._curpos);
+
+				this.fireChangeEvent(this.getValue(), {valid: this._bValid});
+			}
+		} else if (bSecondDate && oSecondOldDate) {
+			oDate = _getIncrementedDate.call(this, oSecondOldDate, iNumber, sUnit);
+
+			if (!deepEqual(this.getSecondDateValue(), oDate.getJSDate())) {
+				this.setSecondDateValue(new Date(oDate.getTime()));
+				this._curpos = iCurPos;
+				this._$input.cursorPos(this._curpos);
+
+				this.fireChangeEvent(this.getValue(), {valid: this._bValid});
+			}
+		}
+	};
+
+	function _getIncrementedDate(oOldDate, iNumber, sUnit) {
+		// use UniversalDate to calculate new date based on used calendar
+		var oBinding = this.getBinding("value"),
+			sCalendarType,
+			iMonth,
+			oUTCDate,
+			iOldDateMonth;
+
+		if (oBinding && oBinding.oType && oBinding.oType.oOutputFormat) {
+			sCalendarType = oBinding.oType.oOutputFormat.oFormatOptions.calendarType;
+		} else if (oBinding && oBinding.oType && oBinding.oType.oFormat) {
+			sCalendarType = oBinding.oType.oFormat.oFormatOptions.calendarType;
+		}
+
+		if (!sCalendarType) {
+			sCalendarType = this.getDisplayFormatType();
+		}
+
+		oUTCDate = UniversalDate.getInstance(new Date(oOldDate.getTime()), sCalendarType);
+		iOldDateMonth = oUTCDate.getMonth();
+
+		switch (sUnit) {
+			case "day":
+				oUTCDate.setDate(oUTCDate.getDate() + iNumber);
+				break;
+			case "month":
+				oUTCDate.setMonth(oUTCDate.getMonth() + iNumber);
+				iMonth = (iOldDateMonth + iNumber) % 12;
+				if (iMonth < 0) {
+					iMonth = 12 + iMonth;
+				}
+				while (oUTCDate.getMonth() != iMonth) {
+					// day don't exist in this month (e.g. 31th in February)
+					oUTCDate.setDate(oUTCDate.getDate() - 1);
+				}
+				break;
+			case "year":
+			oUTCDate.setFullYear(oUTCDate.getFullYear() + iNumber);
+				while (oUTCDate.getMonth() != iOldDateMonth) {
+					// In case the the old date was in leep year February 29th don't exist in incremented year
+					oUTCDate.setDate(oUTCDate.getDate() - 1);
+				}
+				break;
+			default:
+				break;
+		}
+
+		if (oUTCDate.getTime() < this._oMinDate.getTime()) {
+			oUTCDate = new UniversalDate(this._oMinDate.getTime());
+		} else if (oUTCDate.getTime() > this._oMaxDate.getTime()) {
+			oUTCDate = new UniversalDate(this._oMaxDate.getTime());
+		}
+
+		return oUTCDate;
 	}
 
 	function _getDelimiter() {
@@ -1024,7 +1221,7 @@ sap.ui.define([
 	 * <li>'to' of type <code>object</code> Current end date after change.</li>
 	 * </ul>
 	 *
-	 * @param {Map} [mArguments] The arguments to pass along with the event.
+	 * @param {object} [mArguments] The arguments to pass along with the event.
 	 * @return {sap.m.DateRangeSelection} <code>this</code> to allow method chaining
 	 * @protected
 	 * @name sap.m.DateRangeSelection#fireChange

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,7 +35,7 @@ sap.ui.define([
 		 * @extends sap.m.InputBase
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -79,15 +79,13 @@ sap.ui.define([
 			InputBase.prototype.init.apply(this, arguments);
 			var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 
-			var oIcon = this.addEndIcon({
+			this.addEndIcon({
 				id: this.getId() + "-arrow",
 				src: "sap-icon://slim-arrow-down",
 				noTabStop: true,
 				alt: oRb.getText("COMBOBOX_BUTTON"),
 				decorative: false
 			});
-
-			oIcon.addAriaLabelledBy("");
 		};
 
 		/**
@@ -99,10 +97,22 @@ sap.ui.define([
 			return this.getAggregation("_endIcon")[0];
 		};
 
+		/**
+		 * Toggles the icon pressed style on or off.
+		 *
+		 * @param {boolean} [bState] True if the icon pressed class should be applied.
+		 * @protected
+		 */
+		ComboBoxTextField.prototype.toggleIconPressedStyle = function(bState) {
+			this.toggleStyleClass(InputBase.ICON_PRESSED_CSS_CLASS, bState);
+		};
+
 		ComboBoxTextField.prototype.onBeforeRendering = function () {
 			InputBase.prototype.onBeforeRendering.apply(this, arguments);
 
 			var aReferencingLabels = LabelEnablement.getReferencingLabels(this) || [];
+
+			this.getIcon().setVisible(this.getShowButton());
 
 			aReferencingLabels.forEach(function (sLabelId) {
 				if (this.getIcon().getAriaLabelledBy().indexOf(sLabelId) === -1) {
@@ -118,19 +128,16 @@ sap.ui.define([
 			}
 		};
 
-		ComboBoxTextField.prototype.setShowButton = function(bShowButton) {
-			this.getIcon().setVisible(bShowButton);
-
-			return this.setProperty("showButton", bShowButton, true);
-		};
-
 		/**
 		 * Gets the trigger element of the control's picker popup.
 		 *
 		 * @returns {Element | null} The element that is used as trigger to open the control's picker popup.
 		 */
 		ComboBoxTextField.prototype.getOpenArea = function() {
-			return this.getIcon().getDomRef();
+			// returns the div wrapping the icon
+			var oDomRef = this.getIcon().getDomRef();
+
+			return oDomRef ? oDomRef.parentNode : oDomRef;
 		};
 
 
@@ -148,7 +155,7 @@ sap.ui.define([
 			}
 
 			// mark the event for components that needs to know if the event was handled
-			oEvent.setMarked();
+			this._bCheckDomValue &&  oEvent.setMarked();
 
 			var sValue = this.getValue(),
 				iValueLength = sValue.length;
@@ -188,7 +195,7 @@ sap.ui.define([
 		/**
 		 * Gets the DOM element reference where the message popup is attached.
 		 *
-		 * @returns {object} The DOM element reference where the message popup is attached
+		 * @returns {Element} The DOM element reference where the message popup is attached
 		 */
 		ComboBoxTextField.prototype.getDomRefForValueStateMessage = function() {
 			return this.getDomRef();

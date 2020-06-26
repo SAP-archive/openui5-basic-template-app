@@ -4,7 +4,8 @@
 /* ================================= */
 
 html[data-sap-ui-browser='ie11'] .sapMListTbl,
-html[data-sap-ui-browser^='ed'] .sapMListTbl {
+html[data-sap-ui-browser^='ed'] .sapMListTbl,
+.sapMSticky > .sapMListTbl {
 	padding: 2px; /* outline must be visible */
 }
 
@@ -30,6 +31,12 @@ html[data-sap-ui-browser^='ed'] .sapMListTbl {
 /* table column header */
 .sapMListTbl th {
 	border-bottom: 0.125rem solid @sapUiListHeaderBorderColor;
+}
+
+// to ensure that the bottom focus outline is visible on the table header row,
+// the <th> bottom border color is made transparent
+.sapMLIBFocusable:focus > th {
+	border-bottom-color: transparent;
 }
 
 .sapMColumnHeaderActive:focus {

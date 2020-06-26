@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,6 +42,10 @@
  * May cause truncation of decimals and overruns. Supported by all numeric types.</td></tr>
  * <tr><td><code>float</code></td><td>The value is converted to a <code>number</code>. Supported by
  * all numeric types.</td></tr>
+ * <tr><td><code>object</code></td><td>The value is converted to a <code>Date</code> so that it can
+ * be displayed in a date or time picker. Supported by {@link sap.ui.model.odata.type.Date} and
+ * {@link sap.ui.model.odata.type.DateTimeOffset} since 1.69.0.
+ * </td></tr>
  * <tr><td><code>any</code></td><td>A technical format. The value is simply passed through. Only
  * supported by <code>format</code>, not by <code>parse</code>. Supported by all types.</td></tr>
  * </table>
@@ -111,7 +115,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @abstract
 	 * @alias sap.ui.model.odata.type.ODataType

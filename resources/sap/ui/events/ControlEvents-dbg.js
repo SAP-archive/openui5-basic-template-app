@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -59,7 +59,8 @@ sap.ui.define([
 		"cut",
 		/* input event is fired synchronously on IE9+ when the value of an <input> or <textarea> element is changed */
 		/* for more details please see : https://developer.mozilla.org/en-US/docs/Web/Reference/Events/input */
-		"input"
+		"input",
+		"change"
 	];
 
 	/**
@@ -71,7 +72,7 @@ sap.ui.define([
 	 */
 	oControlEvents.bindAnyEvent = function(fnCallback) {
 		if (fnCallback) {
-			jQuery(document).bind(oControlEvents.events.join(" "), fnCallback);
+			jQuery(document).on(oControlEvents.events.join(" "), fnCallback);
 		}
 	};
 
@@ -84,7 +85,7 @@ sap.ui.define([
 	 */
 	oControlEvents.unbindAnyEvent = function unbindAnyEvent(fnCallback) {
 		if (fnCallback) {
-			jQuery(document).unbind(oControlEvents.events.join(" "), fnCallback);
+			jQuery(document).off(oControlEvents.events.join(" "), fnCallback);
 		}
 	};
 

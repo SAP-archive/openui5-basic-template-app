@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['./FlexBoxCssPropertyMap', 'sap/ui/Device'],
@@ -74,6 +74,8 @@ sap.ui.define(['./FlexBoxCssPropertyMap', 'sap/ui/Device'],
 		if (typeof (sValue) === "string") {
 			// Convert camel-case to lower-case and dashes
 			sValue = sValue.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+		} else if (typeof (sValue) === "number") {
+			sValue = sValue.toString();
 		}
 
 		FlexBoxStylingHelper.writeStyle(oRm, oLayoutData, sProperty, sValue);
@@ -88,7 +90,7 @@ sap.ui.define(['./FlexBoxCssPropertyMap', 'sap/ui/Device'],
 	 * @param {string} sValue value of the property
 	 */
 	FlexBoxStylingHelper.writeStyle = function(oRm, oLayoutData, sProperty, sValue) {
-		// IE 10-11 miscalculate the width of the flex items when box-sizing: border-box // TODO remove after 1.62 version
+		// IE 10-11 miscalculate the width of the flex items when box-sizing: border-box // TODO remove after the end of support for Internet Explorer
 		// Instead of using flex-basis, we use an explicit width/height
 		// @see https://github.com/philipwalton/flexbugs#7-flex-basis-doesnt-account-for-box-sizingborder-box
 		if (Device.browser.internet_explorer && (sProperty === "flex-basis" || sProperty === "flex-preferred-size")) {
@@ -104,7 +106,7 @@ sap.ui.define(['./FlexBoxCssPropertyMap', 'sap/ui/Device'],
 		// Finally, write property value to control using either the render manager or the element directly
 		if (oRm) {
 			if (sValue === "0" || sValue) {
-				oRm.addStyle(sProperty, sValue);
+				oRm.style(sProperty, sValue);
 			}
 		} else {
 			// Set the property on the wrapper or the control root itself

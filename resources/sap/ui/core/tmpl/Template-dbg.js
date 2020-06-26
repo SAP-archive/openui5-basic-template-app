@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -48,7 +48,7 @@ function(
 	 * @extends sap.ui.base.ManagedObject
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @alias sap.ui.core.tmpl.Template
 	 * @since 1.15
 	 * @deprecated since 1.56, use an {@link sap.ui.core.mvc.XMLView XMLView} or {@link sap.ui.core.mvc.JSView JSView} instead.
@@ -298,7 +298,7 @@ function(
 	 * Creates an anonymous TemplateControl for the Template and places the control
 	 * into the specified DOM element.
 	 *
-	 * @param {string|DomRef} oRef the id or the DOM reference where to render the template
+	 * @param {string|Element|sap.ui.core.Control} oRef the id or the DOM reference where to render the template
 	 * @param {object} [oContext] The context to use to evaluate the Template. It will be applied as value for the context property of the created control.
 	 * @param {string|int} [vPosition] Describes the position where the control should be put into the container
 	 * @param {boolean} bInline
@@ -333,7 +333,7 @@ function(
 				// but it can be also defined on the root DOM element for inline templates
 				// in case of inline templates we mark them
 				var sContext = $this.attr("data-context");
-				oContext = oContext || sContext && jQuery.parseJSON(sContext);
+				oContext = oContext || sContext && JSON.parse(sContext);
 
 				// mark the template as inline template (to avoid extra DOM for the TemplateControl)
 				// for inline templates the UIArea and the TemplateControl are the same DOM element
@@ -435,7 +435,7 @@ function(
 	 *   });
 	 * </pre>
 	 *
-	 * @param {string|DomRef|object} [oTemplate] the ID or the DOM reference to the template to lookup or a configuration object containing the src, type and eventually the ID of the Template.
+	 * @param {string|Element|object} [oTemplate] the ID or the DOM reference to the template to lookup or a configuration object containing the src, type and eventually the ID of the Template.
 	 * @param {string} oTemplate.id - the ID of the Template / the ID  of the DOM element containing the source of the Template</li>
 	 * @param {Element} oTemplate.domref - the DOM element containing the source of the Template</li>
 	 * @param {string} [oTemplate.type] - the type of the Template</li>

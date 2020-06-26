@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -19,7 +19,7 @@ function(ManagedObject, encodeXML) {
 
 	//private functions and vars
 	var mRenderTemplates = {
-		nodestart : "<div tabIndex=\"0\" idx=\"{idx}\" class=\"node start {cssclass}\" haschildnodes=\"{haschildnodes}\" visible=\"{visible}\" collapsed=\"{collapsed}\" style=\"padding-left:{pxlevel}\" level=\"{level}\" raise=\"_selectNode\" args=\"{idx}\"><span class=\"expand\" raise=\"_toggleNode\" args=\"{idx}\"></span>&lt;<span class=\"nstag\" reason=\"tagName\"><span class=\"ns\" reason=\"namespace\">{namespaceURI}</span><span class=\"tag\"  reason=\"localName\">{localName}</span></span>",
+		nodestart : "<div tabindex=\"0\" idx=\"{idx}\" class=\"node start {cssclass}\" haschildnodes=\"{haschildnodes}\" visible=\"{visible}\" collapsed=\"{collapsed}\" style=\"padding-left:{pxlevel}\" level=\"{level}\" raise=\"_selectNode\" args=\"{idx}\"><span class=\"expand\" raise=\"_toggleNode\" args=\"{idx}\"></span>&lt;<span class=\"nstag\" reason=\"tagName\"><span class=\"ns\" reason=\"namespace\">{namespaceURI}</span><span class=\"tag\"  reason=\"localName\">{localName}</span></span>",
 		nodestartend : "&gt;</div>",
 		nodenochildend : "&gt;&lt;/<span class=\"nstagend\"><span class=\"nstag\"><span class=\"ns\">{namespaceURI}</span><span class=\"tag\">{localName}</span></span></span>&gt;</div><div class=\"node end\" style=\"display:none\" visible=\"{visible}\" haschildnodes=\"{haschildnodes}\" collapsed=\"{collapsed}\" style=\"padding-left:{pxlevel}\" level=\"{level}\">&lt;/<span class=\"nstag\"><span class=\"ns\">{namespaceURI}</span><span class=\"tag\">{localName}</span></span>&gt;</div>",
 		nodeend : "<div class=\"node end {cssclass}\" visible=\"{visible}\" haschildnodes=\"{haschildnodes}\" collapsed=\"{collapsed}\" style=\"padding-left:{pxlevel}\" level=\"{level}\">&lt;/<span class=\"nstag\"><span class=\"ns\">{namespaceURI}</span><span class=\"tag\">{localName}</span></span>&gt;</div>",

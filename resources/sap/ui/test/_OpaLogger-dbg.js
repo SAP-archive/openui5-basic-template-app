@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,6 +10,8 @@ sap.ui.define([
 ], function (Log) {
 	"use strict";
 
+	// Set stored amount of log entries to unlimited
+	Log.setLogEntriesLimit(Infinity);
 	// component names of all loggers created by OPA components
 	var aLoggerComponents = [];
 	// DEBUG is the default maximum log level for OPA

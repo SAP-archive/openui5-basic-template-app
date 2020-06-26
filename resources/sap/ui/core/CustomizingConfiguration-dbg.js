@@ -1,17 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/thirdparty/jquery',
 	'./Core',
 	'./Component',
 	'sap/base/Log',
-	'sap/base/util/ObjectPath'
+	'sap/base/util/extend',
+	'sap/base/util/ObjectPath',
+	"sap/base/util/isEmptyObject"
 ],
-	function(jQuery, Core, Component, Log, ObjectPath) {
+	function(Core, Component, Log, extend, ObjectPath, isEmptyObject) {
 	"use strict";
 
 
@@ -57,11 +58,12 @@ sap.ui.define([
 				}
 			} else {
 				// TODO: checking order of components?
-				jQuery.each(mComponentConfigs, function(sComponentName, oConfig) {
+				for (sComponentName in mComponentConfigs) {
+					oConfig = mComponentConfigs[sComponentName];
 					if (oConfig && oConfig[sType] && fnCheck(oConfig[sType])) {
-						return false;
+						break;
 					}
-				});
+				}
 			}
 		}
 
@@ -73,7 +75,7 @@ sap.ui.define([
 		 * gets removed again.
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 * @constructor
 		 * @private
 		 * @since 1.15.1
@@ -219,8 +221,10 @@ sap.ui.define([
 					var oSettings = oConfig[sViewName] && oConfig[sViewName][sControlId];
 					var oUsedSettings = {};
 					var bValidConfigFound = false;
+					var vValue, sName;
 					if (oSettings) {
-						jQuery.each(oSettings, function(sName, vValue) {
+						for (sName in oSettings) {
+							vValue = oSettings[sName];
 							if (sName === "visible") {
 								bValidConfigFound = true;
 								oUsedSettings[sName] = vValue;
@@ -228,10 +232,10 @@ sap.ui.define([
 							} else {
 								Log.warning("Customizing: custom value for property '" + sName + "' of control '" + sControlId + "' in View '" + sViewName + "' ignored: only the 'visible' property can be customized.");
 							}
-						});
+						}
 						if (bValidConfigFound) { // initialize only when there is actually something to add
 							mSettings = mSettings || {}; // merge with any previous calls to findConfig in case of multiple definition sections
-							jQuery.extend(mSettings, oUsedSettings); // FIXME: this currently overrides customizations from different components in random order
+							extend(mSettings, oUsedSettings); // FIXME: this currently overrides customizations from different components in random order
 						}
 					}
 				});
@@ -245,7 +249,7 @@ sap.ui.define([
 						mSettings = oConfig[sViewName];
 					}
 				});
-				return !jQuery.isEmptyObject(mSettings);
+				return !isEmptyObject(mSettings);
 			}
 
 		};
@@ -253,11 +257,11 @@ sap.ui.define([
 		// when the customizing is disabled all the functions will be noop
 		if (sap.ui.getCore().getConfiguration().getDisableCustomizing()) {
 			Log.info("CustomizingConfiguration: disabling Customizing now");
-			jQuery.each(CustomizingConfiguration, function(sName, vAny) {
-				if (typeof vAny === "function") {
+			for (var sName in CustomizingConfiguration) {
+				if (typeof CustomizingConfiguration[sName] === "function") {
 					CustomizingConfiguration[sName] = function() {};
 				}
-			});
+			}
 		}
 
 

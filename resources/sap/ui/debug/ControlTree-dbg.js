@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -34,7 +34,7 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 	 * @class Control Tree used for the Debug Environment
 	 * @extends sap.ui.base.EventProvider
 	 * @author Martin Schaus, Frank Weigel
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @alias sap.ui.debug.ControlTree
 	 * @private
 	 */
@@ -49,13 +49,13 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 			this.oSelectionHighlighter = new Highlighter("sap-ui-testsuite-SelectionHighlighter");
 			this.oHoverHighlighter = new Highlighter("sap-ui-testsuite-HoverHighlighter", true, '#c8f', 1);
 			var that = this;
-			jQuery(oParentDomRef).bind("click",function(evt) {
+			jQuery(oParentDomRef).on("click",function(evt) {
 				that.onclick(evt);
 			})
-			.bind("mouseover",function(evt) {
+			.on("mouseover",function(evt) {
 				that.onmouseover(evt);
 			})
-			.bind("mouseout",function(evt) {
+			.on("mouseout",function(evt) {
 				that.onmouseout(evt);
 			});
 			this.enableInplaceControlSelection();// see below...
@@ -80,8 +80,8 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 	 * @private
 	 */
 	ControlTree.prototype.exit = function() {
-		jQuery(document).unbind();
-		jQuery(this.oParentDomRef).unbind();
+		jQuery(document).off();
+		jQuery(this.oParentDomRef).off();
 	};
 
 	/**
@@ -378,7 +378,7 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 	 */
 	ControlTree.prototype.enableInplaceControlSelection = function() {
 		var that = this;
-		jQuery(document).bind("mouseover" , function (oEvt) {
+		jQuery(document).on("mouseover", function (oEvt) {
 			that.selectControlInTree(oEvt);
 		});
 	};

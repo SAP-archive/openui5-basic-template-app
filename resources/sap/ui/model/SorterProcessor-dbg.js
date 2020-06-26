@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['./Sorter', "sap/ui/thirdparty/jquery"],
-	function(Sorter, jQuery) {
+sap.ui.define(['./Sorter', "sap/base/util/each"],
+	function(Sorter, each) {
 	"use strict";
 
 	/**
@@ -43,7 +43,7 @@ sap.ui.define(['./Sorter', "sap/ui/thirdparty/jquery"],
 			aCompareFunctions[j] = oSorter.fnCompare || Sorter.defaultComparator;
 
 			/*eslint-disable no-loop-func */
-			jQuery.each(aData, function(i, vRef) {
+			each(aData, function(i, vRef) {
 				oValue = fnGetValue(vRef, oSorter.sPath);
 				if (typeof oValue == "string") {
 					oValue = oValue.toLocaleUpperCase();

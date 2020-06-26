@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,8 @@ sap.ui.define([
 	'sap/ui/base/ManagedObject',
 	'sap/base/util/ObjectPath',
 	"sap/base/security/encodeXML",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/base/util/isEmptyObject"
 ],
 	function(
 		Core,
@@ -22,7 +23,8 @@ sap.ui.define([
 		ManagedObject,
 		ObjectPath,
 		encodeXML,
-		jQuery
+		jQuery,
+		isEmptyObject
 	) {
 	"use strict";
 
@@ -47,7 +49,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.tmpl.Template
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @alias sap.ui.core.tmpl.HandlebarsTemplate
 	 * @since 1.15
 	 * @deprecated since 1.56
@@ -361,7 +363,7 @@ sap.ui.define([
 
 				// remove the found nested children from the mSettings because they will
 				// be handled after the creation of the new control instance
-				var mSettings = jQuery.extend({}, options.hash),
+				var mSettings = Object.assign({}, options.hash),
 				    aStyleClasses;
 				for (var sKey in mSettings) {
 					//var oValue = mSettings[sKey];
@@ -382,7 +384,7 @@ sap.ui.define([
 				// add the created children to current control instance either as template
 				// in case of a binding has been found or as aggregation in case of no
 				// binding was found
-				if (!jQuery.isEmptyObject(mChildren)) {
+				if (!isEmptyObject(mChildren)) {
 					mSettings = options.hash;
 					var oAllAggregation = oMetadata.getAllAggregations();
 					for (var sAggregationName in mChildren) {
@@ -462,7 +464,7 @@ sap.ui.define([
 					//   {{control ...}}   <-- nested control
 					// {{/aggregation}}
 					if (options.fn) {
-						var oData = jQuery.extend({}, options.data, {
+						var oData = Object.assign({}, options.data, {
 							defaultAggregation: sAggregationName
 						});
 						options.fn({}, {
@@ -553,7 +555,7 @@ sap.ui.define([
 				var sName = options.hash.name;
 				if (sName && sName !== "id" && !mJSONKeys[sName]) {
 					oMetadata.properties = oMetadata.properties || {};
-					oMetadata.properties[sName] = jQuery.extend({}, {type: "string"}, options.hash);
+					oMetadata.properties[sName] = Object.assign({}, {type: "string"}, options.hash);
 				} else {
 					throw new Error("The property name \"" + sName + "\" is reserved.");
 				}
@@ -567,7 +569,7 @@ sap.ui.define([
 				if (sName && !mJSONKeys[sName] && !mPrivateAggregations[sName]) {
 					options.hash.multiple = options.hash.multiple == "true"; // type correction
 					oMetadata.aggregations = oMetadata.aggregations || {};
-					oMetadata.aggregations[sName] = jQuery.extend({}, options.hash);
+					oMetadata.aggregations[sName] = Object.assign({}, options.hash);
 				} else {
 					throw new Error("The aggregation name \"" + sName + "\" is reserved.");
 				}

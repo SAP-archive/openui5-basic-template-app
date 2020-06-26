@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/Log", "sap/ui/thirdparty/jquery"], function(Log, jQuery) {
+sap.ui.define(["sap/base/Log", "sap/base/util/extend"], function(Log, extend) {
 	"use strict";
 
 	/**
@@ -15,6 +15,12 @@ sap.ui.define(["sap/base/Log", "sap/ui/thirdparty/jquery"], function(Log, jQuery
 	return {
 
 		/**
+		 * Executes the route matched logic
+		 *
+		 * @param {object} oArguments The arguments of the event
+		 * @param {boolean} bInital Identifies if the route is matched the first time
+		 * @param {sap.ui.core.routing.Route} oNestingChild The nesting route
+		 * @returns {object} The place info
 		 * @private
 		 */
 		_routeMatched : function(oArguments, bInital, oNestingChild) {
@@ -26,9 +32,14 @@ sap.ui.define(["sap/base/Log", "sap/ui/thirdparty/jquery"], function(Log, jQuery
 				oEventData,
 				oView = null,
 				oTargetControl = null,
-				oTargetData;
+				oTargetData,
+				fnCollectDisplayedData,
+				aViews,
+				aTargetControls,
+				aTargets;
 
-			oRouter._matchedRoute = this;
+			oRouter._oMatchedRoute = this;
+			oRouter._bMatchingProcessStarted = true;
 
 			// Recursively fire matched event and display views of this routes parents
 			if (this._oParent) {
@@ -38,10 +49,10 @@ sap.ui.define(["sap/base/Log", "sap/ui/thirdparty/jquery"], function(Log, jQuery
 				this._oNestingParent._routeMatched(oArguments, false, this);
 			}
 
-			oConfig =  jQuery.extend({}, oRouter._oConfig, this._oConfig);
+			oConfig =  extend({}, oRouter._oConfig, this._oConfig);
 
 			// make a copy of arguments and forward route config to target
-			oTargetData = jQuery.extend({}, oArguments);
+			oTargetData = Object.assign({}, oArguments);
 			oTargetData.routeConfig = oConfig;
 
 			oEventData = {
@@ -80,8 +91,39 @@ sap.ui.define(["sap/base/Log", "sap/ui/thirdparty/jquery"], function(Log, jQuery
 				oEventData.targetControl = oTargetControl;
 			} else {
 				// let targets do the placement + the events
+				aViews = [];
+				aTargetControls = [];
+
+				// collect the view and control parameters from the "displayed"
+				// event of each target because the targets.display doesn't return
+				// this information in the sync version
+				fnCollectDisplayedData = function(oEvent) {
+					aViews.push(oEvent.getParameter("view"));
+					aTargetControls.push(oEvent.getParameter("control"));
+				};
+
+				if (Array.isArray(this._oConfig.target)) {
+					aTargets = this._oConfig.target;
+				} else {
+					aTargets = [this._oConfig.target];
+				}
+
+				aTargets.forEach(function(sTargetName) {
+					var oTarget = oRouter._oTargets.getTarget(sTargetName);
+					if (oTarget) {
+						oTarget.attachEventOnce("display", fnCollectDisplayedData);
+					}
+				});
+
 				oRouter._oTargets._display(this._oConfig.target, oTargetData, this._oConfig.titleTarget);
+
+				oEventData.view = aViews[0];
+				oEventData.targetControl = aTargetControls[0];
+				oEventData.views = aViews;
+				oEventData.targetControls = aTargetControls;
 			}
+
+			oRouter._bMatchingProcessStarted = false;
 
 			if (oConfig.callback) {
 				//Targets don't pass TargetControl and view since there might be multiple

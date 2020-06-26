@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -323,12 +323,17 @@ sap.ui.define([
 		 *     when "composite": a composite binding string
 		 *   type: an EDM data type (like "Edm.String")
 		 *   constraints: {object} optional type constraints when result is "binding"
+		 *   formatOptions: {object} optional type format options when result is "binding"
+		 *   parameters: {object} optional binding parameters when result is "binding"
 		 * @param {boolean} bExpression
 		 *   if true the value is to be embedded into a binding expression, otherwise in a
 		 *   composite binding
 		 * @param {boolean} [bWithType=false]
-		 *  if <code>true</code> and <code>oResult.result</code> is "binding", type and constraint
-		 *  information is written to the resulting binding string
+		 *  if this is <code>true</code>, <code>oResult.result</code> is "binding" and
+		 *  <code>oResult.type</code> maps to a UI5 type, then both type and constraint information,
+		 *  as well as format options, are written to the resulting binding string; if this is
+		 *  <code>false</code> and <code>oResult.result</code> is "binding", then binding parameters
+		 *  are written to the resulting binding string if present
 		 * @returns {string}
 		 *   the resulting string to embed into a composite binding or a binding expression
 		 */
@@ -336,17 +341,30 @@ sap.ui.define([
 			var vValue = oResult.value;
 
 			function binding(bAddType) {
-				var sConstraints, sResult;
+				var sConstraints,
+					sFormatOptions,
+					sParameters = oResult.parameters && Basics.toJSON(oResult.parameters),
+					bHasParameters = sParameters && sParameters !== "{}",
+					sResult,
+					sType = mUi5TypeForEdmType[oResult.type];
 
-				bAddType = bAddType && !oResult.ignoreTypeInPath && oResult.type;
-				if (bAddType || rBadChars.test(vValue)) {
+				bAddType = bAddType && !oResult.ignoreTypeInPath && sType;
+				if (bAddType || rBadChars.test(vValue) || bHasParameters) {
 					sResult = "{path:" + Basics.toJSON(vValue);
 					if (bAddType) {
-						sResult += ",type:'" + mUi5TypeForEdmType[oResult.type] + "'";
+						sResult += ",type:'" + sType + "'";
 						sConstraints = Basics.toJSON(oResult.constraints);
 						if (sConstraints && sConstraints !== "{}") {
 							sResult += ",constraints:" + sConstraints;
 						}
+						sFormatOptions
+							= oResult.formatOptions && Basics.toJSON(oResult.formatOptions);
+						if (sFormatOptions && sFormatOptions !== "{}") {
+							sResult += ",formatOptions:" + sFormatOptions;
+						}
+					}
+					if (bHasParameters) {
+						sResult += ",parameters:" + sParameters;
 					}
 					return sResult + "}";
 				}

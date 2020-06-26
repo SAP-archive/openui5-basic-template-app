@@ -3,8 +3,10 @@
 
 	<name>sap_belize</name>
 	<vendor>SAP SE</vendor>
-	<copyright>${copyright}</copyright>
-	<version>${version}</version>
+	<copyright>OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
+	<version>1.79.0</version>
 
 	<documentation>SAPUI5 belize theme library.</documentation>
 

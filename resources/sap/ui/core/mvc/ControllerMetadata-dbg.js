@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -31,6 +31,7 @@ sap.ui.define([
 
 	// chain the prototypes
 	ControllerMetadata.prototype = Object.create(Metadata.prototype);
+	ControllerMetadata.prototype.constructor = ControllerMetadata;
 
 	ControllerMetadata.prototype.applySettings = function(oClassInfo) {
 		// property 'override' needs to be handled separately and must not be attached to the prototype
@@ -185,7 +186,7 @@ sap.ui.define([
 	/**
 	 * Get all defined methods and their metadata.
 	 *
-	 * @return {map} A map containing all methods (key) and their metadata
+	 * @return {Object<string,object>} A map containing all methods (key) and their metadata
 	 */
 	ControllerMetadata.prototype.getAllMethods = function() {
 		return this._mMethods;
@@ -239,7 +240,7 @@ sap.ui.define([
 	/**
 	 * Get configuration for extending lifecycle methods.
 	 *
-	 * @return {map} A map containing the lifecycle configuration metadata
+	 * @return {Object<string,object>} A map containing the lifecycle configuration metadata
 	 * @private
 	 */
 	ControllerMetadata.prototype.getLifecycleConfiguration = function() {

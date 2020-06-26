@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -45,14 +45,16 @@ sap.ui.define([
             }
         },
 
+        _isAncestorRequired: function () {
+            return true;
+        },
+
         // if the control has a direct parent, which is a dropdown list, return the parent
-        _getAncestors: function (oControl) {
+        _getAncestor: function (oControl) {
             if (oControl instanceof Item) {
                 var oSelectList = oControl.getParent();
                 if (oSelectList && oSelectList instanceof SelectList) {
-                    return {
-                        selector: oSelectList
-                    };
+                    return oSelectList;
                 }
             }
         }

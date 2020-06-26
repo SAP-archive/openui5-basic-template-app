@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,12 +8,12 @@
 sap.ui.define([
 	"./_AggregationHelper",
 	"./_Cache",
+	"./_GroupLock",
 	"./_Helper",
 	"./_Parser",
 	"sap/base/Log",
-	"sap/ui/base/SyncPromise",
-	"sap/ui/thirdparty/jquery"
-], function (_AggregationHelper, _Cache, _Helper, _Parser, Log, SyncPromise, jQuery) {
+	"sap/ui/base/SyncPromise"
+], function (_AggregationHelper, _Cache, _GroupLock, _Helper, _Parser, Log, SyncPromise) {
 	"use strict";
 
 	var rComma = /,|%2C|%2c/,
@@ -43,18 +43,24 @@ sap.ui.define([
 	 *   A map of key-value pairs representing the query string
 	 * @throws {Error}
 	 *   If the system query options "$count" or "$filter" are used together with group levels, or
-	 *   if group levels are combined with min/max
+	 *   if group levels are combined with min/max, or if the system query options "$expand" or
+	 *   "$select" are used at all
 	 *
 	 * @private
 	 */
 	function _AggregationCache(oRequestor, sResourcePath, oAggregation, mQueryOptions) {
 		var mAlias2MeasureAndMethod = {},
-			oFirstLevelAggregation,
 			mFirstQueryOptions,
 			fnMeasureRangeResolve;
 
 		_Cache.call(this, oRequestor, sResourcePath, mQueryOptions, true);
 		this.oAggregation = oAggregation;
+		if ("$expand" in mQueryOptions) {
+			throw new Error("Unsupported system query option: $expand");
+		}
+		if ("$select" in mQueryOptions) {
+			throw new Error("Unsupported system query option: $select");
+		}
 
 		if (_AggregationHelper.hasMinOrMax(oAggregation.aggregate)) {
 			// Note: ignore existing mQueryOptions.$apply, e.g. from ODLB#updateAnalyticalInfo
@@ -73,24 +79,18 @@ sap.ui.define([
 				.bind(this.oFirstLevel, null, mAlias2MeasureAndMethod, fnMeasureRangeResolve,
 					this.oFirstLevel.handleResponse);
 		} else if (oAggregation.groupLevels.length) {
+			this.aElements = [];
+			this.aElements.$byPredicate = {};
+			this.aElements.$count = undefined;
+			this.aElements.$created = 0; // required for _Cache#drillDown (see _Cache.from$skip)
+
 			if (mQueryOptions.$count) {
 				throw new Error("Unsupported system query option: $count");
 			}
 			if (mQueryOptions.$filter) {
 				throw new Error("Unsupported system query option: $filter");
 			}
-			oFirstLevelAggregation = _AggregationCache.filterAggregationForFirstLevel(oAggregation);
-			mFirstQueryOptions = jQuery.extend({}, mQueryOptions, {
-					$orderby : _AggregationCache.filterOrderby(mQueryOptions.$orderby,
-						oFirstLevelAggregation)
-				}); // 1st level only
-			delete mFirstQueryOptions.$count;
-			mFirstQueryOptions
-				= _AggregationHelper.buildApply(oFirstLevelAggregation, mFirstQueryOptions);
-			mFirstQueryOptions.$count = true;
-			this.oFirstLevel = _Cache.create(oRequestor, sResourcePath, mFirstQueryOptions, true);
-			this.oFirstLevel.calculateKeyPredicate = _AggregationCache.calculateKeyPredicate
-				.bind(null, oFirstLevelAggregation, this.oFirstLevel.aElements.$byPredicate);
+			this.oFirstLevel = this.createGroupLevelCache();
 		} else { // grand total w/o visual grouping
 			this.oFirstLevel = _Cache.create(oRequestor, sResourcePath, mQueryOptions, true);
 			this.oFirstLevel.getResourcePath = _AggregationCache.getResourcePath.bind(
@@ -102,6 +102,129 @@ sap.ui.define([
 
 	// make _AggregationCache a _Cache
 	_AggregationCache.prototype = Object.create(_Cache.prototype);
+
+	/**
+	 * Copies the given elements from a cache read into aElements.
+	 *
+	 * @param {object[]} aReadElements
+	 *   The elements from a cache read
+	 * @param {number} iOffset
+	 *   The offset within aElements
+	 *
+	 * @private
+	 */
+	_AggregationCache.prototype.addElements = function (aReadElements, iOffset) {
+		var aElements = this.aElements;
+
+		aReadElements.forEach(function (oElement, i) {
+			var sPredicate = _Helper.getPrivateAnnotation(oElement, "predicate");
+
+			aElements[iOffset + i] = oElement;
+			aElements.$byPredicate[sPredicate] = oElement;
+		});
+	};
+
+	/**
+	 * Creates a cache for the children (next group level or leaves) of the given parent group node.
+	 * Creates the first level cache if there is no parent group node.
+	 *
+	 * @param {object} [oParentGroupNode]
+	 *   The parent group node or undefined for the first level cache
+	 * @returns {sap.ui.model.odata.v4.lib._CollectionCache}
+	 *   The group level cache
+	 *
+	 * @private
+	 */
+	_AggregationCache.prototype.createGroupLevelCache = function (oParentGroupNode) {
+		var oCache, oFilteredAggregation, sFilteredOrderby, aGroupBy, bLeaf, iLevel, aMissing,
+			mQueryOptions, bTotal;
+
+		iLevel = oParentGroupNode ? oParentGroupNode["@$ui5.node.level"] + 1 : 1;
+
+		oFilteredAggregation = _AggregationCache.filterAggregation(this.oAggregation, iLevel);
+		aGroupBy = oFilteredAggregation.$groupBy;
+		delete oFilteredAggregation.$groupBy;
+		aMissing = oFilteredAggregation.$missing;
+		delete oFilteredAggregation.$missing;
+
+		mQueryOptions = Object.assign({}, this.mQueryOptions);
+		sFilteredOrderby
+			= _AggregationCache.filterOrderby(this.mQueryOptions.$orderby, oFilteredAggregation);
+		if (sFilteredOrderby) {
+			mQueryOptions.$orderby = sFilteredOrderby;
+		} else {
+			delete mQueryOptions.$orderby;
+		}
+
+		if (oParentGroupNode) {
+			mQueryOptions.$$filterBeforeAggregate
+				= _Helper.getPrivateAnnotation(oParentGroupNode, "filter");
+		}
+
+		delete mQueryOptions.$count;
+		mQueryOptions = _AggregationHelper.buildApply(oFilteredAggregation, mQueryOptions);
+		mQueryOptions.$count = true;
+
+		oCache = _Cache.create(this.oRequestor, this.sResourcePath, mQueryOptions, true);
+
+		bLeaf = !oFilteredAggregation.groupLevels.length;
+		bTotal = !bLeaf && Object.keys(oFilteredAggregation.aggregate).length > 0;
+		oCache.calculateKeyPredicate = _AggregationCache.calculateKeyPredicate.bind(null,
+			oParentGroupNode, aGroupBy, aMissing, bLeaf, bTotal, this.aElements.$byPredicate);
+
+		return oCache;
+	};
+
+	/**
+	 * Expands the group node at the given path.
+	 *
+	 * @param {sap.ui.model.odata.v4.lib._GroupLock} oGroupLock
+	 *   A lock for the group to associate the requests with
+	 * @param {string} sGroupNodePath
+	 *   The group node path relative to the cache
+	 * @returns {sap.ui.base.SyncPromise<number>}
+	 *   A promise that is resolved with the number of nodes at the next level
+	 *
+	 * @public
+	 */
+	_AggregationCache.prototype.expand = function (oGroupLock, sGroupNodePath) {
+		var oCache,
+			oGroupNode,
+			that = this;
+
+		oGroupNode = this.fetchValue(_GroupLock.$cached, sGroupNodePath).getResult();
+
+		// Note: this also prevents a 2nd expand of the same node
+		_Helper.updateAll(this.mChangeListeners, sGroupNodePath, oGroupNode, {
+			"@$ui5.node.isExpanded" : true
+		});
+
+		oCache = this.createGroupLevelCache(oGroupNode);
+
+		// prefetch from the group level cache
+		return oCache.read(0, this.iReadLength, 0, oGroupLock).then(function (oResult) {
+			var iCount = oResult.value.$count,
+				iIndex = that.aElements.indexOf(oGroupNode) + 1,
+				i;
+
+			// create the gap
+			for (i = that.aElements.length - 1; i >= iIndex; i -= 1) {
+				that.aElements[i + iCount] = that.aElements[i];
+				// no need to delete, that.aElements[i] is overwritten below
+			}
+			// fill in the results
+			that.addElements(oResult.value, iIndex);
+			that.aElements.$count += iCount;
+
+			return iCount;
+		}, function (oError) {
+			_Helper.updateAll(that.mChangeListeners, sGroupNodePath, oGroupNode, {
+				"@$ui5.node.isExpanded" : false
+			});
+
+			throw oError;
+		});
+	};
 
 	/**
 	 * Returns a promise to be resolved with an OData object for the requested data.
@@ -141,6 +264,10 @@ sap.ui.define([
 						return that.oFirstLevel.iLeafCount;
 					});
 			} // else: in case of min/max, no special handling is needed
+		}
+		if (this.oAggregation.groupLevels.length) {
+			this.registerChange(sPath, oListener);
+			return this.drillDown(this.aElements, sPath, oGroupLock);
 		}
 		return this.oFirstLevel.fetchValue(oGroupLock, sPath, fnDataRequested, oListener);
 	};
@@ -197,21 +324,38 @@ sap.ui.define([
 	 */
 	_AggregationCache.prototype.read = function (iIndex, iLength, iPrefetchLength, oGroupLock,
 			fnDataRequested) {
-		var oReadPromise = this.oFirstLevel.read(iIndex, iLength, iPrefetchLength, oGroupLock,
-				fnDataRequested);
+		var bHasGroupLevels = this.oAggregation.groupLevels.length,
+			oResult,
+			that = this;
 
-		if (!this.oMeasureRangePromise) {
-			return oReadPromise.then(function (oResult) {
-				oResult.value.forEach(function (oElement) {
-					oElement["@$ui5.node.isExpanded"] = false;
-					oElement["@$ui5.node.isTotal"] = true;
-					oElement["@$ui5.node.level"] = 1;
-				});
+		if (bHasGroupLevels && this.aElements[0] && this.aElements[0]["@$ui5.node.isExpanded"]) {
+			oResult = {
+				value : this.aElements.slice(iIndex, iIndex + iLength)
+			};
+			oResult.value.$count = this.aElements.$count;
 
-				return oResult;
-			});
+			return SyncPromise.resolve(oResult);
 		}
-		return oReadPromise;
+
+		return this.oFirstLevel.read(iIndex, iLength, iPrefetchLength, oGroupLock,
+			fnDataRequested
+		).then(function (oResult) {
+			if (bHasGroupLevels) {
+				that.addElements(oResult.value, iIndex);
+				that.aElements.$count = oResult.value.$count;
+				that.iReadLength = iLength + iPrefetchLength;
+			} else if (!that.oMeasureRangePromise) {
+				oResult.value.forEach(function (oElement) {
+					if (!("@$ui5.node.level" in oElement)) {
+						oElement["@$ui5.node.isExpanded"] = undefined;
+						oElement["@$ui5.node.isTotal"] = false;
+						oElement["@$ui5.node.level"] = 1;
+					}
+				});
+			}
+
+			return oResult;
+		});
 	};
 
 	/**
@@ -235,16 +379,25 @@ sap.ui.define([
 	//*********************************************************************************************
 
 	/**
-	 * Calculates the virtual key predicate for the given group node on level 1, based on the first
-	 * group level's value.
+	 * Calculates the virtual key predicate and the filter for the given element (a group node or a
+	 * leaf), adds the inherited key properties and the properties for groups not used in this
+	 * element, and sets the node attributes.
 	 *
-	 * @param {object} oAggregation
-	 *   An object holding the information needed for data aggregation; see also
-	 *   <a href="http://docs.oasis-open.org/odata/odata-data-aggregation-ext/v4.0/">OData
-	 *   Extension for Data Aggregation Version 4.0</a>; must contain <code>groupLevels</code>
+	 * @param {object} [oGroupNode]
+	 *   The parent group node or undefined for an element of the first level cache
+	 * @param {string[]} aGroupBy
+	 *   The ordered list of properties by which this element is grouped; used for the key predicate
+	 *   and the filter
+	 * @param {string[]} aMissing
+	 *   A list of properties that are not grouped or aggregated and thus missing in the result, so
+	 *   they have to be nulled to avoid drill-down errors
+	 * @param {boolean} bLeaf
+	 *   Whether this element is a leaf
+	 * @param {boolean} bTotal
+	 *   Whether this element is a (sub)total
 	 * @param {object} mByPredicate A map of group nodes by key predicates, used to detect
 	 *   collisions
-	 * @param {object} oGroupNode A 1st level group node
+	 * @param {object} oElement The element
 	 * @param {object} mTypeForMetaPath A map from meta path to the entity type (as delivered by
 	 *   {@link #fetchTypes})
 	 * @param {string} sMetaPath The meta path of the collection in mTypeForMetaPath
@@ -253,13 +406,9 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	_AggregationCache.calculateKeyPredicate = function (oAggregation, mByPredicate, oGroupNode,
-			mTypeForMetaPath, sMetaPath) {
-		var sFirstGroupLevel = oAggregation.groupLevels[0],
-			sLiteral = _Helper.formatLiteral(oGroupNode[sFirstGroupLevel],
-				mTypeForMetaPath[sMetaPath][sFirstGroupLevel].$Type),
-			sPredicate = "(" + encodeURIComponent(sFirstGroupLevel) + "="
-				+ encodeURIComponent(sLiteral) + ")";
+	_AggregationCache.calculateKeyPredicate = function (oGroupNode, aGroupBy, aMissing,
+			bLeaf, bTotal, mByPredicate, oElement, mTypeForMetaPath, sMetaPath) {
+		var sPredicate;
 
 		/*
 		 * Returns a JSON string representation of the given object, but w/o the private namespace.
@@ -271,11 +420,34 @@ sap.ui.define([
 			return JSON.stringify(_Helper.publicClone(o));
 		}
 
+		// set grouping values for the levels above and below
+		aGroupBy.forEach(function (sName) {
+			if (!(sName in oElement)) {
+				oElement[sName] = oGroupNode[sName];
+			}
+		});
+		aMissing.forEach(function (sName) {
+			oElement[sName] = null; // avoid drill-down errors
+		});
+
+		sPredicate = _Helper.getKeyPredicate(oElement, sMetaPath, mTypeForMetaPath, aGroupBy, true);
 		if (sPredicate in mByPredicate) {
-			throw new Error("Multi-unit situation detected: " + stringify(oGroupNode) + " vs. "
+			throw new Error("Multi-unit situation detected: " + stringify(oElement) + " vs. "
 				+ stringify(mByPredicate[sPredicate]));
 		}
-		_Helper.setPrivateAnnotation(oGroupNode, "predicate", sPredicate);
+		_Helper.setPrivateAnnotation(oElement, "predicate", sPredicate);
+
+		if (!bLeaf) {
+			_Helper.setPrivateAnnotation(oElement, "filter",
+				_Helper.getKeyFilter(oElement, sMetaPath, mTypeForMetaPath, aGroupBy));
+		}
+
+		// set the node values - except for the grand total element
+		if (oElement["@$ui5.node.level"] !== 0) {
+			oElement["@$ui5.node.isExpanded"] = bLeaf ? undefined : false;
+			oElement["@$ui5.node.isTotal"] = bTotal;
+			oElement["@$ui5.node.level"] = oGroupNode ? oGroupNode["@$ui5.node.level"] + 1 : 1;
+		}
 	};
 
 	/**
@@ -309,45 +481,81 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the aggregation information for the first level.
+	 * Returns the aggregation information for the given level.
 	 *
 	 * @param {object} oAggregation
 	 *   An object holding the information needed for data aggregation; see also
 	 *   <a href="http://docs.oasis-open.org/odata/odata-data-aggregation-ext/v4.0/">OData
 	 *   Extension for Data Aggregation Version 4.0</a>; must contain <code>aggregate</code>,
 	 *   <code>group</code>, <code>groupLevels</code>
+	 * @param {number} iLevel
+	 *   The level of the request
 	 * @returns {object[]}
-	 *   The aggregation information for the first level
+	 *   The aggregation information for the given level with two additional properties:
+	 *   <code>$groupBy</code> is an array with the ordered list of all groupables up to the given
+	 *   level (to be used for key predicate and filter for child nodes);
+	 *   <code>$missing</code> is an array of all properties that are not yet grouped or aggregated
+	 *   at this level and thus missing in the level's result
 	 *
 	 * @private
 	 */
-	_AggregationCache.filterAggregationForFirstLevel = function (oAggregation) {
+	_AggregationCache.filterAggregation = function (oAggregation, iLevel) {
+		var oFilteredAggregation, aGroupLevels, aLeafGroups;
+
 		// copies the value with the given key from this map to the given target map
 		function copyTo(mTarget, sKey) {
 			mTarget[sKey] = this[sKey];
 			return mTarget;
 		}
 
-		// filters the given map according to the given filter function for keys
-		function filter(mMap, fnFilter) {
-			return Object.keys(mMap).filter(fnFilter).reduce(copyTo.bind(mMap), {});
+		// filters the map using the given keys
+		function filterMap(mMap, aKeys) {
+			return aKeys.reduce(copyTo.bind(mMap), {});
 		}
 
-		// tells whether the given aggregatable property has subtotals
+		// filters the keys of the given map according to the given filter function
+		function filterKeys(mMap, fnFilter) {
+			return Object.keys(mMap).filter(fnFilter);
+		}
+
+		// tells whether the given alias does not have subtotals
+		function hasNoSubtotals(sAlias) {
+			return !oAggregation.aggregate[sAlias].subtotals;
+		}
+
+		// tells whether the given alias has subtotals
 		function hasSubtotals(sAlias) {
 			return oAggregation.aggregate[sAlias].subtotals;
 		}
 
-		// tells whether the given groupable property is a group level
-		function isGroupLevel(sGroupable) {
-			return oAggregation.groupLevels.indexOf(sGroupable) >= 0;
+		// tells whether the given groupable property is not a group level
+		function isNotGroupLevel(sGroupable) {
+			return oAggregation.groupLevels.indexOf(sGroupable) < 0;
 		}
 
-		return {
-			aggregate : filter(oAggregation.aggregate, hasSubtotals),
-			group : filter(oAggregation.group, isGroupLevel),
-			groupLevels : oAggregation.groupLevels
+		aGroupLevels = oAggregation.groupLevels.slice(iLevel - 1, iLevel);
+		oFilteredAggregation = {
+			aggregate : aGroupLevels.length
+				? filterMap(oAggregation.aggregate,
+					filterKeys(oAggregation.aggregate, hasSubtotals))
+				: oAggregation.aggregate,
+			groupLevels : aGroupLevels,
+			$groupBy : oAggregation.groupLevels.slice(0, iLevel)
 		};
+		aLeafGroups = filterKeys(oAggregation.group, isNotGroupLevel).sort();
+
+		if (aGroupLevels.length) {
+			oFilteredAggregation.group = {};
+			oFilteredAggregation.$missing
+				= oAggregation.groupLevels.slice(iLevel).concat(aLeafGroups)
+					.concat(Object.keys(oAggregation.aggregate).filter(hasNoSubtotals));
+		} else { // leaf
+			oFilteredAggregation.group = filterMap(oAggregation.group, aLeafGroups);
+			oFilteredAggregation.$groupBy = oFilteredAggregation.$groupBy.concat(aLeafGroups);
+			oFilteredAggregation.$missing = [];
+		}
+
+		return oFilteredAggregation;
 	};
 
 	/**
@@ -405,7 +613,7 @@ sap.ui.define([
 	 * @private
 	 */
 	_AggregationCache.getResourcePath = function (oAggregation, mQueryOptions, iStart, iEnd) {
-		mQueryOptions = jQuery.extend({}, mQueryOptions, {
+		mQueryOptions = Object.assign({}, mQueryOptions, {
 			$skip : iStart,
 			$top : iEnd - iStart
 		});
@@ -419,9 +627,9 @@ sap.ui.define([
 
 	/**
 	 * Handles a GET response by extracting the minimum and the maximum values from the given
-	 * result, resolving the measure range promise and calling <code>fnHandleResponse<code> with the
-	 * remaining values of <code>aResult</code>. Restores the original <code>handleResponse</code>.
-	 * This function needs to be called on the first level cache.
+	 * result, resolving the measure range promise and calling <code>fnHandleResponse</code> with
+	 * the remaining values of <code>aResult</code>. Restores the original
+	 * <code>handleResponse</code>. This function needs to be called on the first level cache.
 	 *
 	 * @param {object} oAggregation
 	 *   An object holding the information needed for data aggregation; see also
@@ -477,6 +685,9 @@ sap.ui.define([
 				}
 			}
 			if (iStart === 0) { // grand total row: rename measures, add empty dimensions
+				oMinMaxElement["@$ui5.node.isExpanded"] = true;
+				oMinMaxElement["@$ui5.node.isTotal"] = true;
+				oMinMaxElement["@$ui5.node.level"] = 0;
 				Object.keys(oMinMaxElement).forEach(function (sKey) {
 					if (sKey.startsWith("UI5grand__")) {
 						oMinMaxElement[sKey.slice(10)] = oMinMaxElement[sKey];

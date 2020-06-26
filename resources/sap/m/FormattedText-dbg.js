@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -29,7 +29,6 @@ function(
 		// shortcut for sap.m.LinkConversion
 		var LinkConversion = library.LinkConversion;
 
-
 		/**
 		 * Constructor for a new FormattedText.
 		 *
@@ -39,7 +38,7 @@ function(
 		 * @class
 		 * The FormattedText control allows the usage of a limited set of tags for inline display of formatted text in HTML format.
 		 * @extends sap.ui.core.Control
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -93,7 +92,7 @@ function(
 					/**
 					 * Optional width of the control in CSS units.
 					 */
-					width : {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : null},
+					width: {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : null},
 
 					/**
 					 * Determines whether strings that appear to be links will be converted to HTML anchor tags,
@@ -115,7 +114,16 @@ function(
 					/**
 					 *  Optional height of the control in CSS units.
 					 */
-					height : {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : null}
+					height: {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : null}
+				},
+				aggregations: {
+
+					/**
+					* List of <code>sap.m.Link</code> controls that will be used to replace the placeholders in the text.
+					* Placeholders are replaced according to their indexes. The placeholder with index %%0 will be replaced
+					* by the first link in the aggregation, etc.
+					*/
+					controls: {type: "sap.m.Link", multiple: true, singularName: "control"}
 				}
 			}
 		});
@@ -292,6 +300,10 @@ function(
 			this.$().find('a[target="_blank"]').on("click", openExternalLink);
 		};
 
+		FormattedText.prototype.onBeforeRendering = function () {
+			this.$().find('a[target="_blank"]').off("click", openExternalLink);
+		};
+
 		FormattedText.prototype._getDisplayHtml = function (){
 			var sText = this.getHtmlText(),
 				sAutoGenerateLinkTags = this.getConvertLinksToAnchorTags();
@@ -319,8 +331,8 @@ function(
 		 * Sets should a limited list of rendering rules be used instead of the default one. This limited list
 		 * will evaluate only a small subset of the default HTML elements and attributes.
 		 * @param {boolean} bLimit Should the control use the limited list
-		 * @sap-restricted sap.m.MessageStrip
 		 * @private
+		 * @ui5-restricted sap.m.MessageStrip
 		 */
 		FormattedText.prototype._setUseLimitedRenderingRules = function (bLimit) {
 			this._renderingRules = bLimit ? _limitedRenderingRules : _defaultRenderingRules;

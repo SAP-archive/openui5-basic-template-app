@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['./InputRenderer', 'sap/ui/core/Renderer'],
-	function(InputRenderer, Renderer) {
+sap.ui.define(['./InputRenderer', 'sap/ui/core/Renderer', "sap/ui/core/Core"],
+	function(InputRenderer, Renderer, Core) {
 	"use strict";
 
 
@@ -13,18 +13,19 @@ sap.ui.define(['./InputRenderer', 'sap/ui/core/Renderer'],
 	 * @namespace
 	 */
 	var MultiInputRenderer = Renderer.extend(InputRenderer);
+	MultiInputRenderer.apiVersion = 2;
 
 	MultiInputRenderer.prependInnerContent = function (oRm, oControl) {
-		oRm.renderControl(oControl._tokenizer);
+		oRm.renderControl(oControl.getAggregation("tokenizer"));
 	};
 
 	MultiInputRenderer.addOuterClasses = function(oRm, oControl) {
 		InputRenderer.addOuterClasses.apply(this, arguments);
 
-		oRm.addClass("sapMMultiInput");
+		oRm.class("sapMMultiInput");
 
 		if (oControl.getTokens().length > 0) {
-			oRm.addClass("sapMMultiInputHasTokens");
+			oRm.class("sapMMultiInputHasTokens");
 		}
 	};
 
@@ -41,6 +42,15 @@ sap.ui.define(['./InputRenderer', 'sap/ui/core/Renderer'],
 		}
 
 		return sAriaDescribedBy;
+	};
+
+	MultiInputRenderer.getAccessibilityState = function (oControl) {
+		var mAccessibilityState = InputRenderer.getAccessibilityState.apply(this, arguments),
+			oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+
+		mAccessibilityState.roledescription = oResourceBundle.getText("MULTIINPUT_ARIA_ROLE_DESCRIPTION");
+
+		return mAccessibilityState;
 	};
 
 	return MultiInputRenderer;

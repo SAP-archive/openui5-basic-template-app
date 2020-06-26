@@ -1,11 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
+// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
+// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
+// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
+sap.ui.getCore().loadLibrary("sap.ui.unified");
+
 // Provides control sap.m.PlanningCalendarHeader.
 sap.ui.define([
+	'sap/ui/core/Element',
 	'sap/ui/core/Control',
 	'./library',
 	'./Toolbar',
@@ -17,6 +23,8 @@ sap.ui.define([
 	'./SegmentedButton',
 	'sap/ui/unified/Calendar',
 	'sap/ui/unified/calendar/CalendarDate',
+	'sap/ui/unified/calendar/CustomMonthPicker',
+	'sap/ui/unified/calendar/CustomYearPicker',
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/core/Popup',
 	'sap/ui/core/IconPool',
@@ -24,6 +32,7 @@ sap.ui.define([
 	"./PlanningCalendarHeaderRenderer"
 ],
 function(
+	Element,
 	Control,
 	library,
 	Toolbar,
@@ -35,6 +44,8 @@ function(
 	SegmentedButton,
 	Calendar,
 	CalendarDate,
+	CustomMonthPicker,
+	CustomYearPicker,
 	DateFormat,
 	Popup,
 	IconPool,
@@ -58,7 +69,7 @@ function(
 	 *
 	 * <h3>Overview</h3>
 	 *
-	 * Тhe calendar header contains the action controls which you can use to manipulate the calendar and facilitate
+	 * The calendar header contains the action controls which you can use to manipulate the calendar and facilitate
 	 * navigation.
 	 *
 	 * <b>Note:</b> The <code>PlanningCalendarHeader</code> uses parts of the <code>sap.ui.unified</code> library.
@@ -84,7 +95,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @private
@@ -145,7 +156,24 @@ function(
 			 *
 			 * @private
 			 */
-			_calendarPicker : { type : "sap.ui.unified.Calendar", multiple : false, visibility : "hidden" }
+			_calendarPicker : { type : "sap.ui.unified.Calendar", multiple : false, visibility : "hidden" },
+
+			/**
+			 * Hidden, for internal use only.
+			 * The popup which contains the month picker for navigation.
+			 *
+			 * @private
+			 */
+			_monthPicker : { type : "sap.ui.unified.internal.CustomMonthPicker", multiple : false, visibility : "hidden" },
+
+			/**
+			 * Hidden, for internal use only.
+			 * The popup which contains the year picker for navigation.
+			 *
+			 * @private
+			 */
+			_yearPicker : { type : "sap.ui.unified.internal.CustomYearPicker", multiple : false, visibility : "hidden" }
+
 		},
 
 		events : {
@@ -178,7 +206,21 @@ function(
 			/**
 			 * The calendar picker popup was closed and no date was selected.
 			 */
-			cancel: {}
+			cancel: {},
+
+			/**
+			 * The view was changed by user interaction.
+			 */
+			viewChange : {}
+		},
+
+		associations: {
+
+			/**
+			 * Association to control / ID which is shown in the picker popup.
+			 * @since 1.70.0
+			 */
+			currentPicker: { type: "sap.ui.core.Control", multiple: false }
 		}
 
 	}});
@@ -196,9 +238,10 @@ function(
 		var sOPHId = this.getId(),
 			sNavToolbarId = sOPHId + "-NavToolbar",
 			oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
-			oPrevBtn,
-			oNextBtn,
-			oPicker;
+			oPicker,
+			oCalendarPicker,
+			oMonthPicker,
+			oYearPicker;
 
 		this.setAggregation("_actionsToolbar", new AssociativeOverflowToolbar(sOPHId + "-ActionsToolbar", {
 			design: ToolbarDesign.Transparent
@@ -209,7 +252,7 @@ function(
 			.addContent(this._getOrCreateViewSwitch())
 		);
 
-		oPrevBtn = new Button(sNavToolbarId + "-PrevBtn", {
+		this._oPrevBtn = new Button(sNavToolbarId + "-PrevBtn", {
 			icon: IconPool.getIconURI('slim-arrow-left'),
 			tooltip: oRB.getText("PCH_NAVIGATE_BACKWARDS"),
 			press: function () {
@@ -223,42 +266,60 @@ function(
 				this.firePressToday();
 			}.bind(this)
 		});
-		oNextBtn = new Button(sNavToolbarId + "-NextBtn", {
+		this._oNextBtn = new Button(sNavToolbarId + "-NextBtn", {
 			icon: IconPool.getIconURI('slim-arrow-right'),
 			tooltip: oRB.getText("PCH_NAVIGATE_FORWARD"),
 			press: function () {
 				this.firePressNext();
 			}.bind(this)
 		});
-		oPicker = new Calendar(sOPHId + "-Cal", {
+		oCalendarPicker = new Calendar(sOPHId + "-Cal", {
 			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_DIALOG")
 		});
-		oPicker.attachEvent("select", this._handlePickerDateSelect, this);
-		oPicker.attachEvent("cancel", function (oEvent) {
-			var oPickerBtnDomRef = this._oPickerBtn.getDomRef();
+		oCalendarPicker.attachEvent("select", this._handlePickerDateSelect, this);
+		oCalendarPicker.attachEvent("cancel", this._handlePickerCancelEvent, this);
+		oCalendarPicker.setPopupMode(true);
+		this.setAggregation("_calendarPicker", oCalendarPicker);
 
-			this.fireCancel();
-			oPickerBtnDomRef && oPickerBtnDomRef.focus();
-		}, this);
-		this.setAggregation("_calendarPicker", oPicker);
+		this.setAssociation("currentPicker", oCalendarPicker);
+
+		oMonthPicker = new CustomMonthPicker(sOPHId + "-MonthCal", {
+			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_DIALOG")
+		});
+		oMonthPicker.attachEvent("select", this._handlePickerDateSelect, this);
+		oMonthPicker.attachEvent("cancel", this._handlePickerCancelEvent, this);
+		oMonthPicker.setPopupMode(true);
+		this.setAggregation("_monthPicker", oMonthPicker);
+
+		oYearPicker = new CustomYearPicker(sOPHId + "-YearCal", {
+			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_DIALOG")
+		});
+		oYearPicker.attachEvent("select", this._handlePickerDateSelect, this);
+		oYearPicker.attachEvent("cancel", this._handlePickerCancelEvent, this);
+		oYearPicker.setPopupMode(true);
+		this.setAggregation("_yearPicker", oYearPicker);
+
 		this._oPickerBtn = new AccButton(sNavToolbarId + "-PickerBtn", {
 			text: this.getPickerText(),
 			ariaHaspopup: "dialog",
 			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "PCH_SELECT_RANGE"),
 			press: function () {
-				var oDate = this.getStartDate() || new Date();
-				oPicker.displayDate(oDate);
-
-				this._openCalendarPickerPopup(oPicker);
+				if (this.fireEvent("_pickerButtonPress", {}, true)) {
+					var oDate = this.getStartDate() || new Date(),
+						sCurrentPickerId = this.getAssociation("currentPicker");
+					oPicker = Element.registry.get(sCurrentPickerId);
+					oPicker.displayDate(oDate);
+					this._openCalendarPickerPopup(oPicker);
+				}
 			}.bind(this)
 		});
 
 		this.setAggregation("_navigationToolbar", new Toolbar(sNavToolbarId, {
 			design: ToolbarDesign.Transparent,
 			content: [
-				oPrevBtn,
+				this._oPrevBtn,
 				this._oTodayBtn,
-				oNextBtn,
+				this._oNextBtn,
 				this._oPickerBtn
 			]
 		}).addStyleClass("sapMPCHeadNavToolbar"));
@@ -266,18 +327,16 @@ function(
 	};
 
 	PlanningCalendarHeader.prototype.exit = function () {
+		this._getActionsToolbar().removeAllContent();
 		if (this._oTitle) {
-			this._getActionsToolbar().removeContent(this._oTitle);
 			this._oTitle.destroy();
 			this._oTitle = null;
 		}
 		if (this._oToolbarSpacer) {
-			this._getActionsToolbar().removeContent(this._oToolbarSpacer);
 			this._oToolbarSpacer.destroy();
 			this._oToolbarSpacer = null;
 		}
 		if (this._oViewSwitch) {
-			this._getActionsToolbar().removeContent(this._oViewSwitch);
 			this._oViewSwitch.destroy();
 			this._oViewSwitch = null;
 		}
@@ -285,10 +344,18 @@ function(
 			this._oPopup.destroy();
 			this._oPopup = null;
 		}
+		if (this._oPrevBtn) {
+			this._oPrevBtn.destroy();
+			this._oPrevBtn = null;
+		}
+		if (this._oNextBtn) {
+			this._oNextBtn.destroy();
+			this._oNextBtn = null;
+		}
 	};
 
 	PlanningCalendarHeader.prototype.onBeforeRendering = function () {
-		var bVisible = !!this.getActions().length || !!this.getTitle() || this._getOrCreateViewSwitch().getItems() > 1;
+		var bVisible = !!this.getActions().length || !!this.getTitle() || this._getOrCreateViewSwitch().getItems().length > 1;
 
 		this._getActionsToolbar().setProperty("visible", bVisible, true);
 	};
@@ -339,13 +406,15 @@ function(
 
 	PlanningCalendarHeader.prototype.destroyActions = function () {
 		var oActionsToolbar = this._getActionsToolbar(),
-			oActionsToolbarContent = oActionsToolbar.getContent();
+			oActionsToolbarContent = oActionsToolbar.getContent(),
+			oRemovedContentItem;
 
 		for (var i = RESERVED_ACTIONS_ITEMS_COUNT; i < oActionsToolbarContent.length; i++) {
-			oActionsToolbar.removeContent(oActionsToolbarContent[i]);
+			oRemovedContentItem = oActionsToolbar.removeContent(oActionsToolbarContent[i]);
+			oRemovedContentItem.destroy();
 		}
 
-		return this.destroyAggregation("actions");
+		return this;
 	};
 
 	PlanningCalendarHeader.prototype.setPickerText = function (sText) {
@@ -392,9 +461,29 @@ function(
 	PlanningCalendarHeader.prototype._getOrCreateViewSwitch = function () {
 		if (!this._oViewSwitch) {
 			this._oViewSwitch = new SegmentedButton(this.getId() + "-ViewSwitch");
+			this._oViewSwitch.attachEvent("selectionChange", this._handleViewSwitchChange, this);
+			this.addDependent(this._oViewSwitch);
 		}
 
 		return this._oViewSwitch;
+	};
+
+	/**
+	 * Converts the view switch from sap.m.SegmentedButton to sap.m.Select.
+	 * @private
+	 */
+	PlanningCalendarHeader.prototype._convertViewSwitchToSelect = function () {
+		this._oViewSwitch._bForcedSelectMode = true;
+		this._oViewSwitch._toSelectMode();
+	};
+
+	/**
+	 * Converts the view switch from sap.m.Select to sap.m.SegmentedButton
+	 * @private
+	 */
+	PlanningCalendarHeader.prototype._convertViewSwitchToSegmentedButton = function () {
+		this._oViewSwitch._bForcedSelectMode = false;
+		this._oViewSwitch._toNormalMode();
 	};
 
 	/**
@@ -408,11 +497,13 @@ function(
 	};
 
 	/**
-	 * Handler for the select event of the Calendar in _calendarPicker aggregation.
+	 * Handler for the select event of the current picker.
 	 * @private
 	 */
-	PlanningCalendarHeader.prototype._handlePickerDateSelect = function (oEvent) {
-		var oSelectedDate = this.getAggregation("_calendarPicker").getSelectedDates()[0].getStartDate();
+	PlanningCalendarHeader.prototype._handlePickerDateSelect = function () {
+		var sCurrentPickerId = this.getAssociation("currentPicker"),
+			oPicker = Element.registry.get(sCurrentPickerId),
+			oSelectedDate = oPicker.getSelectedDates()[0].getStartDate();
 
 		this.setStartDate(oSelectedDate);
 		this._closeCalendarPickerPopup();
@@ -423,8 +514,17 @@ function(
 	};
 
 	/**
-	 * Opens the _calendarPicker popup, when the picker button from the _navigationToolbar is pressed.
-	 * @param {object} oPicker The _calendarPicker to be opened
+	 * Handler for the change event of the view switch.
+	 * @private
+	 */
+	PlanningCalendarHeader.prototype._handleViewSwitchChange = function (oEvent) {
+		this.fireViewChange(oEvent.getParameters());
+	};
+
+
+	/**
+	 * Opens the picker popup, when the picker button from the _navigationToolbar is pressed.
+	 * @param {object} oPicker The picker to be opened
 	 * @private
 	 */
 	PlanningCalendarHeader.prototype._openCalendarPickerPopup = function(oPicker){
@@ -441,7 +541,7 @@ function(
 	};
 
 	/**
-	 * Creates the _calendarPicker popup.
+	 * Creates the picker popup.
 	 * @returns {Popup} the created popup
 	 * @private
 	 */
@@ -449,17 +549,19 @@ function(
 		var oPopup = new Popup();
 
 		oPopup.setAutoClose(true);
-		oPopup.setAutoCloseAreas([this.getDomRef()]);
 		oPopup.setDurations(0, 0); // no animations
 		oPopup.onsapescape = function(oEvent) {
 			this.onsapescape(oEvent);
 		}.bind(this);
 
+		oPopup.attachEvent("opened", this._handlePopupOpenedEvent, this);
+		oPopup.attachEvent("closed", this._handlePopupClosedEvent, this);
+
 		return oPopup;
 	};
 
 	/**
-	 * Closes the _calendarPicker popup without setting new startDate to the PlanningCalendarHeader.
+	 * Closes the picker popup without setting new startDate to the PlanningCalendarHeader.
 	 * @private
 	 */
 	PlanningCalendarHeader.prototype.onsapescape = function(){
@@ -472,13 +574,41 @@ function(
 	};
 
 	/**
-	 * Closes the _calendarPicker popup.
+	 * Closes the picker popup.
 	 * @private
 	 */
 	PlanningCalendarHeader.prototype._closeCalendarPickerPopup = function() {
 		if (this._oPopup && this._oPopup.isOpen()) {
 			this._oPopup.close();
 		}
+	};
+
+	/**
+	 * Fires cancel on the picker popup.
+	 * @private
+	 */
+	PlanningCalendarHeader.prototype._handlePickerCancelEvent = function () {
+		var oPickerBtnDomRef = this._oPickerBtn.getDomRef();
+
+		this.fireCancel();
+		this._closeCalendarPickerPopup();
+		oPickerBtnDomRef && oPickerBtnDomRef.focus();
+	};
+
+	/**
+	 * Ensures the focus is corretly set after the popup is opened
+	 * @private
+	 */
+	PlanningCalendarHeader.prototype._handlePopupOpenedEvent = function() {
+		Element.registry.get(this.getAssociation("currentPicker")).focus();
+	};
+
+	/**
+	 * Ensures that the picker mode is correct after a popup close.
+	 * @private
+	 */
+	PlanningCalendarHeader.prototype._handlePopupClosedEvent = function() {
+		this.getAggregation("_calendarPicker")._closedPickers();
 	};
 
 	/**

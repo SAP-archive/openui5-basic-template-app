@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var e={};e.render=function(e,r){var t=r.getTooltip_AsString();e.write("<div");e.writeControlData(r);if(t){e.writeAttributeEscaped("title",t)}e.addClass("sapUiUfdCurrency");if(r._bRenderNoValClass){e.addClass("sapUiUfdCurrencyNoVal")}e.writeClasses();e.write(">");e.write("<div");e.addClass("sapUiUfdCurrencyAlign");e.writeClasses();e.write(">");e.write("<span");e.writeAttribute("dir","ltr");e.addClass("sapUiUfdCurrencyValue");e.writeClasses();e.write(">");e.writeEscaped(r.getFormattedValue());e.write("</span>");e.write("<span");e.addClass("sapUiUfdCurrencyCurrency");e.writeClasses();e.write(">");e.writeEscaped(r._getCurrency());e.write("</span>");e.write("</div>");e.write("</div>")};return e},true);
+sap.ui.define([],function(){"use strict";var e={apiVersion:2};e.render=function(e,n){var r=n.getTooltip_AsString();e.openStart("div",n);if(r){e.attr("title",r)}e.class("sapUiUfdCurrency");if(n._bRenderNoValClass){e.class("sapUiUfdCurrencyNoVal")}e.openEnd();e.openStart("div");e.class("sapUiUfdCurrencyAlign");e.openEnd();e.openStart("span");e.attr("dir","ltr");e.class("sapUiUfdCurrencyValue");e.openEnd();e.text(n.getFormattedValue());e.close("span");e.openStart("span");e.class("sapUiUfdCurrencyCurrency");e.openEnd();e.text(n._getCurrency());e.close("span");e.close("div");e.close("div")};return e},true);

@@ -17,6 +17,19 @@
 	}
 }
 
+.sapUxAPObjectPageHeaderActionButtonHideText,
+.sapUxAPObjectPageHeaderActionButtonHideIcon {
+
+	&.sapMBtn:hover > .sapMBtnDefault.sapMBtnHoverable:not(.sapMBtnActive) {
+		background-color: @sapUiButtonLiteHoverBackground;
+		border-color:     @sapUiButtonLiteHoverBorderColor;
+	}
+	& > .sapMBtnDefault {
+		border-color: transparent;
+		background-color: transparent;
+	}
+}
+
 .sapUxAPObjectPageHeaderIdentifier {
 	.sapUxAPObjectPageHeaderIdentifierTitle {
 		color: @sapUiGroupTitleTextColor;
@@ -80,14 +93,6 @@ html .sapUiContainer-Narrow .sapUiSizeCompact.sapUxAPObjectPageHeaderLockBtn .sa
 	margin-top: -0.25rem;
 }
 
-.sapUxAPObjectPageHeaderPlaceholder {
-	background-color: @sapUiContentImagePlaceholderBackground;
-}
-
-.sapUxAPObjectPageHeaderPlaceholder > .sapUiIcon {
-	color: @sapUiContentImagePlaceholderForegroundColor;
-}
-
 .sapUxAPObjectPageHeaderObjectImageContainer .sapUiIcon {
-	color: @sapUiContentIconColor;
+	color: @sapUiContentContrastTextColor;
 }

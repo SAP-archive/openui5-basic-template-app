@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["./isPlainObject"], function(isPlainObject) {
@@ -92,9 +92,12 @@ sap.ui.define(["./isPlainObject"], function(isPlainObject) {
 			throw new TypeError("Cloning is only supported for plain objects");
 		}
 
-		var oClone =  {};
+		var oClone = {};
 
 		for (var key in src) {
+			if (key === "__proto__") {
+				continue;
+			}
 			oClone[key] = clone(src[key], depth + 1, maxDepth);
 		}
 

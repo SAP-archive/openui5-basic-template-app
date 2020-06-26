@@ -1,11 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides class sap.ui.model.odata.v4.lib._AggregationHelper
-sap.ui.define([], function () {
+sap.ui.define([
+	"sap/ui/model/Filter"
+], function (Filter) {
 	"use strict";
 
 	var mAllowedAggregateDetails2Type =  {
@@ -144,6 +146,9 @@ sap.ui.define([], function () {
 		 * @param {string} [mQueryOptions.$filter]
 		 *   The value for a "$filter" system query option; it is removed from the returned map, but
 		 *   not from <code>mQueryOptions</code> itself
+		 * @param {string} [mQueryOptions.$$filterBeforeAggregate]
+		 *   The value for a filter which is applied before the aggregation; it is removed from the
+		 *   returned map, but not from <code>mQueryOptions</code> itself
 		 * @param {string} [mQueryOptions.$orderby]
 		 *   The value for a "$orderby" system query option; it is removed from the returned map,
 		 *   but not from <code>mQueryOptions</code> itself
@@ -166,7 +171,8 @@ sap.ui.define([], function () {
 		 *   <code>mAlias2MeasureAndMethod</code> is ignored
 		 * @returns {object}
 		 *   A map of key-value pairs representing the query string, including a value for the
-		 *   "$apply" system query option; it is a modified copy of <code>mQueryOptions</code>
+		 *   "$apply" system query option if needed; it is a modified copy of
+		 *   <code>mQueryOptions</code>
 		 * @throws {Error}
 		 *   If the given data aggregation object is unsupported
 		 *
@@ -280,7 +286,7 @@ sap.ui.define([], function () {
 				return sTransformation;
 			}
 
-			mQueryOptions = jQuery.extend({}, mQueryOptions);
+			mQueryOptions = Object.assign({}, mQueryOptions);
 
 			checkKeys(oAggregation, mAllowedAggregationKeys2Type);
 			oAggregation.groupLevels = oAggregation.groupLevels || [];
@@ -312,6 +318,11 @@ sap.ui.define([], function () {
 				aConcatAggregate.push("$count as UI5__count");
 				delete mQueryOptions.$count;
 			}
+
+			if (mQueryOptions.$$filterBeforeAggregate) {
+				sApply = "filter(" + mQueryOptions.$$filterBeforeAggregate + ")/" + sApply;
+				delete mQueryOptions.$$filterBeforeAggregate;
+			}
 			if (mQueryOptions.$filter) {
 				sApply += "/filter(" + mQueryOptions.$filter + ")";
 				delete mQueryOptions.$filter;
@@ -335,7 +346,9 @@ sap.ui.define([], function () {
 			} else if (sSkipTop) {
 				sApply += "/" + sSkipTop;
 			}
-			mQueryOptions.$apply = sApply;
+			if (sApply) {
+				mQueryOptions.$apply = sApply;
+			}
 
 			return mQueryOptions;
 		},
@@ -374,6 +387,76 @@ sap.ui.define([], function () {
 
 				return oDetails.min || oDetails.max;
 			});
+		},
+
+		/**
+		 * Splits a filter depending on the aggregation information into an array that consists of
+		 * two filters, one that must be applied after and one that must be applied before
+		 * aggregating the data.
+		 *
+		 * @param {sap.ui.model.Filter} oFilter
+		 *   The filter object that is split
+		 * @param {object} [oAggregation]
+		 *   An object holding the information needed for data aggregation;
+		 *   (see {@link _AggregationHelper#buildApply}).
+		 * @returns {sap.ui.model.Filter[]}
+		 *   An array that consists of two filters, the first one has to be applied after and the
+		 *   second one has to be applied before aggregating the data. Both can be
+		 *   <code>undefined</code>.
+		 */
+		splitFilter : function (oFilter, oAggregation) {
+			var aFiltersAfterAggregate = [],
+				aFiltersBeforeAggregate = [];
+
+			/*
+			 * Tells whether the given filter must be applied after aggregating data
+			 *
+			 * @param {sap.ui.model.Filter} oFilter
+			 *   A filter
+			 * @returns {boolean}
+			 *   Whether the filter must be applied after aggregating
+			 */
+			function isAfter(oFilter) {
+				return oFilter.aFilters
+					? oFilter.aFilters.some(isAfter)
+					: oFilter.sPath in oAggregation.aggregate;
+			}
+
+			/*
+			 * Splits the given filter tree along AND operations into filters that must be applied
+			 * after and filters that must be applied before aggregating the data.
+			 *
+			 * @param {sap.ui.model.Filter} oFilter
+			 *   A filter
+			 */
+			function split(oFilter) {
+				if (oFilter.aFilters && oFilter.bAnd) {
+					oFilter.aFilters.forEach(split);
+				} else {
+					(isAfter(oFilter) ? aFiltersAfterAggregate : aFiltersBeforeAggregate)
+						.push(oFilter);
+				}
+			}
+
+			/*
+			 * Wraps the given filters into a multi-filter concatenated with AND, if needed.
+			 *
+			 * @param {sap.ui.model.Filter[]} aFilters
+			 *   Some filters
+			 * @returns {sap.ui.model.Filter}
+			 *   A multi-filter, a single filter, or <code>undefined</code>
+			 */
+			function wrap(aFilters) {
+				return aFilters.length > 1 ? new Filter(aFilters, true) : aFilters[0];
+			}
+
+			if (!oAggregation || !oAggregation.aggregate) {
+				return [oFilter];
+			}
+
+			split(oFilter);
+
+			return [wrap(aFiltersAfterAggregate), wrap(aFiltersBeforeAggregate)];
 		}
 	};
 

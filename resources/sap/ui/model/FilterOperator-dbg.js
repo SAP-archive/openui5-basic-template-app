@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -58,7 +58,7 @@ sap.ui.define(function() {
 			 *
 			 * Used to filter all entries between the given boundaries.
 			 * The filter result contains the boundaries, but no entries before or further.
-			 * The order of the entries in the filter results is based on their occurence in the input list.
+			 * The order of the entries in the filter results is based on their occurrence in the input list.
 			 *
 			 * <b>Note, when used on strings:</b>
 			 * The String comparison is based on lexicographical ordering.
@@ -84,7 +84,7 @@ sap.ui.define(function() {
 			 *
 			 * Used to filter all entries, which are not between the given boundaries.
 			 * The filter result does not contains the boundaries, but only entries outside of the boundaries.
-			 * The order of the entries in the filter results is based on their occurence in the input list.
+			 * The order of the entries in the filter results is based on their occurrence in the input list.
 			 *
 			 * <b>Note, when used on strings:</b>
 			 * The String comparison is based on lexicographical ordering.

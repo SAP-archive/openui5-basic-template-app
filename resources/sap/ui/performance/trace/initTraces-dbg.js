@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -12,7 +12,7 @@ sap.ui.define(["sap/ui/performance/trace/FESR", "sap/base/Log"], function(FESR, 
 	"use strict";
 
 	/**
-	 * Determine wether to activate SAP Passport or FESR
+	 * Determines whether to activate SAP Passport or FESR.
 	 *
 	 * @function
 	 * @since 1.58
@@ -21,14 +21,20 @@ sap.ui.define(["sap/ui/performance/trace/FESR", "sap/base/Log"], function(FESR, 
 	 * @ui5-restricted sap.ui.core
 	 */
 	return function() {
-		var bActive = !!document.querySelector("meta[name=sap-ui-fesr][content=true]"),
-			aParamMatches = window.location.search.match(/[\?|&]sap-ui-(?:xx-)?fesr=(true|x|X|false)&?/);
+		var oFESRMeta = document.querySelector("meta[name=sap-ui-fesr]"),
+			sFESRMetaContent = oFESRMeta ? oFESRMeta.getAttribute("content") : undefined,
+			bActive =  !!sFESRMetaContent && sFESRMetaContent !== "false",
+			aParamMatches = window.location.search.match(/[\?|&]sap-ui-(?:xx-)?fesr=(true|x|X|false|.+)&?/),
+			sUrl = sFESRMetaContent && sFESRMetaContent !== "true" ? sFESRMetaContent : undefined;
+
 		if (aParamMatches) {
 			bActive = aParamMatches[1] && aParamMatches[1] != "false";
+			// FESR Definition via URL wins over meta
+			sUrl = ["true", "false", "x", "X", undefined].indexOf(aParamMatches[1]) === -1 ? aParamMatches[1] : sUrl;
 		}
 
 		if (typeof window.performance.getEntriesByType === "function") {
-			FESR.setActive(bActive);
+			FESR.setActive(bActive, sUrl);
 		} else {
 			Log.debug("FESR is not supported in clients without support of window.Performance extensions.");
 		}

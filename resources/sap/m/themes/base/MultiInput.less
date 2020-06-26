@@ -3,9 +3,45 @@
 /* Base theme                        */
 /* ================================= */
 
+@_sap_m_InputWithTokens_TokenizerMinWidth: 3.25rem;
+
+/*MIN-WIDTH variables*/
+/* rounding values to 2 symbols, because of IE and Edge */
+@_InputBase_Control_Tokens_MinWidth: round((@_InputBase_Control_OneIcon_MinWidth + @_sap_m_InputWithTokens_TokenizerMinWidth), 2);
+@_InputBase_Control_Tokens_ReadOnly_MinWidth: round((@_InputBase_Control_MinWidth + @_sap_m_InputWithTokens_TokenizerMinWidth), 2);
+@_InputBase_Control_Tokens_State_MinWidth: round((@_InputBase_Control_Tokens_MinWidth + @_sap_m_InputBaseWrapper_Sum_Border), 2);
+
+@_InputBase_Control_Tokens_MinWidth_Compact: round((@_InputBase_Control_OneIcon_MinWidth_Compact + @_sap_m_InputWithTokens_TokenizerMinWidth), 2);
+@_InputBase_Control_Tokens_ReadOnly_MinWidth_Compact: round((@_InputBase_Control_MinWidth_Compact + @_sap_m_InputWithTokens_TokenizerMinWidth), 2);
+@_InputBase_Control_Tokens_State_MinWidth_Compact: round((@_InputBase_Control_Tokens_MinWidth_Compact + @_sap_m_InputBaseWrapper_Sum_Border), 2);
+
+
+
 .sapMMultiInput:not(.sapMMultiInputHasTokens) {
 	& .sapMTokenizer {
 		padding-left: 0;
+ 	}
+}
+
+.sapMMultiInput.sapMMultiInputHasTokens .sapMTokenizer.sapMTokenizerNoNMore {
+	min-width: 2rem;
+}
+
+/* handle min-width calculation */
+.sapMMultiInput.sapMMultiInputHasTokens {
+	.sapMTokenizer {
+		min-width: @_sap_m_InputWithTokens_TokenizerMinWidth;
+	}
+
+	.sapMInputBaseContentWrapper {
+		min-width: @_InputBase_Control_Tokens_MinWidth;
+		&.sapMInputBaseContentWrapperState:not(.sapMInputBaseContentWrapperSuccess) {
+			min-width: @_InputBase_Control_Tokens_State_MinWidth;
+		}
+	}
+
+	&.sapMInputBaseReadonly .sapMInputBaseContentWrapper {
+		min-width: @_InputBase_Control_Tokens_ReadOnly_MinWidth;
 	}
 }
 
@@ -17,17 +53,12 @@
 
 .sapMMultiInput .sapMTokenizer {
 	z-index: 1;
-	flex: none;
+	max-height: 100%;
 }
 
 // prevent placing the multiinput over a busy indicator overlay
 .sapUiLocalBusy .sapMMultiInput .sapMTokenizer {
 	z-index: 0;
-}
-
-/* Workaround for missing disabled state of sap.m.Tokenizer */
-.sapMMultiInput.sapMInputBaseDisabled  {
-	pointer-events: none;
 }
 
 /* Keep placeholder invisible, when at least one token is chosen */
@@ -47,14 +78,31 @@
 	color: transparent;
 }
 
+.sapUiSizeCompact {
+	/* min-width calculations */
+	.sapMMultiInput.sapMMultiInputHasTokens {
+		.sapMInputBaseContentWrapper {
+			min-width: @_InputBase_Control_Tokens_MinWidth_Compact;
+			&.sapMInputBaseContentWrapperState:not(.sapMInputBaseContentWrapperSuccess) {
+				min-width: @_InputBase_Control_Tokens_State_MinWidth_Compact;
+				outline-offset: -3px;
+				.sapMToken {
+					margin-top: 0.0625rem;
+					margin-bottom: 0.0625rem;
+				}
+				.sapMTokenizerIndicator {
+					line-height: 1rem;
+				}
+			}
+		}
 
-
-.sapUiSizeCondensed .sapUiTableDataCell{
-
-	.sapMInputBaseContentWrapper {
-		height: 1.375rem;
-		border: none;
+		&.sapMInputBaseReadonly .sapMInputBaseContentWrapper {
+			min-width: @_InputBase_Control_Tokens_ReadOnly_MinWidth_Compact;
+		}
 	}
+}
+
+.sapUiSizeCondensed .sapUiTableDataCell {
 
 	.sapMTokenizer .sapMToken {
 		height: 1.125rem;
@@ -75,13 +123,38 @@
 		height: 1.25rem;
 	}
 
-	.sapMInputBase .sapMInputBaseIcon {
-		height: 1.375rem;
-		width: 1.375rem;
-		line-height: 1.375rem;
-	}
-
 	.sapMMultiInputIndicator {
 		line-height: 1.25rem;
+	}
+}
+
+/* MultiInput with description */
+.sapMMultiInput.sapMMultiInputHasTokens {
+	.sapMInputDescriptionWrapper {
+		max-width: ~"calc(100% - (@{_InputBase_Control_Tokens_MinWidth}))";
+		.sapMInputBaseState:not(.sapMInputBaseContentWrapperSuccess) & {
+			max-width: ~"calc(100% - (@{_InputBase_Control_Tokens_State_MinWidth}))";
+		}
+
+		.sapMInputBaseReadonly & {
+			max-width: ~"calc(100% - (@{_InputBase_Control_Tokens_ReadOnly_MinWidth}))";
+		}
+	}
+
+	&.sapMInputFocused .sapMTokenizer {
+		left: 0.125rem;
+	}
+
+	.sapUiSizeCompact & {
+		.sapMInputDescriptionWrapper {
+			max-width: ~"calc(100% - (@{_InputBase_Control_Tokens_MinWidth_Compact}))";
+			.sapMInputBaseState:not(.sapMInputBaseContentWrapperSuccess) & {
+				max-width: ~"calc(100% - (@{_InputBase_Control_Tokens_State_MinWidth_Compact}))";
+			}
+
+			.sapMInputBaseReadonly & {
+				max-width: ~"calc(100% - (@{_InputBase_Control_Tokens_ReadOnly_MinWidth_Compact}))";
+			}
+		}
 	}
 }

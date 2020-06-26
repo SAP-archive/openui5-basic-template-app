@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,7 +24,7 @@ sap.ui.define([
 		 * @class This class represents the selector plugin for the support tool functionality of UI5. This class is internal and all its functions must not be used by an application.
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 * @private
 		 * @alias sap.ui.core.support.plugins.Selector
 		 */
@@ -87,8 +87,8 @@ sap.ui.define([
 				that._oPopup.close(0);
 			};
 
-			jPopupRef.bind("click", this._fCloseHandler);
-			jQuery(document).bind("mousedown", this._fSelectHandler);
+			jPopupRef.on("click", this._fCloseHandler);
+			jQuery(document).on("mousedown", this._fSelectHandler);
 
 		};
 
@@ -96,11 +96,11 @@ sap.ui.define([
 		Selector.prototype.exit = function(oSupportStub){
 			this._oPopup.close(0);
 			if (this._fCloseHandler) {
-				jQueryDOM(document.getElementById(this._sPopupId)).unbind("click", this._fCloseHandler);
+				jQueryDOM(document.getElementById(this._sPopupId)).off("click", this._fCloseHandler);
 				this._fCloseHandler = null;
 			}
 			if (this._fSelectHandler) {
-				jQuery(document).unbind("mousedown", this._fSelectHandler);
+				jQuery(document).off("mousedown", this._fSelectHandler);
 				this._fSelectHandler = null;
 			}
 			Plugin.prototype.exit.apply(this, arguments);

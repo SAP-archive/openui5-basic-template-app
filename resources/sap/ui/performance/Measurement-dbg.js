@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -26,7 +26,7 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 	function PerfMeasurement() {
 
 		/**
-		 * Single Measurement Entry
+		 * Single Measurement Entry.
 		 *
 		 * @public
 		 * @typedef {object} module:sap/ui/performance/Measurement.Entry
@@ -302,9 +302,9 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 			var iTime = now();
 
 			var oMeasurement = mMeasurements[sId];
-			Log.info("Performance measurement end: " + sId + " on " + iTime);
 
 			if (oMeasurement && !oMeasurement.end) {
+				Log.info("Performance measurement end: " + sId + " on " + iTime);
 				oMeasurement.end = iTime;
 				if (oMeasurement.end >= oMeasurement.resume && oMeasurement.resume > 0) {
 					oMeasurement.duration = oMeasurement.duration + oMeasurement.end - oMeasurement.resume;

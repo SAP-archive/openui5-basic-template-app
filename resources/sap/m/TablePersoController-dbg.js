@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,11 +8,12 @@
 sap.ui.define([
 	'./TablePersoDialog',
 	'sap/ui/base/ManagedObject',
+	'sap/ui/base/ManagedObjectRegistry',
 	"sap/ui/core/syncStyleClass",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(TablePersoDialog, ManagedObject, syncStyleClass, Log, jQuery) {
+	function(TablePersoDialog, ManagedObject, ManagedObjectRegistry, syncStyleClass, Log, jQuery) {
 	"use strict";
 
 
@@ -34,7 +35,7 @@ sap.ui.define([
 	 * @class Table Personalization Controller
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @alias sap.m.TablePersoController
 	 */
 	var TablePersoController = ManagedObject.extend("sap.m.TablePersoController", /** @lends sap.m.TablePersoController */
@@ -48,8 +49,8 @@ sap.ui.define([
 
 		metadata: {
 			properties: {
-				"contentWidth": {type: "sap.ui.core.CSSSize"},
-				"contentHeight": {type: "sap.ui.core.CSSSize", defaultValue: "20rem", since: "1.22"},
+				"contentWidth": {type: "sap.ui.core.CSSSize", defaultValue:"25rem"}, //TODO: put in TPD itself
+				"contentHeight": {type: "sap.ui.core.CSSSize", defaultValue: "28rem", since: "1.22"},
 				/**
 				 * Available options for the text direction are LTR and RTL. By default the control inherits the text direction from its parent control.
 				 */
@@ -90,6 +91,24 @@ sap.ui.define([
 
 	});
 
+	// apply the registry mixin
+	ManagedObjectRegistry.apply(TablePersoController, {
+		onDuplicate: function(sId, oldController, newController) {
+			if ( oldController._sapui_candidateForDestroy ) {
+				Log.debug("destroying dangling template " + oldController + " when creating new object with same ID");
+				oldController.destroy();
+			} else {
+				var sMsg = "adding TablePersoController with duplicate id '" + sId + "'";
+				// duplicate ID detected => fail or at least log a warning
+				if (sap.ui.getCore().getConfiguration().getNoDuplicateIds()) {
+					Log.error(sMsg);
+					throw new Error("Error: " + sMsg);
+				} else {
+					Log.warning(sMsg);
+				}
+			}
+		}
+	});
 
 	/**
 	 * Initializes the TablePersoController instance after creation.
@@ -149,7 +168,7 @@ sap.ui.define([
 	 *  onInit: function () {
 	 *
 	 *		// set explored app's demo model on this sample
-	 *		var oModel = new JSONModel(jQuery.sap.getModulePath("sap.ui.demo.mock", "/products.json"));
+	 *		var oModel = new JSONModel(sap.ui.require.toUrl("sap/ui/demo/mock/products.json"));
 	 *		var oGroupingModel = new JSONModel({ hasGrouping: false});
 	 *		this.getView().setModel(oModel);
 	 *		this.getView().setModel(oGroupingModel, 'Grouping');

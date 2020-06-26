@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,7 +20,7 @@ sap.ui.define([
 	"sap/base/util/deepEqual",
 	"sap/ui/events/PseudoEvents",
 	"sap/ui/thirdparty/jquery"
-], function(
+], function (
 	library,
 	Control,
 	Text,
@@ -60,7 +60,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @since 1.34.0
 	 *
 	 * @public
@@ -130,10 +130,20 @@ sap.ui.define([
 				 */
 				ariaLabel: {type: "string", group: "Accessibility", defaultValue: null},
 				/**
+				 * Renders the given link as root element and therefore enables the open in new tab / window functionality
+				 * @since 1.76
+				 */
+				url: {type: "sap.ui.core.URI", group: "Misc", defaultValue: null},
+				/**
 				 * Defines the type of text wrapping to be used (hyphenated or normal).
 				 * @since 1.60
 				 */
-				wrappingType : {type: "sap.m.WrappingType", group : "Appearance", defaultValue : WrappingType.Normal}
+				wrappingType: {type: "sap.m.WrappingType", group: "Appearance", defaultValue: WrappingType.Normal},
+				/**
+				 * Width of the control.
+				 * @since 1.72
+				 */
+				width: {type: "sap.ui.core.CSSSize", group: "Appearance"}
 			},
 			defaultAggregation: "tileContent",
 			aggregations: {
@@ -296,29 +306,43 @@ sap.ui.define([
 	 * @private
 	 */
 	GenericTile.prototype._initScopeContent = function (sTileClass) {
-		switch (this.getScope()) {
-			case library.GenericTileScope.Actions:
-				if (this.getState && this.getState() === library.LoadState.Disabled) {
+		if (!this.getState || this.getState() !== library.LoadState.Disabled) {
+			this._oMoreIcon = this._oMoreIcon || IconPool.createControlByURI({
+				id: this.getId() + "-action-more",
+				size: "1rem",
+				useIconTooltip: false,
+				src: "sap-icon://overflow"
+			}).addStyleClass("sapMPointer").addStyleClass(sTileClass + "MoreIcon");
+
+			this._oRemoveButton = this._oRemoveButton || new Button({
+				id: this.getId() + "-action-remove",
+				icon: "sap-icon://decline",
+				tooltip: this._oRb.getText("GENERICTILE_REMOVEBUTTON_TEXT")
+			}).addStyleClass("sapUiSizeCompact").addStyleClass(sTileClass + "RemoveButton");
+
+			this._oRemoveButton._bExcludeFromTabChain = true;
+
+			switch (this.getScope()) {
+				case library.GenericTileScope.Actions:
+					this._oMoreIcon.setVisible(true);
+					this._oRemoveButton.setVisible(true);
 					break;
-				}
-				this._oMoreIcon = this._oMoreIcon || IconPool.createControlByURI({
-						id: this.getId() + "-action-more",
-						size: "1rem",
-						useIconTooltip: false,
-						src: "sap-icon://overflow"
-					}).addStyleClass("sapMPointer").addStyleClass(sTileClass + "MoreIcon");
-
-				this._oRemoveButton = this._oRemoveButton || new Button({
-						id: this.getId() + "-action-remove",
-						icon: "sap-icon://decline",
-						tooltip: this._oRb.getText("GENERICTILE_REMOVEBUTTON_TEXT")
-					}).addStyleClass("sapUiSizeCompact").addStyleClass(sTileClass + "RemoveButton");
-
-				this._oRemoveButton._bExcludeFromTabChain = true;
-				break;
-			default:
-			// do nothing
+				case library.GenericTileScope.ActionMore:
+					this._oMoreIcon.setVisible(true);
+					this._oRemoveButton.setVisible(false);
+					break;
+				case library.GenericTileScope.ActionRemove:
+					this._oRemoveButton.setVisible(true);
+					this._oMoreIcon.setVisible(false);
+					break;
+				default:
+				// do nothing
+			}
 		}
+	};
+
+	GenericTile.prototype._isSmall = function() {
+		return this.getSizeBehavior() === TileSizeBehavior.Small || window.matchMedia("(max-width: 374px)").matches;
 	};
 
 	GenericTile.prototype.exit = function () {
@@ -360,14 +384,14 @@ sap.ui.define([
 		}
 		var iTiles = this.getTileContent().length;
 		for (var i = 0; i < iTiles; i++) {
-			this.getTileContent()[i].setDisabled(this.getState() === library.LoadState.Disabled);
+			this.getTileContent()[i].setProperty("disabled", this.getState() === library.LoadState.Disabled, true);
 		}
 
 		this._initScopeContent("sapMGT");
 		this._generateFailedText();
 
-		this.$().unbind("mouseenter");
-		this.$().unbind("mouseleave");
+		this.$().off("mouseenter");
+		this.$().off("mouseleave");
 
 		if (this._sParentResizeListenerId) {
 			ResizeHandler.deregister(this._sResizeListenerId);
@@ -389,23 +413,34 @@ sap.ui.define([
 		this._setupResizeClassHandler();
 
 		// attaches handler this._updateAriaAndTitle to the event mouseenter and removes attributes ARIA-label and title of all content elements
-		this.$().bind("mouseenter", this._updateAriaAndTitle.bind(this));
+		this.$().on("mouseenter", this._updateAriaAndTitle.bind(this));
 
 		// attaches handler this._removeTooltipFromControl to the event mouseleave and removes control's own tooltips (Truncated header text and MicroChart tooltip).
-		this.$().bind("mouseleave", this._removeTooltipFromControl.bind(this));
+		this.$().on("mouseleave", this._removeTooltipFromControl.bind(this));
 
 		var sMode = this.getMode();
-		if (sMode === library.GenericTileMode.LineMode && this._isScreenLarge()) {
-			// This class needs to be added in order to account for the paddings of the tile.
-			// As this LineMode tile is rendered with display: inline, we cannot apply padding to each line separately, but only the
-			// container can apply a padding for text containment. Thus, this class adds a preset padding-right to the tile's direct DOM parent.
-			this.$().parent().addClass("sapMGTLineModeContainer");
-			this._updateHoverStyle(true); //force update
+		var bScreenLarge = this._isScreenLarge();
+		if (sMode === library.GenericTileMode.LineMode) {
+			var $Parent = this.$().parent();
+			if (bScreenLarge) {
+				// This class needs to be added in order to account for the paddings of the tile.
+				// As this LineMode tile is rendered with display: inline, we cannot apply padding to each line separately, but only the
+				// container can apply a padding for text containment. Thus, this class adds a preset padding-right to the tile's direct DOM parent.
+				$Parent.addClass("sapMGTLineModeContainer");
 
-			if (this.getParent() instanceof Control) {
-				this._sParentResizeListenerId = ResizeHandler.register(this.getParent(), this._handleResize.bind(this));
+				$Parent.removeClass("sapMGTLineModeListContainer");
+				$Parent.addClass("sapMGTLineModeFloatingContainer");
+
+				this._updateHoverStyle(true); //force update
+
+				if (this.getParent() instanceof Control) {
+					this._sParentResizeListenerId = ResizeHandler.register(this.getParent(), this._handleResize.bind(this));
+				} else {
+					this._sParentResizeListenerId = ResizeHandler.register($Parent, this._handleResize.bind(this));
+				}
 			} else {
-				this._sParentResizeListenerId = ResizeHandler.register(this.$().parent(), this._handleResize.bind(this));
+				$Parent.removeClass("sapMGTLineModeFloatingContainer");
+				$Parent.addClass("sapMGTLineModeListContainer");
 			}
 		}
 
@@ -419,6 +454,25 @@ sap.ui.define([
 		if (sMode === library.GenericTileMode.LineMode) {
 			// attach handler in order to check the device type based on width and invalidate on change
 			Device.media.attachHandler(this._handleMediaChange, this, DEVICE_SET);
+		}
+
+		this.onDragComplete();
+	};
+
+	/**
+	 * Update Hover Overlay, Generic tile to remove Active Press state of generic Tile.
+	 * @private
+	 */
+	GenericTile.prototype.onDragComplete = function () {
+		//Check if "sapMGTPressActive" is present on Generic Tile after it has been Dragged, if Yes clear the class to remove the Press state of Generic tile.
+		if (this.hasStyleClass("sapMGTPressActive")) {
+			this.removeStyleClass("sapMGTPressActive");
+			if (this.$("hover-overlay").length > 0) {
+				this.$("hover-overlay").removeClass("sapMGTPressActive");
+			}
+			if (this.getMode() === library.GenericTileMode.LineMode) {
+				this.removeStyleClass("sapMGTLineModePress");
+			}
 		}
 	};
 
@@ -446,7 +500,7 @@ sap.ui.define([
 			}
 		}.bind(this);
 
-		jQuery(window).resize(fnCheckMedia);
+		jQuery(window).on("resize", fnCheckMedia);
 		fnCheckMedia();
 	};
 
@@ -570,7 +624,7 @@ sap.ui.define([
 
 	/**
 	 * Calculates all style and caches it if it has changed.
-	 * @returns {boolean} True if the data has changed, false if no changes have been detected by jQuery.sap.equal
+	 * @returns {boolean} True if the data has changed, false if no changes have been detected by deepEqual
 	 * @private
 	 */
 	GenericTile.prototype._getStyleData = function () {
@@ -757,6 +811,7 @@ sap.ui.define([
 
 	/* --- Event Handling --- */
 	GenericTile.prototype.ontouchstart = function () {
+		this.addStyleClass("sapMGTPressActive");
 		if (this.$("hover-overlay").length > 0) {
 			this.$("hover-overlay").addClass("sapMGTPressActive");
 		}
@@ -766,12 +821,14 @@ sap.ui.define([
 	};
 
 	GenericTile.prototype.ontouchcancel = function () {
+		this.removeStyleClass("sapMGTPressActive");
 		if (this.$("hover-overlay").length > 0) {
 			this.$("hover-overlay").removeClass("sapMGTPressActive");
 		}
 	};
 
 	GenericTile.prototype.ontouchend = function () {
+		this.removeStyleClass("sapMGTPressActive");
 		if (this.$("hover-overlay").length > 0) {
 			this.$("hover-overlay").removeClass("sapMGTPressActive");
 		}
@@ -783,7 +840,7 @@ sap.ui.define([
 	GenericTile.prototype.ontap = function (event) {
 		var oParams;
 		if (this._bTilePress && this.getState() !== library.LoadState.Disabled) {
-			this.$().focus();
+			this.$().trigger("focus");
 			oParams = this._getEventParams(event);
 			this.firePress(oParams);
 			event.preventDefault();
@@ -792,6 +849,7 @@ sap.ui.define([
 
 	GenericTile.prototype.onkeydown = function (event) {
 		if (PseudoEvents.events.sapselect.fnCheck(event) && this.getState() !== library.LoadState.Disabled) {
+			this.addStyleClass("sapMGTPressActive");
 			if (this.$("hover-overlay").length > 0) {
 				this.$("hover-overlay").addClass("sapMGTPressActive");
 			}
@@ -817,7 +875,7 @@ sap.ui.define([
 		var oParams,
 			bFirePress = false,
 			sScope = this.getScope(),
-			bActionsScope = sScope === library.GenericTileScope.Actions;
+			bActionsScope = sScope === library.GenericTileScope.Actions || sScope === library.GenericTileScope.ActionRemove;
 
 		if (bActionsScope && (PseudoEvents.events.sapdelete.fnCheck(event) || PseudoEvents.events.sapbackspace.fnCheck(event))) {
 			oParams = {
@@ -828,6 +886,7 @@ sap.ui.define([
 			bFirePress = true;
 		}
 		if (PseudoEvents.events.sapselect.fnCheck(event) && this.getState() !== library.LoadState.Disabled) {
+			this.addStyleClass("sapMGTPressActive");
 			if (this.$("hover-overlay").length > 0) {
 				this.$("hover-overlay").removeClass("sapMGTPressActive");
 			}
@@ -859,6 +918,7 @@ sap.ui.define([
 	};
 
 	GenericTile.prototype.setHeader = function (title) {
+		this.setProperty("header", title);
 		this._oTitle.setText(title);
 		return this;
 	};
@@ -893,9 +953,9 @@ sap.ui.define([
 		// when subheader is available, the header can have maximal 4 lines and the subheader can have 1 line
 		// when subheader is unavailable, the header can have maximal 5 lines
 		if (bSubheader) {
-			this._oTitle.setMaxLines(4);
+			this._oTitle.setProperty("maxLines", 4, true);
 		} else {
-			this._oTitle.setMaxLines(5);
+			this._oTitle.setProperty("maxLines", 5, true);
 		}
 
 		this._changeTileContentContentVisibility(false);
@@ -910,9 +970,9 @@ sap.ui.define([
 		// when subheader is available, the header can have maximal 2 lines and the subheader can have 1 line
 		// when subheader is unavailable, the header can have maximal 3 lines
 		if (bSubheader) {
-			this._oTitle.setMaxLines(2);
+			this._oTitle.setProperty("maxLines", 2, true);
 		} else {
-			this._oTitle.setMaxLines(3);
+			this._oTitle.setProperty("maxLines", 3, true);
 		}
 
 		this._changeTileContentContentVisibility(true);
@@ -998,7 +1058,7 @@ sap.ui.define([
 			case library.LoadState.Failed:
 				return sAriaText + "\n" + this._oFailedText.getText();
 			default :
-				if (jQuery.trim(sAriaText).length === 0) { // If the string is empty or just whitespace, IE renders an empty tooltip (e.g. "" + "\n" + "")
+				if (sAriaText.trim().length === 0) { // If the string is empty or just whitespace, IE renders an empty tooltip (e.g. "" + "\n" + "")
 					return "";
 				} else {
 					return sAriaText;
@@ -1021,7 +1081,7 @@ sap.ui.define([
 		if (!sAriaText || this._isTooltipSuppressed()) {
 			sAriaText = this._getAriaAndTooltipText(); // ARIA label set by the control
 		}
-		if (this.getScope() === library.GenericTileScope.Actions) {
+		if (this._isInActionScope()) {
 			sAriaText = this._oRb.getText("GENERICTILE_ACTIONS_ARIA_TEXT") + " " + sAriaText;
 		}
 		if (sAriaLabel) {
@@ -1057,12 +1117,24 @@ sap.ui.define([
 	 */
 	GenericTile.prototype._checkFooter = function (tileContent, control) {
 		var sState = control.getState();
-		var bActions = this.getScope() === library.GenericTileScope.Actions || this._bShowActionsView === true;
+		var bActions = this._isInActionScope() || this._bShowActionsView === true;
 		if (sState === library.LoadState.Failed || bActions && sState !== library.LoadState.Disabled) {
 			tileContent.setRenderFooter(false);
 		} else {
 			tileContent.setRenderFooter(true);
 		}
+	};
+
+	/**
+	 * Shows if the scope is set to any action mode
+	 *
+	 * @return {boolean} True if the scope is set to an action scope, else false
+	 * @private
+	 */
+	GenericTile.prototype._isInActionScope = function ()  {
+		return this.getScope() === library.GenericTileScope.Actions
+			|| this.getScope() === library.GenericTileScope.ActionMore
+			|| this.getScope() === library.GenericTileScope.ActionRemove;
 	};
 
 	/**
@@ -1074,8 +1146,8 @@ sap.ui.define([
 	GenericTile.prototype._generateFailedText = function () {
 		var sCustomFailedMsg = this.getFailedText();
 		var sFailedMsg = sCustomFailedMsg ? sCustomFailedMsg : this._sFailedToLoad;
-		this._oFailedText.setText(sFailedMsg);
-		this._oFailedText.setTooltip(sFailedMsg);
+		this._oFailedText.setProperty("text", sFailedMsg, true);
+		this._oFailedText.setAggregation("tooltip", sFailedMsg, true);
 	};
 
 	/**
@@ -1086,7 +1158,7 @@ sap.ui.define([
 	 */
 	GenericTile.prototype._isTooltipSuppressed = function () {
 		var sTooltip = this.getTooltip_Text();
-		if (sTooltip && sTooltip.length > 0 && jQuery.trim(sTooltip).length === 0) {
+		if (sTooltip && sTooltip.length > 0 && sTooltip.trim().length === 0) {
 			return true;
 		} else {
 			return false;
@@ -1143,38 +1215,38 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-    GenericTile.prototype._setTooltipFromControl = function () {
-        var sTooltip = "";
-        var bIsFirst = true;
-        var aTiles = this.getTileContent();
+	GenericTile.prototype._setTooltipFromControl = function () {
+		var sTooltip = "";
+		var bIsFirst = true;
+		var aTiles = this.getTileContent();
 
-        if (this._oTitle.getText()) {
-            sTooltip = this._oTitle.getText();
-            bIsFirst = false;
-        }
+		if (this._oTitle.getText()) {
+			sTooltip = this._oTitle.getText();
+			bIsFirst = false;
+		}
 
-        if (this.getSubheader()) {
-            sTooltip += (bIsFirst ? "" : "\n") + this.getSubheader();
-            bIsFirst = false;
-        }
+		if (this.getSubheader()) {
+			sTooltip += (bIsFirst ? "" : "\n") + this.getSubheader();
+			bIsFirst = false;
+		}
 
-        // not valid in actions scope and LineMode
-        if (this.getScope() !== library.GenericTileScope.Actions && this.getMode() !== library.GenericTileMode.LineMode ) {
-            if (aTiles[0] && aTiles[0].getTooltip_AsString() && aTiles[0].getTooltip_AsString() !== "" ) {
-                sTooltip += (bIsFirst ? "" : "\n") + aTiles[0].getTooltip_AsString();
-                bIsFirst = false;
-            }
-            if (this.getFrameType() === "TwoByOne" && aTiles[1] && aTiles[1].getTooltip_AsString() && aTiles[1].getTooltip_AsString() !== ""){
-                sTooltip += (bIsFirst ? "" : "\n") + aTiles[1].getTooltip_AsString();
-            }
-        }
+		// not valid in actions scope and LineMode
+		if (!this._isInActionScope() && this.getMode() !== library.GenericTileMode.LineMode) {
+			if (aTiles[0] && aTiles[0].getTooltip_AsString() && aTiles[0].getTooltip_AsString() !== "") {
+				sTooltip += (bIsFirst ? "" : "\n") + aTiles[0].getTooltip_AsString();
+				bIsFirst = false;
+			}
+			if (this.getFrameType() === "TwoByOne" && aTiles[1] && aTiles[1].getTooltip_AsString() && aTiles[1].getTooltip_AsString() !== "") {
+				sTooltip += (bIsFirst ? "" : "\n") + aTiles[1].getTooltip_AsString();
+			}
+		}
 
-        // when user does not set tooltip, apply the tooltip below
-        if (sTooltip && !this._getTooltipText() && !this._isTooltipSuppressed()) {
-            this.$().attr("title", sTooltip.trim());
-            this._bTooltipFromControl = true;
-        }
-    };
+		// when user does not set tooltip, apply the tooltip below
+		if (sTooltip && !this._getTooltipText() && !this._isTooltipSuppressed()) {
+			this.$().attr("title", sTooltip.trim());
+			this._bTooltipFromControl = true;
+		}
+	};
 
 	/**
 	 * Updates the attributes ARIA-label and title of the GenericTile. The updated attribute title is used for tooltip as well.
@@ -1191,10 +1263,10 @@ sap.ui.define([
 		if ($Tile.attr("title") !== sAriaAndTitleText) {
 			$Tile.attr("aria-label", sAriaText);
 		}
-		if (this.getScope() === library.GenericTileScope.Actions) {
-			$Tile.find('*:not(.sapMGTRemoveButton)').removeAttr("aria-label").removeAttr("title").unbind("mouseenter");
+		if (this._isInActionScope()) {
+			$Tile.find('*:not(.sapMGTRemoveButton)').removeAttr("aria-label").removeAttr("title").off("mouseenter");
 		} else {
-			$Tile.find('*').removeAttr("aria-label").removeAttr("title").unbind("mouseenter");
+			$Tile.find('*').removeAttr("aria-label").removeAttr("title").off("mouseenter");
 		}
 		this._setTooltipFromControl();
 	};
@@ -1233,10 +1305,10 @@ sap.ui.define([
 			sScope = this.getScope(),
 			oDomRef = this.getDomRef();
 
-		if (sScope === library.GenericTileScope.Actions && oEvent.target.id.indexOf("-action-remove") > -1) {//tap on icon remove in Actions scope
+		if ((sScope === library.GenericTileScope.Actions || library.GenericTileScope.ActionRemove) && oEvent.target.id.indexOf("-action-remove") > -1) {//tap on icon remove in Actions scope
 			sAction = GenericTile._Action.Remove;
 			oDomRef = this._oRemoveButton.getPopupAnchorDomRef();
-		} else if (sScope === library.GenericTileScope.Actions) {
+		} else if (sScope === library.GenericTileScope.Actions || sScope === library.GenericTileScope.ActionMore) {
 			oDomRef = this._oMoreIcon.getDomRef();
 		}
 		oParams = {

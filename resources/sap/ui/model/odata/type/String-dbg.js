@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -84,12 +84,15 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @alias sap.ui.model.odata.type.String
 	 * @param {object} [oFormatOptions]
-	 *   format options as defined in the interface of {@link sap.ui.model.SimpleType}; this
-	 *   type ignores them since it does not support any format options
+	 *   format options as defined in the interface of {@link sap.ui.model.SimpleType}
+	 * @param {boolean} [oFormatOptions.parseKeepsEmptyString=false]
+	 *   if <code>true</code>, the empty string <code>""</code> is parsed to <code>""</code> and
+	 *   <code>nullable=false</code> does not mean "input is mandatory". Otherwise the empty string
+	 *   <code>""</code> is parsed to <code>null</code> which might be rejected.
 	 * @param {object} [oConstraints]
 	 *   constraints; {@link #validateValue validateValue} throws an error if any constraint is
 	 *   violated
@@ -98,25 +101,47 @@ sap.ui.define([
 	 *   leading zeros are removed from the value and while parsing the value is enhanced with
 	 *   leading zeros (if a maxLength constraint is given) or leading zeros are removed from the
 	 *   value (if no maxLength constraint is given); this constraint is supported since 1.35.0.
+	 *
 	 *   To make this type behave as ABAP type NUMC, use
 	 *   <code>oConstraints.isDigitSequence=true</code> together with
 	 *   <code>oConstraints.maxLength</code>.
+	 *
+	 *   A type with <code>isDigitSequence=true</code> and <code>nullable=false</code> does not
+	 *   parse the empty string to <code>null</code> or "", but to "0" instead. This overrides
+	 *   <code>parseKeepsEmptyString</code> and means that "input is mandatory" does not hold here.
 	 * @param {int|string} [oConstraints.maxLength]
 	 *   the maximal allowed length of the string; unlimited if not defined
 	 * @param {boolean|string} [oConstraints.nullable=true]
 	 *   if <code>true</code>, the value <code>null</code> is accepted. The constraint
 	 *   <code>nullable=false</code> is interpreted as "input is mandatory"; empty user input is
-	 *   rejected then.
+	 *   rejected then (see <code>parseKeepsEmptyString</code> and <code>isDigitSequence</code> for
+	 *   exceptions).
 	 * @public
 	 * @since 1.27.0
 	 */
 	var EdmString = ODataType.extend("sap.ui.model.odata.type.String", {
-				constructor : function (oFormatOptions, oConstraints) {
-					ODataType.apply(this, arguments);
-					setConstraints(this, oConstraints);
+			constructor : function (oFormatOptions, oConstraints) {
+				var vParseKeepsEmptyString
+						= oFormatOptions ? oFormatOptions.parseKeepsEmptyString : undefined;
+
+				ODataType.apply(this, arguments);
+				setConstraints(this, oConstraints);
+
+				this._sParsedEmptyString = null;
+
+				if (this.oConstraints && this.oConstraints.nullable === false
+						&& this.oConstraints.isDigitSequence) {
+					this._sParsedEmptyString = "0";
+				} else if (vParseKeepsEmptyString !== undefined) {
+					if (vParseKeepsEmptyString === true) {
+						this._sParsedEmptyString = "";
+					} else if (vParseKeepsEmptyString !== false) {
+						Log.warning("Illegal parseKeepsEmptyString: " + vParseKeepsEmptyString,
+							null, this.getName());
+					}
 				}
 			}
-		);
+	});
 
 	/**
 	 * Formats the given value to the given target type.
@@ -155,9 +180,12 @@ sap.ui.define([
 	 * leading zeros, if <code>maxLength</code> constraint is given, or leading zeros are removed
 	 * from parsed string.
 	 *
-	 * Note: An empty input string (<code>""</code>) is parsed to <code>null</code>. This value will
-	 * be rejected with a {@link sap.ui.model.ValidateException ValidateException} by
-	 * {@link #validateValue} if the constraint <code>nullable</code> is <code>false</code>.
+	 * Note:
+	 * Depending on the format option <code>parseKeepsEmptyString</code>, an empty input
+	 * string (<code>""</code>) is either parsed to <code>""</code> or <code>null</code>.
+	 * If the constraint <code>nullable</code> is <code>false</code>, a <code>null</code>
+	 * value is rejected with a {@link sap.ui.model.ValidateException ValidateException} raised
+	 * in the {@link #validateValue} method.
 	 *
 	 * @param {string|number|boolean} vValue
 	 *   the value to be parsed
@@ -165,7 +193,7 @@ sap.ui.define([
 	 *   the source type (the expected type of <code>vValue</code>).
 	 *   See {@link sap.ui.model.odata.type} for more information.
 	 * @returns {string}
-	 *   the parsed value or <code>null</code> if <code>vValue</code> is <code>""</code>
+	 *   the parsed value
 	 * @throws {sap.ui.model.ParseException}
 	 *   if <code>sSourceType</code> is unsupported
 	 * @public
@@ -173,7 +201,9 @@ sap.ui.define([
 	EdmString.prototype.parseValue = function (vValue, sSourceType) {
 		var sResult;
 
-		sResult = vValue === "" ? null : StringType.prototype.parseValue.apply(this, arguments);
+		sResult = vValue === ""
+			? this._sParsedEmptyString
+			: StringType.prototype.parseValue.apply(this, arguments);
 
 		if (isDigitSequence(sResult, this.oConstraints)) {
 			sResult = sResult.replace(rLeadingZeros, "");
@@ -190,7 +220,6 @@ sap.ui.define([
 	 *
 	 * @param {string} sValue
 	 *   the value to be validated
-	 * @returns {void}
 	 * @throws {sap.ui.model.ValidateException} if the value is not valid
 	 * @public
 	 */

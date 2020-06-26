@@ -1,8 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
+// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
+// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
+// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
+sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 sap.ui.define([
 	"sap/ui/core/Control",
@@ -38,7 +43,7 @@ sap.ui.define([
 	 * and requests, unified behavior of instant and deferred uploads, as well as improved progress indication.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @constructor
 	 * @public
 	 * @since 1.62
@@ -350,10 +355,10 @@ sap.ui.define([
 		if (this._oEditedItem) {
 			oInput = this._oEditedItem._getFileNameEdit().$("inner");
 			if (oInput) {
-				oInput.focus(function () {
+				oInput.on("focus", function () {
 					oInput.selectText(0, oInput.val().length);
 				});
-				oInput.focus();
+				oInput.trigger("focus");
 			}
 		}
 
@@ -574,7 +579,7 @@ sap.ui.define([
 
 	/**
 	 * Provides access to the instance of the inner {@link sap.m.List} control, so that it can be customized.
-	 * @return {List} The inner {@link sap.m.List} control.
+	 * @return {sap.m.List} The inner {@link sap.m.List} control.
 	 * @public
 	 */
 	UploadSet.prototype.getList = function () {
@@ -622,7 +627,7 @@ sap.ui.define([
 	/**
 	 * Returns an instance of the default <code>sap.ui.unified.FileUploader</code> used for adding files using
 	 * the operating system's open file dialog, so that it can be customized, for example made invisible or assigned a different icon.
-	 * @return {FileUploader} Instance of the default <code>sap.ui.unified.FileUploader</code>.
+	 * @return {sap.ui.unified.FileUploader} Instance of the default <code>sap.ui.unified.FileUploader</code>.
 	 * @public
 	 */
 	UploadSet.prototype.getDefaultFileUploader = function () {
@@ -655,7 +660,7 @@ sap.ui.define([
 	/**
 	 * Attaches all necessary handlers to the given uploader instance, so that the progress and status of the upload can be
 	 * displayed and monitored.
-	 * @param {Uploader} oUploader Instance of <code>sap.m.upload.Uploader</code> to which the default request handlers are attached.
+	 * @param {sap.m.upload.Uploader} oUploader Instance of <code>sap.m.upload.Uploader</code> to which the default request handlers are attached.
 	 * @public
 	 */
 	UploadSet.prototype.registerUploaderEvents = function (oUploader) {

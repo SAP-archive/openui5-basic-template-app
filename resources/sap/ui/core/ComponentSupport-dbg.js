@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -32,17 +32,74 @@ sap.ui.define([
 	/**
 	 * The module <code>sap/ui/core/ComponentSupport</code> provides functionality
 	 * which is used to find declared Components in the HTML page and to create
-	 * the Component instances which will be put into a ComponentContainer.
+	 * the Component instances which will be put into a {@link sap.ui.core.ComponentContainer}.
 	 *
 	 * The {@link module:sap/ui/core/ComponentSupport.run} function is called automatically once the module has been required.
 	 * This allows declarative support for components.
+	 *
+	 * <h3>Usage</h3>
+	 * To enable the <code>sap/ui/core/ComponentSupport</code> include it as the <code>oninit</code> module in the bootstrap:
+	 * <pre>
+	 * &lt;script id="sap-ui-bootstrap"
+	 *     src="/resources/sap-ui-core.js"
+	 *     ...
+	 *     data-sap-ui-oninit="module:sap/ui/core/ComponentSupport"
+	 *     ...>
+	 * &lt;/script>
+	 * </pre>
+	 *
+	 * To load and render components inside the HTML page, a special data attribute has to be specified
+	 * on the respective DOM elements: <code>data-sap-ui-component</code>.
+	 * All DOM elements marked with this data attribute will be regarded as container elements for the created
+	 * <code>ComponentContainer</code> instances.
+	 *
+	 * <pre>
+	 * &lt;body id="content" class="sapUiBody sapUiSizeCompact">
+	 *     ...
+	 *     &lt;div data-sap-ui-component
+	 *         data-id="container"
+	 *         data-name="sap.ui.core.samples.formatting"
+	 *         ...
+	 *         data-handle-validation="true"
+	 *         ...>
+	 *     &lt;/div>
+	 *     ...
+	 * &lt;/body>
+	 * </pre>
+	 *
+	 * <h3>Configuration</h3>
+	 * All configuration settings for the <code>ComponentContainer</code> have to be defined as <code>data</code>
+	 * attributes on the respective HTML tags.
+	 * Each data attribute will be interpreted as a setting and parsed considering
+	 * the data type of the matching property in the <code>ComponentContainer</code>.
+	 *
+	 * As HTML is case-insensitive, in order to define a property with upper-case characters, you have to "escape" them
+	 * with a dash character, similar to CSS attributes.
+	 * The following code gives an example:
+	 *
+	 * <pre>
+	 * &lt;div data-sap-ui-component ... data-handle-validation="true" ...>&lt;/div>
+	 * </pre>
+	 *
+	 * <b>Beware:</b>
+	 *
+	 * The <code>ComponentSupport</code> module enforces asynchronous loading of the
+	 * respective component and its library dependencies.
+	 * This is done by applying default settings for the following properties of the <code>ComponentContainer</code>:
+	 *
+	 * <ul>
+	 *   <li><code>async</code> {boolean} (<b>forced to <code>true</code></b>)</li>
+	 *   <li><code>manifest</code> {boolean|string} (<b>forced to <code>true</code> if no string is provided to ensure manifest first</b>)</li>
+	 *   <li><code>lifecycle</code> {sap.ui.core.ComponentLifecycle} (defaults to <code>Container</code>)</li>
+	 *   <li><code>autoPrefixId</code> {boolean} (defaults to <code>true</code>)</li>
+	 * </ul>
 	 *
 	 * See {@link topic:82a0fcecc3cb427c91469bc537ebdddf Declarative API for Initial Components}.
 	 *
 	 * @author SAP SE
 	 * @public
 	 * @since 1.58.0
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @namespace
 	 * @alias module:sap/ui/core/ComponentSupport
 	 */
@@ -74,7 +131,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Find all DOM elements with the attribute <code>data-sap-ui-component</div>
+	 * Find all DOM elements with the attribute <code>data-sap-ui-component</code>
 	 * and parse the attributes from these DOM elements for the settings of the
 	 * <code>ComponentContainer</code> which will be placed into these DOM elements.
 	 *
@@ -111,7 +168,8 @@ sap.ui.define([
 					var oProperty = ComponentContainerMetadata.getProperty(sKey);
 					var oEvent = !oProperty && ComponentContainerMetadata.getEvent(sKey);
 					if (!oProperty && !oEvent) {
-						throw new Error("Property or event \"" + sKey + "\" does not exist in sap.ui.core.ComponentContainer");
+						Log.warning("Property or event \"" + sKey + "\" will be ignored as it does not exist in sap.ui.core.ComponentContainer");
+						continue;
 					}
 					if (oProperty) {
 						var oType = DataType.getType(oProperty.type);

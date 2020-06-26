@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,7 +20,7 @@ sap.ui.define([
 		 * This class is only for testing purposes for support tool communication.
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 * @private
 		 * @alias sap.ui.core.support.plugins.MessageTest
 		 */
@@ -68,7 +68,7 @@ sap.ui.define([
 				report(that, that.getId() + "Msg", sVal, false);
 			};
 
-			this.$("send").bind("click", this._fSendHandler);
+			this.$("send").on("click", this._fSendHandler);
 			report(this, Support.EventType.SETUP, "", true);
 		};
 
@@ -76,7 +76,7 @@ sap.ui.define([
 		MessageTest.prototype.exit = function(oSupportStub){
 			report(this, Support.EventType.TEAR_DOWN, "", true);
 			if (this._fSendHandler) {
-				this.$("send").unbind("click", this._fSendHandler);
+				this.$("send").off("click", this._fSendHandler);
 				this._fSendHandler = null;
 			}
 			Plugin.prototype.exit.apply(this, arguments);

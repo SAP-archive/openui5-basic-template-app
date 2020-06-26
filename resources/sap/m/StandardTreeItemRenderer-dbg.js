@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['./TreeItemBaseRenderer', 'sap/ui/core/Renderer'],
+sap.ui.define(["./TreeItemBaseRenderer", "sap/ui/core/Renderer"],
 	function(TreeItemBaseRenderer, Renderer) {
 	"use strict";
 
@@ -13,6 +13,7 @@ sap.ui.define(['./TreeItemBaseRenderer', 'sap/ui/core/Renderer'],
 	 * @namespace
 	 */
 	var StandardTreeItemRenderer = Renderer.extend(TreeItemBaseRenderer);
+	StandardTreeItemRenderer.apiVersion = 2;
 
 	StandardTreeItemRenderer.renderLIContent = function(rm, oLI) {
 
@@ -21,17 +22,13 @@ sap.ui.define(['./TreeItemBaseRenderer', 'sap/ui/core/Renderer'],
 			rm.renderControl(oLI._getIconControl());
 		}
 
-		rm.writeEscaped(oLI.getTitle());
+		rm.text(oLI.getTitle());
 
 	};
 
 	StandardTreeItemRenderer.renderLIAttributes = function(rm, oLI) {
 		TreeItemBaseRenderer.renderLIAttributes.apply(this, arguments);
-		rm.addClass("sapMSTI");
-	};
-
-	StandardTreeItemRenderer.getAriaLabelledBy = function(oLI) {
-		return oLI.getId() + "-content";
+		rm.class("sapMSTI");
 	};
 
 	return StandardTreeItemRenderer;

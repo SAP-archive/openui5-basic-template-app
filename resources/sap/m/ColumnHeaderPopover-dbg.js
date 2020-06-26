@@ -1,32 +1,22 @@
 /*
  * ! OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	'sap/ui/core/Control',
-	'sap/ui/model/base/ManagedObjectModel',
 	'sap/m/Toolbar',
-	'sap/m/ResponsivePopover',
 	'sap/m/Button',
-	'sap/m/ToggleButton',
+	'sap/m/ResponsivePopover',
 	'sap/m/ToolbarSpacer',
-	'sap/ui/model/Filter',
-	'sap/ui/model/FilterOperator',
-	'sap/ui/dom/containsOrEquals',
-	'sap/m/ColumnPopoverItem'
+	'sap/ui/dom/containsOrEquals'
 ], function(
 	Control,
-	ManagedObjectModel,
 	Toolbar,
-	ResponsivePopover,
 	Button,
-	ToggleButton,
+	ResponsivePopover,
 	ToolbarSpacer,
-	Filter,
-	FilterOperator,
-	containsOrEquals,
-	ColumnPopoverItem
+	containsOrEquals
 ) {
 	"use strict";
 
@@ -40,7 +30,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @since 1.63
@@ -49,22 +39,45 @@ sap.ui.define([
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ColumnHeaderPopover = Control.extend("sap.m.ColumnHeaderPopover", /** @lends sap.m.ColumnHeaderPopover.prototype */
-	{
-		library: "sap.m",
-		metadata: {
-			properties: {
-
-			},
-			aggregations: {
-				items: {type : "sap.m.ColumnPopoverItem",  multiple : true, singularName : "item", bindable: true},
-				_popover: {type : "sap.m.ResponsivePopover", multiple : false, visibility : "hidden"}
-			},
-			defaultAggregation: "items"
-		}
-	});
+		{
+			library: "sap.m",
+			metadata: {
+				properties: {},
+				aggregations: {
+					/**
+					 * Note that the content created inside ColumnPopoverCustomItem can not be used more than once.
+					 */
+					items: {type: "sap.m.ColumnPopoverItem", multiple: true, singularName: "item", bindable: true},
+					_popover: {type: "sap.m.ResponsivePopover", multiple: false, visibility: "hidden"}
+				},
+				defaultAggregation: "items",
+				associations: {
+					ariaLabelledBy: {
+						type: "sap.ui.core.Control",
+						multiple: true,
+						singularName: "ariaLabelledBy"
+					}
+				}
+			}
+		});
 
 	ColumnHeaderPopover.prototype.init = function() {
 		this._bPopoverCreated = false;
+		this._oShownCustomContent = null;
+		var that = this;
+		this._minWidthDelegate = function() {
+			this.$().css("min-width", that.minWidth);
+		};
+	};
+
+	ColumnHeaderPopover.prototype.exit = function() {
+		if (this._oToolbar){
+			this._oToolbar.destroy();
+			this._oToolbar = null;
+		}
+		this._closeBtn = null;
+		this._spacer = null;
+		this._aButtons = null;
 		this._oShownCustomContent = null;
 	};
 
@@ -74,189 +87,87 @@ sap.ui.define([
 		var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
 			sCloseText = oBundle.getText("COLUMNHEADERPOPOVER_CLOSE_BUTTON");
 
-		var oPopover = new ResponsivePopover({
+		var oPopover = new ResponsivePopover(this.getId() + "-popover", {
 			showArrow: false,
 			showHeader: false,
 			placement: "Bottom",
 			verticalScrolling: true,
 			horizontalScrolling: false,
+			ariaLabelledBy: this.getAriaLabelledBy(),
 			beforeClose: function(oEvent) {
 				if (that._oShownCustomContent) {
 					that._oShownCustomContent.setVisible(false);
 					that._oShownCustomContent = null;
 				}
-				that._cleanSelection(this);
+				that._cleanSelection();
 			}
 		});
 
+		oPopover._oControl.addDelegate({"onAfterRendering": this._minWidthDelegate}, oPopover._oControl);
 		this.setAggregation("_popover", oPopover);
+		var oToolbar = new Toolbar(this.getId() + "-tb");
+		this._spacer = new ToolbarSpacer();
+		this._closeBtn = new Button(oToolbar.getId() + "-closeBtn", {
+			type: "Transparent",
+			icon: "sap-icon://decline",
+			tooltip: sCloseText,
+			press: [
+				oPopover.close, oPopover
+			]
+		});
+		oToolbar.addContent(this._spacer);
+		oToolbar.addContent(this._closeBtn);
 
-		var oToolbar = new Toolbar();
-		// enable the diff calculation on the toolbar control
-		// this flag is required by the ManagedObject.prototype.updateAggregation
-		// the diff calculation is needed to avoid destroying all buttons, which causes auto close of popover
-		oToolbar.bUseExtendedChangeDetection = true;
 		oPopover.addContent(oToolbar);
-
-		var oFilter = new Filter({
-			path: "visible",
-			operator: FilterOperator.EQ,
-			value1: true
-		});
-
-		var fnFactory = function(id, oContext) {
-			var oItem = oContext.getObject();
-			var oButton;
-			if (oItem.isA("sap.m.ColumnPopoverActionItem")) {
-				oButton = that._createActionItem(id, oItem);
-			} else if (oItem.isA("sap.m.ColumnPopoverCustomItem")) {
-				oButton = that._createCustomItem(id, oItem);
-			}
-
-			oItem._sRelatedId = oButton.sId;
-			oButton._sContentId = oItem._sContentId;
-
-			oButton.destroy = function() {
-				var oDomRef = this.getDomRef();
-				if (oDomRef && containsOrEquals(oDomRef, document.activeElement)) {
-					oPopover.focus();
-					oPopover.removeContent(that._oShownCustomContent);
-
-				}
-
-				this.constructor.prototype.destroy.apply(this, arguments);
-			};
-
-			return oButton;
-		};
-
-		oToolbar.bindAggregation("content",{
-			path: '/items',
-			filters: [oFilter],
-			length: 5,
-			factory: fnFactory
-		});
-
-		oToolbar.updateAggregation = function(sAggregationName) {
-				// clear _oShownCustomContent
-				if (this._oShownCustomContent) {
-					this._oShownCustomContent = null;
-				}
-
-				Toolbar.prototype.updateAggregation.apply(this, arguments);
-
-				var aContent = this.getContent();
-				if (aContent.length <= 2 || !(aContent[aContent.length - 2] instanceof ToolbarSpacer)) {
-					this.addContent(new ToolbarSpacer());
-					this.addContent(new Button({
-						type: "Transparent",
-						icon: "sap-icon://decline",
-						tooltip: sCloseText,
-						press: [
-							oPopover.close, oPopover
-						]
-					}));
-				}
-
-		};
-
-		var oModel = new ManagedObjectModel(this);
-
-		oToolbar.setModel(oModel);
-
+		this._oToolbar = oToolbar;
 	};
 
-	ColumnHeaderPopover.prototype._createActionItem = function(id, oItem) {
-		var that = this;
-
-		return new Button(id, {
-			icon: "{icon}",
-			tooltip: "{text}",
-			type: "Transparent",
-			press: function() {
-				var oPopover = that.getAggregation("_popover");
-
-				if (that._oShownCustomContent) {
-					that._oShownCustomContent.setVisible(false);
-					that._oShownCustomContent = null;
-
-					// set other buttons unpressed
-					that._cleanSelection(oPopover, this);
-				}
-				oItem.firePress();
-			}
-		});
-	};
-
-	ColumnHeaderPopover.prototype._createCustomItem = function(id, oItem) {
-		var that = this;
-		var oPopover = this.getAggregation("_popover");
-		var oContent = oItem.getContent();
-		if (oContent) {
-			oContent.setVisible(false);
-			oItem._sContentId = oContent.sId;
-		}
-		oPopover.addContent(oContent);
-
-		return new ToggleButton(id, {
-			icon: "{icon}",
-			type: "Transparent",
-			tooltip: "{text}",
-			press: function() {
-				// between two custom items
-				if (that._oShownCustomContent) {
-					that._oShownCustomContent.setVisible(false);
-				}
-				if (this.getPressed()) {
-					// set other buttons unpressed
-					that._cleanSelection(oPopover, this);
-
-					oItem.fireBeforeShowContent();
-					if (oContent) {
-						oContent.setVisible(true);
-						that._oShownCustomContent = oContent;
-					}
-
-				} else {
-					if (oContent) {
-						oContent.setVisible(false);
-						that._oShownCustomContent = null;
-					}
-				}
-
-			}
-		});
-
-	};
-
-	ColumnHeaderPopover.prototype._cleanSelection = function(oPopover, oButton) {
-		var oContent = oPopover.getContent()[0],
-			aButtons;
-		aButtons = oContent.getContent();
-
+	ColumnHeaderPopover.prototype._cleanSelection = function(oButton) {
+		var aButtons = this._aButtons;
 		if (aButtons) {
-
 			aButtons.forEach(function(oBtn) {
-				if ((!oButton || oBtn !== oButton)
-						&& oBtn.getPressed
-							&& oBtn.getPressed()) {
+				if ((!oButton || oBtn !== oButton) && oBtn.getPressed && oBtn.getPressed()) {
 					oBtn.setPressed(false);
-					}
-
+				}
 			});
-
 		}
-
 	};
 
 	ColumnHeaderPopover.prototype.openBy = function(oControl) {
-
+		// Create popover with empty toolbar inside once
 		if (!this._bPopoverCreated) {
 			this._createPopover();
 			this._bPopoverCreated = true;
+		} else {
+			this._oToolbar.removeContent(this._spacer);
+			this._oToolbar.removeContent(this._closeBtn);
+			this._oToolbar.destroyContent();
 		}
 
 		var oPopover = this.getAggregation("_popover");
+		var aButtons = [];
+		var aItems = this.getItems();
+		// Per Ux design the max number of the items (visible buttons) is 5 (plus spacer and the close button).
+		// As soon as this number can be changed we will introduce  property or other possiblity to configure it.
+		var iMaxNumOfItems = 5;
+		for (var i = 0; (i < aItems.length) && (aButtons.length < iMaxNumOfItems); i++) {
+			var oItem = aItems[i];
+			if (oItem.getVisible()) {
+				var oButton = oItem._createButton(this._oToolbar.getId() + "-btn_" + i, this);
+				oButton._sContentId = oItem._sContentId; // used in custom item
+				aButtons.push(oButton);
+				this._oToolbar.insertContent(oButton, i);
+			}
+		}
+
+		if (aButtons.length === 0) {
+			return;
+		}
+		this._aButtons = aButtons;
+
+		this._oToolbar.addContent(this._spacer);
+		this._oToolbar.addContent(this._closeBtn);
+		// Append to static area of the UIArea once
 		if (!this._bAppendedToUIArea && !this.getParent()) {
 			var oStatic = sap.ui.getCore().getStaticAreaRef();
 			oStatic = sap.ui.getCore().getUIArea(oStatic);
@@ -267,22 +178,54 @@ sap.ui.define([
 		var oOpenerDomRef = oControl.getFocusDomRef();
 		if (oOpenerDomRef) {
 			oPopover.setOffsetY(-oOpenerDomRef.clientHeight);
+			this.minWidth = oOpenerDomRef.clientWidth;
 		}
 		oPopover.openBy(oControl);
 	};
 
 	ColumnHeaderPopover.prototype.invalidate = function(oOrigin) {
 		var oPopover = this.getAggregation("_popover");
-
-		// Pop the invalidate call up to the control tree only when the call
-		// comes from the internal popover
-		// If the call is triggered by this control itself, it does nothing to
-		// prevent the renderer of this control to be called.
+		// Calls invalidate for the control tree only when the call comes from the internal popover.
+		// If the call is triggered by this control itself, it does nothing to prevent the renderer of this control to be called.
+		// Note that due the following code ColumnHeaderPopover control is not immediately changed when it is currently opened.
+		// The changes will only have effect for the next opening ( so, when the properties or aggregations are changed, for example,
+		// a new item or it's propery has been changed during the popup is open).
 		if (oOrigin === oPopover) {
 			Control.prototype.invalidate.apply(this, arguments);
 		}
-
 		return this;
+	};
+
+	/*
+	 *	Forward the ariaLabelledBy association of the inner control to the ColumnHeaderPopover control.
+	 */
+	ColumnHeaderPopover.prototype.addAriaLabelledBy = function(sId) {
+		// get internal responsive popover control
+		var oRPopoverControl = this.getAggregation("_popover");
+		if (oRPopoverControl) {
+			oRPopoverControl.addAriaLabelledBy(sId);
+		}
+		return this.addAssociation("ariaLabelledBy", sId);
+	};
+
+	ColumnHeaderPopover.prototype.removeAriaLabelledBy = function(vObject) {
+		// get internal responsive popover control
+		var oRPopoverControl = this.getAggregation("_popover");
+		if (oRPopoverControl) {
+			oRPopoverControl.removeAriaLabelledBy(vObject);
+		}
+		return this.removeAssociation("ariaLabelledBy", vObject);
+	};
+
+	ColumnHeaderPopover.prototype.removeAllAssociation = function(sAssociationName, bSuppressInvalidate) {
+		if (sAssociationName === "ariaLabelledBy") {
+			// get internal responsive popover control
+			var oRPopoverControl = this.getAggregation("_popover");
+			if (oRPopoverControl) {
+				oRPopoverControl.removeAllAssociation(sAssociationName, bSuppressInvalidate);
+			}
+		}
+		return Control.prototype.removeAllAssociation.apply(this, arguments);
 	};
 
 	return ColumnHeaderPopover;

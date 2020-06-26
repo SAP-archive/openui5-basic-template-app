@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -45,6 +45,8 @@ sap.ui.define([
 				this.aEventQueue = [];
 				// keep track of last focused element
 				this.oLastFocusedControlInfo = null;
+				// keep track of focused element which is using Renderer.apiVersion=2
+				this.oPatchingControlFocusInfo = null;
 
 				this.fEventHandler = jQuery.proxy(this.onEvent, this);
 
@@ -53,8 +55,8 @@ sap.ui.define([
 					oRootRef.addEventListener("focus", this.fEventHandler, true);
 					oRootRef.addEventListener("blur", this.fEventHandler, true);
 				} else { //IE
-					jQuery(oRootRef).bind("activate", this.fEventHandler);
-					jQuery(oRootRef).bind("deactivate", this.fEventHandler);
+					jQuery(oRootRef).on("activate", this.fEventHandler);
+					jQuery(oRootRef).on("deactivate", this.fEventHandler);
 				}
 				Log.debug("FocusHandler setup on Root " + oRootRef.type + (oRootRef.id ? ": " + oRootRef.id : ""), null, "sap.ui.core.FocusHandler");
 			}
@@ -108,6 +110,36 @@ sap.ui.define([
 		};
 
 		/**
+		 * Stores the focus info of the current focused control which is using Renderer.apiVersion=2
+		 *
+		 * @see sap.ui.core.FocusHandler#restoreFocus
+		 * @see sap.ui.core.FocusHandler#getControlFocusInfo
+		 * @param {HTMLElement} oDomRef The DOM reference of the control where the rendering is happening
+		 * @private
+		 */
+		FocusHandler.prototype.storePatchingControlFocusInfo = function(oDomRef) {
+			var oActiveElement = document.activeElement;
+			if (!oActiveElement || !oDomRef.contains(oActiveElement)) {
+				this.oPatchingControlFocusInfo = null;
+			} else {
+				this.oPatchingControlFocusInfo = this.getControlFocusInfo();
+				if (this.oPatchingControlFocusInfo) {
+					this.oPatchingControlFocusInfo.patching = true;
+				}
+			}
+		};
+
+		/**
+		 * Returns the focus info of the last focused control which is using Renderer.apiVersion=2
+		 *
+		 * @see sap.ui.core.FocusHandler#storePatchingControlFocusInfo
+		 * @private
+		 */
+		FocusHandler.prototype.getPatchingControlFocusInfo = function() {
+			return this.oPatchingControlFocusInfo;
+		};
+
+		/**
 		 * If the given control is the last known focused control, the stored focusInfo is updated.
 		 *
 		 * @see sap.ui.core.FocusHandler#restoreFocus
@@ -138,13 +170,18 @@ sap.ui.define([
 			}
 
 			var oControl = this.oCore && this.oCore.byId(oInfo.id);
-			if (oControl && oInfo.info
-					&& oControl.getMetadata().getName() == oInfo.type
-					&& oControl.getFocusDomRef() != oInfo.focusref
-					&& (oControlFocusInfo || /*!oControlFocusInfo &&*/ oControl !== oInfo.control)) {
+			var oFocusRef = oInfo.focusref;
+			if (oControl
+				&& oInfo.info
+				&& oControl.getMetadata().getName() == oInfo.type
+				&& (oInfo.patching
+					|| (oControl.getFocusDomRef() != oFocusRef
+						&& (oControlFocusInfo || /*!oControlFocusInfo &&*/ oControl !== oInfo.control)))) {
 				Log.debug("Apply focus info of control " + oInfo.id, null, "sap.ui.core.FocusHandler");
 				oInfo.control = oControl;
 				this.oLastFocusedControlInfo = oInfo;
+				// Do not store dom patch info in the last focused control info
+				delete this.oLastFocusedControlInfo.patching;
 				oControl.applyFocusInfo(oInfo.info);
 			} else {
 				Log.debug("Apply focus info of control " + oInfo.id + " not possible", null, "sap.ui.core.FocusHandler");
@@ -165,8 +202,8 @@ sap.ui.define([
 					oRootRef.removeEventListener("focus", this.fEventHandler, true);
 					oRootRef.removeEventListener("blur", this.fEventHandler, true);
 				} else { //IE
-					jQuery(oRootRef).unbind("activate", this.fEventHandler);
-					jQuery(oRootRef).unbind("deactivate", this.fEventHandler);
+					jQuery(oRootRef).off("activate", this.fEventHandler);
+					jQuery(oRootRef).off("deactivate", this.fEventHandler);
 				}
 			}
 			this.oCore = null;
@@ -334,7 +371,7 @@ sap.ui.define([
 		 * @returns {boolean} whether the passed DOM reference is nested in the active DOM of the document
 		 */
 		/*function isInActiveDom(oDomRef) {
-			jQuery.sap.assert(oDomRef != null);
+			assert(oDomRef != null);
 			var oCurrDomRef = oDomRef;
 			while(oCurrDomRef) {
 				if(oCurrDomRef === document) return true;

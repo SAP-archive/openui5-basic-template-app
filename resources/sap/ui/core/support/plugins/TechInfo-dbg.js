@@ -1,17 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.support.plugins.TechInfo (TechInfo support plugin)
 sap.ui.define([
+	'sap/base/Log',
 	'../Plugin',
 	'../Support',
 	'../ToolsAPI',
 	"sap/base/security/encodeXML"
 ],
-	function(Plugin, Support, ToolsAPI, encodeXML) {
+	function(Log, Plugin, Support, ToolsAPI, encodeXML) {
 	"use strict";
 
 
@@ -20,7 +21,7 @@ sap.ui.define([
 		 * @class This class represents the technical info plugin for the support tool functionality of UI5. This class is internal and all its functions must not be used by an application.
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 * @private
 		 * @alias sap.ui.core.support.plugins.TechInfo
 		 */
@@ -143,21 +144,21 @@ sap.ui.define([
 			html.push("</table></div>");
 			this.$().html(html.join(""));
 
-			this.$("tggleDbgSrc").bind("click", function(oEvent) {
+			this.$("tggleDbgSrc").on("click", function(oEvent) {
 				oEvent.preventDefault();
 				Support.getStub().sendEvent(that.getId() + "ToggleDebug", {});
 			});
-			this.$("Refresh").bind("click", function(oEvent) {
+			this.$("Refresh").on("click", function(oEvent) {
 				oEvent.preventDefault();
 				Support.getStub().sendEvent(that.getId() + "Refresh", {});
 			});
 
-			this.$("outputE2ETrace").bind("click", function() {
+			this.$("outputE2ETrace").on("click", function() {
 				this.focus();
 				this.select();
 			});
 
-			this.$("startE2ETrace").bind("click", function() {
+			this.$("startE2ETrace").on("click", function() {
 				if (!that.e2eTraceStarted) {
 					that.e2eLogLevel = that.$("logLevelE2ETrace").val();
 					that.$("startE2ETrace").addClass("active").text("Running...");
@@ -211,6 +212,8 @@ sap.ui.define([
 						trace: traceXml
 					});
 				});
+			}, function (oError) {
+				Log.error("Could not load module 'sap/ui/core/support/trace/E2eTraceLib':", oError);
 			});
 
 		};

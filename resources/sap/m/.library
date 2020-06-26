@@ -4,15 +4,19 @@
   <name>sap.m</name>
   <vendor>SAP SE</vendor>
   <copyright>OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.64.0</version>
+  <version>1.79.0</version>
 
   <documentation>The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.</documentation>
 
   <dependencies>
     <dependency>
       <libraryName>sap.ui.core</libraryName>
+    </dependency>
+    <dependency>
+      <libraryName>sap.ui.layout</libraryName>
+      <lazy>true</lazy>
     </dependency>
     <dependency>
       <libraryName>sap.ui.unified</libraryName>
@@ -87,7 +91,13 @@
                 <module>sap/m/tutorial/Worklist-ManageProductStock</module>
             </modules>
         </component>
-         <component>
+        <component>
+            <name>CA-UI5-COR</name>
+            <modules>
+                <module>sap/m/tutorial/QuickStart</module>
+            </modules>
+        </component>
+        <component>
             <name>CA-UI5-CMP</name>
             <modules>
                 <module>sap/m/P13nDialog</module>
@@ -115,6 +125,7 @@
                 <module>sap/m/GrowingList</module>
                 <module>sap/m/Column</module>
                 <module>sap/m/ColumnListItem</module>
+                <module>sap/m/plugins/DataStateIndicator</module>
             </modules>
         </component>
     </ownership>

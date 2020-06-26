@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -53,7 +53,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -65,7 +65,8 @@ sap.ui.define([
 		metadata: {
 			library : "sap.m",
 			interfaces : [
-				"sap.m.IOverflowToolbarContent"
+				"sap.m.IOverflowToolbarContent",
+				"sap.m.IOverflowToolbarFlexibleContent"
 			],
 			properties : {
 				/**
@@ -74,7 +75,7 @@ sap.ui.define([
 				text: { type : "string", defaultValue: ""},
 				/**
 				 * Determines the control status that is represented in different colors,
-				 * including the the color bar and the color and type of the displayed icon.
+				 * including the color bar and the color and type of the displayed icon.
 				 */
 				status: { type : "sap.ui.core.ValueState", defaultValue : ValueState.None },
 				/**
@@ -209,13 +210,24 @@ sap.ui.define([
 			this._toggleActiveGenericTag(true);
 		}
 
+		if (oEvent.which === KeyCodes.SHIFT || oEvent.which === KeyCodes.ESCAPE) {
+			this._bShouldInterupt = this._bSpacePressed;
+		}
+
+		// Prevent browser scrolling in case of SPACE key
+		if (oEvent.which === KeyCodes.SPACE) {
+			this._bSpacePressed = true;
+
+			oEvent.preventDefault();
+		}
+
 		if (oEvent.which === KeyCodes.ENTER) {
 			this.firePress(/* no parameters */);
 		}
 	};
 
 	/**
-	 * Handle the key up event for SPACE and ENTER.
+	 * Handle the key up event for SPACE.
 	 * @param {jQuery.Event} oEvent - the keyboard event.
 	 * @private
 	 */
@@ -225,7 +237,11 @@ sap.ui.define([
 		}
 
 		if (oEvent.which === KeyCodes.SPACE) {
-			this.firePress(/* no parameters */);
+			if (!this._bShouldInterupt) {
+				this.firePress(/* no parameters */);
+			}
+			this._bShouldInterupt = false;
+			this._bSpacePressed = false;
 		}
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,7 @@ sap.ui.define(['./ViewSettingsItem', 'sap/ui/base/ManagedObject', './library'],
 	 * @extends sap.m.ViewSettingsItem
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -48,6 +48,12 @@ sap.ui.define(['./ViewSettingsItem', 'sap/ui/base/ManagedObject', './library'],
 			customControl : {type : "sap.ui.core.Control", multiple : false}
 		}
 	}});
+
+	ViewSettingsCustomItem.prototype.init = function () {
+		this.attachEvent("modelContextChange", function() {
+			this._control && this._control.setModel(this.getModel());
+		}.bind(this));
+	};
 
 	/**
 	 * Destroys the control.
@@ -116,7 +122,7 @@ sap.ui.define(['./ViewSettingsItem', 'sap/ui/base/ManagedObject', './library'],
 	 * @param {string[]} [aLocalIds] an array of local IDs within the cloned hierarchy (internally used)
 	 * @param {Object} [oOptions] configuration object
 	 * @return {sap.ui.base.ManagedObject} reference to the newly created clone
-	 * @protected
+	 * @public
 	 * @override
 	 */
 	ViewSettingsCustomItem.prototype.clone = function(sIdSuffix, aLocalIds, oOptions) {

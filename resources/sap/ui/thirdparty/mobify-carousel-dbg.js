@@ -6,9 +6,18 @@ Mobify.UI = Mobify.UI || { classPrefix: '' };
 (function($, document) {
     $.support = $.support || {};
 
-    $.extend($.support, {
+    // SAP MODIFICATION
+    var support = {
         'touch': 'ontouchend' in document
-    });
+    };
+
+    // => if the device API is loaded we override the touch detection
+    if (window.sap && sap.ui && sap.ui.Device && sap.ui.Device.support) {
+        support.touch = sap.ui.Device.support.touch
+    }
+
+    $.extend($.support, support);
+    // SAP MODIFICATION END
 
 })(Mobify.$, document);
 
@@ -197,7 +206,7 @@ Mobify.UI.Carousel = (function($, Utils) {
     Carousel.prototype.initAnimation = function() {
         this.animating = false;
         this.dragging = false;
-        this.hasActiveTransition = false;
+        this._hasActiveTransition = false;
         this._needsUpdate = false;
         this._sTransitionEvents = 'transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd';
         this._enableAnimation();
@@ -291,7 +300,7 @@ Mobify.UI.Carousel = (function($, Utils) {
 	    		sTransitionEvents = 'transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd';
 
 	    	var fnCleanUpTransition = function(){
-				$carouselInner.unbind(sTransitionEvents, fnCleanUpTransition);
+				$carouselInner.off(sTransitionEvents, fnCleanUpTransition);
 				$carouselInner.removeClass(sTransitionClass);
 				//Exexute callback function if there is one.
 				if(fnCallback) {
@@ -300,7 +309,7 @@ Mobify.UI.Carousel = (function($, Utils) {
 			}
 
 	    	$carouselInner.addClass(sTransitionClass);
-			$carouselInner.bind(sTransitionEvents, fnCleanUpTransition);
+			$carouselInner.on(sTransitionEvents, fnCleanUpTransition);
     	}
     }
 
@@ -316,7 +325,7 @@ Mobify.UI.Carousel = (function($, Utils) {
     	if(this._fnStart) {
     		this._fnStart.call(this, e);
     	} else {
-    		jQuery.sap.log.warning("Mobify's 'start' method not available yet.")
+    		jQuery.sap.log.warning("Mobify's 'start' method not available yet.");
     	}
     }
 
@@ -540,7 +549,7 @@ Mobify.UI.Carousel = (function($, Utils) {
 
     // SAP MODIFICATION BEGIN
     Carousel.prototype.onTransitionComplete = function() {
-        this.$inner.unbind(this._sTransitionEvents, this.onTransitionComplete);
+        this.$inner.off(this._sTransitionEvents, this.onTransitionComplete);
 
 		var sActiveClass = this._getClass('active'),
 			i;
@@ -551,11 +560,15 @@ Mobify.UI.Carousel = (function($, Utils) {
 			}
 		}
 
-        this.hasActiveTransition = false;
+        this._hasActiveTransition = false;
 
 		// Trigger afterSlide event
 		this.$element.trigger('afterSlide', [this._prevIndex, this._index]);
-    };
+	};
+
+	Carousel.prototype.hasActiveTransition = function() {
+		return this._hasActiveTransition;
+	};
     // SAP MODIFICATION ENDS
 
 	Carousel.prototype.destroy = function() {
@@ -575,7 +588,7 @@ Mobify.UI.Carousel = (function($, Utils) {
     Carousel.prototype.move = function(newIndex, opts) {
     	//if list is empty or transition is in process , return
     	//SAP MODIFICATION
-    	if(this._length === 0 || this.hasActiveTransition == true) {
+    	if(this._length === 0 || this._hasActiveTransition == true) {
     		return;
     	}
 
@@ -588,6 +601,14 @@ Mobify.UI.Carousel = (function($, Utils) {
             , index = this._index;
 
         opts = opts || {};
+
+		// SAP MODIFICATION
+		// prevent loop when carousel shows more pages than 1
+		if (this.getLoop() && this.options.numberOfItemsToShow !== 1 &&
+				(newIndex < 1 || newIndex > this._length)) { // new index out of range - will cause loop
+			return;
+		}
+		// SAP MODIFICATION END
 
         // Bound Values between [1, length];
         if (newIndex < 1) {
@@ -635,7 +656,7 @@ Mobify.UI.Carousel = (function($, Utils) {
         //SAP MODIFICATION
         if(bTriggerEvents) {
             // This indicate that transition has started
-            this.hasActiveTransition = true;
+            this._hasActiveTransition = true;
             $inner.bind(this._sTransitionEvents, jQuery.proxy(this.onTransitionComplete, this));
         }
     };

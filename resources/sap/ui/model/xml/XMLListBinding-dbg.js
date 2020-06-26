@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,11 +9,10 @@ sap.ui.define([
 	'sap/ui/model/ChangeReason',
 	'sap/ui/model/ClientListBinding',
 	"sap/ui/util/XMLHelper",
-	"sap/base/util/array/diff",
 	"sap/base/util/deepEqual",
-	"sap/ui/thirdparty/jquery"
+	"sap/base/util/each"
 ],
-	function(ChangeReason, ClientListBinding, XMLHelper, diff, deepEqual, jQuery) {
+	function(ChangeReason, ClientListBinding, XMLHelper, deepEqual, each) {
 	"use strict";
 
 
@@ -64,7 +63,7 @@ sap.ui.define([
 
 			//Check diff
 			if (this.aLastContexts && iStartIndex < this.iLastEndIndex) {
-				aContexts.diff = diff(this.aLastContextData, aContextData);
+				aContexts.diff = this.diffData(this.aLastContextData, aContextData);
 			}
 
 			this.iLastEndIndex = iStartIndex + iLength;
@@ -103,7 +102,7 @@ sap.ui.define([
 			this.oList = [];
 			var that = this;
 			if (this.bUseExtendedChangeDetection) {
-				jQuery.each(oList, function(sKey, oNode) {
+				each(oList, function(sKey, oNode) {
 					that.oList.push(oNode.cloneNode(true));
 				});
 			} else {
@@ -160,7 +159,7 @@ sap.ui.define([
 				if (this.aLastContexts.length != aContexts.length) {
 					bChangeDetected = true;
 				} else {
-					jQuery.each(this.aLastContextData, function(iIndex, oLastData) {
+					each(this.aLastContextData, function(iIndex, oLastData) {
 						var oCurrentData = that.getContextData(aContexts[iIndex]);
 						if (oCurrentData !== oLastData) {
 							bChangeDetected = true;

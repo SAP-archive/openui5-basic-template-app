@@ -1,7 +1,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,12 +11,15 @@ sap.ui.define([
 	'./Button',
 	'./InstanceManager',
 	'./library',
+	'./Title',
+	'./TitleAlignmentMixin',
 	'sap/ui/core/Control',
 	'sap/ui/core/Popup',
 	'sap/ui/core/delegate/ScrollEnablement',
 	'sap/ui/core/theming/Parameters',
 	'sap/ui/Device',
 	'sap/ui/base/ManagedObject',
+	"sap/ui/core/util/ResponsivePaddingsEnablement",
 	'sap/ui/core/library',
 	'sap/ui/core/Element',
 	'sap/ui/core/ResizeHandler',
@@ -35,12 +38,15 @@ sap.ui.define([
 		Button,
 		InstanceManager,
 		library,
+		Title,
+		TitleAlignmentMixin,
 		Control,
 		Popup,
 		ScrollEnablement,
 		Parameters,
 		Device,
 		ManagedObject,
+		ResponsivePaddingsEnablement,
 		coreLibrary,
 		Element,
 		ResizeHandler,
@@ -61,6 +67,9 @@ sap.ui.define([
 
 		// shortcut for sap.m.PlacementType
 		var PlacementType = library.PlacementType;
+
+		// shortcut for sap.m.TitleAlignment
+		var TitleAlignment = library.TitleAlignment;
 
 		/**
 		* Constructor for a new Popover.
@@ -99,6 +108,7 @@ sap.ui.define([
 		* The popover is closed when the user clicks or taps outside the popover or selects an action within the popover. You can prevent this with the <code>modal</code> property.
 		* The popover can be resized when the <code>resizable</code> property is enabled.
 		*
+		* When using the sap.m.Popover in Sap Quartz theme, the breakpoints and layout paddings could be determined by the container's width. To enable this concept and add responsive paddings to an element of the Popover control, you may add the following classes depending on your use case: <code>sapUiResponsivePadding--header</code>, <code>sapUiResponsivePadding--subHeader</code>, <code>sapUiResponsivePadding--content</code>, <code>sapUiResponsivePadding--footer</code>.
 		* <ul>
 		* <li>{@link sap.m.Popover} is <u>not</u> responsive on mobile devices - it will always be rendered as a popover and you have to take care of its size and position.</li>
 		* <li>{@link sap.m.ResponsivePopover} is adaptive and responsive. It renders as a dialog with a close button in the header on phones, and as a popover on tablets.</li>
@@ -107,7 +117,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Control
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.64.0
+		* @version 1.79.0
 		*
 		* @public
 		* @alias sap.m.Popover
@@ -138,7 +148,8 @@ sap.ui.define([
 					showHeader: {type: "boolean", group: "Appearance", defaultValue: true},
 
 					/**
-					 * Title text appears in the header. This property will be ignored when showHeader is set to false.
+					 * Title text appears in the header. This property will be ignored when <code>showHeader</code> is set to <code>false</code>.
+					 * If you want to show a header in the <code>sap.m.Popover</code>, don't forget to set the {@link #setShowHeader showHeader} property to <code>true</code>.
 					 */
 					title: {type: "string", group: "Appearance", defaultValue: null},
 
@@ -216,7 +227,33 @@ sap.ui.define([
 					 * @since 1.36.4
 					 * @private
 					 */
-					resizable: {type: "boolean", group: "Dimension", defaultValue: false}
+					resizable: {type: "boolean", group: "Dimension", defaultValue: false},
+
+					/**
+					 * Specifies the aria-modal of the Popover.
+					 * @since 1.70
+					 * @private
+					 */
+					ariaModal: {type: "boolean", group: "Misc", defaultValue: true, visibility: "hidden"},
+
+					/**
+					 * Specifies the Title alignment (theme specific).
+					 * If set to <code>TitleAlignment.Auto</code>, the Title will be aligned as it is set in the theme (if not set, the default value is <code>center</code>);
+					 * Other possible values are <code>TitleAlignment.Start</code> (left or right depending on LTR/RTL), and <code>TitleAlignment.Center</code> (centered)
+					 * @since 1.72
+					 * @public
+					 */
+					titleAlignment : {type : "sap.m.TitleAlignment", group : "Misc", defaultValue : TitleAlignment.Auto},
+
+					/**
+					 * Specifies if the Popover should be set ARIA role 'application'.
+					 * This property does not respect the avoidAriaApplicationRole core configuration, because it is expected to be used explicitly when role application is required for a specific Popover instance, no matter if the application role is present on the html body.
+					 *
+					 * <b>Note:</b> If this property should become public in the future, the property will have to be set on a level that will encapsulate the header and the footer of the popover as well.
+					 * @since 1.77
+					 * @private
+					 */
+					ariaRoleApplication: {type: "boolean", group: "Misc", defaultValue: false, visibility: "hidden"}
 				},
 				defaultAggregation: "content",
 				aggregations: {
@@ -357,6 +394,13 @@ sap.ui.define([
 		/* =========================================================== */
 		Popover._bIOS7 = Device.os.ios && Device.os.version >= 7 && Device.os.version < 8 && Device.browser.name === "sf";
 
+		ResponsivePaddingsEnablement.call(Popover.prototype, {
+			header: {suffix: "intHeader"},
+			subHeader: {selector: ".sapMPopoverSubHeader .sapMIBar"},
+			content: {suffix: "cont"},
+			footer: {selector: ".sapMPopoverFooter .sapMIBar"}
+		});
+
 		/**
 		 * Initializes the popover control.
 		 *
@@ -439,6 +483,8 @@ sap.ui.define([
 			//closed when a containing scroll container is scrolled, be it via scrollbar or using the
 			//mousewheel.
 			this.setFollowOf(true);
+
+			this._initResponsivePaddingsEnablement();
 
 			this._oRestoreFocusDelegate = {
 				onBeforeRendering: function () {
@@ -561,7 +607,11 @@ sap.ui.define([
 		 * @private
 		 */
 		Popover.prototype.onBeforeRendering = function () {
-			var oNavContent, oPageContent;
+			var oNavContent, oPageContent,
+				bHorScrolling = this.getHorizontalScrolling(),
+				bVerScrolling = this.getVerticalScrolling(),
+				bHorScrollingNotApplied = !bHorScrolling || this.isPropertyInitial("horizontalScrolling"),
+				bVerScrollingNotApplied = !bVerScrolling || this.isPropertyInitial("verticalScrolling");
 
 			if (!this._initialWindowDimensions.width || !this._initialWindowDimensions.height) {
 				this._initialWindowDimensions = {
@@ -570,11 +620,12 @@ sap.ui.define([
 				};
 			}
 
-			// TODO: Nice to refactor scrolling related code - ambiguous
-			if (!this.getHorizontalScrolling() && !this.getVerticalScrolling()) {
+			this._hasSingleScrollableContent();
+
+			if (!bHorScrolling && !bVerScrolling) {
 				//  If both properties are false - we do not need scroll enablement for sure
 				this._forceDisableScrolling = true;
-			} else if (!this._bVScrollingEnabled && !this._bHScrollingEnabled && this._hasSingleScrollableContent()) {
+			} else if (bHorScrollingNotApplied && bVerScrollingNotApplied && this._singleScrollableContent) {
 				// When scrolling isn't set manually and content has scrolling, disable scrolling automatically
 				this._forceDisableScrolling = true;
 				Log.info("VerticalScrolling and horizontalScrolling in sap.m.Popover with ID " + this.getId() + " has been disabled because there's scrollable content inside");
@@ -585,9 +636,12 @@ sap.ui.define([
 			if (!this._forceDisableScrolling) {
 				if (!this._oScroller) {
 					this._oScroller = new ScrollEnablement(this, this.getId() + "-scroll", {
-						horizontal: this.getHorizontalScrolling(),
-						vertical: this.getVerticalScrolling()
+						horizontal: bHorScrolling,
+						vertical: bVerScrolling
 					});
+				} else {
+					this._oScroller.setHorizontal(bHorScrolling);
+					this._oScroller.setVertical(bVerScrolling);
 				}
 			}
 
@@ -595,8 +649,8 @@ sap.ui.define([
 				this._bContentChanged = false;
 				oNavContent = this._getSingleNavContent();
 				oPageContent = this._getSinglePageContent();
-				//TODO: global jquery call found
-				if (oNavContent && !this.getModal() && !Device.support.touch && !jQuery.sap.simulateMobileOnDesktop) {
+				// TODO: migration not possible. jQuery.sap.simulateMobileOnDesktop is a testing flag which should not be used.
+				if (oNavContent && !this.getModal() && !Device.system.phone && !jQuery.sap.simulateMobileOnDesktop) {
 					//gain the focus back to popover in order to prevent the autoclose of the popover
 					oNavContent.attachEvent("afterNavigate", function (oEvent) {
 						var oDomRef = this.getDomRef();
@@ -621,6 +675,14 @@ sap.ui.define([
 						}, this);
 					}
 				}
+			}
+
+			if (!this.isPropertyInitial("title")) {
+				this._setHeaderTitle();
+			}
+
+			if (!Device.system.desktop) {
+				this.setResizable(false);
 			}
 		};
 
@@ -651,6 +713,8 @@ sap.ui.define([
 					this._marginTopInit = true;
 				}
 			}
+
+			this._repositionOffset();
 		};
 
 		/**
@@ -956,12 +1020,43 @@ sap.ui.define([
 		};
 
 		Popover.prototype._onOrientationChange = function () {
-			var ePopupState = this.oPopup.getOpenState();
-			if (!(ePopupState === OpenState.OPEN || ePopupState === OpenState.OPENING)) {
+			var ePopupState = (this.oPopup && this.oPopup.getOpenState()) || {};
+			if (ePopupState !== OpenState.OPEN && ePopupState !== OpenState.OPENING) {
 				return;
 			}
 
 			this.oPopup._applyPosition(this.oPopup._oLastPosition, true);
+			this._includeScrollWidth();
+		};
+
+		/**
+		 * Adjusts the content width based on how the browser handles layouting and scrollbar inclusion
+		 *
+		 * @private
+		 */
+		Popover.prototype._includeScrollWidth = function () {
+			var sContentWidth = this.getContentWidth(),
+				$popover = this.$(),
+				iMaxWidth = Math.floor(window.innerWidth * 0.9), //90% of the max screen size
+				$popoverContent = this.$('cont');
+
+			if (!$popoverContent[0]) {
+				return;
+			}
+
+			// Browsers except chrome do not increase the width of the container to include scrollbar
+			if (Device.system.desktop && !Device.browser.chrome) {
+				var bHasVerticalScrollbar = $popoverContent[0].clientHeight < $popoverContent[0].scrollHeight;
+
+				if (bHasVerticalScrollbar &&					// - there is a vertical scroll
+					(!sContentWidth || sContentWidth === 'auto') &&	// - when the developer hasn't set it explicitly
+					$popoverContent.width() < iMaxWidth) {		// - if the popover hasn't reached a threshold size
+
+					$popover.addClass("sapMPopoverVerticalScrollIncluded");
+				} else {
+					$popover.removeClass("sapMPopoverVerticalScrollIncluded");
+				}
+			}
 		};
 
 		/**
@@ -1017,37 +1112,47 @@ sap.ui.define([
 		 */
 		Popover.prototype.onfocusin = function (oEvent) {
 			var oSourceDomRef = oEvent.target,
-				$this = this.$();
+				$this = this.$(),
+				sFirstFeId = this.getId() + "-firstfe",
+				sMiddleFeId = this.getId() + "-middlefe",
+				sLastFeId = this.getId() + "-lastfe";
 
 			//If the invisible FIRST focusable element (suffix '-firstfe') has got focus, move focus to the last focusable element inside
-			if (oSourceDomRef.id === this.getId() + "-firstfe") {
+			if (oSourceDomRef.id === sFirstFeId) {
 				// Search for anything focusable from bottom to top
 				var oLastFocusableDomref = $this.lastFocusableDomRef();
 				if (oLastFocusableDomref){
 					oLastFocusableDomref.focus();
+				} else {
+					//force the focus to stay in the popover when the content is not focusable.
+					document.getElementById(sMiddleFeId).focus();
 				}
-			} else if (oSourceDomRef.id === this.getId() + "-lastfe") {
+			} else if (oSourceDomRef.id === sLastFeId) {
 				// Search for anything focusable from top to bottom
 				var oFirstFocusableDomref = $this.firstFocusableDomRef();
 				if (oFirstFocusableDomref){
 					oFirstFocusableDomref.focus();
+				} else {
+					//force the focus to stay in the popover when the content is not focusable.
+					document.getElementById(sMiddleFeId).focus();
 				}
 			}
 		};
 
 		/**
-		 * Event handler for the keydown event.
+		 * Event handler for the keyup event.
 		 *
 		 * @param {jQuery.Event} oEvent The event object
 		 * @private
 		 */
-		Popover.prototype.onkeydown = function (oEvent) {
+		Popover.prototype.onkeyup = function (oEvent) {
 			var oKC = KeyCodes,
 				iKC = oEvent.which || oEvent.keyCode,
 				bAlt = oEvent.altKey;
 
 			// Popover should be closed when ESCAPE key or ATL+F4 is pressed
-			if (iKC === oKC.ESCAPE || (bAlt && iKC === oKC.F4)) {
+			if ((!this._isSpacePressed && iKC === oKC.ESCAPE) ||
+				(bAlt && iKC === oKC.F4)) {
 				// if inner control has already handled the event, dialog doesn't process the event anymore
 				if (oEvent.originalEvent && oEvent.originalEvent._sapui_handledByControl) {
 					return;
@@ -1058,6 +1163,23 @@ sap.ui.define([
 				oEvent.stopPropagation();
 				oEvent.preventDefault();
 			}
+
+			if (oKC.SPACE === iKC) {
+				this._isSpacePressed = false;
+			}
+		};
+
+		/**
+		 * Event handler for the onkeydown event.
+		 *
+		 * @param {jQuery.Event} oEvent The event object
+		 * @private
+		 */
+		Popover.prototype.onkeydown = function (oEvent) {
+			var oKC = KeyCodes,
+				iKC = oEvent.which || oEvent.keyCode;
+
+			this._isSpacePressed = this._isSpacePressed || oKC.SPACE === iKC;
 		};
 
 		/**
@@ -1182,16 +1304,15 @@ sap.ui.define([
 		 */
 		Popover.prototype._hasSingleScrollableContent = function () {
 			var aContent = this._getAllContent();
-
 			while (aContent.length === 1 && aContent[0] instanceof Control && aContent[0].isA("sap.ui.core.mvc.View")) {
 				aContent = aContent[0].getContent();
 			}
 
 			if (aContent.length === 1 && aContent[0] instanceof Control && aContent[0].isA(this._scrollContentList)) {
-				return true;
+				this._singleScrollableContent = true;
+			} else {
+				this._singleScrollableContent = false;
 			}
-
-			return false;
 		};
 
 		/**
@@ -1883,6 +2004,8 @@ sap.ui.define([
 				return;
 			}
 
+			this._beforeAdjustPositionAndArrowHook();
+
 			var $popover = this.$(),
 				$arrow = this.$("arrow"),
 				$content = this.$("cont"),
@@ -1921,7 +2044,7 @@ sap.ui.define([
 				$arrow.addClass(sArrowPositionClass);
 
 				// Use contrast container if the arrow is placed down and the footer exists.
-				if (sCalculatedPlacement === PlacementType.Top && oPosParams._$footer && oPosParams._$footer.size()) {
+				if (sCalculatedPlacement === PlacementType.Top && oPosParams._$footer && oPosParams._$footer.length) {
 					bUseContrastContainer = true;
 				}
 
@@ -1995,6 +2118,14 @@ sap.ui.define([
 		};
 
 		/**
+		 * Hook called before adjusment of the Popover position.
+		 *
+		 * @protected
+		 */
+		Popover.prototype._beforeAdjustPositionAndArrowHook = function () {
+		};
+
+		/**
 		 * Determine if the <code>oDomNode</code> is inside the Popover or inside the control that opens the Popover.
 		 * @returns {boolean} Whether the DOM node is inside the popover or its opening control
 		 * @private
@@ -2025,6 +2156,10 @@ sap.ui.define([
 			if (!this._internalHeader) {
 				var that = this;
 				this._internalHeader = new Bar(this.getId() + "-intHeader");
+
+				// call the method that registers this Bar for alignment
+				this._setupBarTitleAlignment(this._internalHeader, this.getId() + "_internalHeader");
+
 				this.setAggregation("_internalHeader", this._internalHeader);
 				this._internalHeader.addEventDelegate({
 					onAfterRendering: function () {
@@ -2055,9 +2190,10 @@ sap.ui.define([
 
 
 		/**
-		 * Returns the duration for the Popover's closing animation
-		 * @sap-restricted sap.ui.dt.plugin.MiniMenu
+		 * Returns the duration for the Popover's closing animation.
+		 *
 		 * @private
+		 * @ui5-restricted sap.ui.dt.plugin.MiniMenu
 		 */
 		Popover.prototype._getAnimationDuration = function () {
 			return 300;
@@ -2068,7 +2204,7 @@ sap.ui.define([
 
 			setTimeout(function () {
 				$Ref.css("display", "block");
-
+				that._includeScrollWidth();
 				that._animation(function () {
 					if (!that.oPopup || that.oPopup.getOpenState() !== OpenState.OPENING) {
 						return;
@@ -2216,16 +2352,36 @@ sap.ui.define([
 		 * @private
 		 */
 		Popover.prototype._getAccessibilityOptions = function() {
-			var aAriaLabels, mAccOptions = {};
+			var aAriaLabels, mAccOptions = {},
+                            oHeader = this._getAnyHeader();
 
 			mAccOptions.role = "dialog";
-			if (this.getShowHeader() && this._getAnyHeader()) {
+			mAccOptions.modal = this.getProperty("ariaModal");
+			if (this.getShowHeader() && oHeader && oHeader.getVisible()) {
 				// If we have a header/title, we add a reference to it in the beginning of the aria-labelledby attribute
-				aAriaLabels = Array.prototype.concat(this._getAnyHeader().getId(), this.getAssociation("ariaLabelledBy", []));
+				aAriaLabels = Array.prototype.concat(oHeader.getId(), this.getAssociation("ariaLabelledBy", []));
 				mAccOptions.labelledby = aAriaLabels.join(' ');
 			}
 
 			return mAccOptions;
+		};
+
+		/**
+		 * The setter of the header title property.
+		 * @private
+		 */
+		Popover.prototype._setHeaderTitle = function () {
+			if (this._headerTitle) {
+				this._headerTitle.setText(this.getTitle());
+			} else {
+				this._headerTitle = new Title(this.getId() + "-title", {
+					text: this.getTitle(),
+					level: "H2"
+				});
+
+				this._createInternalHeader();
+				this._internalHeader.addContentMiddle(this._headerTitle);
+			}
 		};
 
 		/**
@@ -2263,32 +2419,6 @@ sap.ui.define([
 				// this variable is internal used for the placement of the popover
 				this._oCalcedPos = sPlacement;
 			}
-			return this;
-		};
-
-		/**
-		 * The setter of the title property.
-		 *
-		 * If you want to show a header in the popover, don't forget to set the
-		 * {@link #setShowHeader showHeader} property to true.
-		 * @param {string} sTitle The title to be set
-		 * @returns {sap.m.Popover} Reference to the control instance for chaining
-		 * @public
-		 */
-		Popover.prototype.setTitle = function (sTitle) {
-			this.setProperty("title", sTitle, true);
-			if (this._headerTitle) {
-				this._headerTitle.setText(sTitle);
-			} else {
-				this._headerTitle = new sap.m.Title(this.getId() + "-title", {
-					text: this.getTitle(),
-					level: "H2"
-				});
-
-				this._createInternalHeader();
-				this._internalHeader.addContentMiddle(this._headerTitle);
-			}
-
 			return this;
 		};
 
@@ -2361,30 +2491,6 @@ sap.ui.define([
 			return this.setAssociation("rightButton", vButton);
 		};
 
-		Popover.prototype.setShowHeader = function (bValue) {
-			if (bValue === this.getShowHeader() || this.getCustomHeader()) {
-				return this;
-			}
-
-			if (bValue) {
-				//when internal header is created, show header
-				//if not, the header will be created when setting title, beginButton, or endButton
-				//the latest time of the header creation before it's rendered is in the renderer, calling get any header.
-				if (this._internalHeader) {
-					this._internalHeader.$().show();
-				}
-			} else {
-				if (this._internalHeader) {
-					this._internalHeader.$().hide();
-				}
-			}
-
-			//skip the rerendering
-			this.setProperty("showHeader", bValue, true);
-
-			return this;
-		};
-
 		/**
 		 * Setter for property <code>modal</code>.
 		 * This overwrites the default setter of the property <code>modal</code> to avoid rerendering the whole popover control.
@@ -2401,7 +2507,7 @@ sap.ui.define([
 				return this;
 			}
 
-			this.oPopup.setModal(bModal, jQuery.trim("sapMPopoverBLayer " + (sModalCSSClass || "")));
+			this.oPopup.setModal(bModal, ("sapMPopoverBLayer " + (sModalCSSClass || "")).trim());
 
 			// suppress re-rendering
 			this.setProperty("modal", bModal, true);
@@ -2409,80 +2515,17 @@ sap.ui.define([
 			return this;
 		};
 
-		Popover.prototype.setOffsetX = function (iValue) {
-			this.setProperty("offsetX", iValue, true);
-
-			return this._repositionOffset();
-		};
-
-		Popover.prototype.setOffsetY = function (iValue) {
-			this.setProperty("offsetY", iValue, true);
-
-			return this._repositionOffset();
-		};
-
 		Popover.prototype.setEnableScrolling = function (bValue) {
 			//map deprecated property to new properties
 			this.setHorizontalScrolling(bValue);
 			this.setVerticalScrolling(bValue);
-
-			var oldValue = this.getEnableScrolling();
-			if (oldValue === bValue) {
-				return this;
-			}
-
-			this.setProperty("enableScrolling", bValue, true);
-
+			this.setProperty("enableScrolling", bValue);
 			return this;
 		};
 
-		Popover.prototype.setVerticalScrolling = function (bValue) {
-			// Mark that vertical scrolling is manually set
-			this._bVScrollingEnabled = bValue;
-
-			var oldValue = this.getVerticalScrolling();
-			if (oldValue === bValue) {
-				return this;
-			}
-
-			this.$().toggleClass("sapMPopoverVerScrollDisabled", !bValue);
-			this.setProperty("verticalScrolling", bValue, true);
-
-			if (this._oScroller) {
-				this._oScroller.setVertical(bValue);
-			}
-
-			return this;
-
+		Popover.prototype._setAriaModal = function (bValue) {
+			return this.setProperty("ariaModal", bValue);
 		};
-
-		Popover.prototype.setHorizontalScrolling = function (bValue) {
-			// Mark that horizontal scrolling is manually set
-			this._bHScrollingEnabled = bValue;
-
-			var oldValue = this.getHorizontalScrolling();
-			if (oldValue === bValue) {
-				return this;
-			}
-
-			this.$().toggleClass("sapMPopoverHorScrollDisabled", !bValue);
-			this.setProperty("horizontalScrolling", bValue, true);
-
-			if (this._oScroller) {
-				this._oScroller.setHorizontal(bValue);
-			}
-
-			return this;
-		};
-
-		Popover.prototype.setResizable = function (bValue) {
-			if (!Device.system.desktop) {
-				bValue = false;
-			}
-
-			return this.setProperty("resizable", bValue, true);
-		};
-
 
 		/**
 		 * Returns the sap.ui.core.ScrollEnablement delegate which is used with this control.
@@ -2491,6 +2534,18 @@ sap.ui.define([
 		 */
 		Popover.prototype.getScrollDelegate = function () {
 			return this._oScroller;
+		};
+
+		/**
+		 * Setter for property <code>ariaRoleApplication</code>.
+		 * Default value is <code>false</code>
+		 *
+		 * @param {boolean} bValue New value for property <code>ariaRoleApplication</code>.
+		 * @return {sap.m.Popover} Reference to the control instance for chaining
+		 * @private
+		 */
+		Popover.prototype._setAriaRoleApplication = function (bValue) {
+			return this.setProperty("ariaRoleApplication", bValue);
 		};
 
 		/* ==================================================== */
@@ -2564,6 +2619,9 @@ sap.ui.define([
 		Popover.prototype._applyContextualSettings = function () {
 			ManagedObject.prototype._applyContextualSettings.call(this, ManagedObject._defaultContextualSettings);
 		};
+
+		// enrich the control functionality with TitleAlignmentMixin
+		TitleAlignmentMixin.mixInto(Popover.prototype);
 
 		return Popover;
 	});

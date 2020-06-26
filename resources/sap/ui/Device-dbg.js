@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,7 +11,7 @@
  * This API is independent from any other part of the UI5 framework. This allows it to be loaded beforehand, if it is needed, to create the UI5 bootstrap
  * dynamically depending on the capabilities of the browser or device.
  *
- * @version 1.64.0
+ * @version 1.79.0
  * @namespace
  * @name sap.ui.Device
  * @public
@@ -32,7 +32,7 @@ if (typeof window.sap.ui !== "object") {
 
 	//Skip initialization if API is already available
 	if (typeof window.sap.ui.Device === "object" || typeof window.sap.ui.Device === "function") {
-		var apiVersion = "1.64.0";
+		var apiVersion = "1.79.0";
 		window.sap.ui.Device._checkAPIVersion(apiVersion);
 		return;
 	}
@@ -40,7 +40,7 @@ if (typeof window.sap.ui !== "object") {
 	var Device = {};
 
 	////-------------------------- Logging -------------------------------------
-	/* since we cannot use the logging from jquery.sap.global.js, we need to come up with a seperate
+	/* since we cannot use the logging from jquery.sap.global.js, we need to come up with a separate
 	 * solution for the device API
 	 */
 
@@ -105,7 +105,7 @@ if (typeof window.sap.ui !== "object") {
 
 	//Only used internal to make clear when Device API is loaded in wrong version
 	Device._checkAPIVersion = function(sVersion) {
-		var v = "1.64.0";
+		var v = "1.79.0";
 		if (v != sVersion) {
 			oLogger.log(WARNING, "Device API version differs: " + v + " <-> " + sVersion);
 		}
@@ -215,6 +215,8 @@ if (typeof window.sap.ui !== "object") {
 	/**
 	 * If this flag is set to <code>true</code>, a Mac operating system is used.
 	 *
+	 * <b>Note:</b> An iPad using Safari browser, which is requesting desktop sites, is also recognized as Macintosh.
+	 *
 	 * @name sap.ui.Device.os.macintosh
 	 * @type boolean
 	 * @public
@@ -308,7 +310,7 @@ if (typeof window.sap.ui !== "object") {
 		"WINDOWS_PHONE": "winphone"
 	};
 
-	function getOS(userAgent) { // may return null!!
+	function getOS(userAgent, platform) { // may return null!!
 
 		userAgent = userAgent || navigator.userAgent;
 
@@ -316,7 +318,7 @@ if (typeof window.sap.ui !== "object") {
 			aMatches;
 
 		function getDesktopOS() {
-			var sPlatform = navigator.platform;
+			var sPlatform = platform || navigator.platform;
 			if (sPlatform.indexOf("Win") != -1) {
 				// userAgent in windows 7 contains: windows NT 6.1
 				// userAgent in windows 8 contains: windows NT 6.2 or higher
@@ -420,8 +422,8 @@ if (typeof window.sap.ui !== "object") {
 		return getDesktopOS();
 	}
 
-	function setOS(customUA) {
-		Device.os = getOS(customUA) || {};
+	function setOS(customUA, customPlatform) {
+		Device.os = getOS(customUA, customPlatform) || {};
 		Device.os.OS = OS;
 		Device.os.version = Device.os.versionStr ? parseFloat(Device.os.versionStr) : -1;
 
@@ -510,7 +512,9 @@ if (typeof window.sap.ui !== "object") {
 	 * @public
 	 */
 	/**
-	 * If this flag is set to <code>true</code>, the Microsoft Edge browser is used.
+	 * If this flag is set to <code>true</code>, the Microsoft Edge (EdgeHTML) browser is used.
+	 * The Microsoft Edge (Chromium) browser is reported via the {@link #chrome} flag instead,
+	 * because it also uses Chromium as its browser engine.
 	 *
 	 * @name sap.ui.Device.browser.edge
 	 * @type boolean
@@ -525,7 +529,8 @@ if (typeof window.sap.ui !== "object") {
 	 * @public
 	 */
 	/**
-	 * If this flag is set to <code>true</code>, the Google Chrome browser is used.
+	 * If this flag is set to <code>true</code>, a browser that is based on the Chromium browser
+	 * project is used, such as the Google Chrome browser or the Microsoft Edge (Chromium) browser.
 	 *
 	 * @name sap.ui.Device.browser.chrome
 	 * @type boolean
@@ -591,13 +596,6 @@ if (typeof window.sap.ui !== "object") {
 	 * @public
 	 */
 	/**
-	 * If this flag is set to <code>true</code>, the Phantom JS browser is used.
-	 *
-	 * @name sap.ui.Device.browser.phantomJS
-	 * @type boolean
-	 * @private
-	 */
-	/**
 	 * The version of the used Webkit engine, if available.
 	 *
 	 * @see sap.ui.Device.browser.webkit
@@ -622,7 +620,7 @@ if (typeof window.sap.ui !== "object") {
 	 * @public
 	 */
 	/**
-	 * Edge browser name.
+	 * Edge browser name, used for Microsoft Edge (EdgeHTML) browser.
 	 *
 	 * @see sap.ui.Device.browser.name
 	 * @name sap.ui.Device.browser.BROWSER.EDGE
@@ -637,7 +635,7 @@ if (typeof window.sap.ui !== "object") {
 	 * @public
 	 */
 	/**
-	 * Chrome browser name.
+	 * Chrome browser name, used for Google Chrome browser and Microsoft Edge (Chromium) browser.
 	 *
 	 * @see sap.ui.Device.browser.name
 	 * @name sap.ui.Device.browser.BROWSER.CHROME
@@ -776,11 +774,11 @@ if (typeof window.sap.ui !== "object") {
 					webkitVersion: webkitVersion
 				};
 			} else { // Safari might have an issue with sUserAgent.match(...); thus changing
-				var oExp = /(Version|PhantomJS)\/(\d+\.\d+).*Safari/;
+				var oExp = /Version\/(\d+\.\d+).*Safari/;
 				var bStandalone = oNavigator.standalone;
 				if (oExp.test(sUserAgent)) {
 					var aParts = oExp.exec(sUserAgent);
-					var fVersion = parseFloat(aParts[2]);
+					var fVersion = parseFloat(aParts[1]);
 					oResult =  {
 						name: BROWSER.SAFARI,
 						versionStr: "" + fVersion,
@@ -789,8 +787,7 @@ if (typeof window.sap.ui !== "object") {
 						version: fVersion,
 						mobile: oExpMobile.test(sUserAgent),
 						webkit: true,
-						webkitVersion: webkitVersion,
-						phantomJS: aParts[1] === "PhantomJS"
+						webkitVersion: webkitVersion
 					};
 				} else if (/iPhone|iPad|iPod/.test(sUserAgent) && !(/CriOS/.test(sUserAgent)) && !(/FxiOS/.test(sUserAgent)) && (bStandalone === true || bStandalone === false)) {
 					//WebView or Standalone mode on iOS
@@ -952,18 +949,18 @@ if (typeof window.sap.ui !== "object") {
 
 	Device.support = {};
 
-	//Maybe better to but this on Device.browser because there are cases that a browser can touch but a device can't!
-	//Chrome 70 removes the 'ontouchstart' from window for device with and without touch screen. Therefore we need to
-	//use maxTouchPoints to check whether the device support touch interaction
-	Device.support.touch = !!(('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.DocumentTouch && document instanceof window.DocumentTouch));
-
-	// FIXME: PhantomJS doesn't support touch events but exposes itself as touch
-	//        enabled browser. Therfore we manually override that in jQuery.support!
-	//        This has been tested with PhantomJS 1.9.7 and 2.0.0!
-	if (Device.browser.phantomJS) {
-		oLogger.log(ERROR, "PhantomJS is not supported! UI5 might break on PhantomJS in future releases. Please use Chrome Headless instead.");
-		Device.support.touch = false;
-	}
+	/**
+	 * 1. Maybe better to but this on Device.browser because there are cases that a browser can touch but a device can't!
+	 * 2. Chrome 70 removes the 'ontouchstart' from window for device with and without touch screen. Therefore we need to
+	 * use maxTouchPoints to check whether the device support touch interaction
+	 * 3. FF 52 fires touch events (touch start) when tapping, but the support is only detectable with "window.TouchEvent".
+	 * This is also the recommended way of detecting touch feature support, according to the Chrome Developers
+	 * (https://www.chromestatus.com/feature/4764225348042752).
+	*/
+	Device.support.touch = !!(('ontouchstart' in window)
+	|| (navigator.maxTouchPoints > 0)
+	|| (window.DocumentTouch && document instanceof window.DocumentTouch)
+	|| (window.TouchEvent && Device.browser.firefox));
 
 	Device.support.pointer = !!window.PointerEvent;
 
@@ -1482,13 +1479,13 @@ if (typeof window.sap.ui !== "object") {
 	/**
 	 * Returns information about the current active range of the range set with the given name.
 	 *
-	 * If the optional parameter <code>iWidth</iWidth> is given, the active range will be determined for that width,
+	 * If the optional parameter <code>iWidth</code> is given, the active range will be determined for that width,
 	 * otherwise it is determined for the current window size.
 	 *
 	 * @param {string} sName The name of the range set. The range set must be initialized beforehand ({@link sap.ui.Device.media.initRangeSet})
 	 * @param {int} [iWidth] An optional width, based on which the range should be determined;
 	 *             If <code>iWidth</code> is not a number, the window size will be used.
-	 * @returns {map} Information about the current active interval of the range set. The returned map has the same structure as the argument of the event handlers ({@link sap.ui.Device.media.attachHandler})
+	 * @returns {object} Information about the current active interval of the range set. The returned object has the same structure as the argument of the event handlers ({@link sap.ui.Device.media.attachHandler})
 	 *
 	 * @name sap.ui.Device.media.getCurrentRange
 	 * @function
@@ -1646,7 +1643,7 @@ if (typeof window.sap.ui !== "object") {
 		var oSystem = {};
 		oSystem.tablet = !!(((Device.support.touch && !isWin7) || isWin8Upwards || !!simMobileOnDesktop) && bTabletDetected);
 		oSystem.phone = !!(Device.os.windows_phone || ((Device.support.touch && !isWin7) || !!simMobileOnDesktop) && !bTabletDetected);
-		oSystem.desktop = !!((!oSystem.tablet && !oSystem.phone) || isWin8Upwards || isWin7 || Device.os.linux);
+		oSystem.desktop = !!((!oSystem.tablet && !oSystem.phone) || isWin8Upwards || isWin7 || Device.os.linux || Device.os.macintosh);
 		oSystem.combi = oSystem.desktop && oSystem.tablet;
 		oSystem.SYSTEMTYPE = SYSTEMTYPE;
 
@@ -1658,8 +1655,13 @@ if (typeof window.sap.ui !== "object") {
 
 	function isTablet(customUA) {
 		var sUserAgent = customUA || navigator.userAgent;
-		if (Device.os.name === Device.os.OS.IOS) {
+		if (Device.os.ios) {
 			return /ipad/i.test(sUserAgent);
+		} else if (Device.os.macintosh) {
+			// With iOS 13 the string 'iPad' was removed from the user agent string through a browser setting, which is applied on all sites by default:
+			// "Request Desktop Website -> All websites" (for more infos see: https://forums.developer.apple.com/thread/119186).
+			// Therefore the OS is detected as MACINTOSH instead of iOS and the device is a tablet if the supported touch points are more than 1
+			return navigator.maxTouchPoints > 1;
 		} else {
 			//in real mobile device
 			if (Device.support.touch) {
@@ -1882,13 +1884,20 @@ if (typeof window.sap.ui !== "object") {
 		});
 	}
 
-	function handleResizeChange() {
+	/**
+	 * Updates the current size values (height/width).
+	 *
+	 * @name sap.ui.Device.resize._update
+	 * @function
+	 * @private
+	 */
+	var handleResizeChange = Device.resize._update = function() {
 		setResizeInfo(Device.resize);
 		fireEvent("resize", {
 			height: Device.resize.height,
 			width: Device.resize.width
 		});
-	}
+	};
 
 	function setResizeInfo(oInfo) {
 		oInfo.width = windowSize()[0];

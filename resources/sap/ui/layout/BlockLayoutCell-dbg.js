@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,7 +28,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -114,7 +114,7 @@ sap.ui.define([
 				oRow._handleEvent(oEvent);
 			}
 			//Check if current cell has defined width
-			if (this.getWidth() != 0) {
+			if (oLayoutData && this.getWidth() != 0) {
 				this.getLayoutData().setSize(this.getWidth());
 			}
 
@@ -139,12 +139,12 @@ sap.ui.define([
 		};
 
 		BlockLayoutCell.prototype.setTitleLink = function(oObject) {
-				if (oObject && oObject.getMetadata().getName() !== "sap.m.Link") {
-					Log.warning("sap.ui.layout.BlockLayoutCell " + this.getId() + ": Can't add value for titleLink aggregation different than sap.m.Link.");
-					return;
-				}
+			if (oObject && oObject.getMetadata().getName() !== "sap.m.Link") {
+				Log.warning("sap.ui.layout.BlockLayoutCell " + this.getId() + ": Can't add value for titleLink aggregation different than sap.m.Link.");
+				return this;
+			}
 
-				this.setAggregation("titleLink", oObject);
+			this.setAggregation("titleLink", oObject);
 
 			return this;
 		};
@@ -158,15 +158,15 @@ sap.ui.define([
 			// fixes the issue in IE when the block layout size is auto
 			// like BlockLayout in a Dialog
 			if (Device.browser.internet_explorer) {
-				var bHasParentsThatHaveAutoHeight = false;
-				this.$().parents().toArray().forEach(function (element) {
-					if (element.style.height === "auto" || (element.className.indexOf("sapMDialogScroll") != -1)) {
-						bHasParentsThatHaveAutoHeight = true;
+
+				 var bHasParentDialog = this.$().parents().toArray().some(function (element) {
+					if (element.className.indexOf("sapMDialogScroll") !== -1) {
+						return true;
 					}
 				});
 
-				if (bHasParentsThatHaveAutoHeight){
-					this.$()[0].style.flex = this._flexWidth + ' 1 auto';
+				if (bHasParentDialog) {
+					this.$()[0].style.flex = this._flexWidth + " 1 auto";
 				}
 			}
 		};

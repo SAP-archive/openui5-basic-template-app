@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -40,7 +40,7 @@ sap.ui.define([],
 				role: "dialog"
 			});
 		}
-		rm.write("><span id='", oControl.getId(), "-focfirst' tabIndex='0'></span><div id='", oControl.getId(), "-inner'>");
+		rm.write("><span id='", oControl.getId(), "-focfirst' tabindex='0'></span><div id='", oControl.getId(), "-inner'>");
 
 		rm.write("<header class='sapUiUfdShellOvrlyHead'>");
 		rm.write("<hr class='sapUiUfdShellOvrlyBrand'/>");
@@ -65,7 +65,7 @@ sap.ui.define([],
 		ShellOverlayRenderer.renderContent(rm, oControl);
 		rm.write("</div>");
 
-		rm.write("</div><span id='", oControl.getId(), "-foclast' tabIndex='0'></span></div>");
+		rm.write("</div><span id='", oControl.getId(), "-foclast' tabindex='0'></span></div>");
 	};
 
 	ShellOverlayRenderer.renderSearch = function(rm, oControl) {

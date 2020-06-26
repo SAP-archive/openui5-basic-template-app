@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -71,7 +71,7 @@ function(
 		 * space is exceeded, a horizontal scrollbar appears.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @private
@@ -191,7 +191,7 @@ function(
 		/**
 		 * Library internationalization resource bundle.
 		 *
-		 * @type {jQuery.sap.util.ResourceBundle}
+		 * @type {module:sap/base/i18n/ResourceBundle}
 		 */
 		var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 
@@ -204,7 +204,7 @@ function(
 		TabStrip.ICON_BUTTONS = {
 			LeftArrowButton: "slim-arrow-left",
 			RightArrowButton: "slim-arrow-right",
-			DownArrowButton: "slim-arrow-down",
+			DownArrowButton: Device.system.phone ? "navigation-down-arrow" : "slim-arrow-down",
 			AddButton: "add"
 		};
 
@@ -323,6 +323,8 @@ function(
 				}
 
 				this._sResizeListenerId = ResizeHandler.register(this.getDomRef(),  jQuery.proxy(this._adjustScrolling, this));
+			} else {
+				this.$().toggleClass("sapUiSelectable", this.getItems().length > 1);
 			}
 		};
 
@@ -333,9 +335,9 @@ function(
 		 * @private
 		 */
 		TabStrip.prototype._handleInititalScrollToItem = function() {
-			var $oItem = sap.ui.getCore().byId(this.getSelectedItem());
-			if ($oItem && $oItem.$().length > 0) { // check if the item is already in the DOM
-				this._scrollIntoView($oItem, 500);
+			var oItem = sap.ui.getCore().byId(this.getSelectedItem());
+			if (oItem && oItem.$().length > 0) { // check if the item is already in the DOM
+				this._scrollIntoView(oItem, 500);
 			}
 			sap.ui.getCore().detachThemeChanged(this._handleInititalScrollToItem, this);
 		};
@@ -366,7 +368,7 @@ function(
 		 */
 		TabStrip.prototype.applyFocusInfo = function (oFocusInfo) {
 			if (oFocusInfo.focusDomRef) {
-				jQuery(oFocusInfo.focusDomRef).focus();
+				jQuery(oFocusInfo.focusDomRef).trigger("focus");
 			}
 		};
 
@@ -559,10 +561,10 @@ function(
 		 */
 		TabStrip.prototype._scroll = function(iDelta, iDuration) {
 			var iScrollLeft = this.getDomRef("tabsContainer").scrollLeft,
-				bIE_Edge = Device.browser.internet_explorer || Device.browser.edge,// TODO remove after 1.62 version
+				bIE_Edge = Device.browser.internet_explorer || Device.browser.edge,// TODO remove after the end of support for Internet Explorer
 				iScrollTarget;
 
-			if (this._bRtl && !bIE_Edge) {// TODO remove after 1.62 version
+			if (this._bRtl && !bIE_Edge) {// TODO remove after the end of support for Internet Explorer
 				iScrollTarget = iScrollLeft - iDelta;
 
 				if (Device.browser.firefox) {
@@ -651,15 +653,17 @@ function(
 				oSelectedSelectItem,
 				oSelectedTabStripItem,
 				oConstructorSettings = {
-					type: Device.system.phone ? SelectType.Default : SelectType.IconOnly,
+					type: SelectType.IconOnly,
 					autoAdjustWidth : true,
-					maxWidth: Device.system.phone ? "100%" : "2.5rem",
+					maxWidth: "2.5rem",
 					icon: IconPool.getIconURI(TabStrip.ICON_BUTTONS.DownArrowButton),
 					tooltip: oRb.getText("TABSTRIP_OPENED_TABS"),
 					change: function (oEvent) {
 						oSelectedSelectItem = oEvent.getParameters()['selectedItem'];
 						oSelectedTabStripItem = this._findTabStripItemFromSelectItem(oSelectedSelectItem);
-						this._activateItem(oSelectedTabStripItem, oEvent);
+						if (oSelectedTabStripItem instanceof TabStripItem) {
+							this._activateItem(oSelectedTabStripItem, oEvent);
+						}
 					}.bind(this)
 				};
 
@@ -680,7 +684,10 @@ function(
 			// mark the event for components that needs to know if the event was handled
 			oEvent.setMarked();
 			oEvent.preventDefault();
-			this._activateItem(oEvent.srcControl, oEvent);
+			/* Fire activate item only if select is on an Item.*/
+			if (oEvent.srcControl instanceof TabStripItem) {
+				this._activateItem(oEvent.srcControl, oEvent);
+			}
 		};
 
 		/**
@@ -739,16 +746,14 @@ function(
 		 */
 		TabStrip.prototype._activateItem = function(oItem, oEvent) {
 			/* As the '_activateItem' is part of a bubbling selection change event, allow the final event handler
-			 * to prevent it. */
+			 * to prevent it.*/
 			if (this.fireItemSelect({item: oItem})) {
-				if (oItem && oItem instanceof TabStripItem) {
-					if (!this.getSelectedItem() || this.getSelectedItem() !== oItem.getId()) {
-						this.setSelectedItem(oItem);
-					}
-					this.fireItemPress({
-						item: oItem
-					});
+				if (!this.getSelectedItem() || this.getSelectedItem() !== oItem.getId()) {
+					this.setSelectedItem(oItem);
 				}
+				this.fireItemPress({
+					item: oItem
+				});
 			} else if (oEvent && !oEvent.isDefaultPrevented()) {
 				oEvent.preventDefault();
 			}
@@ -841,16 +846,20 @@ function(
 		 * @override
 		 */
 		TabStrip.prototype.setSelectedItem = function(oSelectedItem) {
+			var bNotMobile = !Device.system.phone;
+
 			if (!oSelectedItem) {
-				return;
+				return this;
 			}
 
-			if (oSelectedItem.$().length > 0) {
+			if (oSelectedItem.$().length > 0 && bNotMobile) {
 				this._scrollIntoView(oSelectedItem, 500);
 			}
 
-			this._updateAriaSelectedAttributes(this.getItems(), oSelectedItem);
-			this._updateSelectedItemClasses(oSelectedItem.getId());
+			if (bNotMobile) {
+				this._updateAriaSelectedAttributes(this.getItems(), oSelectedItem);
+				this._updateSelectedItemClasses(oSelectedItem.getId());
+			}
 
 			// propagate the selection change to the select aggregation
 			if (this.getHasSelect()) {
@@ -858,7 +867,7 @@ function(
 				this.getAggregation('_select').setSelectedItem(oSelectItem);
 			}
 
-			return TabStrip.prototype.setAssociation.call(this, "selectedItem", oSelectedItem, true); //render manually;
+			return this.setAssociation("selectedItem", oSelectedItem, bNotMobile);
 		};
 
 		/**
@@ -1302,6 +1311,8 @@ function(
 
 		var CustomSelectRenderer = Renderer.extend(SelectRenderer);
 
+		CustomSelectRenderer.apiVersion = 2;
+
 		var CustomSelect = Select.extend("sap.m.internal.TabStripSelect", {
 			metadata: {
 				library: "sap.m"
@@ -1358,63 +1369,71 @@ function(
 			return this;
 		};
 
+		CustomSelect.prototype._getValueIcon = function() {
+			// our select will not show neither image nor icon on the left of the text
+			return null;
+		};
+
 		/****************************************** CUSTOM SELECT LIST CONTROL *****************************************/
 
 		var CustomSelectListRenderer = Renderer.extend(SelectListRenderer);
 
+		CustomSelectListRenderer.apiVersion = 2;
+
 		CustomSelectListRenderer.renderItem = function(oRm, oList, oItem, mStates) {
-			oRm.write("<li");
-			oRm.writeElementData(oItem);
-			oRm.addClass(SelectListRenderer.CSS_CLASS + "ItemBase");
-			oRm.addClass(SelectListRenderer.CSS_CLASS + "Item");
-			oRm.addClass("sapMTSOverflowSelectListItem");
+			oRm.openStart("li", oItem);
+			oRm.class(SelectListRenderer.CSS_CLASS + "ItemBase");
+			oRm.class(SelectListRenderer.CSS_CLASS + "Item");
+			oRm.class("sapMTSOverflowSelectListItem");
 			if (oItem.getProperty("modified")) {
-				oRm.addClass("sapMTSOverflowSelectListItemModified");
+				oRm.class("sapMTSOverflowSelectListItemModified");
 			}
 			if (Device.system.desktop) {
-				oRm.addClass(SelectListRenderer.CSS_CLASS + "ItemBaseHoverable");
+				oRm.class(SelectListRenderer.CSS_CLASS + "ItemBaseHoverable");
 			}
 			if (oItem === oList.getSelectedItem()) {
-				oRm.addClass(SelectListRenderer.CSS_CLASS + "ItemBaseSelected");
+				oRm.class(SelectListRenderer.CSS_CLASS + "ItemBaseSelected");
 			}
-			oRm.writeAttribute("tabindex", 0);
-			oRm.writeClasses();
+			oRm.attr("tabindex", 0);
 			this.writeItemAccessibilityState.apply(this, arguments);
-			oRm.write(">");
+			oRm.openEnd();
 
-			oRm.write('<div class=\"sapMSelectListItemText\">');
+			oRm.openStart("div");
+			oRm.class("sapMSelectListItemText");
+			oRm.openEnd();
 
 			// write icon
 			if (oItem.getIcon()) {
 				oRm.renderControl(oItem._getImage());
 			}
 
-			oRm.write("<div"); // Start texts container
-			oRm.addClass("sapMTSTexts");
-			oRm.writeClasses();
-			oRm.write(">");
+			oRm.openStart("div"); // Start texts container
+			oRm.class("sapMTSTexts");
+			oRm.openEnd();
 			// write additional text
 			this.renderItemText(oRm, oItem.getAdditionalText(), TabStripItem.CSS_CLASS_TEXT);
 
 			// write label text
 			this.renderItemText(oRm, oItem.getText(), TabStripItem.CSS_CLASS_LABEL);
 
-			oRm.write("</div>");
-			oRm.write('</div>');
+			oRm.close("div");
+			oRm.close("div");
 
 			oRm.renderControl(oItem.getAggregation('_closeButton'));
 
-			oRm.write("</li>");
+			oRm.close("li");
 		};
 
 		CustomSelectListRenderer.renderItemText = function (oRm, sItemText, sCssClass) {
-			oRm.write("<div class='" + sCssClass + "'>");
-			oRm.writeEscaped(sItemText.slice(0, (Device.system.phone ? sItemText.length : TabStripItem.DISPLAY_TEXT_MAX_LENGTH)));
+			oRm.openStart("div");
+			oRm.class(sCssClass);
+			oRm.openEnd();
+			oRm.text(sItemText.slice(0, (Device.system.phone ? sItemText.length : TabStripItem.DISPLAY_TEXT_MAX_LENGTH)));
 			// add three dots "..." at the end if not the whole additional text is shown
 			if (!Device.system.phone && sItemText.length > TabStripItem.DISPLAY_TEXT_MAX_LENGTH) {
-				oRm.write('...');
+				oRm.text('...');
 			}
-			oRm.write("</div>");
+			oRm.close("div");
 		};
 
 		var CustomSelectList = SelectList.extend("sap.m.internal.TabStripSelectList", {

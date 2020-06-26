@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([],
@@ -11,7 +11,9 @@ function() {
 	 * SinglePlanningCalendar renderer.
 	 * @namespace
 	 */
-	var SinglePlanningCalendarRenderer = {};
+	var SinglePlanningCalendarRenderer = {
+		apiVersion: 2
+	};
 
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
@@ -21,11 +23,10 @@ function() {
 	 */
 	SinglePlanningCalendarRenderer.render = function(oRm, oCalendar){
 		var oHeader = oCalendar._getHeader(),
-			oGrid = oCalendar._getGrid();
+			oGrid = oCalendar._getCurrentGrid();
 
-		oRm.write("<div");
-		oRm.writeControlData(oCalendar);
-		oRm.writeAccessibilityState({
+		oRm.openStart("div", oCalendar);
+		oRm.accessibilityState({
 			role: "region",
 			roledescription: oCalendar._oRB.getText("SPC_CONTROL_NAME"),
 			labelledby: {
@@ -33,14 +34,13 @@ function() {
 				append: true
 			}
 		});
-		oRm.addClass("sapMSinglePC");
-		oRm.writeClasses(oCalendar);
-		oRm.write(">");
+		oRm.class("sapMSinglePC");
+		oRm.openEnd();
 
 		oRm.renderControl(oHeader);
 		oRm.renderControl(oGrid);
 
-		oRm.write("</div>");
+		oRm.close("div");
 	};
 
 	return SinglePlanningCalendarRenderer;

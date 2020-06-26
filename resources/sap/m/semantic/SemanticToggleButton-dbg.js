@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,7 @@ sap.ui.define(['sap/m/semantic/SemanticButton', 'sap/m/library', "sap/ui/events/
 	 * @abstract
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -35,6 +35,8 @@ sap.ui.define(['sap/m/semantic/SemanticButton', 'sap/m/library', "sap/ui/events/
 		metadata : {
 
 			library : "sap.m",
+
+			"abstract": true,
 
 			properties : {
 
@@ -75,6 +77,17 @@ sap.ui.define(['sap/m/semantic/SemanticButton', 'sap/m/library', "sap/ui/events/
 	};
 
 	/**
+	 * Handle the after rendering phase of the control.
+	 * @private
+	 */
+	SemanticToggleButton.prototype._onAfterRendering = function() {
+		var sType = this._getControl().getType(),
+			bPressed = sType === ButtonType.Emphasized;
+
+		this.$().attr("aria-pressed", bPressed);
+	};
+
+	/**
 	 * Applies the property value according to semantic logic
 	 * Overwrites to apply toggle-specific logic
 	 * @Overwrites
@@ -109,7 +122,8 @@ sap.ui.define(['sap/m/semantic/SemanticButton', 'sap/m/library', "sap/ui/events/
 
 		oInstance.addEventDelegate({
 			ontap: this._onTap,
-			onkeydown: this._onKeydown
+			onkeydown: this._onKeydown,
+			onAfterRendering: this._onAfterRendering
 		}, this);
 
 		return oInstance;

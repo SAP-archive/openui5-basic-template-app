@@ -6,6 +6,10 @@
 	padding: 0;
 }
 
+.sapUiAFLayoutNoContent {
+	justify-content: flex-end;
+}
+
 .sapUiAFLayoutItem,
 .sapUiAFLayoutEnd {
 	overflow: hidden;
@@ -37,14 +41,14 @@
 }
 
 .sapUiAFLayoutEnd:only-child {
-	position: relative;
+	position: static;
 }
 
 .sapUiAFLayoutOneLine > .sapUiAFLayoutSpacer {
 	display: none;
 }
 
-.sapUiAFLayoutOneLine > div:last-child {
+.sapUiAFLayoutOneLine > .sapUiAFLayoutSpacer:last-child {
 	flex-basis: auto !important; /* needs to override inline style */
 	flex-grow: 0;
 }

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -220,7 +220,7 @@ sap.ui.define([
 			this.renderClasses();
 			this.renderMethods();
 
-			$('#sapUiSupportDebuggingClassInput').focus();
+			$('#sapUiSupportDebuggingClassInput').trigger("focus");
 		};
 
 		Debugging.prototype.onsapUiSupportDebuggingReceiveClassMethods = function(oEvent) {
@@ -238,7 +238,7 @@ sap.ui.define([
 			var $breakpoints = $('li[data-class-name="' + sClassName + '"] span.breakpoints');
 			$breakpoints.text(mBreakpointCount.active + " / " + mBreakpointCount.all).show();
 
-			$('#sapUiSupportDebuggingMethodInput').focus();
+			$('#sapUiSupportDebuggingMethodInput').trigger("focus");
 		};
 
 		Debugging.prototype._autoComplete = function(oEvent) {
@@ -301,7 +301,7 @@ sap.ui.define([
 			this._mAddedClasses[sClassName] = {};
 
 			this.renderClasses();
-			$('#sapUiSupportDebuggingClassInput').focus();
+			$('#sapUiSupportDebuggingClassInput').trigger("focus");
 		};
 
 		Debugging.prototype._onRemoveClass = function(oEvent) {
@@ -328,7 +328,7 @@ sap.ui.define([
 				this.renderMethods();
 			}
 
-			$('#sapUiSupportDebuggingClassInput').focus();
+			$('#sapUiSupportDebuggingClassInput').trigger("focus");
 		};
 
 		Debugging.prototype._onAddBreakpointClicked = function() {

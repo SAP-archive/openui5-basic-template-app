@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,11 +27,11 @@ sap.ui.define([], function() {
 	 *
 	 * @class A class whose instances act as a facade for other objects.
 	 *
-	 * Note: If a class returns a facade in its constructor, only the defined functions will be visible, no
+	 * <b>Note:</b> If a class returns a facade in its constructor, only the defined functions will be visible, no
 	 * internals of the class can be accessed.
 	 *
 	 * @author Malte Wedel, Daniel Brinkmann
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @param {sap.ui.base.Object}
 	 *            oObject Object for which a facade should be created
 	 * @param {string[]}

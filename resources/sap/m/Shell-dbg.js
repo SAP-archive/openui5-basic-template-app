@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Shell.
 sap.ui.define([
 	'./library',
+	'sap/ui/core/Core',
 	'sap/ui/core/Control',
 	'sap/ui/core/library',
 	'sap/m/ShellRenderer',
@@ -14,7 +15,7 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(library, Control, coreLibrary, ShellRenderer, Mobile, Log, jQuery) {
+	function(library, Core, Control, coreLibrary, ShellRenderer, Mobile, Log, jQuery) {
 		"use strict";
 
 
@@ -34,7 +35,7 @@ sap.ui.define([
 		 * The Shell control can be used as root element of applications. It can contain an App or a <code>SplitApp</code> control.
 		 * The Shell provides some overarching functionality for the overall application and takes care of visual adaptation, such as a frame around the App, on desktop browser platforms.
 		 * @extends sap.ui.core.Control
-		 * @version 1.64.0
+		 * @version 1.79.0
 		 *
 		 * @constructor
 		 * @public
@@ -150,11 +151,12 @@ sap.ui.define([
 
 		Shell.prototype.init = function() {
 			// theme change might change the logo
-			sap.ui.getCore().attachThemeChanged(jQuery.proxy(function(){
+			Core.attachThemeChanged(jQuery.proxy(function(){
 				var $hdr = this.$("hdr");
 				if ($hdr.length) {
 					$hdr.find(".sapMShellLogo").remove(); // remove old logo, if present
-					var html = ShellRenderer.getLogoImageHtml(this);
+					var rm = Core.createRenderManager();
+					var html = ShellRenderer.getLogoImageHtml(rm, this);
 					$hdr.prepend(jQuery(html)); // insert new logo
 				}
 			}, this));

@@ -1,12 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
- * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
- */
-
-/*!
- * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,6 +36,8 @@ sap.ui.define([
 			HashChangerBase.apply(this);
 		}
 	});
+
+	RouterHashChanger.InvalidHash = Object.create(null);
 
 	RouterHashChanger.prototype.init = function() {
 		this.parent.init();
@@ -96,7 +92,7 @@ sap.ui.define([
 		this.hash = sHash;
 		this.subHashMap = oSubHashMap;
 
-		if (!bUpdateHashOnly) {
+		if (!bUpdateHashOnly && sHash !== sOldHash) {
 			this.fireEvent("hashChanged", {
 				newHash : sHash,
 				oldHash : sOldHash
@@ -114,12 +110,31 @@ sap.ui.define([
 	};
 
 	RouterHashChanger.prototype._onChildHashChanged = function(sKey, oEvent) {
-		var sChildKey = oEvent.getParameter("key") || sKey;
+		var sChildKey = oEvent.getParameter("key") || sKey,
+			sHash = oEvent.getParameter("hash"),
+			aNestedHashInfo = oEvent.getParameter("nestedHashInfo"),
+			aDeletePrefix = oEvent.getParameter("deletePrefix");
 
-		this.fireEvent(oEvent.getId(), {
-			hash: oEvent.getParameter("hash"),
-			key: sChildKey,
-			deletePrefix: oEvent.getParameter("deletePrefix")
+		if (this._bCollectMode) {
+			// collect the hash
+			this._collectHash(sChildKey, sHash, aDeletePrefix);
+		} else {
+			this.fireEvent(oEvent.getId(), {
+				hash: sHash,
+				key: sChildKey,
+				nestedHashInfo: aNestedHashInfo,
+				deletePrefix: aDeletePrefix
+			});
+		}
+	};
+
+	RouterHashChanger.prototype._collectHash = function(sKey, sHash, aDeletePrefix) {
+		this._aCollectedHashInfo = this._aCollectedHashInfo || [];
+
+		this._aCollectedHashInfo.push({
+			key: sKey,
+			hash: sHash,
+			deletePrefix: aDeletePrefix
 		});
 	};
 
@@ -153,7 +168,29 @@ sap.ui.define([
 	 * @protected
 	 */
 	RouterHashChanger.prototype.getHash = function() {
-		return this.hash;
+		if (this._isUnderCollectMode()) {
+			// If one ancestor of the current RouterHashChanger is in the collect mode,
+			// this function needs to return an invalid hash marker to prevent the Router
+			// from parsing the hash because a hashChange event will be fired immediately
+			// after the collect mode which contains the correct hash for the Router
+			return RouterHashChanger.InvalidHash;
+		} else {
+			return this.hash;
+		}
+	};
+
+	/**
+	 * Reset the hash
+	 *
+	 * This is needed for allowing to fire the hashChanged event with the previous hash again
+	 * after displaying a Target without involving a Router.
+	 *
+	 * @return {sap.ui.core.routing.RouterHashChanger} The current RouterHashChanger for chaining the method
+	 * @protected
+	 */
+	RouterHashChanger.prototype.resetHash = function() {
+		this.hash = undefined;
+		return this;
 	};
 
 	/**
@@ -161,19 +198,23 @@ sap.ui.define([
 	 * If you do not want to have an entry in the browser history, please use the {@link #replaceHash} function.
 	 *
 	 * @param {string} sHash New hash
+	 * @param {Promise} [pNestedHashChange] When this parameter is given, this RouterHashChanger switchs to collect
+	 *  mode and all hash changes from its children will be collected. When this promise resolves, this
+	 *  RouterHashChanger fires a "hashSet" event with its own hash and the hashes which are collected from the child
+	 *  RouterHashChanger(s).
+	 * @param {boolean} [bSuppressActiveHashCollect=false] Whether this RouterHashChanger shouldn't collect the prefixes
+	 *  from its active child RouterHashChanger(s) and forward them as delete prefixes within the next "hashSet" event
+	 * @returns {Promise|undefined} When <code>pNestedHashChange</code> is given as a Promise, this function also returns
+	 *  a Promise which resolves after the given promise resolves. Otherwise it returns <code>undefined</code>.
 	 * @protected
 	 */
-	RouterHashChanger.prototype.setHash = function(sHash) {
-		if (this._hasRouterAttached()) {
-			var aDeletePrefix = this._collectActiveDescendantPrefix();
-
-			this.fireEvent("hashSet", {
-				hash: sHash,
-				deletePrefix: aDeletePrefix
-			});
-		} else {
-			Log.warning("The function setHash is called on a router which isn't matched within the last browser hashChange event. The call is ignored.");
+	RouterHashChanger.prototype.setHash = function(sHash, pNestedHashChange, bSuppressActiveHashCollect) {
+		if (!(pNestedHashChange instanceof Promise)) {
+			bSuppressActiveHashCollect = pNestedHashChange;
+			pNestedHashChange = null;
 		}
+
+		return this._modifyHash(sHash, pNestedHashChange, bSuppressActiveHashCollect);
 	};
 
 	/**
@@ -181,19 +222,99 @@ sap.ui.define([
 	 * If you want to have an entry in the browser history, please use the {@link #setHash} function.
 	 *
 	 * @param {string} sHash New hash
+	 * @param {Promise} [pNestedHashChange] When this parameter is given, this RouterHashChanger switchs to collect
+	 *  mode and all hash changes from its children will be collected. When this promise resolves, this
+	 *  RouterHashChanger fires a "hashReplaced" event with its own hash and the hashes which are collected from the child
+	 *  RouterHashChanger(s).
+	 * @param {boolean} [bSuppressActiveHashCollect=false] Whether this RouterHashChanger shouldn't collect the prefixes
+	 *  from its active child RouterHashChanger(s) and forward them as delete prefixes within the next "hashReplaced" event
+	 * @returns {Promise|undefined} When <code>pNestedHashChange</code> is given as a Promise, this function also returns
+	 *  a Promise which resolves after the given promise resolves. Otherwise it returns <code>undefined</code>.
 	 * @protected
 	 */
-	RouterHashChanger.prototype.replaceHash = function(sHash) {
-		if (this._hasRouterAttached()) {
-			var aDeletePrefix = this._collectActiveDescendantPrefix();
+	RouterHashChanger.prototype.replaceHash = function(sHash, pNestedHashChange, bSuppressActiveHashCollect) {
+		if (!(pNestedHashChange instanceof Promise)) {
+			bSuppressActiveHashCollect = pNestedHashChange;
+			pNestedHashChange = null;
+		}
+		return this._modifyHash(sHash, pNestedHashChange, bSuppressActiveHashCollect, /* bReplace */true);
+	};
 
-			this.fireEvent("hashReplaced", {
-				hash: sHash,
-				deletePrefix: aDeletePrefix
+	/**
+	 * Collects all hash changes from the nested RouterHashChanger(s) when <code>pNestedHashChange</code> is given as a
+	 * Promise. After the given promise resolves, it fires a "hashSet" or "hashReplaced" event depending on the
+	 * <code>bReplace</code> parameter.
+	 *
+	 * If the <code>pNestedHashChange</code> isn't given as a Promise. The function fires the "hashSet" or
+	 * "hashReplaced" event directly
+	 *
+	 * @param {string} sHash New hash
+	 * @param {Promise} [pNestedHashChange] When this parameter is given, this RouterHashChanger switchs to collect
+	 *  mode and all hash changes from its children will be collected. When this promise resolves, this
+	 *  RouterHashChanger fires a "hashSet" or "hashReplaced" event with its own hash and the hashes which are collected
+	 *  from the child RouterHashChanger(s).
+	 * @param {boolean} [bSuppressActiveHashCollect=false] Whether this RouterHashChanger shouldn't collect the prefixes
+	 *  from its active child RouterHashChanger(s) and forward them as delete prefixes within the next "hashReplaced" event
+	 * @param {boolean} [bReplace=false] Whether a "hashReplace" or "hashSet" event should be fired at the end
+	 * @returns {Promise|undefined} When <code>pNestedHashChange</code> is given as a Promise, this function also returns
+	 *  a Promise which resolves after the given promise resolves. Otherwise it returns <code>undefined</code>.
+	 *
+	 * @private
+	 */
+	RouterHashChanger.prototype._modifyHash = function(sHash, pNestedHashChange, bSuppressActiveHashCollect, bReplace) {
+		var aActivePrefixes,
+			sEventName = bReplace ? "hashReplaced" : "hashSet",
+			that = this;
+
+		if (!bSuppressActiveHashCollect) {
+			aActivePrefixes = this._collectActiveDescendantPrefix();
+		}
+
+		if (pNestedHashChange) {
+			this._bCollectMode = true;
+
+			return pNestedHashChange.then(function() {
+				// fire hashSet or hashReplaced event with the collected info
+				that.fireEvent(sEventName, {
+					hash: sHash,
+					nestedHashInfo: that._aCollectedHashInfo,
+					deletePrefix: aActivePrefixes
+				});
+
+				// reset collected hash info and exit collect mode
+				that._aCollectedHashInfo = null;
+				that._bCollectMode = false;
 			});
 		} else {
-			Log.warning("The function replaceHash is called on a router which isn't matched within the last browser hashChange event. The call is ignored.");
+			// fire hashSet or hashReplaced event
+			this.fireEvent(sEventName, {
+				hash: sHash,
+				deletePrefix: aActivePrefixes
+			});
 		}
+	};
+
+	/*
+	 * Checks whether one of its ancestors is currently in collect mode
+	 *
+	 * @returns {boolean} whether one of the ancestors is in collect mode
+	 *
+	 * @private
+	 */
+	RouterHashChanger.prototype._isUnderCollectMode = function() {
+		// check whether one of its ancestors (RouterHashChanger) is in collect mode
+		return this.parent instanceof RouterHashChanger && this.parent._isInCollectMode();
+	};
+
+	/**
+	 * Checks whether the RouterHashChanger or one of its ancestors is in collect mode
+	 *
+	 * @returns {boolean} whether the RouterHashChanger or one of its ancestors is in collect mode
+	 *
+	 * @private
+	 */
+	RouterHashChanger.prototype._isInCollectMode = function() {
+		return this._bCollectMode || (this.parent instanceof RouterHashChanger && this.parent._isInCollectMode());
 	};
 
 	RouterHashChanger.prototype.destroy = function() {

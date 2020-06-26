@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,13 +8,21 @@ sap.ui.define([
 	"sap/ui/test/matchers/Matcher",
 	"sap/base/strings/capitalize",
 	"sap/ui/thirdparty/jquery"
-], function(Matcher, capitalize, jQueryDOM) {
+], function (Matcher, capitalize, jQueryDOM) {
 	"use strict";
 
 	/**
-	 * AggregationFilled - checks if an aggregation contains at least one entry.
+	 * @class
+	 * Checks if an aggregation contains at least one entry.
 	 *
-	 * @class AggregationFilled - checks if an aggregation contains at least one entry
+	 * As of version 1.72, it is available as a declarative matcher with the following syntax:
+	 * <code><pre>{
+	 *     aggregationFilled: {
+	 *         name: "string"
+	 *     }
+	 * }
+	 * </code></pre>
+	 *
 	 * @param {object} [mSettings] optional map/JSON-object with initial settings for the new AggregationFilledMatcher
 	 * @extends sap.ui.test.matchers.Matcher
 	 * @public
@@ -24,14 +32,14 @@ sap.ui.define([
 	 */
 	return Matcher.extend("sap.ui.test.matchers.AggregationFilled", /** @lends sap.ui.test.matchers.AggregationFilled.prototype */ {
 
-		metadata : {
-			publicMethods : [ "isMatching" ],
-			properties : {
+		metadata: {
+			publicMethods: ["isMatching"],
+			properties: {
 				/**
 				 * The name of the aggregation that is used for matching.
 				 */
-				name : {
-					type : "string"
+				name: {
+					type: "string"
 				}
 			}
 		},
@@ -43,7 +51,7 @@ sap.ui.define([
 		 * @return {boolean} true if the Aggregation set in the property aggregationName is filled, false if it is not.
 		 * @public
 		 */
-		isMatching : function (oControl) {
+		isMatching: function (oControl) {
 			var sAggregationName = this.getName(),
 				fnAggregation = oControl["get" + capitalize(sAggregationName, 0)];
 
@@ -64,4 +72,4 @@ sap.ui.define([
 
 	});
 
-}, /* bExport= */ true);
+});

@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["./Element","./library","sap/base/assert"],function(I,t,e){"use strict";var T=t.IndicationColor;var i={};var n=null;var N=function(){if(!n){n={};var I=sap.ui.getCore().getLibraryResourceBundle("sap.ui.core");n[T.Indication01]=I.getText("INDICATION_STATE_INDICATION01");n[T.Indication02]=I.getText("INDICATION_STATE_INDICATION02");n[T.Indication03]=I.getText("INDICATION_STATE_INDICATION03");n[T.Indication04]=I.getText("INDICATION_STATE_INDICATION04");n[T.Indication05]=I.getText("INDICATION_STATE_INDICATION05");n[T.Indication06]=I.getText("INDICATION_STATE_INDICATION06");n[T.Indication07]=I.getText("INDICATION_STATE_INDICATION07");n[T.Indication08]=I.getText("INDICATION_STATE_INDICATION08")}};i.getAdditionalText=function(I){var t=null;if(I&&I.getValueState){t=I.getIndicationColor()}else if(T[I]){t=I}if(t){N();return n[t]}return null};return i},true);

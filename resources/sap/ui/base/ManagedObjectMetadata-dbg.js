@@ -1,12 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.base.ManagedObjectMetadata
 sap.ui.define([
-	'sap/ui/thirdparty/jquery',
 	'./DataType',
 	'./Metadata',
 	'sap/base/Log',
@@ -14,10 +13,10 @@ sap.ui.define([
 	'sap/base/util/ObjectPath',
 	'sap/base/strings/escapeRegExp',
 	'sap/base/util/merge',
+	'sap/base/util/extend',
 	'sap/base/util/isPlainObject'
 ],
 function(
-	jQuery,
 	DataType,
 	Metadata,
 	Log,
@@ -25,6 +24,7 @@ function(
 	ObjectPath,
 	escapeRegExp,
 	merge,
+	extend,
 	isPlainObject
 ) {
 	"use strict";
@@ -75,7 +75,7 @@ function(
 	 *
 	 *
 	 * @author Frank Weigel
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @since 0.8.6
 	 * @alias sap.ui.base.ManagedObjectMetadata
 	 * @extends sap.ui.base.Metadata
@@ -90,6 +90,7 @@ function(
 
 	// chain the prototypes
 	ManagedObjectMetadata.prototype = Object.create(Metadata.prototype);
+	ManagedObjectMetadata.prototype.constructor = ManagedObjectMetadata;
 
 	var hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -378,6 +379,23 @@ function(
 
 	Aggregation.prototype.destroy = function(instance) {
 		return instance[this._sDestructor]();
+	};
+
+	Aggregation.prototype.update = function(instance, sChangeReason, oEventInfo) {
+		if (instance[this._sUpdater]) {
+			instance[this._sUpdater](sChangeReason, oEventInfo);
+		} else {
+			instance.updateAggregation(this.name, sChangeReason, oEventInfo);
+		}
+	};
+
+	Aggregation.prototype.refresh = function(instance, sChangeReason) {
+		if (instance[this._sRefresher]) {
+			instance[this._sRefresher](sChangeReason);
+		} else {
+			//fallback there was no refresher before
+			this.update(instance, sChangeReason);
+		}
 	};
 
 	function AggregationForwarder(oAggregation) {
@@ -826,7 +844,7 @@ function(
 			return (m && m[1]) || "";
 		}
 
-		// init basic metadata from static infos and fallback to defaults
+		// init basic metadata from static information and fallback to defaults
 		this._sLibraryName = oStaticInfo.library || defaultLibName(this.getName());
 		this._mSpecialSettings = normalize(oStaticInfo.specialSettings, this.metaFactorySpecialSetting);
 		var mAllProperties = normalize(oStaticInfo.properties, this.metaFactoryProperty);
@@ -863,16 +881,16 @@ function(
 		// PERFOPT: this could be done lazily
 		var oParent = this.getParent();
 		if ( oParent instanceof ManagedObjectMetadata ) {
-			this._mAllEvents = jQuery.extend({}, oParent._mAllEvents, this._mEvents);
-			this._mAllPrivateProperties = jQuery.extend({}, oParent._mAllPrivateProperties, this._mPrivateProperties);
-			this._mAllProperties = jQuery.extend({}, oParent._mAllProperties, this._mProperties);
-			this._mAllPrivateAggregations = jQuery.extend({}, oParent._mAllPrivateAggregations, this._mPrivateAggregations);
-			this._mAllAggregations = jQuery.extend({}, oParent._mAllAggregations, this._mAggregations);
-			this._mAllPrivateAssociations = jQuery.extend({}, oParent._mAllPrivateAssociations, this._mPrivateAssociations);
-			this._mAllAssociations = jQuery.extend({}, oParent._mAllAssociations, this._mAssociations);
+			this._mAllEvents = Object.assign({}, oParent._mAllEvents, this._mEvents);
+			this._mAllPrivateProperties = Object.assign({}, oParent._mAllPrivateProperties, this._mPrivateProperties);
+			this._mAllProperties = Object.assign({}, oParent._mAllProperties, this._mProperties);
+			this._mAllPrivateAggregations = Object.assign({}, oParent._mAllPrivateAggregations, this._mPrivateAggregations);
+			this._mAllAggregations = Object.assign({}, oParent._mAllAggregations, this._mAggregations);
+			this._mAllPrivateAssociations = Object.assign({}, oParent._mAllPrivateAssociations, this._mPrivateAssociations);
+			this._mAllAssociations = Object.assign({}, oParent._mAllAssociations, this._mAssociations);
 			this._sDefaultAggregation = this._sDefaultAggregation || oParent._sDefaultAggregation;
 			this._sDefaultProperty = this._sDefaultProperty || oParent._sDefaultProperty;
-			this._mAllSpecialSettings = jQuery.extend({}, oParent._mAllSpecialSettings, this._mSpecialSettings);
+			this._mAllSpecialSettings = Object.assign({}, oParent._mAllSpecialSettings, this._mSpecialSettings);
 			this._sProvider = this._sProvider || oParent._sProvider;
 		} else {
 			this._mAllEvents = this._mEvents;
@@ -964,7 +982,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {map} Map of property info objects keyed by the property names
+	 * @return {Object<string,Object>} Map of property info objects keyed by the property names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getProperties = function() {
@@ -981,7 +999,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {map} Map of property info objects keyed by the property names
+	 * @return {Object<string,Object>} Map of property info objects keyed by the property names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAllProperties = function() {
@@ -998,7 +1016,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {map} Map of property infos keyed by property names
+	 * @return {Object<string,Object>} Map of property info objects keyed by property names
 	 * @protected
 	 */
 	ManagedObjectMetadata.prototype.getAllPrivateProperties = function() {
@@ -1102,7 +1120,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {map} Map of aggregation info objects keyed by aggregation names
+	 * @return {Object<string,Object>} Map of aggregation info objects keyed by aggregation names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAggregations = function() {
@@ -1121,7 +1139,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {map} Map of aggregation info objects keyed by aggregation names
+	 * @return {Object<string,Object>} Map of aggregation info objects keyed by aggregation names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAllAggregations = function() {
@@ -1139,7 +1157,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {map} Map of aggregation infos keyed by aggregation names
+	 * @return {Object<string,Object>} Map of aggregation info objects keyed by aggregation names
 	 * @protected
 	 */
 	ManagedObjectMetadata.prototype.getAllPrivateAggregations = function() {
@@ -1176,6 +1194,8 @@ function(
 	 * <code>undefined</code> is returned.
 	 *
 	 * @return {string} Name of the default aggregation
+	 * @public
+	 * @since 1.73
 	 */
 	ManagedObjectMetadata.prototype.getDefaultAggregationName = function() {
 		return this._sDefaultAggregation;
@@ -1188,6 +1208,8 @@ function(
 	 * info object for the default aggregation of the parent class is returned.
 	 *
 	 * @return {Object} An info object for the default aggregation
+	 * @public
+	 * @since 1.73
 	 */
 	ManagedObjectMetadata.prototype.getDefaultAggregation = function() {
 		return this.getAggregation();
@@ -1417,7 +1439,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {map} Map of association info objects keyed by association names
+	 * @return {Object<string,Object>} Map of association info objects keyed by association names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAssociations = function() {
@@ -1435,7 +1457,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {map} Map of association info objects keyed by association names
+	 * @return {Object<string,Object>} Map of association info objects keyed by association names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAllAssociations = function() {
@@ -1453,7 +1475,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {map} Map of association infos keyed by association names
+	 * @return {Object<string,Object>} Map of association info objects keyed by association names
 	 * @protected
 	 */
 	ManagedObjectMetadata.prototype.getAllPrivateAssociations = function() {
@@ -1524,7 +1546,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {map} Map of event info objects keyed by event names
+	 * @return {Object<string,Object>} Map of event info objects keyed by event names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getEvents = function() {
@@ -1541,7 +1563,7 @@ function(
 	 *   and therefore not part of the API. See the {@link #constructor Notes about Info objects}
 	 *   in the constructor documentation of this class.
 	 *
-	 * @return {map} Map of event info objects keyed by event names
+	 * @return {Object<string,Object>} Map of event info objects keyed by event names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getAllEvents = function() {
@@ -1590,7 +1612,7 @@ function(
 	 * Returns a map of default values for all properties declared by the
 	 * described class and its ancestors, keyed by the property name.
 	 *
-	 * @return {map} Map of default values keyed by property names
+	 * @return {Object<string,any>} Map of default values keyed by property names
 	 * @public
 	 */
 	ManagedObjectMetadata.prototype.getPropertyDefaults = function() {
@@ -1602,7 +1624,7 @@ function(
 		}
 
 		if ( this.getParent() instanceof ManagedObjectMetadata ) {
-			mDefaults = jQuery.extend({}, this.getParent().getPropertyDefaults());
+			mDefaults = Object.assign({}, this.getParent().getPropertyDefaults());
 		} else {
 			mDefaults = {};
 		}
@@ -1624,18 +1646,6 @@ function(
 			this._fnPropertyBagFactory.prototype = this.getPropertyDefaults();
 		}
 		return new (this._fnPropertyBagFactory)();
-	};
-
-	/**
-	 * Helper method that enriches the (generated) information objects for children
-	 * (e.g. properties, aggregations, ...) of this Element.
-	 *
-	 * Also ensures that the parent metadata is enriched.
-	 *
-	 * @private
-	 */
-	ManagedObjectMetadata.prototype._enrichChildInfos = function() {
-		Log.error("obsolete call to ManagedObjectMetadata._enrichChildInfos. This private method will be deleted soon");
 	};
 
 	/**
@@ -1768,11 +1778,11 @@ function(
 			} else {
 				oPromise = Promise.resolve();
 			}
-			return new Promise(function(fnResolve) {
+			return new Promise(function(fnResolve, fnReject) {
 				oPromise.then(function() {
 					sap.ui.require([oLibrary.designtime], function(oLib) {
 						fnResolve(oLib);
-					});
+					}, fnReject);
 				});
 			});
 		}
@@ -1790,7 +1800,7 @@ function(
 			return Promise.resolve(oMetadata._oDesignTime || {});
 		}
 
-		return new Promise(function(fnResolve) {
+		return new Promise(function(fnResolve, fnReject) {
 			var sModule;
 			if (typeof oMetadata._oDesignTime === "string") {
 				//oMetadata._oDesignTime points to resource path to another file, for example: "sap/ui/core/designtime/<control>.designtime"
@@ -1804,7 +1814,7 @@ function(
 					oMetadata._oDesignTime = mDesignTime;
 					mDesignTime._oLib = oLib;
 					fnResolve(mDesignTime);
-				});
+				}, fnReject);
 			});
 		});
 	}
@@ -1838,10 +1848,14 @@ function(
 		if (typeof sInstanceSpecificModule === "string") {
 			sInstanceSpecificModule = mPredefinedDesignTimeModules[sInstanceSpecificModule] || sInstanceSpecificModule;
 
-			return new Promise(function(fnResolve) {
-				sap.ui.require([sInstanceSpecificModule], function(oDesignTime) {
-					fnResolve(oDesignTime);
-				});
+			return new Promise(function(fnResolve, fnReject) {
+				sap.ui.require([sInstanceSpecificModule], function(vDesignTime) {
+					if (typeof vDesignTime === "function") {
+						fnResolve(vDesignTime(oInstance));
+					} else {
+						fnResolve(vDesignTime);
+					}
+				}, fnReject);
 			});
 		} else {
 			return Promise.resolve({});
@@ -1896,11 +1910,11 @@ function(
 	 * issues if you would like to persist DesignTime based information. In that case
 	 * you need to take care of identification yourself.
 	 *
-	 * @param {ManageObject} [oManagedObject] instance that could have instance specific design time metadata
+	 * @param {sap.ui.base.ManagedObject} [oManagedObject] instance that could have instance specific design time metadata
 	 * @param {string} [sScopeKey] scope name for which metadata will be resolved, see sap.ui.base.ManagedObjectMetadataScope
 	 * @return {Promise} A promise which will return the loaded design time metadata
 	 * @private
-	 * @sap-restricted sap.ui.dt com.sap.webide
+	 * @ui5-restricted sap.ui.dt com.sap.webide
 	 * @since 1.48.0
 	 */
 	ManagedObjectMetadata.prototype.loadDesignTime = function(oManagedObject, sScopeKey) {

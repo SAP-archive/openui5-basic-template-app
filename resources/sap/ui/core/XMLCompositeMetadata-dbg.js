@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @param {object} oClassInfo static info to construct the metadata from
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @since 1.50.0
 	 * @alias sap.ui.core.XMLCompositeMetadata
 	 * @extends sap.ui.core.ElementMetadata
@@ -96,6 +96,7 @@ sap.ui.define([
 	};
 
 	XMLCompositeMetadata.prototype = Object.create(ElementMetadata.prototype);
+	XMLCompositeMetadata.prototype.constructor = XMLCompositeMetadata;
 	XMLCompositeMetadata.uid = ElementMetadata.uid;
 
 	XMLCompositeMetadata.extend = function(mSettings) {

@@ -1,8 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
+// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
+// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
+// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
+sap.ui.getCore().loadLibrary("sap.ui.unified");
 
 sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 	function(CalendarLegendRenderer, Renderer) {
@@ -14,6 +19,7 @@ sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 		 * @namespace
 		 */
 		var PlanningCalendarLegendRenderer = Renderer.extend(CalendarLegendRenderer);
+		PlanningCalendarLegendRenderer.apiVersion = 2;
 
 		/**
 		 * Renders a header for the <code>items</code> list.
@@ -23,6 +29,7 @@ sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 		 */
 		PlanningCalendarLegendRenderer.renderItemsHeader = function(oRm, oLeg) {
 			var sItemsHeader = oLeg.getItemsHeader();
+
 			if (sItemsHeader && (oLeg.getItems().length || oLeg.getStandardItems().length)) {
 				this._renderItemsHeader(oRm, sItemsHeader);
 			}
@@ -40,7 +47,8 @@ sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 			} else if (oLeg.getAppointmentItems().length && (oLeg.getItems().length || oLeg.getStandardItems().length)) {
 				//the upper list has items, and the lower list too, but the second header is an empty string
 				//and we still need a delimiter
-				oRm.write("<hr/>");
+				oRm.voidStart("hr");
+				oRm.voidEnd();
 			}
 		};
 
@@ -51,9 +59,13 @@ sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 		 * @private
 		 */
 		PlanningCalendarLegendRenderer._renderItemsHeader = function(oRm, sHeaderText) {
-			oRm.write("<div class='sapMPlanCalLegendHeader'>");
-			oRm.writeEscaped(sHeaderText);
-			oRm.write("</div><hr/>");
+			oRm.openStart("div");
+			oRm.class("sapMPlanCalLegendHeader");
+			oRm.openEnd();
+			oRm.text(sHeaderText);
+			oRm.close("div");
+			oRm.voidStart("hr");
+			oRm.voidEnd();
 		};
 
 		/**
@@ -69,20 +81,20 @@ sap.ui.define(['sap/ui/unified/CalendarLegendRenderer', 'sap/ui/core/Renderer'],
 
 			this.renderAppointmentsItemsHeader(oRm, oLeg);
 
-			oRm.write("<div");
-			oRm.addClass("sapUiUnifiedLegendItems");
-			oRm.writeClasses();
+			oRm.openStart("div");
+			oRm.class("sapUiUnifiedLegendItems");
 			sColumnWidth = oLeg.getColumnWidth();
-			oRm.writeAttribute("style", "column-width:" + sColumnWidth + ";-moz-column-width:" + sColumnWidth + ";-webkit-column-width:" + sColumnWidth + ";");
-			oRm.writeStyles();
-			oRm.write(">");
+			oRm.style("column-width", sColumnWidth);
+			oRm.style("-moz-column-width", sColumnWidth);
+			oRm.style("-webkit-column-width", sColumnWidth);
+			oRm.openEnd();
 
 			// rendering special day and colors
 			for (i = 0; i < aAppointmentItems.length; i++) {
 				this.renderLegendItem(oRm, "sapUiCalLegDayType" + oLeg._getItemType(aAppointmentItems[i], aAppointmentItems).slice(4), aAppointmentItems[i], ["sapUiUnifiedLegendSquareColor", "sapMPlanCalLegendAppCircle"]);
 			}
 
-			oRm.write("</div>");
+			oRm.close("div");
 		};
 
 		return PlanningCalendarLegendRenderer;

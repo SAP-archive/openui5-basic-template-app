@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,7 +19,7 @@ sap.ui.define([
 	/**
 	 *
 	 * @class
-	 * Property binding implementation for oData format
+	 * Property binding implementation for OData format
 	 *
 	 * @param {sap.ui.model.Model} oModel
 	 * @param {string} sPath
@@ -95,15 +95,19 @@ sap.ui.define([
 	 * Setter for context
 	 */
 	ODataPropertyBinding.prototype.setContext = function(oContext) {
+		var bForceUpdate,
+			oOldContext = this.oContext;
+
 		if (oContext && oContext.isPreliminary()) {
 			return;
 		}
 
 		if (Context.hasChanged(this.oContext, oContext)) {
-			sap.ui.getCore().getMessageManager().removeMessages(this.getDataState().getControlMessages(), true);
 			this.oContext = oContext;
 			if (this.isRelative()) {
-				this.checkUpdate();
+				bForceUpdate = !!(oOldContext !== oContext
+					&& this.getDataState().getControlMessages().length);
+				this.checkUpdate(bForceUpdate);
 			}
 		}
 	};

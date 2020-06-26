@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,6 +43,14 @@ sap.ui.define([
             } else {
                 this._oLogger.debug("Control " + oControl + " has property " + sProperty + " with value " + vValue);
                 var mResult = {properties: {}};
+                // the src property can contain a relative file path -> use a regex to match only the file name
+                if (sProperty === "src" && vValue.lastIndexOf && vValue.lastIndexOf("/") > -1) {
+                    vValue = {
+                        regex: {
+                            source: vValue.substring(vValue.lastIndexOf("/") + 1).replace(/[-[\]{}()*+?.,^$|#\s]/g, '\\$&')
+                        }
+                    };
+                }
                 mResult.properties[sProperty] = vValue;
                 return mResult;
             }

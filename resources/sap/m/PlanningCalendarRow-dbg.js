@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides control sap.ui.unified.PlanningCalendarRow.
-sap.ui.define(['sap/ui/core/Element'], function (Element) {
+sap.ui.define(['sap/ui/core/Element', 'sap/m/CustomListItem'], function (Element, CustomListItem) {
 	"use strict";
 
 
@@ -23,7 +23,7 @@ sap.ui.define(['sap/ui/core/Element'], function (Element) {
 	 * The <code>sap.m.PlanningCalendarRow</code> allows you to modify appointments at row level.
 	 *
 	 * @extends sap.ui.core.Element
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 *
 	 * @constructor
 	 * @public
@@ -164,7 +164,12 @@ sap.ui.define(['sap/ui/core/Element'], function (Element) {
 			 *
 			 * @since 1.56
 			 */
-			enableAppointmentsCreate : {type : "boolean", group : "Misc", defaultValue : false}
+			enableAppointmentsCreate : {type : "boolean", group : "Misc", defaultValue : false},
+
+			/**
+			 * Defines the text that is displayed when no {@link sap.ui.unified.CalendarAppointment CalendarAppointments} are assigned.
+			 */
+			noAppointmentsText : {type : "string", group : "Misc", defaultValue : null}
 
 		},
 		aggregations : {
@@ -195,7 +200,23 @@ sap.ui.define(['sap/ui/core/Element'], function (Element) {
 			 * the date or date range will be ignored and will not be displayed in the control.
 			 * @since 1.56
 			 */
-			specialDates : {type : "sap.ui.unified.DateTypeRange", multiple : true, singularName : "specialDate"}
+			specialDates : {type : "sap.ui.unified.DateTypeRange", multiple : true, singularName : "specialDate"},
+
+			/**
+			 * Holds the header content of the row.
+			 *
+			 * <b>Note:</b> If the <code>headerContent</code> aggregation is added, then the set icon, description, title
+			 * and tooltip are ignored.
+			 * @since 1.67
+			 * @experimental Since 1.67, providing only limited functionality. Also, the API might be changed in the future.
+			 */
+			headerContent : {type : "sap.ui.core.Control", multiple : true, singularName : "headerContent",
+				forwarding: {
+					getter: "_getPlanningCalendarCustomRowHeader",
+					aggregation: "content"
+				},
+				forwardBinding: true
+				}
 
 		},
 		events : {
@@ -317,6 +338,26 @@ sap.ui.define(['sap/ui/core/Element'], function (Element) {
 		}
 	}});
 
+	PlanningCalendarRow.prototype.exit = function () {
+		if (this.oRowHeader) {
+			this.oRowHeader.destroy();
+		}
+	};
+
+	/*
+	 * Creates the header for the row and handles the binding.
+	 *
+	 * @returns {sap.m.CustomListItem}
+	 * @since 1.67
+	 * @private
+	 */
+	PlanningCalendarRow.prototype._getPlanningCalendarCustomRowHeader = function() {
+		if (!this.oRowHeader) {
+			this.oRowHeader = new CustomListItem(this.getId() + "-CustomHead");
+		}
+
+		return this.oRowHeader;
+	};
 
 	return PlanningCalendarRow;
 

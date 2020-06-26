@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -313,6 +313,7 @@ sap.ui.define([
 				'step': 0xe0fe,
 				'sonography': 0xe0ff,
 				'soccor': 0xe100,
+				'soccer': 0xe100,
 				'physical-activity': 0xe101,
 				'pharmacy': 0xe102,
 				'official-service': 0xe103,
@@ -707,7 +708,8 @@ sap.ui.define([
 				'collapse-all': 0xe284,
 				'combine': 0xe285,
 				'split': 0xe286,
-				'megamenu': 0xe287
+				'megamenu': 0xe287,
+				"feedback": 0xe288
 			}
 		};
 
@@ -748,9 +750,11 @@ sap.ui.define([
 		 * Creates an instance of {@link sap.ui.core.Icon} if the given URI is an icon URI, otherwise the given constructor is called.
 		 * The given URI is set to the src property of the control.
 		 *
-		 * @param {string|object} setting contains the properties which will be used to instantiate the returned control. It should contain at least a property named src. If it's given with a string type, it will be taken as the value of src property.
-		 * @param {function} constructor the constructor function which is called when the given URI isn't an icon URI
-		 * @return {sap.ui.core.Control} either an instance of sap.ui.core.Icon or instance created by calling the given constructor
+		 * @param {string|object} setting Contains the properties which will be used to instantiate the returned control.
+		 *  All properties of the associated constructor can be used. Unknown properties are ignored.
+		 *  It should contain at least a property named src. If it's given with a string type, it will be taken as the value of src property.
+		 * @param {function} constructor The constructor function which is called when the given URI isn't an icon URI
+		 * @return {sap.ui.core.Control} Either an instance of sap.ui.core.Icon or instance created by calling the given constructor
 		 * @static
 		 * @public
 		 */
@@ -789,7 +793,7 @@ sap.ui.define([
 		 * @param {string|string[]} iconInfo.content is the special hexadecimal code without the prefix, for example "e000" or several of them
 		 * @param {boolean} [iconInfo.overWrite=false] indicates if already registered icons should be overwritten when the same name and collection are given. The built in icons can never be overwritten.
 		 * @param {boolean} [iconInfo.suppressMirroring=false] indicates whether this icon should NOT be mirrored in RTL (right to left) mode.
-		 * @param {jQuery.sap.util.ResourceBundle} [iconInfo.resourceBundle] ResourceBundle to be used for translation. Key format: "Icon.<iconName>".
+		 * @param {module:sap/base/i18n/ResourceBundle} [iconInfo.resourceBundle] ResourceBundle to be used for translation. Key format: "Icon.<iconName>".
 		 *
 		 * @return {object} the info object of the registered icon which has the name, collection, uri, fontFamily, content and suppressMirroring properties.
 		 * @static
@@ -1125,7 +1129,7 @@ sap.ui.define([
 			// load the font asynchronously via CSS
 			var sFontFaceCSS = "@font-face {" +
 					"font-family: '" + sFontFace + "';" +
-					"src: url('" + sFontPath + sFontFace + ".woff2') format('woff2')," + /* Chrome 36+, Firefox 39+, Safari 10+, Edge 14+, Chrome 51+ for Android, PhantomJS 2.1.1+ */
+					"src: url('" + sFontPath + sFontFace + ".woff2') format('woff2')," + /* Chrome 36+, Firefox 39+, Safari 10+, Edge 14+, Chrome 51+ for Android */
 					"url('" + sFontPath + sFontFace + ".woff') format('woff')," + /* IE9+, Safari 5.1+, iOS 5.1+, Android Browser 4.4+, IE Mobile 11+ */
 					"url('" + sFontPath + sFontFace + ".ttf') format('truetype')," + /* Fallback for any older browser (except IE8 and below which are not supported anyway) */
 					"local('" + sFontFace + "');" + /* fallback to local installed font in case it can't be loaded (e.g. font download is disabled due to browser security settings) */

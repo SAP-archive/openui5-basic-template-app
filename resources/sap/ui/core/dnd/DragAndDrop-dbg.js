@@ -1,16 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/Device",
 	"../UIArea",
+	'sap/base/util/extend',
 	"sap/ui/thirdparty/jquery",
 	// jQuery Plugin "control"
 	"sap/ui/dom/jquery/control"
 ],
-function(Device, UIArea, jQuery) {
+function(Device, UIArea, extend, jQuery) {
 	"use strict";
 
 	/**
@@ -30,9 +31,12 @@ function(Device, UIArea, jQuery) {
 		aValidDropInfos = [],		// valid DropInfos configured for the current drop target
 		oDragSession = null,		// stores active drag session throughout a drag activity
 		$DropIndicator,				// drop position indicator
+		$DropIndicatorWrapper,		//  drop position indicator wrapper
 		$GhostContainer,			// container to place custom ghosts
 		sCalculatedDropPosition,	// calculated position of the drop action relative to the valid dropped control.
-		iTargetEnteringTime;		// timestamp of drag enter
+		iTargetEnteringTime,		// timestamp of drag enter
+		mLastIndicatorStyle = {},	// holds the last style settings of the indicator
+		oDraggableAncestorNode;		// reference to ancestor node that has draggable=true attribute
 
 
 	function addStyleClass(oElement, sStyleClass) {
@@ -68,6 +72,10 @@ function(Device, UIArea, jQuery) {
 		var oNewEvent = jQuery.Event(null, oEvent);
 		oNewEvent.type = sEventName;
 		oControl.getUIArea()._handleEvent(oNewEvent);
+	}
+
+	function isSelectableElement(oElement) {
+		return !oElement.disabled && /^(input|textarea)$/.test(oElement.localName);
 	}
 
 	function setDragGhost(oDragControl, oEvent) {
@@ -108,12 +116,14 @@ function(Device, UIArea, jQuery) {
 		 * The drag session can be used to transfer data between applications or between dragged and dropped controls.
 		 * Please see provided APIs for more details.
 		 *
-		 * <b>Note:</b> This object only exists during a drag-and-drop operation.
+		 * <b>Note:</b> An implementation of this interface is provided by the framework during drag-and-drop operations
+		 * and is exposed as <code>dragSession</code> parameter of the different drag and drop events.
 		 *
-		 * @namespace
+		 * <b>Note:</b> This interface is not intended to be implemented by controls, applications or test code.
+		 * Extending it with additional methods in future versions will be regarded as a compatible change.
+		 *
+		 * @interface
 		 * @name sap.ui.core.dnd.DragSession
-		 * @static
-		 * @abstract
 		 * @public
 		 */
 		return /** @lends sap.ui.core.dnd.DragSession */ {
@@ -176,6 +186,7 @@ function(Device, UIArea, jQuery) {
 			 *
 			 * @param {string} sKey The key of the data
 			 * @param {any} vData Data
+			 * @public
 			 */
 			setComplexData: function(sKey, vData) {
 				mData[sKey] = vData;
@@ -274,8 +285,6 @@ function(Device, UIArea, jQuery) {
 	}
 
 	function closeDragSession(oEvent) {
-		hideDropIndicator();
-		removeStyleClass(oDragControl, "sapUiDnDDragging");
 		oDragControl = oDropControl = oValidDropControl = oDragSession = null;
 		sCalculatedDropPosition = "";
 		aValidDragInfos = [];
@@ -287,14 +296,26 @@ function(Device, UIArea, jQuery) {
 			return $DropIndicator;
 		}
 
+		// not adding the div wrapper around DndIndicator as it prevents IE from scrolling
+		if (!Device.browser.msie) {
+			$DropIndicatorWrapper = jQuery("<div class='sapUiDnDIndicatorWrapper'></div>");
+		}
+
 		$DropIndicator = jQuery("<div class='sapUiDnDIndicator'></div>");
-		jQuery(sap.ui.getCore().getStaticAreaRef()).append($DropIndicator);
+
+		if (!$DropIndicatorWrapper) {
+			jQuery(sap.ui.getCore().getStaticAreaRef()).append($DropIndicator);
+		} else {
+			jQuery(sap.ui.getCore().getStaticAreaRef()).append($DropIndicatorWrapper);
+			$DropIndicator.appendTo($DropIndicatorWrapper);
+		}
 		return $DropIndicator;
 	}
 
 	function hideDropIndicator() {
 		if ($DropIndicator) {
 			$DropIndicator.removeAttr("style").hide();
+			mLastIndicatorStyle = {};
 		}
 	}
 
@@ -349,6 +370,9 @@ function(Device, UIArea, jQuery) {
 					sRelativePosition = "On";
 				}
 			}
+			if (sRelativePosition != "On" && sap.ui.getCore().getConfiguration().getRTL()) {
+				sRelativePosition = (sRelativePosition == "After") ? "Before" : "After";
+			}
 		} else {
 			var iCursorY = oEvent.pageY - mDropRect.top;
 			mStyle.width = mDropRect.width;
@@ -392,9 +416,15 @@ function(Device, UIArea, jQuery) {
 			sDropPosition = "Between";
 		}
 
-		$Indicator.attr("data-drop-layout", sDropLayout);
-		$Indicator.attr("data-drop-position", sDropPosition);
-		$Indicator.css(jQuery.extend(mStyle, mIndicatorConfig)).show();
+		if (mLastIndicatorStyle.top != mStyle.top ||
+			mLastIndicatorStyle.left != mStyle.left ||
+			mLastIndicatorStyle.width != mStyle.width ||
+			mLastIndicatorStyle.height != mStyle.height) {
+			$Indicator.attr("data-drop-layout", sDropLayout);
+			$Indicator.attr("data-drop-position", sDropPosition);
+			$Indicator.css(extend(mStyle, mIndicatorConfig)).show();
+			mLastIndicatorStyle = mStyle;
+		}
 
 		return sRelativePosition;
 	}
@@ -489,6 +519,22 @@ function(Device, UIArea, jQuery) {
 		}
 	};
 
+	DnD.onbeforemousedown = function(oEvent) {
+		// text selection workaround since preventDefault on dragstart does not help
+		// https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/10375756/
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=800050
+		if ((Device.browser.msie || Device.browser.firefox || Device.browser.edge) && isSelectableElement(oEvent.target)) {
+			oDraggableAncestorNode = jQuery(oEvent.target).closest("[data-sap-ui-draggable=true]").prop("draggable", false)[0];
+		}
+	};
+
+	DnD.onbeforemouseup = function(oEvent) {
+		if (oDraggableAncestorNode) {
+			oDraggableAncestorNode.draggable = true;
+			oDraggableAncestorNode = null;
+		}
+	};
+
 	DnD.onbeforedragstart = function(oEvent) {
 		// draggable implicitly
 		if (!oEvent.target.draggable) {
@@ -496,7 +542,7 @@ function(Device, UIArea, jQuery) {
 		}
 
 		// the text inside input fields should still be selectable
-		if (/^(input|textarea)$/i.test(document.activeElement.tagName)) {
+		if (isSelectableElement(document.activeElement)) {
 			oEvent.target.getAttribute("data-sap-ui-draggable") && oEvent.preventDefault();
 			return;
 		}
@@ -546,6 +592,9 @@ function(Device, UIArea, jQuery) {
 
 		// set dragging class of the drag source
 		addStyleClass(oDragControl, "sapUiDnDDragging");
+
+		// prevent HTML element from scrolling during drag-and-drop
+		jQuery("html").addClass("sapUiDnDNoScrolling");
 	};
 
 	DnD.onbeforedragenter = function(oEvent) {
@@ -667,6 +716,15 @@ function(Device, UIArea, jQuery) {
 		aValidDragInfos.forEach(function(oDragInfo) {
 			oDragInfo.fireDragEnd(oEvent);
 		});
+
+		// remove the dragging class of the dragged control
+		removeStyleClass(oDragControl, "sapUiDnDDragging");
+
+		// retain the scrolling behavior of the html element after dragend
+		jQuery("html").removeClass("sapUiDnDNoScrolling");
+
+		// hide the indicator
+		hideDropIndicator();
 
 		// finalize drag session
 		closeDragSession();

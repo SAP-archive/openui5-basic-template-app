@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,8 +43,8 @@ sap.ui.define([
 	 * JS objects without the need to call setData, setProperty or refresh. Observation does only work for existing
 	 * properties in the JSON, it cannot detect new properties or new array entries.
 	 *
-	 * @param {object|string} oData Either the URL where to load the JSON from or a JS object
-	 * @param {boolean} bObserve Whether to observe the JSON data for property changes (experimental)
+	 * @param {object|string} [oData] Either the URL where to load the JSON from or a JS object
+	 * @param {boolean} [bObserve] Whether to observe the JSON data for property changes (experimental)
 	 *
 	 * @class
 	 * Model implementation for JSON format
@@ -52,7 +52,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.ClientModel
 	 *
 	 * @author SAP SE
-	 * @version 1.64.0
+	 * @version 1.79.0
 	 * @public
 	 * @alias sap.ui.model.json.JSONModel
 	 */
@@ -153,7 +153,7 @@ sap.ui.define([
 	JSONModel.prototype.setJSON = function(sJSON, bMerge){
 		var oJSONData;
 		try {
-			oJSONData = jQuery.parseJSON(sJSON);
+			oJSONData = JSON.parse(sJSON + "");
 			this.setData(oJSONData, bMerge);
 		} catch (e) {
 			Log.fatal("The following problem occurred: JSON parse Error: " + e);

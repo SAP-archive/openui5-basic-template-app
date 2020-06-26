@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,12 +15,17 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library'],
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
 
+	/**
+	 * String to prefix CSS class for number status.
+	 */
+	var _sCSSPrefixObjNumberStatus = 'sapMObjectNumberStatus';
 
 	/**
 	 * ObjectNumber renderer.
 	 * @namespace
 	 */
 	var ObjectNumberRenderer = {
+			apiVersion: 2
 	};
 
 	/**
@@ -34,70 +39,64 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library'],
 			sTextDir = oON.getTextDirection(),
 			sTextAlign = oON.getTextAlign();
 
-		oRm.write("<div");
-		oRm.writeControlData(oON);
-		oRm.addClass("sapMObjectNumber");
+		oRm.openStart("div", oON);
+		oRm.class("sapMObjectNumber");
 
-		oRm.addClass(oON._sCSSPrefixObjNumberStatus + oON.getState());
+		oRm.class(_sCSSPrefixObjNumberStatus + oON.getState());
 
 		if (oON.getEmphasized()) {
-			oRm.addClass("sapMObjectNumberEmph");
+			oRm.class("sapMObjectNumberEmph");
 		}
 
 		if (sTooltip) {
-			oRm.writeAttributeEscaped("title", sTooltip);
+			oRm.attr("title", sTooltip);
 		}
 
 		if (sTextDir !== TextDirection.Inherit) {
-			oRm.writeAttribute("dir", sTextDir.toLowerCase());
+			oRm.attr("dir", sTextDir.toLowerCase());
 		}
 
 		sTextAlign = Renderer.getTextAlign(sTextAlign, sTextDir);
 
 		if (sTextAlign) {
-			oRm.addStyle("text-align", sTextAlign);
+			oRm.style("text-align", sTextAlign);
 		}
-
-		oRm.writeClasses();
-		oRm.writeStyles();
 
 		// ARIA
 		// when the status is "None" there is nothing for reading
 		if (oON.getState() !== ValueState.None) {
-			oRm.writeAccessibilityState({
+			oRm.accessibilityState({
 			describedby: oON.getId() + "-state"
 			});
 		}
 
-		oRm.write(">");
+		oRm.openEnd();
 
 		this.renderText(oRm, oON);
-		oRm.write("  "); // space between the number text and unit
+		oRm.text("  "); // space between the number text and unit
 		this.renderUnit(oRm, oON);
 		this.renderHiddenARIAElement(oRm, oON);
 
-		oRm.write("</div>");
+		oRm.close("div");
 	};
 
 	ObjectNumberRenderer.renderText = function(oRm, oON) {
-		oRm.write("<span");
-		oRm.addClass("sapMObjectNumberText");
-		oRm.writeClasses();
-		oRm.write(">");
-		oRm.writeEscaped(oON.getNumber());
-		oRm.write("</span>");
+		oRm.openStart("span");
+		oRm.class("sapMObjectNumberText");
+		oRm.openEnd();
+		oRm.text(oON.getNumber());
+		oRm.close("span");
 	};
 
 	ObjectNumberRenderer.renderUnit = function(oRm, oON) {
 		var sUnit = oON.getUnit() || oON.getNumberUnit();
 
 		if (sUnit !== "") {
-			oRm.write("<span");
-			oRm.addClass("sapMObjectNumberUnit");
-			oRm.writeClasses();
-			oRm.write(">");
-			oRm.writeEscaped(sUnit);
-			oRm.write("</span>");
+			oRm.openStart("span");
+			oRm.class("sapMObjectNumberUnit");
+			oRm.openEnd();
+			oRm.text(sUnit);
+			oRm.close("span");
 		}
 	};
 
@@ -107,9 +106,12 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library'],
 			return;
 		}
 
-		oRm.write("<span id='" + oON.getId() + "-state' class='sapUiInvisibleText' aria-hidden='false'>");
-		oRm.write(oON._getStateText());
-		oRm.write("</span>");
+		oRm.openStart("span", oON.getId() + "-state");
+		oRm.class("sapUiInvisibleText");
+		oRm.attr("aria-hidden", false);
+		oRm.openEnd();
+		oRm.text(oON._getStateText());
+		oRm.close("span");
 	};
 
 	return ObjectNumberRenderer;
