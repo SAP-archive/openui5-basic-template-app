@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/SAP/openui5-basic-template-app.svg?branch=master)](https://travis-ci.org/SAP/openui5-basic-template-app)
+[![REUSE status](https://api.reuse.software/badge/github.com/SAP/openui5-basic-template-app)](https://api.reuse.software/info/github.com/SAP/openui5-basic-template-app)
 ![OpenUI5 logo](http://openui5.org/images/OpenUI5_new_big_side.png)
 
 # openui5-basic-template-app
