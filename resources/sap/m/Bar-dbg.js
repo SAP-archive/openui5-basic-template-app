@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,8 @@ sap.ui.define([
 	// shortcut for sap.m.BarDesign
 	var BarDesign = library.BarDesign;
 
-
+	// shortcut for sap.m.TitleAlignment
+	var TitleAlignment = library.TitleAlignment;
 
 	/**
 	 * Constructor for a new <code>Bar</code>.
@@ -55,7 +56,7 @@ sap.ui.define([
 	 * @implements sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -90,7 +91,18 @@ sap.ui.define([
 			 * Determines the design of the bar. If set to auto, it becomes dependent on the place where the bar is placed.
 			 * @since 1.22
 			 */
-			design : {type : "sap.m.BarDesign", group : "Appearance", defaultValue : BarDesign.Auto}
+			design : {type : "sap.m.BarDesign", group : "Appearance", defaultValue : BarDesign.Auto},
+
+			/**
+			 * Specifies the Title alignment (theme specific).
+			 * If set to <code>TitleAlignment.None</code>, the automatic title alignment depending on the theme settings will be disabled.
+			 * If set to <code>TitleAlignment.Auto</code>, the Title will be aligned as it is set in the theme (if not set, the default value is <code>center</code>);
+			 * Other possible values are <code>TitleAlignment.Start</code> (left or right depending on LTR/RTL), and <code>TitleAlignment.Center</code> (centered)
+			 * @since 1.84.1
+			 * @public
+			 */
+			titleAlignment : {type : "sap.m.TitleAlignment", group : "Misc", defaultValue : TitleAlignment.None}
+
 		},
 		aggregations : {
 
@@ -121,7 +133,19 @@ sap.ui.define([
 	}});
 
 	Bar.prototype.onBeforeRendering = function() {
+		var sCurrentAlignment = this.getTitleAlignment(),
+			sAlignment;
+
 		this._removeAllListeners();
+
+		// title alignment
+		for (sAlignment in TitleAlignment) {
+			if (sAlignment !== sCurrentAlignment) {
+				this.removeStyleClass("sapMBarTitleAlign" + sAlignment);
+			} else {
+				this.addStyleClass("sapMBarTitleAlign" + sAlignment);
+			}
+		}
 	};
 
 	Bar.prototype.onAfterRendering = function() {
@@ -133,6 +157,7 @@ sap.ui.define([
 	 */
 	Bar.prototype.init = function() {
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
+		this._sPrevTitleAlignmentClass = "";
 	};
 
 	/**
@@ -314,6 +339,7 @@ sap.ui.define([
 			bRtl = sap.ui.getCore().getConfiguration().getRTL(),
 			sLeftOrRight = bRtl ? "right" : "left",
 			oMidBarCss = { visibility : "" };
+
 		if (this.getEnableFlexBox()) {
 
 			iMidBarPlaceholderWidth = iBarWidth - iLeftBarWidth - iRightBarWidth - parseInt(this._$MidBarPlaceHolder.css('margin-left')) - parseInt(this._$MidBarPlaceHolder.css('margin-right'));
@@ -324,21 +350,18 @@ sap.ui.define([
 
 			//calculation for flex is done
 			return oMidBarCss;
-
 		}
 
 		var iSpaceBetweenLeftAndRight = iBarWidth - iLeftBarWidth - iRightBarWidth,
-
 			iMidBarStartingPoint = (iBarWidth / 2) - (iMidBarPlaceholderWidth / 2),
 			bLeftContentIsOverlapping = iLeftBarWidth > iMidBarStartingPoint,
-
 			iMidBarEndPoint = (iBarWidth / 2) + (iMidBarPlaceholderWidth / 2),
-			bRightContentIsOverlapping = (iBarWidth - iRightBarWidth) < iMidBarEndPoint;
+			bRightContentIsOverlapping = (iBarWidth - iRightBarWidth) < iMidBarEndPoint,
+			sTitleAlignment = this.getTitleAlignment();
 
-			if (this._$MidBarPlaceHolder.closest(".sapMBarTitleStart").length > 0 ||
-				(iSpaceBetweenLeftAndRight > 0 && (bLeftContentIsOverlapping || bRightContentIsOverlapping))) {
-
-			//Left or Right content is overlapping the Middle content or there is Title alignment class (sapMBarTitleStart) set
+		if ((sTitleAlignment !== TitleAlignment.None && sTitleAlignment !== TitleAlignment.Center) ||
+			(iSpaceBetweenLeftAndRight > 0 && (bLeftContentIsOverlapping || bRightContentIsOverlapping))) {
+			//Left or Right content is overlapping the Middle content or there is Title alignment "Center" or "None" set
 
 			// place the middle positioned element directly next to the end of left content area
 			oMidBarCss.position = "absolute";
@@ -350,7 +373,6 @@ sap.ui.define([
 		}
 
 		return oMidBarCss;
-
 	};
 
 	/**

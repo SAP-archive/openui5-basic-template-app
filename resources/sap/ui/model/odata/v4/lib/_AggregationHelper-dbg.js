@@ -1,13 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides class sap.ui.model.odata.v4.lib._AggregationHelper
 sap.ui.define([
+	"./_Helper",
 	"sap/ui/model/Filter"
-], function (Filter) {
+], function (_Helper, Filter) {
 	"use strict";
 
 	var mAllowedAggregateDetails2Type =  {
@@ -115,28 +116,27 @@ sap.ui.define([
 		 *   A map from aggregatable property names or aliases to objects containing the following
 		 *   details:
 		 *   <ul>
-		 *   <li><code>grandTotal</code>: An optional boolean that tells whether a grand total for
-		 *     this aggregatable property is needed (since 1.59.0)
-		 *   <li><code>min</code>: An optional boolean that tells whether the minimum value
-		 *     (ignoring currencies or units of measure) for this aggregatable property is needed
-		 *   <li><code>max</code>: An optional boolean that tells whether the maximum value
-		 *     (ignoring currencies or units of measure) for this aggregatable property is needed
-		 *   <li><code>subtotals</code>: An optional boolean that tells whether subtotals for this
-		 *     aggregatable property are needed
-		 *   <li><code>with</code>: An optional string that provides the name of the method (for
-		 *     example "sum") used for aggregation of this aggregatable property; see
-		 *     "3.1.2 Keyword with". Both, "average" and "countdistinct" are not supported for
-		 *     subtotals or grand totals.
-		 *   <li><code>name</code>: An optional string that provides the original aggregatable
-		 *     property name in case a different alias is chosen as the name of the dynamic property
-		 *     used for aggregation of this aggregatable property; see "3.1.1 Keyword as"
+		 *     <li> <code>grandTotal</code>: An optional boolean that tells whether a grand total
+		 *       for this aggregatable property is needed (since 1.59.0)
+		 *     <li> <code>min</code>: An optional boolean that tells whether the minimum value
+		 *       (ignoring currencies or units of measure) for this aggregatable property is needed
+		 *     <li> <code>max</code>: An optional boolean that tells whether the maximum value
+		 *       (ignoring currencies or units of measure) for this aggregatable property is needed
+		 *     <li> <code>subtotals</code>: An optional boolean that tells whether subtotals for
+		 *       this aggregatable property are needed
+		 *     <li> <code>with</code>: An optional string that provides the name of the method (for
+		 *       example "sum") used for aggregation of this aggregatable property; see
+		 *       "3.1.2 Keyword with". Both, "average" and "countdistinct" are not supported for
+		 *       subtotals or grand totals.
+		 *     <li> <code>name</code>: An optional string that provides the original aggregatable
+		 *       property name in case a different alias is chosen as the name of the dynamic
+		 *       property used for aggregation of this aggregatable property; see "3.1.1 Keyword as"
 		 *   </ul>
 		 * @param {object} [oAggregation.group]
 		 *   A map from groupable property names to empty objects
 		 * @param {string[]} [oAggregation.groupLevels]
 		 *   A list of groupable property names (which may, but don't need to be repeated in
-		 *   <code>oAggregation.group</code>) used to determine group levels; only a single group
-		 *   level is supported
+		 *   <code>oAggregation.group</code>) used to determine group levels
 		 * @param {object} [mQueryOptions={}]
 		 *   A map of key-value pairs representing the query string
 		 * @param {boolean} [mQueryOptions.$count]
@@ -290,9 +290,6 @@ sap.ui.define([
 
 			checkKeys(oAggregation, mAllowedAggregationKeys2Type);
 			oAggregation.groupLevels = oAggregation.groupLevels || [];
-			if (oAggregation.groupLevels.length > 1) {
-				throw new Error("More than one group level: " + oAggregation.groupLevels);
-			}
 
 			oAggregation.aggregate = oAggregation.aggregate || {};
 			checkKeys4AllDetails(oAggregation.aggregate, mAllowedAggregateDetails2Type);
@@ -354,6 +351,25 @@ sap.ui.define([
 		},
 
 		/**
+		 * Creates a placeholder.
+		 *
+		 * @param {number} iLevel - The level
+		 * @param {number} iIndex - The index within the parent cache
+		 * @param {object} oParentCache - The parent cache
+		 * @returns {object} A placeholder object
+		 *
+		 * @public
+		 */
+		createPlaceholder : function (iLevel, iIndex, oParentCache) {
+			var oPlaceholder = {"@$ui5.node.level" : iLevel};
+
+			_Helper.setPrivateAnnotation(oPlaceholder, "index", iIndex);
+			_Helper.setPrivateAnnotation(oPlaceholder, "parent", oParentCache);
+
+			return oPlaceholder;
+		},
+
+		/**
 		 * Tells whether grand total values are needed for at least one aggregatable property.
 		 *
 		 * @param {object} [mAggregate]
@@ -390,6 +406,56 @@ sap.ui.define([
 		},
 
 		/**
+		 * Tells whether the binding with the given aggregation data and filters is affected when
+		 * requesting side effects for the given paths.
+		 *
+		 * @param {object} oAggregation
+		 *   An object holding the information needed for data aggregation;
+		 *   (see {@link .buildApply}).
+		 * @param {sap.ui.model.Filter[]} aFilters
+		 *   The binding's current filters
+		 * @param {string[]} aSideEffectPaths
+		 *   The paths to request side effects for
+		 * @returns {boolean}
+		 *   <code>true</code> if the binding is affected
+		 */
+		isAffected : function (oAggregation, aFilters, aSideEffectPaths) {
+			// returns true if the side effect path affects the property path
+			function affects(sSideEffectPath, sPropertyPath) {
+				if (sSideEffectPath.endsWith("/*")) {
+					// To avoid metadata access, we do not distinguish between properties and
+					// navigation properties, so there is no need to look at "/*".
+					sSideEffectPath = sSideEffectPath.slice(0, -2);
+				}
+				return _Helper.hasPathPrefix(sPropertyPath, sSideEffectPath)
+					|| _Helper.hasPathPrefix(sSideEffectPath, sPropertyPath);
+			}
+
+			// returns true if the array contains a filter affected by the side effect path
+			function hasAffectedFilter(sSideEffectPath, aFilters0) {
+				return aFilters0.some(function (oFilter) {
+					return oFilter.aFilters
+						? hasAffectedFilter(sSideEffectPath, oFilter.aFilters)
+					    : affects(sSideEffectPath, oFilter.sPath);
+				});
+			}
+
+			return aSideEffectPaths.some(function (sSideEffectPath) {
+				var fnAffects = affects.bind(null, sSideEffectPath);
+
+				return sSideEffectPath === "" || sSideEffectPath === "*"
+					|| Object.keys(oAggregation.aggregate).some(function (sAlias) {
+							var oDetails = oAggregation.aggregate[sAlias];
+
+							return affects(sSideEffectPath, oDetails.name || sAlias);
+						})
+					|| Object.keys(oAggregation.group).some(fnAffects)
+					|| oAggregation.groupLevels.some(fnAffects)
+					|| hasAffectedFilter(sSideEffectPath, aFilters);
+			});
+		},
+
+		/**
 		 * Splits a filter depending on the aggregation information into an array that consists of
 		 * two filters, one that must be applied after and one that must be applied before
 		 * aggregating the data.
@@ -398,7 +464,7 @@ sap.ui.define([
 		 *   The filter object that is split
 		 * @param {object} [oAggregation]
 		 *   An object holding the information needed for data aggregation;
-		 *   (see {@link _AggregationHelper#buildApply}).
+		 *   (see {@link .buildApply}).
 		 * @returns {sap.ui.model.Filter[]}
 		 *   An array that consists of two filters, the first one has to be applied after and the
 		 *   second one has to be applied before aggregating the data. Both can be

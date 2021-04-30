@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @class XML serializer delegate class.
 	 * @extends sap.ui.core.util.serializer.delegate.Delegate
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @alias sap.ui.core.util.serializer.delegate.XML
 	 * @private
 	 * @ui5-restricted sap.watt com.sap.webide
@@ -258,7 +258,7 @@ sap.ui.define([
 	 * @private
 	 */
 	XML.prototype._createAttribute = function (sAttribute, oValue) {
-		var oEncoded = jQuery.type(oValue) === "string" ? encodeXML(oValue) : oValue;
+		var oEncoded = (typeof oValue === "string" || oValue instanceof String) ? encodeXML(oValue) : oValue;
 		return ' ' + sAttribute + '="' + oEncoded + '"';
 	};
 

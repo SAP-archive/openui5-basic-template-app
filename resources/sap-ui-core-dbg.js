@@ -2,7 +2,7 @@
 //@ui5-bundle-raw-include sap/ui/thirdparty/baseuri.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -5205,7 +5205,7 @@ return Promise$2;
 //@ui5-bundle-raw-include ui5loader.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -5815,7 +5815,7 @@ return Promise$2;
 					sResourceName = sResourceName.slice(1);
 				}
 
-				if ( mModules[sResourceName] && mModules[sResourceName].data ) {
+				if ( mModules[sResourceName] && mModules[sResourceName].data != undefined ) {
 					return sResourceName;
 				}
 			}
@@ -6289,14 +6289,14 @@ return Promise$2;
 	 * module name. It then resolves the pending modules in the queue. Only one entry can get the name of the module
 	 * if there are more entries, then this is an error
 	 */
-	var queue = new function ModuleDefinitionQueue() {
+	function ModuleDefinitionQueue() {
 		var aQueue = [],
 			iRun = 0,
 			vTimer;
 
 		this.push = function(name, deps, factory, _export) {
 			if ( log.isLoggable() ) {
-				log.debug("pushing define() call"
+				log.debug(sLogPrefix + "pushing define() call"
 					+ (document.currentScript ? " from " + document.currentScript.src : "")
 					+ " to define queue #" + iRun);
 			}
@@ -6439,7 +6439,9 @@ return Promise$2;
 				log.debug(sLogPrefix + "processing define queue #" + iCurrentRun + " done");
 			}
 		};
-	}();
+	}
+
+	var queue = new ModuleDefinitionQueue();
 
 	/**
 	 * Loads the source for the given module with a sync XHR.
@@ -6794,15 +6796,17 @@ return Promise$2;
 
 		var oModule = mModules[sModuleName],
 			bLoggable = log.isLoggable(),
-			sOldPrefix, sScript, oMatch, bOldForceSyncDefines;
+			sOldPrefix, sScript, oMatch, bOldForceSyncDefines, oOldQueue;
 
 		if ( oModule && oModule.state === LOADED && typeof oModule.data !== "undefined" ) {
 
 			bOldForceSyncDefines = bForceSyncDefines;
+			oOldQueue = queue;
 
 			try {
 
 				bForceSyncDefines = !bAsync;
+				queue = new ModuleDefinitionQueue();
 
 				if ( bLoggable ) {
 					if ( typeof oModule.data === "string" ) {
@@ -6869,22 +6873,21 @@ return Promise$2;
 						__global.eval(sScript);
 					}
 				}
-				_execStack.pop();
 				queue.process(oModule, "after eval");
+
+			} catch (err) {
+				oModule.data = undefined;
+				oModule.fail(err);
+			} finally {
+
+				_execStack.pop();
 
 				if ( bLoggable ) {
 					sLogPrefix = sOldPrefix;
 					log.debug(sLogPrefix + "finished executing '" + sModuleName + "'");
 				}
 
-			} catch (err) {
-				if ( bLoggable ) {
-					sLogPrefix = sOldPrefix;
-				}
-				oModule.data = undefined;
-				oModule.fail(err);
-			} finally {
-
+				queue = oOldQueue;
 				bForceSyncDefines = bOldForceSyncDefines;
 			}
 		}
@@ -7684,6 +7687,7 @@ return Promise$2;
 	 *
 	 * @public
 	 * @namespace
+	 * @ui5-global-only
 	 */
 	sap.ui.loader = {
 
@@ -7877,6 +7881,7 @@ return Promise$2;
 		 * @public
 		 * @since 1.56.0
 		 * @function
+		 * @ui5-global-only
 		 */
 		config: ui5Config,
 
@@ -8207,12 +8212,15 @@ return Promise$2;
 	 * @public
 	 * @see https://github.com/amdjs/amdjs-api
 	 * @function
+	 * @ui5-global-only
 	 */
 	sap.ui.define = ui5Define;
 
 	/**
 	 * @private
+	 * @ui5-restricted library-preload files
 	 * @function
+	 * @ui5-global-only
 	 */
 	sap.ui.predefine = predefine;
 
@@ -8271,6 +8279,7 @@ return Promise$2;
 	 * @returns {any|undefined} A single module export value (sync probing variant) or undefined (async loading variant)
 	 * @public
 	 * @function
+	 * @ui5-global-only
 	 */
 	sap.ui.require = ui5Require;
 
@@ -8309,6 +8318,7 @@ return Promise$2;
 	 * @public
 	 * @name sap.ui.require.toUrl
 	 * @function
+	 * @ui5-global-only
 	 */
 
 	/**
@@ -8334,7 +8344,9 @@ return Promise$2;
 	 * @param {string} sModuleName Module name in requireJS syntax
 	 * @returns {any} value of the loaded module or undefined
 	 * @private
+	 * @ui5-restricted sap.ui.core
 	 * @function
+	 * @ui5-global-only
 	 */
 	sap.ui.requireSync = requireSync;
 
@@ -8342,7 +8354,7 @@ return Promise$2;
 //@ui5-bundle-raw-include ui5loader-autoconfig.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -8686,7 +8698,8 @@ return Promise$2;
 			},
 			'sap/ui/thirdparty/jquery': {
 				amd: true,
-				exports: 'jQuery'
+				exports: 'jQuery',
+				deps: ['sap/ui/thirdparty/jquery-compat']
 			},
 			'sap/ui/thirdparty/jqueryui/jquery-ui-datepicker': {
 				deps: ['sap/ui/thirdparty/jqueryui/jquery-ui-core'],

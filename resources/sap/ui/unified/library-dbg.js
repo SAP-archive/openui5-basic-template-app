@@ -1,30 +1,44 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /**
  * Initialization Code and shared classes of library sap.ui.unified.
  */
-sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', "./ColorPickerDisplayMode", 'sap/ui/core/library'], function(Core, BaseObject, ColorPickerDisplayMode) {
+sap.ui.define([
+	'sap/ui/core/Core',
+	'sap/ui/base/Object',
+	"./ColorPickerDisplayMode",
+	"./FileUploaderHttpRequestMethod",
+	'sap/ui/core/library'
+], function(
+	Core,
+	BaseObject,
+	ColorPickerDisplayMode,
+	FileUploaderHttpRequestMethod
+) {
 
 	"use strict";
 
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.ui.unified",
-		version: "1.79.0",
+		version: "1.84.11",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/ui/unified/designtime/library.designtime",
 		types: [
 			"sap.ui.unified.CalendarAppointmentVisualization",
 			"sap.ui.unified.CalendarDayType",
 			"sap.ui.unified.CalendarIntervalType",
+			"sap.ui.unifief.CalendarAppointmentHeight",
+			"sap.ui.unifief.CalendarAppointmentRoundWidth",
 			"sap.ui.unified.ColorPickerDisplayMode",
 			"sap.ui.unified.ColorPickerMode",
 			"sap.ui.unified.ContentSwitcherAnimation",
 			"sap.ui.unified.GroupAppointmentsMode",
+			"sap.ui.unified.FileUploaderHttpRequestMethod",
 			"sap.ui.unified.StandardCalendarLegendItem"
 		],
 		interfaces: [
@@ -84,7 +98,7 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', "./ColorPickerDisplayMo
 	 * @namespace
 	 * @alias sap.ui.unified
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @public
 	 */
 	var thisLib = sap.ui.unified;
@@ -325,6 +339,69 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', "./ColorPickerDisplayMo
 	};
 
 	/**
+	 * Types of a calendar appointment display mode
+	 *
+	 * @enum {string}
+	 * @alias sap.ui.unified.CalendarAppointmentHeight
+	 * @public
+	 * @since 1.80.0
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.CalendarAppointmentHeight = {
+
+		/**
+		 * HalfSize display mode.
+		 * @public
+		 */
+		HalfSize : "HalfSize",
+
+		/**
+		 * Regular display mode.
+		 * @public
+		 */
+		Regular : "Regular",
+
+		/**
+		 * Large display mode.
+		 * @public
+		 */
+		Large : "Large",
+
+		/**
+		 * Automatic display mode.
+		 * @public
+		 */
+		Automatic : "Automatic"
+
+	};
+
+	/**
+	 * Types of a calendar appointment display mode
+	 *
+	 * @enum {string}
+	 * @alias sap.ui.unified.CalendarAppointmentRoundWidth
+	 * @public
+	 * @experimental Since 1.81.0
+	 * @since 1.81.0
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.CalendarAppointmentRoundWidth = {
+
+		/**
+		 * Visually rounds the appointment to half a column.
+		 * @public
+		 */
+		HalfColumn : "HalfColumn",
+
+		/**
+		 * No rounding is used.
+		 * @public
+		 */
+		None : "None"
+
+	};
+
+	/**
 	 * Types of display mode for overlapping appointments.
 	 *
 	 * @enum {string}
@@ -347,6 +424,17 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/base/Object', "./ColorPickerDisplayMo
 		Expanded : "Expanded"
 
 	};
+
+	/**
+	 * Types of HTTP request methods.
+	 *
+	 * @enum {string}
+	 * @alias sap.ui.unified.FileUploaderHttpRequestMethod
+	 * @public
+	 * @since 1.81.0
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.FileUploaderHttpRequestMethod = FileUploaderHttpRequestMethod;
 
 	/**
 	 * Visualization types for {@link sap.ui.unified.CalendarAppointment}.

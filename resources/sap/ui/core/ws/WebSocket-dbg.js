@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @class Basic WebSocket class.
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @alias sap.ui.core.ws.WebSocket
 	 */
 	var WebSocket = EventProvider.extend("sap.ui.core.ws.WebSocket", /** @lends sap.ui.core.ws.WebSocket.prototype */ {
@@ -483,8 +483,8 @@ sap.ui.define([
 	/**
 	 * Closes the connection.
 	 *
-	 * @param {int} [iCode] Status code that explains why the connection is closed. Must either be 1000, or
-	 *                      between 3000 and 4999 (default 1000)
+	 * @param {int} [iCode=1000] Status code that explains why the connection is closed. Must either be 1000, or
+	 *                      between 3000 and 4999
 	 * @param {string} [sReason] Closing reason as a string
 	 * @returns {sap.ui.core.ws.WebSocket} Reference to <code>this</code> in order to allow method chaining
 	 * @public

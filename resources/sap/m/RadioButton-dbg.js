@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -82,7 +82,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -219,8 +219,9 @@ function(
 	};
 
 	RadioButton.prototype.onBeforeRendering = function() {
-		this._updateGroupName();
+		this._updateGroupName(this.getGroupName());
 		this._updateLabelProperties();
+
 	};
 
 	/**
@@ -275,6 +276,46 @@ function(
 			}, 0);
 
 		}
+	};
+
+	/**
+	 * Sets RadioButton's groupName. Only one radioButton from the same group can be selected
+	 * @param {string} sGroupName - Name of the group to which the RadioButton will belong.
+	 * @returns {sap.m.RadioButton} Reference to the control instance for chaining
+	 * @public
+	 */
+	RadioButton.prototype.setGroupName = function(sGroupName) {
+		this._updateGroupName(sGroupName, this.getGroupName());
+		this.setProperty("groupName", sGroupName);
+		return this;
+	};
+
+	/**
+	 * Sets the state of the RadioButton to selected.
+	 * @param {boolean} bSelected - defines if the radio button is selected
+	 * @returns {sap.m.RadioButton} Reference to the control instance for chaining
+	 * @public
+	 */
+	RadioButton.prototype.setSelected = function(bSelected) {
+		var sGroupName = this.getGroupName(),
+			aControlsInGroup = this._groupNames[sGroupName],
+			iLength = aControlsInGroup && aControlsInGroup.length;
+
+		this.setProperty("selected", bSelected);
+		this._updateGroupName(sGroupName);
+
+		if (!!bSelected && sGroupName && sGroupName !== "") { // If this radio button is selected and groupName is set, explicitly deselect the other radio buttons of the same group
+			for (var i = 0; i < iLength; i++) {
+				var oControl = aControlsInGroup[i];
+
+				if (oControl instanceof RadioButton && oControl !== this && oControl.getSelected()) {
+					oControl.fireSelect({ selected: false });
+					oControl.setSelected(false);
+				}
+			}
+		}
+
+		return this;
 	};
 
 	/**
@@ -398,7 +439,7 @@ function(
 		return {
 			role: "radio",
 			type: oBundle.getText("ACC_CTR_TYPE_RADIO"),
-			description: (this.getText() || "") + (this.getSelected() ? (" " + oBundle.getText("ACC_CTR_STATE_CHECKED")) : ""),
+			description: (this.getText() || "") + (this.getSelected() ? (" " + oBundle.getText("ACC_CTR_STATE_CHECKED")) : (" " + oBundle.getText("ACC_CTR_STATE_NOT_CHECKED"))),
 			enabled: this.getEnabled(),
 			editable: this.getEditable()
 		};
@@ -494,33 +535,6 @@ function(
 	};
 
 	/**
-	 * Sets the state of the RadioButton to selected.
-	 * @param {boolean} bSelected - defines if the radio button is selected
-	 * @returns {sap.m.RadioButton} Reference to the control instance for chaining
-	 * @public
-	 */
-	RadioButton.prototype.setSelected = function (bSelected) {
-		var sGroupName = this.getGroupName(),
-			aControlsInGroup = this._groupNames[sGroupName],
-			iLength = aControlsInGroup && aControlsInGroup.length;
-
-		this.setProperty("selected", bSelected);
-
-		if (!!bSelected && sGroupName && sGroupName !== "") { // If this radio button is selected and groupName is set, explicitly deselect the other radio buttons of the same group
-			for (var i = 0; i < iLength; i++) {
-				var oControl = aControlsInGroup[i];
-
-				if (oControl instanceof RadioButton && oControl !== this && oControl.getSelected()) {
-					oControl.fireSelect({ selected: false });
-					oControl.setSelected(false);
-				}
-			}
-		}
-
-		return this;
-	};
-
-	/**
 	 * Maintains the RadioButton's internal Label's text property.
 	 * @param {string} sText - The text to be set
 	 * @returns {sap.m.RadioButton} Reference to the control instance for chaining
@@ -554,24 +568,21 @@ function(
 	};
 
 	/**
-	 * Maintains the RadioButton in one only groupName at a time.
+	 * Update the groupname of a RadioButton.
+	 * @param {string} sNewGroupName - Name of the new group.
+	 * @param {string} sOldGroupName - Name of the old group.
 	 * @private
 	 */
-	RadioButton.prototype._updateGroupName = function () {
-		var sCurrentGroupName = this.getGroupName();
+	RadioButton.prototype._updateGroupName = function (sNewGroupName, sOldGroupName) {
+		var aNewGroup = this._groupNames[sNewGroupName],
+			aOldGroup = this._groupNames[sOldGroupName];
 
-		// Remove all instances of this control in all other group names
-		for (var sGroupName in this._groupNames) {
-			var aGroup = this._groupNames[sGroupName];
-			if (sGroupName !== sCurrentGroupName && aGroup.indexOf(this) !== -1) {
-				aGroup.splice(aGroup.indexOf(this), 1);
-			}
+		if (aOldGroup && aOldGroup.indexOf(this) !== -1) {
+			aOldGroup.splice(aOldGroup.indexOf(this), 1);
 		}
 
-		// Add this control to its assigned groupName
-		var aNewGroup = this._groupNames[sCurrentGroupName];
 		if (!aNewGroup) {
-			aNewGroup = this._groupNames[sCurrentGroupName] = [];
+			aNewGroup = this._groupNames[sNewGroupName] = [];
 		}
 
 		if (aNewGroup.indexOf(this) === -1) {

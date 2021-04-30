@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IContextMenu
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -760,7 +760,7 @@ sap.ui.define([
 		//The attribute _sapSelectOnKeyDown is used to avoid the problem the other way round (Space is pressed
 		//on Button which opens the menu and the space keyup immediately selects the first item)
 		//The device checks are made, because of the new functionality of iOS13, that brings desktop view on tablet
-		if (!this._sapSelectOnKeyDown && ( oEvent.key !== KeyCodes.Space || (!sap.ui.Device.os.macintosh && window.navigator.maxTouchPoints <= 1))) {
+		if (!this._sapSelectOnKeyDown && ( oEvent.key !== KeyCodes.Space || (!Device.os.macintosh && window.navigator.maxTouchPoints <= 1))) {
 			return;
 		} else {
 			this._sapSelectOnKeyDown = false;
@@ -824,12 +824,12 @@ sap.ui.define([
 		}
 
 		if (checkMouseEnterOrLeave(oEvent, this.getDomRef())) {
-			if (!this.oOpenedSubMenu || !(this.oOpenedSubMenu.getParent() === this.oHoveredItem)) {
-				this.setHoveredItem(this.oHoveredItem);
-
-			}
-			this._discardOpenSubMenuDelayed();
+			this.setHoveredItem(null);
+		} else {
+			this.setHoveredItem(this.oHoveredItem);
 		}
+
+		this._discardOpenSubMenuDelayed();
 	};
 
 	/**

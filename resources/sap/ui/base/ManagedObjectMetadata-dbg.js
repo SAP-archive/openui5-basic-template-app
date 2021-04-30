@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -75,7 +75,7 @@ function(
 	 *
 	 *
 	 * @author Frank Weigel
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @since 0.8.6
 	 * @alias sap.ui.base.ManagedObjectMetadata
 	 * @extends sap.ui.base.Metadata
@@ -790,8 +790,8 @@ function(
 		return instance[this._sDetachMutator](fn,listener);
 	};
 
-	Event.prototype.fire = function(instance,params, allowPreventDefault, enableEventBubbling) {
-		return instance[this._sTrigger](params, allowPreventDefault, enableEventBubbling);
+	Event.prototype.fire = function(instance,params) {
+		return instance[this._sTrigger](params, this.allowPreventDefault, this.enableEventBubbling);
 	};
 
 	// ----------------------------------------------------------------------------------------

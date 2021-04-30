@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -50,7 +50,7 @@ sap.ui.define([
 	 * @extends sap.ui.layout.form.FormLayout
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -147,59 +147,58 @@ sap.ui.define([
 			}
 		},
 
-		renderer : function(oRm, oPanel) {
+		renderer : {
+			apiVersion: 2,
+			render: function(oRm, oPanel) {
 
-			var oContainer = sap.ui.getCore().byId(oPanel.getContainer());
-			var oLayout    = sap.ui.getCore().byId(oPanel.getLayout());
-			var oContent   = oPanel.getContent();
+				var oContainer = sap.ui.getCore().byId(oPanel.getContainer());
+				var oLayout    = sap.ui.getCore().byId(oPanel.getLayout());
+				var oContent   = oPanel.getContent();
 
-			if (!oContainer || !oLayout) {
-				// Container might be removed, but ResponsiveFlowLayout still calls a rerendering with old content
-				return;
+				if (!oContainer || !oLayout) {
+					// Container might be removed, but ResponsiveFlowLayout still calls a rerendering with old content
+					return;
+				}
+
+				var bExpandable = oContainer.getExpandable();
+				var sTooltip = oContainer.getTooltip_AsString();
+				var oToolbar = oContainer.getToolbar();
+				var oTitle = oContainer.getTitle();
+
+				oRm.openStart("div", oPanel);
+				oRm.class("sapUiRLContainer");
+				if (bExpandable && !oContainer.getExpanded()) {
+					oRm.class("sapUiRLContainerColl");
+				}
+				if (oToolbar) {
+					oRm.class("sapUiFormContainerToolbar");
+				} else if (oTitle) {
+					oRm.class("sapUiFormContainerTitle");
+				}
+
+				if (sTooltip) {
+					oRm.attr('title', sTooltip);
+				}
+
+				oLayout.getRenderer().writeAccessibilityStateContainer(oRm, oContainer);
+
+				oRm.openEnd();
+
+				// container header
+				oLayout.getRenderer().renderHeader(oRm, oToolbar, oTitle, oContainer._oExpandButton, bExpandable, false, oContainer.getId());
+
+				if (oContent) {
+					oRm.openStart("div");
+					oRm.class("sapUiRLContainerCont");
+					oRm.openEnd();
+					// container is not expandable or is expanded -> render elements
+					oRm.renderControl(oContent);
+					oRm.close("div");
+				}
+
+				oRm.close("div");
 			}
-
-			var bExpandable = oContainer.getExpandable();
-			var sTooltip = oContainer.getTooltip_AsString();
-			var oToolbar = oContainer.getToolbar();
-			var oTitle = oContainer.getTitle();
-
-			oRm.write("<div");
-			oRm.writeControlData(oPanel);
-			oRm.addClass("sapUiRLContainer");
-			if (bExpandable && !oContainer.getExpanded()) {
-				oRm.addClass("sapUiRLContainerColl");
-			}
-			if (oToolbar) {
-				oRm.addClass("sapUiFormContainerToolbar");
-			} else if (oTitle) {
-				oRm.addClass("sapUiFormContainerTitle");
-			}
-
-			if (sTooltip) {
-				oRm.writeAttributeEscaped('title', sTooltip);
-			}
-			oRm.writeClasses();
-
-			oLayout.getRenderer().writeAccessibilityStateContainer(oRm, oContainer);
-
-			oRm.write(">");
-
-			// container header
-			oLayout.getRenderer().renderHeader(oRm, oToolbar, oTitle, oContainer._oExpandButton, bExpandable, false, oContainer.getId());
-
-			if (oContent) {
-				oRm.write("<div");
-				oRm.addClass("sapUiRLContainerCont");
-				oRm.writeClasses();
-				oRm.write(">");
-				// container is not expandable or is expanded -> render elements
-				oRm.renderControl(oContent);
-				oRm.write("</div>");
-			}
-
-			oRm.write("</div>");
 		}
-
 	});
 
 	/* eslint-disable no-lonely-if */

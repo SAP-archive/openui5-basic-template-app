@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -153,6 +153,30 @@ sap.ui.define([
 		}
 
 		/**
+		 * Gets an array of indices that determine which parts of this type shall not propagate
+		 * their model messages to the attached control. Prerequisite is that the corresponding
+		 * binding supports this feature, see {@link sap.ui.model.Binding#supportsIgnoreMessages}.
+		 * If the format option <code>showMeasure</code> is set to <code>false</code> and the unit
+		 * or currency is not shown in the control, the part for the unit or currency shall not
+		 * propagate model messages to the control.
+		 *
+		 * @return {number[]}
+		 *   An array of indices that determine which parts of this type shall not propagate their
+		 *   model messages to the attached control
+		 *
+		 * @public
+		 * @see sap.ui.model.Binding#supportsIgnoreMessages
+		 * @since 1.82.0
+		 */
+		// @override sap.ui.model.CompositeType#getPartsIgnoringMessages
+		function getPartsIgnoringMessages() {
+			if (this.oFormatOptions.showMeasure === false) {
+				return [1, 2];
+			}
+			return [2];
+		}
+
+		/**
 		 * Parses the given string value to an array containing measure or amount, and unit or
 		 * currency.
 		 *
@@ -278,6 +302,7 @@ sap.ui.define([
 		oPrototype._applyUnitMixin = UnitMixin;
 		oPrototype.formatValue = formatValue;
 		oPrototype.getInterface = getInterface;
+		oPrototype.getPartsIgnoringMessages = getPartsIgnoringMessages;
 		oPrototype.parseValue = parseValue;
 		oPrototype.validateValue = validateValue;
 	};

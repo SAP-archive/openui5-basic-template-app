@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,6 @@ sap.ui.define([
 	"sap/m/Title",
 	"sap/m/Button",
 	"sap/m/Bar",
-	'sap/m/TitleAlignmentMixin',
 	"sap/ui/core/ContextMenuSupport",
 	"sap/ui/core/util/ResponsivePaddingsEnablement",
 	"sap/ui/core/library",
@@ -29,7 +28,6 @@ function(
 	Title,
 	Button,
 	Bar,
-	TitleAlignmentMixin,
 	ContextMenuSupport,
 	ResponsivePaddingsEnablement,
 	coreLibrary,
@@ -93,7 +91,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 * @mixes sap.ui.core.ContextMenuSupport
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @public
 		 * @alias sap.m.Page
@@ -305,6 +303,8 @@ function(
 		};
 
 		Page.prototype.onBeforeRendering = function () {
+			var oHeader = this.getCustomHeader() || this.getAggregation("_internalHeader");
+
 			if (this._oScroller && !this._hasScrolling()) {
 				this._oScroller.destroy();
 				this._oScroller = null;
@@ -321,6 +321,12 @@ function(
 			}
 
 			this._ensureNavButton(); // creates this._navBtn, if required
+
+			// title alignment
+			if (oHeader && oHeader.setTitleAlignment) {
+				oHeader.setProperty("titleAlignment", this.getTitleAlignment(), true);
+			}
+
 		};
 
 		Page.prototype.onAfterRendering = function () {
@@ -397,7 +403,6 @@ function(
 			}
 
 			this._navBtn.setType(this.getNavButtonType());
-			this._navBtn.setText(this.getNavButtonText());
 			this._navBtn.setTooltip(sBackText);
 		};
 
@@ -520,11 +525,10 @@ function(
 		Page.prototype._getInternalHeader = function () {
 			var oInternalHeader = this.getAggregation("_internalHeader");
 			if (!oInternalHeader) {
-				this.setAggregation("_internalHeader", new Bar(this.getId() + "-intHeader"), true); // don"t invalidate - this is only called before/during rendering, where invalidation would lead to double rendering,  or when invalidation anyway happens
+				this.setAggregation("_internalHeader", new Bar(this.getId() + "-intHeader", {
+					titleAlignment: this.getTitleAlignment()
+				}), true); // don"t invalidate - this is only called before/during rendering, where invalidation would lead to double rendering,  or when invalidation anyway happens
 				oInternalHeader = this.getAggregation("_internalHeader");
-
-				// call the method that registers this Bar for alignment
-				this._setupBarTitleAlignment(oInternalHeader, this.getId() + "_internalHeader");
 
 				if (this.getShowNavButton() && this._navBtn) {
 					this._updateHeaderContent(this._navBtn, "left", 0);
@@ -639,7 +643,7 @@ function(
 		 * Scrolls to the given position. Only available if enableScrolling is set to "true".
 		 *
 		 * @param {int} y The vertical pixel position to scroll to. Scrolling down happens with positive values.
-		 * @param {int} time The duration of animated scrolling. To scroll immediately without animation, give 0 as value. 0 is also the default value, when this optional parameter is omitted.
+		 * @param {int} [time=0] The duration of animated scrolling in milliseconds. The value <code>0</code> results in immediate scrolling without animation.
 		 * @returns {sap.m.Page} <code>this</code> to facilitate method chaining.
 		 * @public
 		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
@@ -697,9 +701,6 @@ function(
 		Page.prototype._getAdaptableContent = function () {
 			return this._getAnyHeader();
 		};
-
-		// enrich the control functionality with TitleAlignmentMixin
-		TitleAlignmentMixin.mixInto(Page.prototype);
 
 		return Page;
 	});

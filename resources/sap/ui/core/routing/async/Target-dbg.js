@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -75,7 +75,7 @@ sap.ui.define([
 				var oObject = this._get(),
 					oRouter;
 
-				if (oObject.isA("sap.ui.core.UIComponent") && (oRouter = oObject.getRouter())) {
+				if (oObject.isA("sap.ui.core.UIComponent") && (oRouter = oObject.getRouter()) && oObject.hasNativeRouter()) {
 					oRouter.stop();
 				}
 			} else {
@@ -202,7 +202,7 @@ sap.ui.define([
 				pLoaded = this._load(oTargetCreateInfo).then(function (oObject) {
 					if (oObject.isA("sap.ui.core.UIComponent")) {
 						var oRouter = oObject.getRouter();
-						if (oRouter) {
+						if (oRouter && oObject.hasNativeRouter()) {
 							var sHash = oRouter.getHashChanger().getHash();
 							var oRoute = oRouter.getRouteByHash(sHash);
 
@@ -390,13 +390,15 @@ sap.ui.define([
 			return Promise.all([oSequencePromise, pNestedRouteMatched]).then(function(aObjects) {
 				var oContainerControl = aObjects[0].control;
 				var oObject = aObjects[0].view;
+
 				if (oContainerControl && oObject) {
 					that.fireDisplay({
 						view : oObject.isA("sap.ui.core.mvc.View") ? oObject : undefined,
 						object: oObject,
 						control : oContainerControl,
 						config : that._oOptions,
-						data: vData
+						data: vData,
+						routeRelevant: that._routeRelevant
 					});
 				}
 				return aObjects[0];

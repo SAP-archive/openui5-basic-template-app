@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,7 +35,7 @@ sap.ui.define([
 		 * @extends sap.m.InputBase
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @constructor
 		 * @public
@@ -66,9 +66,6 @@ sap.ui.define([
 						group: "Appearance",
 						defaultValue: true
 					}
-				},
-				aggregations: {
-					_buttonLabelText: {type : "sap.ui.core.InvisibleText", multiple : false, visibility : "hidden"}
 				}
 			}
 		});
@@ -77,7 +74,6 @@ sap.ui.define([
 
 		ComboBoxTextField.prototype.init = function () {
 			InputBase.prototype.init.apply(this, arguments);
-			var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 
 			this.addEndIcon({
 				id: this.getId() + "-arrow",
@@ -110,13 +106,14 @@ sap.ui.define([
 		ComboBoxTextField.prototype.onBeforeRendering = function () {
 			InputBase.prototype.onBeforeRendering.apply(this, arguments);
 
-			var aReferencingLabels = LabelEnablement.getReferencingLabels(this) || [];
+			var aReferencingLabels = LabelEnablement.getReferencingLabels(this) || [],
+				oIcon = this.getIcon();
 
-			this.getIcon().setVisible(this.getShowButton());
+			oIcon.setVisible(this.getShowButton());
 
 			aReferencingLabels.forEach(function (sLabelId) {
-				if (this.getIcon().getAriaLabelledBy().indexOf(sLabelId) === -1) {
-					this.getIcon().addAssociation("ariaLabelledBy", sLabelId, true);
+				if (oIcon.getAriaLabelledBy().indexOf(sLabelId) === -1) {
+					oIcon.addAssociation("ariaLabelledBy", sLabelId, true);
 				}
 			}, this);
 
@@ -203,7 +200,7 @@ sap.ui.define([
 
 		ComboBoxTextField.prototype.getAccessibilityInfo = function() {
 			var oInfo = InputBase.prototype.getAccessibilityInfo.apply(this, arguments);
-			oInfo.type = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_COMBO");
+			oInfo.type = oRb.getText("ACC_CTR_TYPE_COMBO");
 			return oInfo;
 		};
 

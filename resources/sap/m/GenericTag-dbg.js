@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -53,7 +53,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -135,6 +135,25 @@ sap.ui.define([
 		this._getStatusIcon().setSrc(sStatus !== ValueState.None ? Icons[sStatus] : null);
 
 		return this;
+	};
+
+	GenericTag.prototype.setValue = function(oValue) {
+		var oPreviousValue = this.getValue();
+		if (oPreviousValue) {
+			oValue.detachEvent("_change", this._fireValueChanged, this);
+		}
+
+		this.setAggregation("value", oValue);
+		oValue.attachEvent("_change", this._fireValueChanged, this);
+
+		this._fireValueChanged();
+
+		return this;
+	};
+
+	// Fires invalidation event for OverflowToolbar
+	GenericTag.prototype._fireValueChanged = function() {
+		this.fireEvent("_valueChanged");
 	};
 
 	/**
@@ -294,7 +313,8 @@ sap.ui.define([
 	 */
 	GenericTag.prototype.getOverflowToolbarConfig = function() {
 		var oConfig = {
-			canOverflow: true
+			canOverflow: true,
+			invalidationEvents: ["_valueChanged"]
 		};
 
 		oConfig.onBeforeEnterOverflow = this._onBeforeEnterOverflow;

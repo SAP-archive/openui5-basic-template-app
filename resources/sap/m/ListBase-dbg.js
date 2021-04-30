@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -88,7 +88,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -547,6 +547,8 @@ function(
 		this._aSelectedPaths = [];
 		this._iItemNeedsHighlight = 0;
 		this._iItemNeedsNavigated = 0;
+		this._bItemsBeingBound = false;
+		this._bSkippedInvalidationOnRebind = false;
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
 	};
 
@@ -560,7 +562,6 @@ function(
 	ListBase.prototype.onAfterRendering = function() {
 		this._bRendering = false;
 		this._sLastMode = this.getMode();
-
 		// invalidate item navigation for desktop
 		if (Device.system.desktop) {
 			this._startItemNavigation(true);
@@ -598,7 +599,20 @@ function(
 	// if there is no data this should get called anyway
 	// TODO: if there is a network error this will not get called
 	// but we need to turn back to initial state
-	ListBase.prototype.updateItems = function(sReason) {
+	ListBase.prototype.updateItems = function(sReason, oEventInfo) {
+		// Special handling for "AutoExpandSelect" of the V4 ODataModel.
+		if (oEventInfo && oEventInfo.detailedReason === "AddVirtualContext") {
+			createVirtualItem(this);
+			return;
+		} else if (oEventInfo && oEventInfo.detailedReason === "RemoveVirtualContext") {
+			destroyVirtualItem(this);
+			return;
+		}
+
+		if (this._bSkippedInvalidationOnRebind && this.getBinding("items").getLength() === 0) {
+			this.invalidate();
+		}
+
 		if (this._oGrowingDelegate) {
 			// inform growing delegate to handle
 			this._oGrowingDelegate.updateItems(sReason);
@@ -623,7 +637,26 @@ function(
 			// items binding are updated
 			this._updateFinished();
 		}
+
+		this._bSkippedInvalidationOnRebind = false;
 	};
+
+	function createVirtualItem(oList) {
+		var oBinding = oList.getBinding("items");
+		var oBindingInfo = oList.getBindingInfo("items");
+		var oVirtualContext = oBinding.getContexts(0, oList.getGrowing() ? oList.getGrowingThreshold() : oBindingInfo.length)[0];
+
+		destroyVirtualItem(oList);
+		oList._oVirtualItem = GrowingEnablement.createItem(oVirtualContext, oBindingInfo, "virtual");
+		oList.addAggregation("dependents", oList._oVirtualItem, true);
+	}
+
+	function destroyVirtualItem(oList) {
+		if (oList._oVirtualItem) {
+			oList._oVirtualItem.destroy();
+			delete oList._oVirtualItem;
+		}
+	}
 
 	ListBase.prototype.setBindingContext = function(oContext, sModelName) {
 		var sItemsModelName = (this.getBindingInfo("items") || {}).model;
@@ -632,6 +665,14 @@ function(
 		}
 
 		return Control.prototype.setBindingContext.apply(this, arguments);
+	};
+
+	ListBase.prototype.bindAggregation = function(sName) {
+		this._bItemsBeingBound = sName === "items";
+		destroyVirtualItem(this);
+		Control.prototype.bindAggregation.apply(this, arguments);
+		this._bItemsBeingBound = false;
+		return this;
 	};
 
 	ListBase.prototype._bindAggregation = function(sName, oBindingInfo) {
@@ -698,7 +739,11 @@ function(
 
 		// invalidate to update the DOM on the next tick of the RenderManager
 		if (!bSuppressInvalidate) {
-			this.invalidate();
+			if (this._bItemsBeingBound) {
+				this._bSkippedInvalidationOnRebind = true;
+			} else {
+				this.invalidate();
+			}
 		}
 
 		return this;
@@ -799,8 +844,8 @@ function(
 	 *
 	 * @param {sap.m.ListItemBase} oListItem
 	 *         The list item whose selection to be changed. This parameter is mandatory.
-	 * @param {boolean} bSelect
-	 *         Sets selected status of the list item. Default value is true.
+	 * @param {boolean} [bSelect=true]
+	 *         Sets selected status of the list item
 	 * @type sap.m.ListBase
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
@@ -836,8 +881,8 @@ function(
 	 *
 	 * @param {string} sId
 	 *         The id of the list item whose selection to be changed.
-	 * @param {boolean} bSelect
-	 *         Sets selected status of the list item. Default value is true.
+	 * @param {boolean} [bSelect=true]
+	 *         Sets selected status of the list item
 	 * @type sap.m.ListBase
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
@@ -921,6 +966,8 @@ function(
 
 	/**
 	 * Select all items in "MultiSelection" mode.
+	 *
+	 * <b>Note:</b> In case <code>growing</code> is enabled, only the visible items in the list will be selected.
 	 *
 	 * @type sap.m.ListBase
 	 * @public
@@ -1079,6 +1126,15 @@ function(
 		if (!this._bRendering && this.bOutput) {
 			this._startItemNavigation(true);
 		}
+
+		var bVisibleItems = this.getVisibleItems().length > 0;
+		if (!bVisibleItems && !this._bInvalidatedForNoData) {
+			this.invalidate();
+			this._bInvalidatedForNoData = true;
+		} else if (bVisibleItems && this._bInvalidatedForNoData) {
+			this.invalidate();
+			this._bInvalidatedForNoData = false;
+		}
 	};
 
 	// this gets called when items active state is changed
@@ -1186,6 +1242,15 @@ function(
 	 * @protected
 	 */
 	ListBase.prototype.shouldRenderItems = function() {
+		return true;
+	};
+
+	/*
+	 * This hook method is called from GrowingEnablement to determine whether
+	 * growing should suppress List invalidation
+	 * @protected
+	 */
+	ListBase.prototype.shouldGrowingSuppressInvalidation = function() {
 		return true;
 	};
 
@@ -1441,6 +1506,10 @@ function(
 			selectAll: !!bSelectAll
 		});
 
+		if (this.getGrowing()) {
+			this._bSelectAll = bSelectAll;
+		}
+
 		// support old API
 		this.fireSelect({
 			listItem : oListItem
@@ -1606,7 +1675,7 @@ function(
 		that._renderSwipeContent();
 
 		// add to instance manager
-		InstanceManager.addDialogInstance(that);
+		InstanceManager.addPopoverInstance(that);
 
 		// maybe keyboard is opened
 		window.document.activeElement.blur();
@@ -1657,7 +1726,7 @@ function(
 		this._isSwipeActive = false;
 
 		// remove from instance manager
-		InstanceManager.removeDialogInstance(this);
+		InstanceManager.removePopoverInstance(this);
 	};
 
 
@@ -1858,15 +1927,15 @@ function(
 		}
 
 		if (sMode == mMode.MultiSelect) {
-			sStates += oBundle.getText("LIST_MULTISELECTABLE") + " ";
+			sStates += oBundle.getText("LIST_MULTISELECTABLE") + " . ";
 		} else if (sMode == mMode.Delete) {
-			sStates += oBundle.getText("LIST_DELETABLE") + " ";
+			sStates += oBundle.getText("LIST_DELETABLE") + " . ";
 		} else if (sMode != mMode.None) {
-			sStates += oBundle.getText("LIST_SELECTABLE") + " ";
+			sStates += oBundle.getText("LIST_SELECTABLE") + " . ";
 		}
 
 		if (this.isGrouped()) {
-			sStates += oBundle.getText("LIST_GROUPED") + " ";
+			sStates += oBundle.getText("LIST_GROUPED") + " . ";
 		}
 
 		return sStates;
@@ -1933,10 +2002,10 @@ function(
 			// prepare the announcement for the screen reader
 			var oAccInfo = oItem.getAccessibilityInfo(),
 				oBundle = Core.getLibraryResourceBundle("sap.m"),
-				sDescription = oAccInfo.type + " ";
+				sDescription = oAccInfo.type + " . ";
 
 			if (!Device.browser.chrome || this.isA("sap.m.Table")) {
-				sDescription += oBundle.getText("LIST_ITEM_POSITION", [mPosition.posInset, mPosition.setSize]) + " ";
+				sDescription += oBundle.getText("LIST_ITEM_POSITION", [mPosition.posInset, mPosition.setSize]) + " . ";
 			} else {
 				oItemDomRef.setAttribute("aria-posinset", mPosition.posInset);
 				oItemDomRef.setAttribute("aria-setsize", mPosition.setSize);
@@ -1976,6 +2045,19 @@ function(
 		// item navigation only for desktop
 		if (!Device.system.desktop) {
 			return;
+		}
+
+		// focus on root element should be prevented by showNoData=false and there a no items & destroy ItemNavigation
+		var oDomRef = this.getDomRef();
+
+		if (!this.getShowNoData() && !this.getVisibleItems().length && oDomRef) {
+			oDomRef.classList.add("sapMListPreventFocus");
+			this._destroyItemNavigation();
+			return;
+		}
+
+		if (oDomRef) {
+			oDomRef.classList.remove("sapMListPreventFocus");
 		}
 
 		var sKeyboardMode = this.getKeyboardMode(),
@@ -2481,9 +2563,7 @@ function(
 
 	// gets the sticky header position and scrolls the page so that the item is completely visible when focused
 	ListBase.prototype._handleStickyItemFocus = function(oItemDomRef) {
-		// when an item is focused and later focus is lost from the list control, the list control is scrolled and new item is focused,
-		// this resulted in unnecessary scroll jumping
-		if (!this._iStickyValue || this._sLastFocusedStickyItemId === oItemDomRef.id) {
+		if (!this._iStickyValue) {
 			return;
 		}
 
@@ -2533,8 +2613,6 @@ function(
 				oScrollDelegate.scrollToElement(oItemDomRef, 0, [0, -iTHRectHeight - iInfoTBarContainerRectHeight - iHeaderToolbarRectHeight]);
 			});
 		}
-
-		this._sLastFocusedStickyItemId = oItemDomRef.id;
 	};
 
 	ListBase.prototype.setHeaderToolbar = function(oHeaderToolbar) {
@@ -2578,6 +2656,10 @@ function(
 		}
 
 		oItem = aItems[iIndex];
+
+		if (!oItem) {
+			return;
+		}
 
 		// adding timeout of 0 ensures the DOM is ready in case of rerendering
 		setTimeout(function() {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,7 +21,7 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/
 	 *
 	 * Applications could inherit from this element to add own fields.
 	 * @extends sap.ui.unified.DateTypeRange
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -43,6 +43,12 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/
 			 * Text of the appointment.
 			 */
 			text : {type : "string", group : "Data"},
+
+			/**
+			 * Description of the appointment.
+			 * @since 1.81.0
+			 */
+			description: {type: "string", group: "Data"},
 
 			/**
 			 * Icon of the Appointment. (e.g. picture of the person)
@@ -187,8 +193,8 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/
 	 * @since 1.46.0
 	 */
 	CalendarAppointment.prototype.setColor = function (sColor) {
-		if (sColor && sColor.match(/^#[0-9a-f]{6}$/i)) {
-			Log.warning("setColor accepts only full hex color value with pound symbol.");
+		if (sColor && !sColor.match(/^#[0-9a-f]{6}$/i)) {
+			Log.warning("setColor accepts only full hex color value with pound symbol, but value is '" + sColor + "'");
 		}
 		return this.setProperty("color", sColor);
 	};

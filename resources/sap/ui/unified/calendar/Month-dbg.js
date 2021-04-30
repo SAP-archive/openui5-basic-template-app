@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.define([
 	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/unified/calendar/CalendarDate',
 	'sap/ui/unified/DateRange',
+	'sap/ui/unified/DateTypeRange',
 	'sap/ui/unified/library',
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/core/library',
@@ -29,6 +30,7 @@ sap.ui.define([
 	CalendarUtils,
 	CalendarDate,
 	DateRange,
+	DateTypeRange,
 	library,
 	DateFormat,
 	coreLibrary,
@@ -63,7 +65,7 @@ sap.ui.define([
 	 * If used inside the calendar the properties and aggregation are directly taken from the parent
 	 * (To not duplicate and sync DateRanges and so on...)
 	 * @extends sap.ui.core.Control
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -832,7 +834,7 @@ sap.ui.define([
 		CalendarUtils._checkCalendarDate(oDate);
 
 		var oType, oTypeNW, bNonWorkingType, aTypes = [];
-		var aSpecialDates = this.getSpecialDates();
+		var aSpecialDates = this._getSpecialDates();
 		var oTimeStamp = oDate.toUTCJSDate().getTime();
 		// we only need the timestamp of each special date for comparison
 		// because it is independent of calendar type, we use native UTC Date
@@ -1202,8 +1204,10 @@ sap.ui.define([
 	 * @private
 	 */
 	Month.prototype._areMouseEventCoordinatesInThreshold = function (clientX, clientY, iThreshold) {
-		return this._isValueInThreshold(this._oMousedownPosition.clientX, clientX, iThreshold)
-			&& this._isValueInThreshold(this._oMousedownPosition.clientY, clientY, iThreshold);
+		return this._oMousedownPosition // because of BCP 2080183678 - check for this._oMousedownPosition
+			&& this._isValueInThreshold(this._oMousedownPosition.clientX, clientX, iThreshold)
+			&& this._isValueInThreshold(this._oMousedownPosition.clientY, clientY, iThreshold)
+			? true : false;
 	};
 
 	/*
@@ -1919,6 +1923,30 @@ sap.ui.define([
 
 	};
 
+	Month.prototype._getSpecialDates = function(){
+		var oParent = this.getParent();
+
+		if (oParent && oParent._getSpecialDates) {
+			return oParent._getSpecialDates();
+		} else {
+			var specialDates = this.getSpecialDates();
+			for (var i = 0; i < specialDates.length; i++) {
+				var bNeedsSecondTypeAdding = specialDates[i].getSecondaryType() === library.CalendarDayType.NonWorking
+					&& specialDates[i].getType() !== library.CalendarDayType.NonWorking;
+				if (bNeedsSecondTypeAdding) {
+					var newSpecialDate = new DateTypeRange();
+					newSpecialDate.setType(library.CalendarDayType.NonWorking);
+					newSpecialDate.setStartDate(specialDates[i].getStartDate());
+					if (specialDates[i].getEndDate()) {
+						newSpecialDate.setEndDate(specialDates[i].getEndDate());
+					}
+					specialDates.push(newSpecialDate);
+				}
+			}
+			return specialDates;
+		}
+	};
+
 	function _initItemNavigation(){
 
 		var sYyyymmdd = this._oFormatYyyymmdd.format(this._getDate().toUTCJSDate(), true),
@@ -2212,7 +2240,7 @@ sap.ui.define([
 			aStartDate = [aStartDate];
 		}
 
-		var aDomRefs = this._oItemNavigation.getItemDomRefs();
+		var aDomRefs = this.getDomRef() ? this.getDomRef().querySelectorAll(".sapUiCalItem:not(.sapUiCalDummy)") : [];
 		var $DomRef;
 		var i = 0;
 		var bStart = false;

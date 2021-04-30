@@ -1,14 +1,15 @@
-/*!
+/**
  * @license
  * Lodash (Custom Build) <https://lodash.com/>
- * Build: `lodash strict include="omit,uniq,uniqBy,uniqWith,intersection,intersectionBy,intersectionWith,pick,pickBy,debounce,throttle,max,min,castArray,curry,merge,mergeWith"`
- * Copyright JS Foundation and other contributors <https://js.foundation/>
+ * Build: `lodash strict include="omit,uniq,uniqBy,uniqWith,intersection,intersectionBy,intersectionWith,pick,pickBy,debounce,throttle,max,min,castArray,curry,merge,mergeWith,toArray,xor,xorBy,xorWith,isNil,difference,differenceBy,differenceWith,flatMap,flatMapDeep,flatMapDepth,isEqual,isEqualWith,without,flatten,flattenDeep,flattenDepth,compact,zipObject,zipObjectDeep,union,unionBy,unionWith"`
+ * Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
  * Released under MIT license <https://lodash.com/license>
  * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
  * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Modifications SAP SE or an SAP affiliate company and OpenUI5 contributors. All rights reserved.
  */
-/* global exports,module,global,ArrayBuffer */
 // ##### BEGIN: MODIFIED BY SAP
+/* global exports,module,global,ArrayBuffer */
 // We don't want to export lodash as global function, but just make it available to UI5 loader.
 sap.ui.define(function() {
 // ;(function() {
@@ -19,7 +20,7 @@ sap.ui.define(function() {
   var undefined;
 
   /** Used as the semantic version number. */
-  var VERSION = '4.17.10';
+  var VERSION = '4.17.21';
 
   /** Used as the size to enable large array optimizations. */
   var LARGE_ARRAY_SIZE = 200;
@@ -128,8 +129,11 @@ sap.ui.define(function() {
    */
   var reRegExpChar = /[\\^$.*+?()[\]{}|]/g;
 
-  /** Used to match leading and trailing whitespace. */
-  var reTrim = /^\s+|\s+$/g;
+  /** Used to match leading whitespace. */
+  var reTrimStart = /^\s+/;
+
+  /** Used to match a single whitespace character. */
+  var reWhitespace = /\s/;
 
   /** Used to match wrap detail comments. */
   var reWrapComment = /\{(?:\n\/\* \[wrapped with .+\] \*\/)?\n?/,
@@ -156,6 +160,37 @@ sap.ui.define(function() {
 
   /** Used to detect unsigned integer values. */
   var reIsUint = /^(?:0|[1-9]\d*)$/;
+
+  /** Used to compose unicode character classes. */
+  var rsAstralRange = '\\ud800-\\udfff',
+      rsComboMarksRange = '\\u0300-\\u036f',
+      reComboHalfMarksRange = '\\ufe20-\\ufe2f',
+      rsComboSymbolsRange = '\\u20d0-\\u20ff',
+      rsComboRange = rsComboMarksRange + reComboHalfMarksRange + rsComboSymbolsRange,
+      rsVarRange = '\\ufe0e\\ufe0f';
+
+  /** Used to compose unicode capture groups. */
+  var rsAstral = '[' + rsAstralRange + ']',
+      rsCombo = '[' + rsComboRange + ']',
+      rsFitz = '\\ud83c[\\udffb-\\udfff]',
+      rsModifier = '(?:' + rsCombo + '|' + rsFitz + ')',
+      rsNonAstral = '[^' + rsAstralRange + ']',
+      rsRegional = '(?:\\ud83c[\\udde6-\\uddff]){2}',
+      rsSurrPair = '[\\ud800-\\udbff][\\udc00-\\udfff]',
+      rsZWJ = '\\u200d';
+
+  /** Used to compose unicode regexes. */
+  var reOptMod = rsModifier + '?',
+      rsOptVar = '[' + rsVarRange + ']?',
+      rsOptJoin = '(?:' + rsZWJ + '(?:' + [rsNonAstral, rsRegional, rsSurrPair].join('|') + ')' + rsOptVar + reOptMod + ')*',
+      rsSeq = rsOptVar + reOptMod + rsOptJoin,
+      rsSymbol = '(?:' + [rsNonAstral + rsCombo + '?', rsCombo, rsRegional, rsSurrPair, rsAstral].join('|') + ')';
+
+  /** Used to match [string symbols](https://mathiasbynens.be/notes/javascript-unicode). */
+  var reUnicode = RegExp(rsFitz + '(?=' + rsFitz + ')|' + rsSymbol + rsSeq, 'g');
+
+  /** Used to detect strings with [zero-width joiners or code points from the astral planes](http://eev.ee/blog/2015/09/12/dark-corners-of-unicode/). */
+  var reHasUnicode = RegExp('[' + rsZWJ + rsAstralRange  + rsComboRange + rsVarRange + ']');
 
   /** Used to identify `toStringTag` values of typed arrays. */
   var typedArrayTags = {};
@@ -397,6 +432,17 @@ sap.ui.define(function() {
   }
 
   /**
+   * Converts an ASCII `string` to an array.
+   *
+   * @private
+   * @param {string} string The string to convert.
+   * @returns {Array} Returns the converted array.
+   */
+  function asciiToArray(string) {
+    return string.split('');
+  }
+
+  /**
    * The base implementation of `_.findIndex` and `_.findLastIndex` without
    * support for iteratee shorthands.
    *
@@ -478,6 +524,19 @@ sap.ui.define(function() {
   }
 
   /**
+   * The base implementation of `_.trim`.
+   *
+   * @private
+   * @param {string} string The string to trim.
+   * @returns {string} Returns the trimmed string.
+   */
+  function baseTrim(string) {
+    return string
+      ? string.slice(0, trimmedEndIndex(string) + 1).replace(reTrimStart, '')
+      : string;
+  }
+
+  /**
    * The base implementation of `_.unary` without support for storing metadata.
    *
    * @private
@@ -488,6 +547,22 @@ sap.ui.define(function() {
     return function(value) {
       return func(value);
     };
+  }
+
+  /**
+   * The base implementation of `_.values` and `_.valuesIn` which creates an
+   * array of `object` property values corresponding to the property names
+   * of `props`.
+   *
+   * @private
+   * @param {Object} object The object to query.
+   * @param {Array} props The property names to get values for.
+   * @returns {Object} Returns the array of property values.
+   */
+  function baseValues(object, props) {
+    return arrayMap(props, function(key) {
+      return object[key];
+    });
   }
 
   /**
@@ -532,6 +607,34 @@ sap.ui.define(function() {
    */
   function getValue(object, key) {
     return object == null ? undefined : object[key];
+  }
+
+  /**
+   * Checks if `string` contains Unicode symbols.
+   *
+   * @private
+   * @param {string} string The string to inspect.
+   * @returns {boolean} Returns `true` if a symbol is found, else `false`.
+   */
+  function hasUnicode(string) {
+    return reHasUnicode.test(string);
+  }
+
+  /**
+   * Converts `iterator` to an array.
+   *
+   * @private
+   * @param {Object} iterator The iterator to convert.
+   * @returns {Array} Returns the converted array.
+   */
+  function iteratorToArray(iterator) {
+    var data,
+        result = [];
+
+    while (!(data = iterator.next()).done) {
+      result.push(data.value);
+    }
+    return result;
   }
 
   /**
@@ -591,20 +694,6 @@ sap.ui.define(function() {
   }
 
   /**
-   * Gets the value at `key`, unless `key` is "__proto__".
-   *
-   * @private
-   * @param {Object} object The object to query.
-   * @param {string} key The key of the property to get.
-   * @returns {*} Returns the property value.
-   */
-  function safeGet(object, key) {
-    return key == '__proto__'
-      ? undefined
-      : object[key];
-  }
-
-  /**
    * Converts `set` to an array of its values.
    *
    * @private
@@ -641,6 +730,45 @@ sap.ui.define(function() {
       }
     }
     return -1;
+  }
+
+  /**
+   * Converts `string` to an array.
+   *
+   * @private
+   * @param {string} string The string to convert.
+   * @returns {Array} Returns the converted array.
+   */
+  function stringToArray(string) {
+    return hasUnicode(string)
+      ? unicodeToArray(string)
+      : asciiToArray(string);
+  }
+
+  /**
+   * Used by `_.trim` and `_.trimEnd` to get the index of the last non-whitespace
+   * character of `string`.
+   *
+   * @private
+   * @param {string} string The string to inspect.
+   * @returns {number} Returns the index of the last non-whitespace character.
+   */
+  function trimmedEndIndex(string) {
+    var index = string.length;
+
+    while (index-- && reWhitespace.test(string.charAt(index))) {}
+    return index;
+  }
+
+  /**
+   * Converts a Unicode `string` to an array.
+   *
+   * @private
+   * @param {string} string The string to convert.
+   * @returns {Array} Returns the converted array.
+   */
+  function unicodeToArray(string) {
+    return string.match(reUnicode) || [];
   }
 
   /*--------------------------------------------------------------------------*/
@@ -691,6 +819,7 @@ sap.ui.define(function() {
       propertyIsEnumerable = objectProto.propertyIsEnumerable,
       splice = arrayProto.splice,
       spreadableSymbol = Symbol ? Symbol.isConcatSpreadable : undefined,
+      symIterator = Symbol ? Symbol.iterator : undefined,
       symToStringTag = Symbol ? Symbol.toStringTag : undefined;
 
   var defineProperty = (function() {
@@ -1599,16 +1728,10 @@ sap.ui.define(function() {
       value.forEach(function(subValue) {
         result.add(baseClone(subValue, bitmask, customizer, subValue, value, stack));
       });
-
-      return result;
-    }
-
-    if (isMap(value)) {
+    } else if (isMap(value)) {
       value.forEach(function(subValue, key) {
         result.set(key, baseClone(subValue, bitmask, customizer, key, value, stack));
       });
-
-      return result;
     }
 
     var keysFunc = isFull
@@ -1626,6 +1749,72 @@ sap.ui.define(function() {
     });
     return result;
   }
+
+  /**
+   * The base implementation of methods like `_.difference` without support
+   * for excluding multiple arrays or iteratee shorthands.
+   *
+   * @private
+   * @param {Array} array The array to inspect.
+   * @param {Array} values The values to exclude.
+   * @param {Function} [iteratee] The iteratee invoked per element.
+   * @param {Function} [comparator] The comparator invoked per element.
+   * @returns {Array} Returns the new array of filtered values.
+   */
+  function baseDifference(array, values, iteratee, comparator) {
+    var index = -1,
+        includes = arrayIncludes,
+        isCommon = true,
+        length = array.length,
+        result = [],
+        valuesLength = values.length;
+
+    if (!length) {
+      return result;
+    }
+    if (iteratee) {
+      values = arrayMap(values, baseUnary(iteratee));
+    }
+    if (comparator) {
+      includes = arrayIncludesWith;
+      isCommon = false;
+    }
+    else if (values.length >= LARGE_ARRAY_SIZE) {
+      includes = cacheHas;
+      isCommon = false;
+      values = new SetCache(values);
+    }
+    outer:
+    while (++index < length) {
+      var value = array[index],
+          computed = iteratee == null ? value : iteratee(value);
+
+      value = (comparator || value !== 0) ? value : 0;
+      if (isCommon && computed === computed) {
+        var valuesIndex = valuesLength;
+        while (valuesIndex--) {
+          if (values[valuesIndex] === computed) {
+            continue outer;
+          }
+        }
+        result.push(value);
+      }
+      else if (!includes(values, computed, comparator)) {
+        result.push(value);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * The base implementation of `_.forEach` without support for iteratee shorthands.
+   *
+   * @private
+   * @param {Array|Object} collection The collection to iterate over.
+   * @param {Function} iteratee The function invoked per iteration.
+   * @returns {Array|Object} Returns `collection`.
+   */
+  var baseEach = createBaseEach(baseForOwn);
 
   /**
    * The base implementation of methods like `_.max` and `_.min` which accepts a
@@ -1702,6 +1891,18 @@ sap.ui.define(function() {
    * @returns {Object} Returns `object`.
    */
   var baseFor = createBaseFor();
+
+  /**
+   * The base implementation of `_.forOwn` without support for iteratee shorthands.
+   *
+   * @private
+   * @param {Object} object The object to iterate over.
+   * @param {Function} iteratee The function invoked per iteration.
+   * @returns {Object} Returns `object`.
+   */
+  function baseForOwn(object, iteratee) {
+    return object && baseFor(object, iteratee, keys);
+  }
 
   /**
    * The base implementation of `_.get` without support for default values.
@@ -2121,6 +2322,24 @@ sap.ui.define(function() {
   }
 
   /**
+   * The base implementation of `_.map` without support for iteratee shorthands.
+   *
+   * @private
+   * @param {Array|Object} collection The collection to iterate over.
+   * @param {Function} iteratee The function invoked per iteration.
+   * @returns {Array} Returns the new mapped array.
+   */
+  function baseMap(collection, iteratee) {
+    var index = -1,
+        result = isArrayLike(collection) ? Array(collection.length) : [];
+
+    baseEach(collection, function(value, key, collection) {
+      result[++index] = iteratee(value, key, collection);
+    });
+    return result;
+  }
+
+  /**
    * The base implementation of `_.matches` which doesn't clone `source`.
    *
    * @private
@@ -2173,8 +2392,8 @@ sap.ui.define(function() {
       return;
     }
     baseFor(source, function(srcValue, key) {
+      stack || (stack = new Stack);
       if (isObject(srcValue)) {
-        stack || (stack = new Stack);
         baseMergeDeep(object, source, key, srcIndex, baseMerge, customizer, stack);
       }
       else {
@@ -2250,7 +2469,7 @@ sap.ui.define(function() {
         if (isArguments(objValue)) {
           newValue = toPlainObject(objValue);
         }
-        else if (!isObject(objValue) || (srcIndex && isFunction(objValue))) {
+        else if (!isObject(objValue) || isFunction(objValue)) {
           newValue = initCloneObject(srcValue);
         }
       }
@@ -2356,6 +2575,10 @@ sap.ui.define(function() {
     while (nested != null && ++index < length) {
       var key = toKey(path[index]),
           newValue = value;
+
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        return object;
+      }
 
       if (index != lastIndex) {
         var objValue = nested[key];
@@ -2529,6 +2752,59 @@ sap.ui.define(function() {
     path = castPath(path, object);
     object = parent(object, path);
     return object == null || delete object[toKey(last(path))];
+  }
+
+  /**
+   * The base implementation of methods like `_.xor`, without support for
+   * iteratee shorthands, that accepts an array of arrays to inspect.
+   *
+   * @private
+   * @param {Array} arrays The arrays to inspect.
+   * @param {Function} [iteratee] The iteratee invoked per element.
+   * @param {Function} [comparator] The comparator invoked per element.
+   * @returns {Array} Returns the new array of values.
+   */
+  function baseXor(arrays, iteratee, comparator) {
+    var length = arrays.length;
+    if (length < 2) {
+      return length ? baseUniq(arrays[0]) : [];
+    }
+    var index = -1,
+        result = Array(length);
+
+    while (++index < length) {
+      var array = arrays[index],
+          othIndex = -1;
+
+      while (++othIndex < length) {
+        if (othIndex != index) {
+          result[index] = baseDifference(result[index] || array, arrays[othIndex], iteratee, comparator);
+        }
+      }
+    }
+    return baseUniq(baseFlatten(result, 1), iteratee, comparator);
+  }
+
+  /**
+   * This base implementation of `_.zipObject` which assigns values using `assignFunc`.
+   *
+   * @private
+   * @param {Array} props The property identifiers.
+   * @param {Array} values The property values.
+   * @param {Function} assignFunc The function to assign values.
+   * @returns {Object} Returns the new object.
+   */
+  function baseZipObject(props, values, assignFunc) {
+    var index = -1,
+        length = props.length,
+        valsLength = values.length,
+        result = {};
+
+    while (++index < length) {
+      var value = index < valsLength ? values[index] : undefined;
+      assignFunc(result, props[index], value);
+    }
+    return result;
   }
 
   /**
@@ -2821,6 +3097,35 @@ sap.ui.define(function() {
       }
       return object;
     });
+  }
+
+  /**
+   * Creates a `baseEach` or `baseEachRight` function.
+   *
+   * @private
+   * @param {Function} eachFunc The function to iterate over a collection.
+   * @param {boolean} [fromRight] Specify iterating from right to left.
+   * @returns {Function} Returns the new base function.
+   */
+  function createBaseEach(eachFunc, fromRight) {
+    return function(collection, iteratee) {
+      if (collection == null) {
+        return collection;
+      }
+      if (!isArrayLike(collection)) {
+        return eachFunc(collection, iteratee);
+      }
+      var length = collection.length,
+          index = fromRight ? length : -1,
+          iterable = Object(collection);
+
+      while ((fromRight ? index-- : ++index < length)) {
+        if (iteratee(iterable[index], index, iterable) === false) {
+          break;
+        }
+      }
+      return collection;
+    };
   }
 
   /**
@@ -3214,10 +3519,11 @@ sap.ui.define(function() {
     if (arrLength != othLength && !(isPartial && othLength > arrLength)) {
       return false;
     }
-    // Assume cyclic values are equal.
-    var stacked = stack.get(array);
-    if (stacked && stack.get(other)) {
-      return stacked == other;
+    // Check that cyclic values are equal.
+    var arrStacked = stack.get(array);
+    var othStacked = stack.get(other);
+    if (arrStacked && othStacked) {
+      return arrStacked == other && othStacked == array;
     }
     var index = -1,
         result = true,
@@ -3379,10 +3685,11 @@ sap.ui.define(function() {
         return false;
       }
     }
-    // Assume cyclic values are equal.
-    var stacked = stack.get(object);
-    if (stacked && stack.get(other)) {
-      return stacked == other;
+    // Check that cyclic values are equal.
+    var objStacked = stack.get(object);
+    var othStacked = stack.get(other);
+    if (objStacked && othStacked) {
+      return objStacked == other && othStacked == object;
     }
     var result = true;
     stack.set(object, other);
@@ -4158,6 +4465,26 @@ sap.ui.define(function() {
   }
 
   /**
+   * Gets the value at `key`, unless `key` is "__proto__" or "constructor".
+   *
+   * @private
+   * @param {Object} object The object to query.
+   * @param {string} key The key of the property to get.
+   * @returns {*} Returns the property value.
+   */
+  function safeGet(object, key) {
+    if (key === 'constructor' && typeof object[key] === 'function') {
+      return;
+    }
+
+    if (key == '__proto__') {
+      return;
+    }
+
+    return object[key];
+  }
+
+  /**
    * Sets metadata for `func`.
    *
    * **Note:** If this function becomes hot, i.e. is invoked a lot in a short
@@ -4300,6 +4627,132 @@ sap.ui.define(function() {
   /*------------------------------------------------------------------------*/
 
   /**
+   * Creates an array with all falsey values removed. The values `false`, `null`,
+   * `0`, `""`, `undefined`, and `NaN` are falsey.
+   *
+   * @static
+   * @memberOf _
+   * @since 0.1.0
+   * @category Array
+   * @param {Array} array The array to compact.
+   * @returns {Array} Returns the new array of filtered values.
+   * @example
+   *
+   * _.compact([0, 1, false, 2, '', 3]);
+   * // => [1, 2, 3]
+   */
+  function compact(array) {
+    var index = -1,
+        length = array == null ? 0 : array.length,
+        resIndex = 0,
+        result = [];
+
+    while (++index < length) {
+      var value = array[index];
+      if (value) {
+        result[resIndex++] = value;
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Creates an array of `array` values not included in the other given arrays
+   * using [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+   * for equality comparisons. The order and references of result values are
+   * determined by the first array.
+   *
+   * **Note:** Unlike `_.pullAll`, this method returns a new array.
+   *
+   * @static
+   * @memberOf _
+   * @since 0.1.0
+   * @category Array
+   * @param {Array} array The array to inspect.
+   * @param {...Array} [values] The values to exclude.
+   * @returns {Array} Returns the new array of filtered values.
+   * @see _.without, _.xor
+   * @example
+   *
+   * _.difference([2, 1], [2, 3]);
+   * // => [1]
+   */
+  var difference = baseRest(function(array, values) {
+    return isArrayLikeObject(array)
+      ? baseDifference(array, baseFlatten(values, 1, isArrayLikeObject, true))
+      : [];
+  });
+
+  /**
+   * This method is like `_.difference` except that it accepts `iteratee` which
+   * is invoked for each element of `array` and `values` to generate the criterion
+   * by which they're compared. The order and references of result values are
+   * determined by the first array. The iteratee is invoked with one argument:
+   * (value).
+   *
+   * **Note:** Unlike `_.pullAllBy`, this method returns a new array.
+   *
+   * @static
+   * @memberOf _
+   * @since 4.0.0
+   * @category Array
+   * @param {Array} array The array to inspect.
+   * @param {...Array} [values] The values to exclude.
+   * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+   * @returns {Array} Returns the new array of filtered values.
+   * @example
+   *
+   * _.differenceBy([2.1, 1.2], [2.3, 3.4], Math.floor);
+   * // => [1.2]
+   *
+   * // The `_.property` iteratee shorthand.
+   * _.differenceBy([{ 'x': 2 }, { 'x': 1 }], [{ 'x': 1 }], 'x');
+   * // => [{ 'x': 2 }]
+   */
+  var differenceBy = baseRest(function(array, values) {
+    var iteratee = last(values);
+    if (isArrayLikeObject(iteratee)) {
+      iteratee = undefined;
+    }
+    return isArrayLikeObject(array)
+      ? baseDifference(array, baseFlatten(values, 1, isArrayLikeObject, true), getIteratee(iteratee, 2))
+      : [];
+  });
+
+  /**
+   * This method is like `_.difference` except that it accepts `comparator`
+   * which is invoked to compare elements of `array` to `values`. The order and
+   * references of result values are determined by the first array. The comparator
+   * is invoked with two arguments: (arrVal, othVal).
+   *
+   * **Note:** Unlike `_.pullAllWith`, this method returns a new array.
+   *
+   * @static
+   * @memberOf _
+   * @since 4.0.0
+   * @category Array
+   * @param {Array} array The array to inspect.
+   * @param {...Array} [values] The values to exclude.
+   * @param {Function} [comparator] The comparator invoked per element.
+   * @returns {Array} Returns the new array of filtered values.
+   * @example
+   *
+   * var objects = [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }];
+   *
+   * _.differenceWith(objects, [{ 'x': 1, 'y': 2 }], _.isEqual);
+   * // => [{ 'x': 2, 'y': 1 }]
+   */
+  var differenceWith = baseRest(function(array, values) {
+    var comparator = last(values);
+    if (isArrayLikeObject(comparator)) {
+      comparator = undefined;
+    }
+    return isArrayLikeObject(array)
+      ? baseDifference(array, baseFlatten(values, 1, isArrayLikeObject, true), undefined, comparator)
+      : [];
+  });
+
+  /**
    * Flattens `array` a single level deep.
    *
    * @static
@@ -4316,6 +4769,54 @@ sap.ui.define(function() {
   function flatten(array) {
     var length = array == null ? 0 : array.length;
     return length ? baseFlatten(array, 1) : [];
+  }
+
+  /**
+   * Recursively flattens `array`.
+   *
+   * @static
+   * @memberOf _
+   * @since 3.0.0
+   * @category Array
+   * @param {Array} array The array to flatten.
+   * @returns {Array} Returns the new flattened array.
+   * @example
+   *
+   * _.flattenDeep([1, [2, [3, [4]], 5]]);
+   * // => [1, 2, 3, 4, 5]
+   */
+  function flattenDeep(array) {
+    var length = array == null ? 0 : array.length;
+    return length ? baseFlatten(array, INFINITY) : [];
+  }
+
+  /**
+   * Recursively flatten `array` up to `depth` times.
+   *
+   * @static
+   * @memberOf _
+   * @since 4.4.0
+   * @category Array
+   * @param {Array} array The array to flatten.
+   * @param {number} [depth=1] The maximum recursion depth.
+   * @returns {Array} Returns the new flattened array.
+   * @example
+   *
+   * var array = [1, [2, [3, [4]], 5]];
+   *
+   * _.flattenDepth(array, 1);
+   * // => [1, 2, [3, [4]], 5]
+   *
+   * _.flattenDepth(array, 2);
+   * // => [1, 2, 3, [4], 5]
+   */
+  function flattenDepth(array, depth) {
+    var length = array == null ? 0 : array.length;
+    if (!length) {
+      return [];
+    }
+    depth = depth === undefined ? 1 : toInteger(depth);
+    return baseFlatten(array, depth);
   }
 
   /**
@@ -4433,6 +4934,84 @@ sap.ui.define(function() {
   }
 
   /**
+   * Creates an array of unique values, in order, from all given arrays using
+   * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+   * for equality comparisons.
+   *
+   * @static
+   * @memberOf _
+   * @since 0.1.0
+   * @category Array
+   * @param {...Array} [arrays] The arrays to inspect.
+   * @returns {Array} Returns the new array of combined values.
+   * @example
+   *
+   * _.union([2], [1, 2]);
+   * // => [2, 1]
+   */
+  var union = baseRest(function(arrays) {
+    return baseUniq(baseFlatten(arrays, 1, isArrayLikeObject, true));
+  });
+
+  /**
+   * This method is like `_.union` except that it accepts `iteratee` which is
+   * invoked for each element of each `arrays` to generate the criterion by
+   * which uniqueness is computed. Result values are chosen from the first
+   * array in which the value occurs. The iteratee is invoked with one argument:
+   * (value).
+   *
+   * @static
+   * @memberOf _
+   * @since 4.0.0
+   * @category Array
+   * @param {...Array} [arrays] The arrays to inspect.
+   * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+   * @returns {Array} Returns the new array of combined values.
+   * @example
+   *
+   * _.unionBy([2.1], [1.2, 2.3], Math.floor);
+   * // => [2.1, 1.2]
+   *
+   * // The `_.property` iteratee shorthand.
+   * _.unionBy([{ 'x': 1 }], [{ 'x': 2 }, { 'x': 1 }], 'x');
+   * // => [{ 'x': 1 }, { 'x': 2 }]
+   */
+  var unionBy = baseRest(function(arrays) {
+    var iteratee = last(arrays);
+    if (isArrayLikeObject(iteratee)) {
+      iteratee = undefined;
+    }
+    return baseUniq(baseFlatten(arrays, 1, isArrayLikeObject, true), getIteratee(iteratee, 2));
+  });
+
+  /**
+   * This method is like `_.union` except that it accepts `comparator` which
+   * is invoked to compare elements of `arrays`. Result values are chosen from
+   * the first array in which the value occurs. The comparator is invoked
+   * with two arguments: (arrVal, othVal).
+   *
+   * @static
+   * @memberOf _
+   * @since 4.0.0
+   * @category Array
+   * @param {...Array} [arrays] The arrays to inspect.
+   * @param {Function} [comparator] The comparator invoked per element.
+   * @returns {Array} Returns the new array of combined values.
+   * @example
+   *
+   * var objects = [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }];
+   * var others = [{ 'x': 1, 'y': 1 }, { 'x': 1, 'y': 2 }];
+   *
+   * _.unionWith(objects, others, _.isEqual);
+   * // => [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }, { 'x': 1, 'y': 1 }]
+   */
+  var unionWith = baseRest(function(arrays) {
+    var comparator = last(arrays);
+    comparator = typeof comparator == 'function' ? comparator : undefined;
+    return baseUniq(baseFlatten(arrays, 1, isArrayLikeObject, true), undefined, comparator);
+  });
+
+  /**
    * Creates a duplicate-free version of an array, using
    * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
    * for equality comparisons, in which only the first occurrence of each element
@@ -4504,6 +5083,275 @@ sap.ui.define(function() {
   function uniqWith(array, comparator) {
     comparator = typeof comparator == 'function' ? comparator : undefined;
     return (array && array.length) ? baseUniq(array, undefined, comparator) : [];
+  }
+
+  /**
+   * Creates an array excluding all given values using
+   * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+   * for equality comparisons.
+   *
+   * **Note:** Unlike `_.pull`, this method returns a new array.
+   *
+   * @static
+   * @memberOf _
+   * @since 0.1.0
+   * @category Array
+   * @param {Array} array The array to inspect.
+   * @param {...*} [values] The values to exclude.
+   * @returns {Array} Returns the new array of filtered values.
+   * @see _.difference, _.xor
+   * @example
+   *
+   * _.without([2, 1, 2, 3], 1, 2);
+   * // => [3]
+   */
+  var without = baseRest(function(array, values) {
+    return isArrayLikeObject(array)
+      ? baseDifference(array, values)
+      : [];
+  });
+
+  /**
+   * Creates an array of unique values that is the
+   * [symmetric difference](https://en.wikipedia.org/wiki/Symmetric_difference)
+   * of the given arrays. The order of result values is determined by the order
+   * they occur in the arrays.
+   *
+   * @static
+   * @memberOf _
+   * @since 2.4.0
+   * @category Array
+   * @param {...Array} [arrays] The arrays to inspect.
+   * @returns {Array} Returns the new array of filtered values.
+   * @see _.difference, _.without
+   * @example
+   *
+   * _.xor([2, 1], [2, 3]);
+   * // => [1, 3]
+   */
+  var xor = baseRest(function(arrays) {
+    return baseXor(arrayFilter(arrays, isArrayLikeObject));
+  });
+
+  /**
+   * This method is like `_.xor` except that it accepts `iteratee` which is
+   * invoked for each element of each `arrays` to generate the criterion by
+   * which by which they're compared. The order of result values is determined
+   * by the order they occur in the arrays. The iteratee is invoked with one
+   * argument: (value).
+   *
+   * @static
+   * @memberOf _
+   * @since 4.0.0
+   * @category Array
+   * @param {...Array} [arrays] The arrays to inspect.
+   * @param {Function} [iteratee=_.identity] The iteratee invoked per element.
+   * @returns {Array} Returns the new array of filtered values.
+   * @example
+   *
+   * _.xorBy([2.1, 1.2], [2.3, 3.4], Math.floor);
+   * // => [1.2, 3.4]
+   *
+   * // The `_.property` iteratee shorthand.
+   * _.xorBy([{ 'x': 1 }], [{ 'x': 2 }, { 'x': 1 }], 'x');
+   * // => [{ 'x': 2 }]
+   */
+  var xorBy = baseRest(function(arrays) {
+    var iteratee = last(arrays);
+    if (isArrayLikeObject(iteratee)) {
+      iteratee = undefined;
+    }
+    return baseXor(arrayFilter(arrays, isArrayLikeObject), getIteratee(iteratee, 2));
+  });
+
+  /**
+   * This method is like `_.xor` except that it accepts `comparator` which is
+   * invoked to compare elements of `arrays`. The order of result values is
+   * determined by the order they occur in the arrays. The comparator is invoked
+   * with two arguments: (arrVal, othVal).
+   *
+   * @static
+   * @memberOf _
+   * @since 4.0.0
+   * @category Array
+   * @param {...Array} [arrays] The arrays to inspect.
+   * @param {Function} [comparator] The comparator invoked per element.
+   * @returns {Array} Returns the new array of filtered values.
+   * @example
+   *
+   * var objects = [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }];
+   * var others = [{ 'x': 1, 'y': 1 }, { 'x': 1, 'y': 2 }];
+   *
+   * _.xorWith(objects, others, _.isEqual);
+   * // => [{ 'x': 2, 'y': 1 }, { 'x': 1, 'y': 1 }]
+   */
+  var xorWith = baseRest(function(arrays) {
+    var comparator = last(arrays);
+    comparator = typeof comparator == 'function' ? comparator : undefined;
+    return baseXor(arrayFilter(arrays, isArrayLikeObject), undefined, comparator);
+  });
+
+  /**
+   * This method is like `_.fromPairs` except that it accepts two arrays,
+   * one of property identifiers and one of corresponding values.
+   *
+   * @static
+   * @memberOf _
+   * @since 0.4.0
+   * @category Array
+   * @param {Array} [props=[]] The property identifiers.
+   * @param {Array} [values=[]] The property values.
+   * @returns {Object} Returns the new object.
+   * @example
+   *
+   * _.zipObject(['a', 'b'], [1, 2]);
+   * // => { 'a': 1, 'b': 2 }
+   */
+  function zipObject(props, values) {
+    return baseZipObject(props || [], values || [], assignValue);
+  }
+
+  /**
+   * This method is like `_.zipObject` except that it supports property paths.
+   *
+   * @static
+   * @memberOf _
+   * @since 4.1.0
+   * @category Array
+   * @param {Array} [props=[]] The property identifiers.
+   * @param {Array} [values=[]] The property values.
+   * @returns {Object} Returns the new object.
+   * @example
+   *
+   * _.zipObjectDeep(['a.b[0].c', 'a.b[1].d'], [1, 2]);
+   * // => { 'a': { 'b': [{ 'c': 1 }, { 'd': 2 }] } }
+   */
+  function zipObjectDeep(props, values) {
+    return baseZipObject(props || [], values || [], baseSet);
+  }
+
+  /*------------------------------------------------------------------------*/
+
+  /**
+   * Creates a flattened array of values by running each element in `collection`
+   * thru `iteratee` and flattening the mapped results. The iteratee is invoked
+   * with three arguments: (value, index|key, collection).
+   *
+   * @static
+   * @memberOf _
+   * @since 4.0.0
+   * @category Collection
+   * @param {Array|Object} collection The collection to iterate over.
+   * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+   * @returns {Array} Returns the new flattened array.
+   * @example
+   *
+   * function duplicate(n) {
+   *   return [n, n];
+   * }
+   *
+   * _.flatMap([1, 2], duplicate);
+   * // => [1, 1, 2, 2]
+   */
+  function flatMap(collection, iteratee) {
+    return baseFlatten(map(collection, iteratee), 1);
+  }
+
+  /**
+   * This method is like `_.flatMap` except that it recursively flattens the
+   * mapped results.
+   *
+   * @static
+   * @memberOf _
+   * @since 4.7.0
+   * @category Collection
+   * @param {Array|Object} collection The collection to iterate over.
+   * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+   * @returns {Array} Returns the new flattened array.
+   * @example
+   *
+   * function duplicate(n) {
+   *   return [[[n, n]]];
+   * }
+   *
+   * _.flatMapDeep([1, 2], duplicate);
+   * // => [1, 1, 2, 2]
+   */
+  function flatMapDeep(collection, iteratee) {
+    return baseFlatten(map(collection, iteratee), INFINITY);
+  }
+
+  /**
+   * This method is like `_.flatMap` except that it recursively flattens the
+   * mapped results up to `depth` times.
+   *
+   * @static
+   * @memberOf _
+   * @since 4.7.0
+   * @category Collection
+   * @param {Array|Object} collection The collection to iterate over.
+   * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+   * @param {number} [depth=1] The maximum recursion depth.
+   * @returns {Array} Returns the new flattened array.
+   * @example
+   *
+   * function duplicate(n) {
+   *   return [[[n, n]]];
+   * }
+   *
+   * _.flatMapDepth([1, 2], duplicate, 2);
+   * // => [[1, 1], [2, 2]]
+   */
+  function flatMapDepth(collection, iteratee, depth) {
+    depth = depth === undefined ? 1 : toInteger(depth);
+    return baseFlatten(map(collection, iteratee), depth);
+  }
+
+  /**
+   * Creates an array of values by running each element in `collection` thru
+   * `iteratee`. The iteratee is invoked with three arguments:
+   * (value, index|key, collection).
+   *
+   * Many lodash methods are guarded to work as iteratees for methods like
+   * `_.every`, `_.filter`, `_.map`, `_.mapValues`, `_.reject`, and `_.some`.
+   *
+   * The guarded methods are:
+   * `ary`, `chunk`, `curry`, `curryRight`, `drop`, `dropRight`, `every`,
+   * `fill`, `invert`, `parseInt`, `random`, `range`, `rangeRight`, `repeat`,
+   * `sampleSize`, `slice`, `some`, `sortBy`, `split`, `take`, `takeRight`,
+   * `template`, `trim`, `trimEnd`, `trimStart`, and `words`
+   *
+   * @static
+   * @memberOf _
+   * @since 0.1.0
+   * @category Collection
+   * @param {Array|Object} collection The collection to iterate over.
+   * @param {Function} [iteratee=_.identity] The function invoked per iteration.
+   * @returns {Array} Returns the new mapped array.
+   * @example
+   *
+   * function square(n) {
+   *   return n * n;
+   * }
+   *
+   * _.map([4, 8], square);
+   * // => [16, 64]
+   *
+   * _.map({ 'a': 4, 'b': 8 }, square);
+   * // => [16, 64] (iteration order is not guaranteed)
+   *
+   * var users = [
+   *   { 'user': 'barney' },
+   *   { 'user': 'fred' }
+   * ];
+   *
+   * // The `_.property` iteratee shorthand.
+   * _.map(users, 'user');
+   * // => ['barney', 'fred']
+   */
+  function map(collection, iteratee) {
+    var func = isArray(collection) ? arrayMap : baseMap;
+    return func(collection, getIteratee(iteratee, 3));
   }
 
   /*------------------------------------------------------------------------*/
@@ -4742,6 +5590,7 @@ sap.ui.define(function() {
         }
         if (maxing) {
           // Handle invocations in a tight loop.
+          clearTimeout(timerId);
           timerId = setTimeout(timerExpired, wait);
           return invokeFunc(lastCallTime);
         }
@@ -5090,6 +5939,76 @@ sap.ui.define(function() {
   var isBuffer = nativeIsBuffer || stubFalse;
 
   /**
+   * Performs a deep comparison between two values to determine if they are
+   * equivalent.
+   *
+   * **Note:** This method supports comparing arrays, array buffers, booleans,
+   * date objects, error objects, maps, numbers, `Object` objects, regexes,
+   * sets, strings, symbols, and typed arrays. `Object` objects are compared
+   * by their own, not inherited, enumerable properties. Functions and DOM
+   * nodes are compared by strict equality, i.e. `===`.
+   *
+   * @static
+   * @memberOf _
+   * @since 0.1.0
+   * @category Lang
+   * @param {*} value The value to compare.
+   * @param {*} other The other value to compare.
+   * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
+   * @example
+   *
+   * var object = { 'a': 1 };
+   * var other = { 'a': 1 };
+   *
+   * _.isEqual(object, other);
+   * // => true
+   *
+   * object === other;
+   * // => false
+   */
+  function isEqual(value, other) {
+    return baseIsEqual(value, other);
+  }
+
+  /**
+   * This method is like `_.isEqual` except that it accepts `customizer` which
+   * is invoked to compare values. If `customizer` returns `undefined`, comparisons
+   * are handled by the method instead. The `customizer` is invoked with up to
+   * six arguments: (objValue, othValue [, index|key, object, other, stack]).
+   *
+   * @static
+   * @memberOf _
+   * @since 4.0.0
+   * @category Lang
+   * @param {*} value The value to compare.
+   * @param {*} other The other value to compare.
+   * @param {Function} [customizer] The function to customize comparisons.
+   * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
+   * @example
+   *
+   * function isGreeting(value) {
+   *   return /^h(?:i|ello)$/.test(value);
+   * }
+   *
+   * function customizer(objValue, othValue) {
+   *   if (isGreeting(objValue) && isGreeting(othValue)) {
+   *     return true;
+   *   }
+   * }
+   *
+   * var array = ['hello', 'goodbye'];
+   * var other = ['hi', 'goodbye'];
+   *
+   * _.isEqualWith(array, other, customizer);
+   * // => true
+   */
+  function isEqualWith(value, other, customizer) {
+    customizer = typeof customizer == 'function' ? customizer : undefined;
+    var result = customizer ? customizer(value, other) : undefined;
+    return result === undefined ? baseIsEqual(value, other, undefined, customizer) : !!result;
+  }
+
+  /**
    * Checks if `value` is classified as a `Function` object.
    *
    * @static
@@ -5225,6 +6144,30 @@ sap.ui.define(function() {
   var isMap = nodeIsMap ? baseUnary(nodeIsMap) : baseIsMap;
 
   /**
+   * Checks if `value` is `null` or `undefined`.
+   *
+   * @static
+   * @memberOf _
+   * @since 4.0.0
+   * @category Lang
+   * @param {*} value The value to check.
+   * @returns {boolean} Returns `true` if `value` is nullish, else `false`.
+   * @example
+   *
+   * _.isNil(null);
+   * // => true
+   *
+   * _.isNil(void 0);
+   * // => true
+   *
+   * _.isNil(NaN);
+   * // => false
+   */
+  function isNil(value) {
+    return value == null;
+  }
+
+  /**
    * Checks if `value` is a plain object, that is, an object created by the
    * `Object` constructor or one with a `[[Prototype]]` of `null`.
    *
@@ -5285,6 +6228,28 @@ sap.ui.define(function() {
   var isSet = nodeIsSet ? baseUnary(nodeIsSet) : baseIsSet;
 
   /**
+   * Checks if `value` is classified as a `String` primitive or object.
+   *
+   * @static
+   * @since 0.1.0
+   * @memberOf _
+   * @category Lang
+   * @param {*} value The value to check.
+   * @returns {boolean} Returns `true` if `value` is a string, else `false`.
+   * @example
+   *
+   * _.isString('abc');
+   * // => true
+   *
+   * _.isString(1);
+   * // => false
+   */
+  function isString(value) {
+    return typeof value == 'string' ||
+      (!isArray(value) && isObjectLike(value) && baseGetTag(value) == stringTag);
+  }
+
+  /**
    * Checks if `value` is classified as a `Symbol` primitive or object.
    *
    * @static
@@ -5324,6 +6289,45 @@ sap.ui.define(function() {
    * // => false
    */
   var isTypedArray = nodeIsTypedArray ? baseUnary(nodeIsTypedArray) : baseIsTypedArray;
+
+  /**
+   * Converts `value` to an array.
+   *
+   * @static
+   * @since 0.1.0
+   * @memberOf _
+   * @category Lang
+   * @param {*} value The value to convert.
+   * @returns {Array} Returns the converted array.
+   * @example
+   *
+   * _.toArray({ 'a': 1, 'b': 2 });
+   * // => [1, 2]
+   *
+   * _.toArray('abc');
+   * // => ['a', 'b', 'c']
+   *
+   * _.toArray(1);
+   * // => []
+   *
+   * _.toArray(null);
+   * // => []
+   */
+  function toArray(value) {
+    if (!value) {
+      return [];
+    }
+    if (isArrayLike(value)) {
+      return isString(value) ? stringToArray(value) : copyArray(value);
+    }
+    if (symIterator && value[symIterator]) {
+      return iteratorToArray(value[symIterator]());
+    }
+    var tag = getTag(value),
+        func = tag == mapTag ? mapToArray : (tag == setTag ? setToArray : values);
+
+    return func(value);
+  }
 
   /**
    * Converts `value` to a finite number.
@@ -5430,7 +6434,7 @@ sap.ui.define(function() {
     if (typeof value != 'string') {
       return value === 0 ? value : +value;
     }
-    value = value.replace(reTrim, '');
+    value = baseTrim(value);
     var isBinary = reIsBinary.test(value);
     return (isBinary || reIsOctal.test(value))
       ? freeParseInt(value.slice(2), isBinary ? 2 : 8)
@@ -5775,6 +6779,36 @@ sap.ui.define(function() {
     });
   }
 
+  /**
+   * Creates an array of the own enumerable string keyed property values of `object`.
+   *
+   * **Note:** Non-object values are coerced to objects.
+   *
+   * @static
+   * @since 0.1.0
+   * @memberOf _
+   * @category Object
+   * @param {Object} object The object to query.
+   * @returns {Array} Returns the array of property values.
+   * @example
+   *
+   * function Foo() {
+   *   this.a = 1;
+   *   this.b = 2;
+   * }
+   *
+   * Foo.prototype.c = 3;
+   *
+   * _.values(new Foo);
+   * // => [1, 2] (iteration order is not guaranteed)
+   *
+   * _.values('hi');
+   * // => ['h', 'i']
+   */
+  function values(object) {
+    return object == null ? [] : baseValues(object, keys(object));
+  }
+
   /*------------------------------------------------------------------------*/
 
   /**
@@ -6003,16 +7037,26 @@ sap.ui.define(function() {
 
   // Add methods that return wrapped values in chain sequences.
   lodash.castArray = castArray;
+  lodash.compact = compact;
   lodash.constant = constant;
   lodash.curry = curry;
   lodash.debounce = debounce;
+  lodash.difference = difference;
+  lodash.differenceBy = differenceBy;
+  lodash.differenceWith = differenceWith;
+  lodash.flatMap = flatMap;
+  lodash.flatMapDeep = flatMapDeep;
+  lodash.flatMapDepth = flatMapDepth;
   lodash.flatten = flatten;
+  lodash.flattenDeep = flattenDeep;
+  lodash.flattenDepth = flattenDepth;
   lodash.intersection = intersection;
   lodash.intersectionBy = intersectionBy;
   lodash.intersectionWith = intersectionWith;
   lodash.iteratee = iteratee;
   lodash.keys = keys;
   lodash.keysIn = keysIn;
+  lodash.map = map;
   lodash.memoize = memoize;
   lodash.merge = merge;
   lodash.mergeWith = mergeWith;
@@ -6021,10 +7065,21 @@ sap.ui.define(function() {
   lodash.pickBy = pickBy;
   lodash.property = property;
   lodash.throttle = throttle;
+  lodash.toArray = toArray;
   lodash.toPlainObject = toPlainObject;
+  lodash.union = union;
+  lodash.unionBy = unionBy;
+  lodash.unionWith = unionWith;
   lodash.uniq = uniq;
   lodash.uniqBy = uniqBy;
   lodash.uniqWith = uniqWith;
+  lodash.values = values;
+  lodash.without = without;
+  lodash.xor = xor;
+  lodash.xorBy = xorBy;
+  lodash.xorWith = xorWith;
+  lodash.zipObject = zipObject;
+  lodash.zipObjectDeep = zipObjectDeep;
 
   /*------------------------------------------------------------------------*/
 
@@ -6038,13 +7093,17 @@ sap.ui.define(function() {
   lodash.isArrayLike = isArrayLike;
   lodash.isArrayLikeObject = isArrayLikeObject;
   lodash.isBuffer = isBuffer;
+  lodash.isEqual = isEqual;
+  lodash.isEqualWith = isEqualWith;
   lodash.isFunction = isFunction;
   lodash.isLength = isLength;
   lodash.isMap = isMap;
+  lodash.isNil = isNil;
   lodash.isObject = isObject;
   lodash.isObjectLike = isObjectLike;
   lodash.isPlainObject = isPlainObject;
   lodash.isSet = isSet;
+  lodash.isString = isString;
   lodash.isSymbol = isSymbol;
   lodash.isTypedArray = isTypedArray;
   lodash.last = last;
@@ -6101,10 +7160,7 @@ sap.ui.define(function() {
   //   // Export to the global object.
   //   root._ = lodash;
   // }
-  // ##### END: MODIFIED BY SAP
-
-// ##### BEGIN: MODIFIED BY SAP
 // }.call(this));
-	return lodash;
+  return lodash;
 });
 // ##### END: MODIFIED BY SAP

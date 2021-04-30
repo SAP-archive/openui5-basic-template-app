@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -214,13 +214,15 @@ sap.ui.define([
 		 * <b>Warning: <code>Date</code> objects will be turned into strings</b>
 		 *
 		 * @param {*} vValue - Any value, including <code>undefined</code>
+		 * @param {function} [fnReplacer] - The replacer function to transform the result, see
+		 *   <code>JSON.stringify</code>
 		 * @returns {*} - A clone
 		 */
-		clone : function clone(vValue) {
+		clone : function clone(vValue, fnReplacer) {
 			return vValue === undefined || vValue === Infinity || vValue === -Infinity
 				|| /*NaN?*/vValue !== vValue // eslint-disable-line no-self-compare
 				? vValue
-				: JSON.parse(JSON.stringify(vValue));
+				: JSON.parse(JSON.stringify(vValue, fnReplacer));
 		},
 
 		/**
@@ -248,16 +250,16 @@ sap.ui.define([
 		 * @returns {Error}
 		 *   An <code>Error</code> instance with the following properties:
 		 *   <ul>
-		 *     <li><code>error</code>: The "error" value from the OData V4 error response JSON
-		 *     object (if available)
-		 *     <li><code>isConcurrentModification</code>: <code>true</code> In case of a
-		 *     concurrent modification detected via ETags (i.e. HTTP status code 412)
-		 *     <li><code>message</code>: Error message
-		 *     <li><code>requestUrl</code>: The request URL
-		 *     <li><code>resourcePath</code>: The path by which this resource has originally been
-		 *     requested
-		 *     <li><code>status</code>: HTTP status code
-		 *     <li><code>statusText</code>: (optional) HTTP status text
+		 *     <li> <code>error</code>: The "error" value from the OData V4 error response JSON
+		 *       object (if available)
+		 *     <li> <code>isConcurrentModification</code>: <code>true</code> In case of a
+		 *       concurrent modification detected via ETags (i.e. HTTP status code 412)
+		 *     <li> <code>message</code>: Error message
+		 *     <li> <code>requestUrl</code>: The request URL
+		 *     <li> <code>resourcePath</code>: The path by which this resource has originally been
+		 *       requested
+		 *     <li> <code>status</code>: HTTP status code
+		 *     <li> <code>statusText</code>: (optional) HTTP status text
 		 *   </ul>
 		 * @see <a href=
 		 * "http://docs.oasis-open.org/odata/odata-json-format/v4.0/os/odata-json-format-v4.0-os.html"
@@ -350,7 +352,8 @@ sap.ui.define([
 		},
 
 		/**
-		 * Creates a technical details object that contains a property <code>originalMessage</code>.
+		 * Creates a technical details object that contains a property <code>originalMessage</code>
+		 * and an optional property <code>httpStatus</code> with the original error's HTTP status.
 		 *
 		 * @param {object} oMessage
 		 *   The message for which to get technical details
@@ -359,14 +362,21 @@ sap.ui.define([
 		 *    the given message itself or if supplied, the "@$ui5.originalMessage" property.
 		 *    If one of these is an <code>Error</code> instance, then <code>{}</code> is returned.
 		 *    The clone is created lazily.
-		 *
-		 * @private
 		 */
 		createTechnicalDetails : function (oMessage) {
 			var oClonedMessage,
+				oError = oMessage["@$ui5.error"],
 				oOriginalMessage = oMessage["@$ui5.originalMessage"] || oMessage,
 				oTechnicalDetails = {};
 
+			if (oError && (oError.status || oError.cause)) {
+				// Note: cause always has a status; @see _Requestor#processBatch
+				oError = oError.cause || oError;
+				oTechnicalDetails.httpStatus = oError.status;
+				if (oError.isConcurrentModification) {
+					oTechnicalDetails.isConcurrentModification = true;
+				}
+			}
 			// We don't need the original message for internal errors (errors NOT returned from the
 			// back-end, but raised within our framework)
 			if (!(oOriginalMessage instanceof Error)) {
@@ -384,6 +394,72 @@ sap.ui.define([
 			}
 
 			return oTechnicalDetails;
+		},
+
+		/**
+		 * Decomposes the given error into an array of errors, one for each of the given requests.
+		 *
+		 * @param {Error} oError
+		 *   The error created by {@link .createError}.
+		 * @param {object} oError.error
+		 *   An error response as sent from the OData server
+		 * @param {object[]} [oError.error.details]
+		 *   A list of detail messages sent from the OData server. These messages are filtered and
+		 *   assigned to the corresponding request.
+		 * @param {object[]} aRequests
+		 *   Requests belonging to a single change set
+		 * @returns {Error[]}
+		 *   One error for each request given, suitable for
+		 *   {@link sap.ui.model.odata.v4.ODataModel#reportError}
+		 */
+		decomposeError : function (oError, aRequests) {
+			var aDetailContentIDs = oError.error.details
+					&& oError.error.details.map(function (oDetail) {
+						return _Helper.getContentID(oDetail);
+					}),
+				sTopLevelContentID = _Helper.getContentID(oError.error);
+
+			return aRequests.map(function (oRequest, i) {
+				var oClone = new Error(oError.message);
+
+				/*
+				 * Returns whether the given message with the given ContentID is relevant for the
+				 * current request. Messages w/o a ContentID are assigned to the 1st request and
+				 * turned into an unbound message.
+				 *
+				 * @param {object} oMessage - A message
+				 * @param {string} [sContentID] - The message's ContentID, if any
+				 * @returns {boolean} Whether the message is relevant
+				 */
+				function isRelevant(oMessage, sContentID) {
+					if (i === 0 && !sContentID) {
+						// w/o ContentID, report as unbound message at 1st request
+						if (oMessage.target) {
+							oMessage.message = oMessage.target + ": " + oMessage.message;
+						}
+						delete oMessage.target; // delete also empty target
+						return true;
+					}
+					return sContentID === oRequest.$ContentID;
+				}
+
+				oClone.error = _Helper.clone(oError.error);
+				oClone.requestUrl = oRequest.url;
+				oClone.resourcePath = oRequest.$resourcePath;
+				oClone.status = oError.status;
+				oClone.statusText = oError.statusText;
+
+				if (!isRelevant(oClone.error, sTopLevelContentID)) {
+					oClone.error.$ignoreTopLevel = true;
+				}
+				if (oClone.error.details) {
+					oClone.error.details = oClone.error.details.filter(function (oDetail, i) {
+						return isRelevant(oDetail, aDetailContentIDs[i]);
+					});
+				}
+
+				return oClone;
+			});
 		},
 
 		// Trampoline property to allow for mocking function module in unit tests.
@@ -458,6 +534,30 @@ sap.ui.define([
 		 */
 		encodePair : function (sKey, sValue) {
 			return _Helper.encode(sKey, true) + "=" + _Helper.encode(sValue, false);
+		},
+
+		/**
+		 * Extracts the mergeable query options "$expand" and "$select" from the given ones, returns
+		 * them as a new map while replacing their value with "~" in the old map.
+		 *
+		 * @param {object} mQueryOptions
+		 *   The original query options, will be modified
+		 * @returns {object}
+		 *   The extracted query options
+		 */
+		extractMergeableQueryOptions : function (mQueryOptions) {
+			var mExtractedQueryOptions = {};
+
+			if ("$expand" in mQueryOptions) {
+				mExtractedQueryOptions.$expand = mQueryOptions.$expand;
+				mQueryOptions.$expand = "~";
+			}
+			if ("$select" in mQueryOptions) {
+				mExtractedQueryOptions.$select = mQueryOptions.$select;
+				mQueryOptions.$select = "~";
+			}
+
+			return mExtractedQueryOptions;
 		},
 
 		/**
@@ -579,6 +679,34 @@ sap.ui.define([
 			default:
 				throw new Error("Unsupported type: " + sType);
 			}
+		},
+
+		/**
+		 * Returns the "@Org.OData.Core.V1.ContentID" annotation for the given message, ignoring
+		 * the alias. Logs a warning if duplicates are found.
+		 *
+		 * @param {object} oMessage
+		 *   A single message from an OData error response
+		 * @returns {string|undefined}
+		 *   The value of the ContentID annotation, or <code>undefined</code> in case there is not
+		 *   exactly one such annotation (ignoring the alias)
+		 */
+		getContentID : function (oMessage) {
+			var sContentID, sContentIDKey, bDuplicate;
+
+			Object.keys(oMessage).forEach(function (sKey) {
+				if (sKey[0] === "@" && sKey.endsWith(".ContentID")) {
+					if (sContentID) {
+						Log.warning("Cannot distinguish " + sContentIDKey + " from " + sKey,
+							undefined, sClassName);
+						bDuplicate = true;
+					}
+					sContentID = oMessage[sKey];
+					sContentIDKey = sKey;
+				}
+			});
+
+			return bDuplicate ? undefined : sContentID;
 		},
 
 		/**
@@ -796,8 +924,8 @@ sap.ui.define([
 		},
 
 		/**
-		 * Returns the relative path for a given absolute path by stripping off the base path. Note
-		 * that the resulting path may start with a key predicate.
+		 * Returns the relative path for a given (absolute) path by stripping off the base path.
+		 * Note that the resulting path may start with a key predicate.
 		 *
 		 * Examples: (The base path is "/foo/bar"):
 		 * "/foo/bar/baz" -> "baz"
@@ -807,14 +935,14 @@ sap.ui.define([
 		 * "/foo" -> undefined
 		 *
 		 * @param {string} sPath
-		 *   An absolute path
+		 *   A path
 		 * @param {string} sBasePath
-		 *   The absolute base path to strip off
+		 *   The (absolute) base path to strip off
 		 * @returns {string}
 		 *   The path relative to the base path or <code>undefined</code> if the path does not start
 		 *   with the base path
 		 *
-		 * @private
+		 * @see .hasPathPrefix
 		 */
 		getRelativePath : function (sPath, sBasePath) {
 			if (!sPath.startsWith(sBasePath)) {
@@ -859,8 +987,6 @@ sap.ui.define([
 		 * @param {string} sPath The path of both values in mChangeListeners
 		 * @param {any} vOld The old value
 		 * @param {any} vNew The new value
-		 *
-		 * @private
 		 */
 		informAll : function (mChangeListeners, sPath, vOld, vNew) {
 			if (vNew === vOld) {
@@ -1038,7 +1164,21 @@ sap.ui.define([
 		},
 
 		/**
-		 * Checks that the value is a safe integer.
+		 * Tells whether <code>sPath</code> has <code>sBasePath</code> as path prefix. It returns
+		 * <code>true</code> iff {@link .getRelativePath} does not return <code>undefined</code>.
+		 *
+		 * @param {string} sPath The path
+		 * @param {string} sBasePath The base path
+		 * @returns {boolean} true if sBasePath path is a prefix of sPath
+		 *
+		 * @see .getRelativePath
+		 */
+		hasPathPrefix : function (sPath, sBasePath) {
+			return _Helper.getRelativePath(sPath, sBasePath) !== undefined;
+		},
+
+		/**
+		 * Tells whether the value is a safe integer.
 		 *
 		 * @param {number} iNumber The value
 		 * @returns {boolean}
@@ -1186,7 +1326,8 @@ sap.ui.define([
 		},
 
 		/**
-		 * Returns a clone of the given value where the private namespace object has been deleted.
+		 * Returns a clone of the given value where all occurrences of the private namespace
+		 * object have been deleted.
 		 *
 		 * @param {any} vValue
 		 *   Any value, including <code>undefined</code>
@@ -1196,12 +1337,12 @@ sap.ui.define([
 		 * @see sap.ui.model.odata.v4.lib._Helper.clone
 		 */
 		publicClone : function (vValue) {
-			var vClone = _Helper.clone(vValue);
-
-			if (vClone) {
-				delete vClone["@$ui5._"];
-			}
-			return vClone;
+			return _Helper.clone(vValue, function (sKey, vValue) {
+				if (sKey !== "@$ui5._") {
+					return vValue;
+				}
+				// return undefined;
+			});
 		},
 
 		/**
@@ -1357,8 +1498,8 @@ sap.ui.define([
 		 * - oTarget and oSource are expected to have the same structure; when there is an
 		 *   object at a given path in either of them, the other one must have an object or
 		 *   <code>null</code>.
-		 * - no change events for collection-valued properties
-		 * - does not update collection-valued navigation properties
+		 * - no change events for collection-valued properties; list bindings without own cache must
+		 *   refresh when updateAll is used to update cache data.
 		 *
 		 * @param {object} mChangeListeners A map of change listeners by path
 		 * @param {string} sPath The path of the old object in mChangeListeners
@@ -1390,8 +1531,7 @@ sap.ui.define([
 						_Helper.setPrivateAnnotation(oTarget, "predicate", sSourcePredicate);
 					}
 				} else if (Array.isArray(vSourceProperty)) {
-					// copy complete collection; no change events as long as collection-valued
-					// properties are not supported
+					// copy complete collection w/o firing change events
 					oTarget[sProperty] = vSourceProperty;
 				} else if (vSourceProperty && typeof vSourceProperty === "object") {
 					oTarget[sProperty]

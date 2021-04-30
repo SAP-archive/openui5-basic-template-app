@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.79.0"
+      "version": "1.84.11"
     },
     "title": "The SAPUI5 Core Runtime.",
     "description": "The SAPUI5 Core Runtime.\n\n  Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,\n  base classes for Controls, Components and the Model View Controller classes.",
@@ -19,7 +19,17 @@
         "version": "0.0.0"
       },
       {
+        "name": "jquery-migrate",
+        "packagedWithMySelf": true,
+        "version": "0.0.0"
+      },
+      {
         "name": "jquery_mobile",
+        "packagedWithMySelf": true,
+        "version": "0.0.0"
+      },
+      {
+        "name": "jquery.rtl-scroll-type",
         "packagedWithMySelf": true,
         "version": "0.0.0"
       },
@@ -217,6 +227,16 @@
         "name": "es6-shim-nopromise",
         "packagedWithMySelf": true,
         "version": "0.0.0"
+      },
+      {
+        "name": "p-cancelable",
+        "packagedWithMySelf": true,
+        "version": "0.0.0"
+      },
+      {
+        "name": "@babel/helpers",
+        "packagedWithMySelf": true,
+        "version": "0.0.0"
       }
     ]
   },
@@ -229,7 +249,7 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.79",
+      "minUI5Version": "1.84",
       "libs": {}
     },
     "library": {
@@ -241,19 +261,25 @@
           "bg",
           "ca",
           "cs",
+          "cy",
           "da",
           "de",
           "el",
           "en",
+          "en-GB",
           "en-US-sappsd",
+          "en-US-saprigi",
           "en-US-saptrc",
           "es",
+          "es-MX",
           "et",
           "fi",
           "fr",
+          "fr-CA",
           "hi",
           "hr",
           "hu",
+          "id",
           "it",
           "iw",
           "ja",
@@ -266,6 +292,8 @@
           "no",
           "pl",
           "pt",
+          "pt-PT",
+          "rigi",
           "ro",
           "ru",
           "sh",
@@ -332,6 +360,7 @@
           "sap.ui.core.AbsoluteCSSSize",
           "sap.ui.core.AccessibleRole",
           "sap.ui.core.AccessibleLandmarkRole",
+          "sap.ui.core.aria.HasPopup",
           "sap.ui.core.BarColor",
           "sap.ui.core.BusyIndicatorSize",
           "sap.ui.core.CalendarType",

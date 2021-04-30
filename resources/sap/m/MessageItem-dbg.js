@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -37,7 +37,7 @@ sap.ui.define([
 		 *
 		 * @extends sap.ui.core.Item
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @constructor
 		 * @public
@@ -113,7 +113,7 @@ sap.ui.define([
 			// So, we should ensure if something is changed in MessageItem, it would be propagated to the StandardListItem
 			var oParent = this.getParent(),
 				sType = this.getType().toLowerCase(),
-				// Blacklist properties. Some properties have already been set and shouldn't be changed in the StandardListItem
+				// Exclude list properties. Some properties have already been set and shouldn't be changed in the StandardListItem
 				aPropertiesNotToUpdateInList = ["description", "type", "groupName"],
 				// TODO: the '_oMessagePopoverItem' needs to be updated to proper name in the eventual sap.m.MessageView control
 				fnUpdateProperty = function (sName, oItem) {

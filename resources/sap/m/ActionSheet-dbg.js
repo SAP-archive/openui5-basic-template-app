@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,6 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/core/delegate/ItemNavigation',
 	'sap/ui/core/InvisibleText',
-	'sap/ui/base/ManagedObject',
 	'sap/ui/Device',
 	'./ActionSheetRenderer',
 	'./Button',
@@ -25,7 +24,6 @@ sap.ui.define([
 		Control,
 		ItemNavigation,
 		InvisibleText,
-		ManagedObject,
 		Device,
 		ActionSheetRenderer,
 		Button,
@@ -72,7 +70,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -244,18 +242,17 @@ sap.ui.define([
 	};
 
 	ActionSheet.prototype.onBeforeRendering = function() {
+		var sTitle, sPlacement;
 		// The item navigation instance has to be destroyed and created again once the control is rerendered
 		// because the intital tabindex setting is only done once inside the item navigation but we need it here
 		// every time after the control is rerendered
 		this._clearItemNavigation();
 
-		var sTitle = this.getTitle();
-		if (this._parent) {
+		sTitle = this.getTitle();
+		if (this._parent && !this.isPropertyInitial("title") && this._parent.getTitle() !== sTitle) {
 			if (Device.system.phone) {
 				this._parent.setTitle(sTitle);
-				this._parent.toggleStyleClass("sapMDialog-NoHeader", !sTitle);
-			} else {
-				this._parent.setPlacement(this.getPlacement());
+				this._parent.setShowHeader(!!sTitle);
 			}
 
 			if (sTitle) {
@@ -263,6 +260,11 @@ sap.ui.define([
 			} else {
 				this._parent.removeStyleClass("sapMActionSheetDialogWithTitle");
 			}
+		}
+
+		sPlacement = this.getPlacement();
+		if (this._parent && !Device.system.phone && !this.isPropertyInitial("placement") && this._parent.setPlacement() !== sPlacement) {
+			this._parent.setPlacement(sPlacement);
 		}
 	};
 
@@ -617,7 +619,7 @@ sap.ui.define([
 	 * @private
 	 */
 	ActionSheet.prototype._applyContextualSettings = function () {
-		ManagedObject.prototype._applyContextualSettings.call(this, ManagedObject._defaultContextualSettings);
+		Control.prototype._applyContextualSettings.call(this);
 	};
 
 	/**

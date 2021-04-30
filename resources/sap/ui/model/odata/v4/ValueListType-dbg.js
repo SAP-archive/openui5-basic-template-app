@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,16 +9,16 @@ sap.ui.define(function () {
 	"use strict";
 
 	/**
-	* Specifies the value list type of a property.
-	*
-	* @alias sap.ui.model.odata.v4.ValueListType
-	* @enum {string}
-	* @public
-	* @readonly
-	* @since 1.45.0
-	*
-	* @see sap.ui.model.odata.v4.ODataMetaModel#getValueListType
-	*/
+	 * Specifies the value list type of a property.
+	 *
+	 * @alias sap.ui.model.odata.v4.ValueListType
+	 * @enum {string}
+	 * @public
+	 * @readonly
+	 * @since 1.45.0
+	 *
+	 * @see sap.ui.model.odata.v4.ODataMetaModel#getValueListType
+	 */
 	var ValueListType = { // keep the var for JSDoc generation
 		/**
 		 * There is no value list.

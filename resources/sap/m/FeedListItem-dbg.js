@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -53,7 +53,7 @@ function(
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -340,6 +340,9 @@ function(
 	};
 
 	FeedListItem.prototype.onAfterRendering = function() {
+		if (document.getElementById(this.getAggregation("_actionButton"))) {
+			document.getElementById(this.getAggregation("_actionButton").getId()).setAttribute("aria-haspopup", "menu");
+		}
 		if (this._checkTextIsExpandable() && !this._bTextExpanded) {
 			this._clearEmptyTagsInCollapsedText();
 		}
@@ -448,12 +451,14 @@ function(
 		var that = this;
 		this._oImageControl = ImageHelper.getImageControl(sImgId, this._oImageControl, this, mProperties, aCssClasses);
 		if (this.getIconActive()) {
-			this._oImageControl.attachPress(function() {
-				that.fireIconPress({
-					domRef: this.getDomRef(),
-					getDomRef: this.getDomRef.bind(this)
+			if (!this._oImageControl.hasListeners("press")) {//Check if the press event is already associated with the imageControl then block adding the event again.
+				this._oImageControl.attachPress(function() {
+					that.fireIconPress({
+						domRef: this.getDomRef(),
+						getDomRef: this.getDomRef.bind(this)
+					});
 				});
-			});
+			}
 		}
 
 		return this._oImageControl;

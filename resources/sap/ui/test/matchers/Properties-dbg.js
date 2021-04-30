@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,8 +23,8 @@ sap.ui.define([
 	 *         propertyName: "propertyValue"
 	 *     }
 	 * }
-	 * </code></pre>
-	 * @sine 1.74, you can use regular expressions in declarative syntax:
+	 * </pre></code>
+	 * As of version 1.74, you can use regular expressions in declarative syntax:
 	 * <code><pre>{
 	 *     properties: {
 	 *         propertyName: {
@@ -35,7 +35,7 @@ sap.ui.define([
 	 *         }
 	 *     }
 	 * }
-	 * </code></pre>
+	 * </pre></code>
 	 * @param {object} oProperties the object with the properties to be checked. Example:
 	 * <pre>
 	 * // Would filter for an enabled control with the text "Accept".

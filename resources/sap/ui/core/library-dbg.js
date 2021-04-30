@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,7 +14,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.ui.core",
-		version: "1.79.0",
+		version: "1.84.11",
 		designtime: "sap/ui/core/designtime/library.designtime",
 		types: [
 
@@ -31,6 +31,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 			"sap.ui.core.AbsoluteCSSSize",
 			"sap.ui.core.AccessibleRole",
 			"sap.ui.core.AccessibleLandmarkRole",
+			"sap.ui.core.aria.HasPopup",
 			"sap.ui.core.BarColor",
 			"sap.ui.core.BusyIndicatorSize",
 			"sap.ui.core.CalendarType",
@@ -150,7 +151,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	 * @namespace
 	 * @alias sap.ui.core
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @public
 	 */
 	var thisLib = sap.ui.core;
@@ -693,6 +694,58 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 		 * @public
 		 */
 		ContentInfo : "ContentInfo"
+
+	};
+
+	thisLib.aria = thisLib.aria || {};
+
+	/**
+	 * Types of popups to set as aria-haspopup attribute.
+	 * Most of the values (except "None") of the enumeration are taken from the ARIA specification:
+	 * https://www.w3.org/TR/wai-aria/#aria-haspopup
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.84
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.aria.HasPopup = {
+
+		/**
+		 * None - the aria-haspopup attribute will not be rendered.
+		 * @public
+		 */
+		None : "None",
+
+		/**
+		 * Menu popup type.
+		 * @public
+		 */
+		Menu : "Menu",
+
+		/**
+		 * ListBox popup type.
+		 * @public
+		 */
+		ListBox : "ListBox",
+
+		/**
+		 * Tree popup type.
+		 * @public
+		 */
+		Tree : "Tree",
+
+		/**
+		 * Grid popup type.
+		 * @public
+		 */
+		Grid : "Grid",
+
+		/**
+		 * Dialog popup type.
+		 * @public
+		 */
+		Dialog : "Dialog"
 
 	};
 
@@ -1446,7 +1499,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	/**
 	 * Sort order of a column.
 	 *
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @enum {string}
 	 * @public
 	 * @since 1.61.0
@@ -1996,7 +2049,7 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	thisLib.routing = thisLib.routing || {};
 
 	/**
-	 * Enumaration for different HistoryDirections.
+	 * Enumeration for different HistoryDirections.
 	 *
 	 * @enum {string}
 	 * @public
@@ -2005,25 +2058,25 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	thisLib.routing.HistoryDirection = {
 
 		/**
-		 * The page has already been navigated to and it was the successor of the previous page
+		 * The page has already been navigated to and it was the successor of the previous page.
 		 * @public
 		 */
 		Forwards : "Forwards",
 
 		/**
-		 * The page has already been navigated to and it was the precessor of the previous page
+		 * The page has already been navigated to and it was the predecessor of the previous page.
 		 * @public
 		 */
 		Backwards : "Backwards",
 
 		/**
-		 * A new Entry is added to the history
+		 * A new entry is added to the history.
 		 * @public
 		 */
 		NewEntry : "NewEntry",
 
 		/**
-		 * A Navigation took place, but it could be any of the other three states
+		 * A navigation took place, but it could be any of the other three states.
 		 * @public
 		 */
 		Unknown : "Unknown"
@@ -2031,8 +2084,8 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	};
 
 	/**
-	 * Enumeration for different lifecycle behaviors of Components created by the
-	 * ComponentContainer.
+	 * Enumeration for different lifecycle behaviors of components created by the
+	 * <code>ComponentContainer</code>.
 	 *
 	 * @enum {string}
 	 * @public
@@ -2041,25 +2094,25 @@ sap.ui.define(['sap/ui/base/DataType', './CalendarType', './Core'],
 	sap.ui.core.ComponentLifecycle =  {
 
 		/**
-		 * Legacy lifecycle means that the ComponentContainer takes care
-		 * to destroy the Component which is associated with the
-		 * ComponentContainer once the ComponentContainer is destroyed but
-		 * not when a new Component is associated.
+		 * Legacy lifecycle means that the <code>ComponentContainer</code> takes care
+		 * to destroy the component which is associated with the
+		 * <code>ComponentContainer</code> once the <code>ComponentContainer</code> is destroyed,
+		 * but not when a new component is associated.
 		 * @public
 		 */
 		Legacy : "Legacy",
 
 		/**
-		 * Application managed lifecycle means that the Application takes care
-		 * to destroy the Components associated with the ComponentContainer.
+		 * Application managed lifecycle means that the application takes care
+		 * to destroy the components associated with the <code>ComponentContainer</code>.
 		 * @public
 		 */
 		Application : "Application",
 
 		/**
-		 * Container managed lifecycle means that the ComponentContainer takes
-		 * care to destroy the Components associated with the ComponentContainer
-		 * once the ComponentContainer is destroyed or a new Component is associated.
+		 * Container managed lifecycle means that the <code>ComponentContainer</code> takes
+		 * care to destroy the components associated with the <code>ComponentContainer</code>
+		 * once the <code>ComponentContainer</code> is destroyed or a new component is associated.
 		 * @public
 		 */
 		Container : "Container"

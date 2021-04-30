@@ -1,6 +1,6 @@
 /*
  * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.define([
 	 * @namespace
 	 */
 	var CustomTreeItemRenderer = Renderer.extend(TreeItemBaseRenderer);
+	CustomTreeItemRenderer.apiVersion = 2;
 
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
@@ -21,7 +22,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.Control} oControl An object representation of the control that will be rendered
 	 */
 	CustomTreeItemRenderer.renderLIAttributes = function(rm, oLI) {
-		rm.addClass("sapMCTI");
+		rm.class("sapMCTI");
 		TreeItemBaseRenderer.renderLIAttributes.apply(this, arguments);
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -84,7 +84,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @alias sap.ui.model.odata.type.String
 	 * @param {object} [oFormatOptions]
@@ -145,9 +145,12 @@ sap.ui.define([
 
 	/**
 	 * Formats the given value to the given target type.
-	 * If <code>isDigitSequence</code> constraint of this type is set to <code>true</code> and the
-	 * target type is any or string and the given value contains only digits, the leading zeros are
-	 * truncated.
+	 * If the <code>isDigitSequence</code> constraint of this type is set to <code>true</code>, the
+	 * target type is 'any' or 'string', and the given value contains only digits, the leading zeros
+	 * are truncated.
+	 * If the <code>isDigitSequence</code> constraint of this type is set to <code>true</code> and
+	 * the <code>maxLength</code> constraint is set, this type behaves as an ABAP type NUMC; in
+	 * this case, the value '0' is formatted to '', provided the target type is 'string'.
 	 *
 	 * @param {string} sValue
 	 *   the value to be formatted
@@ -169,6 +172,10 @@ sap.ui.define([
 		}
 		if (isDigitSequence(sValue, this.oConstraints)) {
 			sValue = sValue.replace(rLeadingZeros, "");
+			if (this.oConstraints.maxLength && sValue === "0"
+					&& this.getPrimitiveType(sTargetType) === "string") {
+				return "";
+			}
 		}
 		return StringType.prototype.formatValue.call(this, sValue, sTargetType);
 	};

@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // A renderer for the DOM element control
-sap.ui.define(["sap/base/security/encodeXML"],
-	function(encodeXML) {
+sap.ui.define(["sap/base/Log", "sap/base/security/encodeXML"],
+	function(Log, encodeXML) {
 	"use strict";
 
 
@@ -15,7 +15,15 @@ sap.ui.define(["sap/base/security/encodeXML"],
 	 * @namespace
 	 * @alias sap.ui.core.tmpl.DOMElementRenderer
 	 */
-	var DOMElementRenderer = {};
+	var DOMElementRenderer = {
+		apiVersion: 2
+	};
+
+	/**
+	 * Pattern that matches the names of all HTML void tags.
+	 * @private
+	 */
+	var rVoidTags = /^(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i;
 
 	/**
 	 * Renders the DOM element for the given control, using the provided
@@ -32,9 +40,14 @@ sap.ui.define(["sap/base/security/encodeXML"],
 	DOMElementRenderer.render = function(oRM, oElement) {
 
 		// opening tag incl. control data
-		oRM.write("<");
-		oRM.writeEscaped(oElement.getTag());
-		oRM.writeControlData(oElement);
+		var sEncodedTagName = encodeXML(oElement.getTag()),
+			bIsVoid = rVoidTags.test(sEncodedTagName);
+
+		if ( bIsVoid ) {
+			oRM.voidStart(sEncodedTagName, oElement);
+		} else {
+			oRM.openStart(sEncodedTagName, oElement);
+		}
 
 		// add the attributes of the DOM element
 		oElement.getAttributes().forEach(function(oAttribute) {
@@ -45,7 +58,7 @@ sap.ui.define(["sap/base/security/encodeXML"],
 				aClasses.forEach(function(sClass) {
 					var sClass = sClass.trim();
 					if (sClass) {
-						oRM.addClass(encodeXML(sClass));
+						oRM.class(sClass);
 					}
 				});
 			} else if (sName === "style") {
@@ -56,41 +69,44 @@ sap.ui.define(["sap/base/security/encodeXML"],
 					if (iIndex != -1) {
 						var sKey = sStyle.substring(0, iIndex).trim();
 						var sValue = sStyle.substring(iIndex + 1).trim();
-						oRM.addStyle(encodeXML(sKey), encodeXML(sValue));
+						oRM.style(encodeXML(sKey), sValue);
 					}
 				});
+			} else if (oAttribute.getName()) {
+				oRM.attr(encodeXML(oAttribute.getName()), oAttribute.getValue());
 			} else {
-				oRM.writeAttributeEscaped(encodeXML(oAttribute.getName()), oAttribute.getValue());
+				Log.error("Attributes must have a non-empty name");
 			}
 		});
-
-		// support for custom classes and styles
-		oRM.writeClasses();
-		oRM.writeStyles();
+		if ( bIsVoid ) {
+			oRM.voidEnd();
+		} else {
+			oRM.openEnd();
+		}
 
 		// create the nested structure (if required)
 		var aElements = oElement.getElements(),
 			bHasChildren = !!oElement.getText() || aElements.length > 0;
 
-		if (!bHasChildren) {
-			oRM.write("/>");
-		} else {
-			oRM.write(">");
+		if (bHasChildren) {
+			if ( bIsVoid ) {
+				Log.error("Void element '" + sEncodedTagName + "' is rendered with children");
+			}
 
 			// append the text (do escaping)
 			if (oElement.getText()) {
-				oRM.writeEscaped(oElement.getText());
+				oRM.text(oElement.getText());
 			}
 
 			// append the nested DOM elements
 			aElements.forEach(function(iIndex, oChildElement) {
 				oRM.renderControl(oChildElement);
 			});
+		}
 
+		if ( !bIsVoid ) {
 			// closing tag
-			oRM.write("</");
-			oRM.writeEscaped(oElement.getTag());
-			oRM.write(">");
+			oRM.close(sEncodedTagName);
 		}
 	};
 

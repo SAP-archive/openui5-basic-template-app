@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @class Item that represents one file to be uploaded using the {@link sap.m.upload.UploadSet} control.
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @constructor
 	 * @public
 	 * @since 1.62
@@ -520,9 +520,9 @@ sap.ui.define([
 		if (!this._oFileNameLink) {
 			this._oFileNameLink = new Link({
 				id: this.getId() + "-fileNameLink",
-				text: this.getFileName(),
 				press: [this, this._handleFileNamePressed, this]
 			});
+			this._oFileNameLink.setText(this.getFileName());//For handling curly braces in file name we have to use setter.Otherwise it will be treated as binding.
 			this._oFileNameLink.addStyleClass("sapMUCFileName");
 			this._oFileNameLink.addStyleClass("sapMUSFileName");
 			this.addDependent(this._oFileNameLink);
@@ -563,7 +563,7 @@ sap.ui.define([
 		if (!this._oEditButton) {
 			this._oEditButton = new Button({
 				id: this.getId() + "-editButton",
-				icon: "sap-icon://request",
+				icon: "sap-icon://edit",
 				type: MobileLibrary.ButtonType.Standard,
 				enabled: this.getEnabledEdit(),
 				visible: this.getVisibleEdit(),
@@ -657,7 +657,7 @@ sap.ui.define([
 		if (!this._oDeleteButton) {
 			this._oDeleteButton = new Button({
 				id: this.getId() + "-deleteButton",
-				icon: "sap-icon://sys-cancel",
+				icon: "sap-icon://decline",
 				type: MobileLibrary.ButtonType.Standard,
 				enabled: this.getEnabledRemove(),
 				visible: this.getVisibleRemove(),

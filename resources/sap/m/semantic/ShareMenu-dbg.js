@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,7 +14,7 @@
 
 // Provides class sap.m.semantic.ShareMenu
 sap.ui.define([
-	'sap/ui/base/Metadata',
+	'sap/ui/base/Object',
 	'sap/ui/base/ManagedObjectObserver',
 	'sap/m/library',
 	'sap/m/Button',
@@ -22,7 +22,7 @@ sap.ui.define([
 	'sap/ui/core/IconPool',
 	'sap/m/OverflowToolbarButton',
 	"sap/base/Log"],
-	function(Metadata,
+	function(BaseObject,
 			 ManagedObjectObserver,
 			 library,
 			 Button,
@@ -43,13 +43,13 @@ sap.ui.define([
 	 * ShareMenu is a special menu that is represented by (1) an actionSheet with the menu items and (2) a button that opens the actionSheet.
 	 * If the menu has only one item, then that item appears in place of the button that opens the actionSheet.
 	 *
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @private
 	 * @since 1.30.0
 	 * @alias sap.m.semantic.ShareMenu
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var ShareMenu = Metadata.createClass("sap.m.semantic.ShareMenu", {
+	var ShareMenu = BaseObject.extend("sap.m.semantic.ShareMenu", {
 
 		constructor : function(oActionSheet) {
 			if (!oActionSheet) {
@@ -61,6 +61,10 @@ sap.ui.define([
 			this._oContentObserver = new ManagedObjectObserver(this._updateShareBtnVisibility.bind(this));
 
 			this._setMode(ShareMenu._Mode.initial);
+		},
+
+		getInterface: function() {
+			return this; // no facade
 		}
 
 	});
@@ -409,7 +413,7 @@ sap.ui.define([
 
 			this._oShareMenuBtn.addEventDelegate({
 				onAfterRendering: function() {
-					that._oShareMenuBtn.$().attr("aria-haspopup", true);
+					that._oShareMenuBtn.$().attr("aria-haspopup", "menu");
 				}
 			});
 		}

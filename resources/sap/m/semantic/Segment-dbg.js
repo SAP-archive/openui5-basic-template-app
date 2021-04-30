@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,21 +12,21 @@
  */
 
 // Provides class sap.m.semantic.Segment
-sap.ui.define(['sap/ui/base/Metadata', "sap/base/Log"], function(Metadata, Log) {
+sap.ui.define(['sap/ui/base/Object', "sap/base/Log"], function(BaseObject, Log) {
 	"use strict";
 
 	/**
 	 * Constructor for an sap.m.semantic.Segment.
 	 *
 	 * @class Abstraction for a segment in a SegmentedContainer
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @private
 	 * @since 1.30.0
 	 * @alias sap.m.semantic.Segment
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
-	var Segment = Metadata.createClass("sap.m.semantic.Segment", {
+	var Segment = BaseObject.extend("sap.m.semantic.Segment", {
 
 		constructor : function(aContent, oContainer, sContainerAggregationName, fnSortFunction) {
 			if (!oContainer) {
@@ -40,6 +40,10 @@ sap.ui.define(['sap/ui/base/Metadata', "sap/base/Log"], function(Metadata, Log) 
 			this._oContainer = oContainer;
 			this._sContainerAggregationName = sContainerAggregationName;
 			this._fnSortFunction = fnSortFunction;
+		},
+
+		getInterface: function() {
+			return this; // no facade
 		}
 
 	});
@@ -56,7 +60,7 @@ sap.ui.define(['sap/ui/base/Metadata', "sap/base/Log"], function(Metadata, Log) 
 
 	Segment.prototype.getContent = function () {
 
-		return this._aContent;
+		return this._aContent.slice();
 	};
 
 	Segment.prototype.indexOfContent = function (oControl) {

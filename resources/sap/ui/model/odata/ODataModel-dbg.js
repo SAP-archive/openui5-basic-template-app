@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,6 +28,7 @@ sap.ui.define([
 	'sap/ui/model/odata/ODataMetaModel',
 	'sap/ui/thirdparty/URI',
 	'sap/ui/thirdparty/datajs',
+	"sap/base/util/isEmptyObject",
 	"sap/base/util/uid",
 	"sap/base/util/merge",
 	"sap/base/Log",
@@ -51,6 +52,7 @@ sap.ui.define([
 		ODataMetaModel,
 		URI,
 		OData,
+		isEmptyObject,
 		uid,
 		merge,
 		Log,
@@ -94,7 +96,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @public
 	 * @deprecated As of version 1.48, please use {@link sap.ui.model.odata.v2.ODataModel} instead.
@@ -889,6 +891,10 @@ sap.ui.define([
 				//sRequestUrl += sUriQuery ? "?" + sUriQuery : "";
 				var sRequestUrl = that._createRequestUrl(sPath, null, sUriQuery, that.bUseBatch);
 				oRequest = that._createRequest(sRequestUrl, "GET", true);
+				// Make sure requests not requiring a CSRF token don't send one.
+				if (that.bTokenHandling) {
+					delete oRequest.headers["x-csrf-token"];
+				}
 				var oBatchRequest = that._createBatchRequest([oRequest],true);
 				oRequestHandle = that._request(oBatchRequest, _handleSuccess, _handleError, OData.batchHandler, undefined, that.getServiceMetadata());
 			} else {
@@ -912,6 +918,10 @@ sap.ui.define([
 		var aResults = [];
 		var sUrl = this._createRequestUrl(sPath, null, aParams, null, bCache || this.bCache);
 		oRequest = this._createRequest(sUrl, "GET", true);
+		// Make sure requests not requiring a CSRF token don't send one.
+		if (that.bTokenHandling) {
+			delete oRequest.headers["x-csrf-token"];
+		}
 		this.fireRequestSent({url : oRequest.requestUri, type : "GET", async : oRequest.async,
 			info: "Accept headers:" + this.oHeaders["Accept"], infoObject : {acceptHeaders: this.oHeaders["Accept"]}});
 		_submit();
@@ -2842,7 +2852,7 @@ sap.ui.define([
 			this.oRequestQueue[this.sChangeKey] = oRequest;
 		}
 
-		if (jQuery.isEmptyObject(this.oRequestQueue)) {
+		if (isEmptyObject(this.oRequestQueue)) {
 			return undefined;
 		}
 

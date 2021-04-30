@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,7 +44,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @public
 	 * @alias sap.ui.core.HTML
@@ -72,7 +72,7 @@ sap.ui.define([
 			 * Please consider to consult the jQuery documentation as well.
 			 *
 			 * The HTML control currently doesn't prevent the usage of multiple root nodes in its DOM content
-			 * (e.g. <code>setContent("&lt;div/>&lt;div/>")</code>), but this is not a guaranteed feature.
+			 * (e.g. <code>setContent("&lt;div>&lt;/div>&lt;div>&lt;/div>")</code>), but this is not a guaranteed feature.
 			 * The accepted content might be restricted to single root nodes in future versions.
 			 * To notify applications about this fact, a warning is written in the log when multiple root nodes are used.
 			 *
@@ -145,7 +145,7 @@ sap.ui.define([
 	 */
 	HTML.prototype.getDomRef = function(sSuffix) {
 		var sId = sSuffix ? this.getId() + "-" + sSuffix : this.getId();
-		return ((RenderPrefixes.Dummy + sId ? window.document.getElementById(RenderPrefixes.Dummy + sId) : null)) || ((sId ? window.document.getElementById(sId) : null));
+		return document.getElementById(RenderPrefixes.Dummy + sId) || document.getElementById(sId);
 	};
 
 	HTML.prototype.setContent = function(sContent) {
@@ -220,7 +220,7 @@ sap.ui.define([
 			return;
 		}
 
-		var $placeholder = jQuery((RenderPrefixes.Dummy + this.getId() ? window.document.getElementById(RenderPrefixes.Dummy + this.getId()) : null));
+		var $placeholder = jQuery(document.getElementById(RenderPrefixes.Dummy + this.getId()));
 		var $oldContent = RenderManager.findPreservedContent(this.getId());
 		var $newContent;
 		var isPreservedDOM = false;

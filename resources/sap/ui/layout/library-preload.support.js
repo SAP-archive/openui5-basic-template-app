@@ -7,11 +7,15 @@ sap.ui.predefine('sap/ui/layout/library.support', ['./rules/Form.support'], func
         ruleset: [FormSupport]
     };
 }, true);
-sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'], function (SupportLib) {
+sap.ui.predefine('sap/ui/layout/rules/Form.support', [
+    'sap/ui/support/library',
+    'sap/ui/layout/library'
+], function (SupportLib, layoutLibrary) {
     'use strict';
     var Categories = SupportLib.Categories;
     var Severity = SupportLib.Severity;
     var Audiences = SupportLib.Audiences;
+    var SimpleFormLayout = layoutLibrary.form.SimpleFormLayout;
     function isSimpleForm(oControl) {
         if (oControl && oControl.isA('sap.ui.layout.form.SimpleForm')) {
             return true;
@@ -36,19 +40,19 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
         resolutionurls: [
             {
                 text: 'API Reference: Form',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.Form.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form'
             },
             {
                 text: 'API Reference: SimpleForm',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.SimpleForm.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm'
             },
             {
                 text: 'API Reference: ResponsiveGridLayout',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.ResponsiveGridLayout.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ResponsiveGridLayout'
             },
             {
                 text: 'API Reference: ColumnLayout',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.ColumnLayout.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ColumnLayout'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
@@ -99,15 +103,15 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
         resolutionurls: [
             {
                 text: 'API Reference: Form',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.Form.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form'
             },
             {
                 text: 'API Reference: SimpleForm',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.SimpleForm.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm'
             },
             {
                 text: 'API Reference: FormContainer',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.FormContainer.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormContainer'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
@@ -138,15 +142,15 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
         resolutionurls: [
             {
                 text: 'API Reference: Form',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.Form.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form'
             },
             {
                 text: 'API Reference: SimpleForm',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.SimpleForm.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm'
             },
             {
                 text: 'API Reference: FormContainer',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.FormContainer.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormContainer'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
@@ -198,19 +202,19 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
         resolutionurls: [
             {
                 text: 'API Reference: Form',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.Form.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form'
             },
             {
                 text: 'API Reference: SimpleForm',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.SimpleForm.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm'
             },
             {
                 text: 'API Reference: FormElement',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.FormElement.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormElement'
             },
             {
                 text: 'API Reference: IFormContent',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.core.IFormContent.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.core.IFormContent'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
@@ -312,15 +316,15 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
         resolutionurls: [
             {
                 text: 'API Reference: Form',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.Form.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form'
             },
             {
                 text: 'API Reference: SimpleForm',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.SimpleForm.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm'
             },
             {
                 text: 'API Reference: FormContainer',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.FormContainer.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormContainer'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
@@ -354,7 +358,7 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
         resolution: 'Use only properties that are valid for the layout used',
         resolutionurls: [{
                 text: 'API Reference: SimpleForm',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.SimpleForm.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm'
             }],
         check: function (oIssueManager, oCoreFacade, oScope) {
             oScope.getElementsByClassName('sap.ui.layout.form.SimpleForm').forEach(function (oSimpleForm) {
@@ -366,14 +370,14 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
                         aFields.push(sProperty);
                     }
                 };
-                if (sLayout != sap.ui.layout.form.SimpleFormLayout.ResponsiveGridLayout && sLayout != sap.ui.layout.form.SimpleFormLayout.ColumnLayout) {
+                if (sLayout != SimpleFormLayout.ResponsiveGridLayout && sLayout != SimpleFormLayout.ColumnLayout) {
                     checkProperty('labelSpanL');
                     checkProperty('emptySpanL');
                     checkProperty('columnsXL');
                     checkProperty('columnsL');
                     checkProperty('columnsM');
                 }
-                if (sLayout != sap.ui.layout.form.SimpleFormLayout.ResponsiveGridLayout) {
+                if (sLayout != SimpleFormLayout.ResponsiveGridLayout) {
                     checkProperty('labelSpanXL');
                     checkProperty('labelSpanM');
                     checkProperty('labelSpanS');
@@ -386,11 +390,11 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
                     checkProperty('breakpointL');
                     checkProperty('breakpointM');
                 }
-                if (sLayout != sap.ui.layout.form.SimpleFormLayout.ResponsiveLayout) {
+                if (sLayout != SimpleFormLayout.ResponsiveLayout) {
                     checkProperty('minWidth');
                     checkProperty('labelMinWidth');
                 }
-                if (sLayout == sap.ui.layout.form.SimpleFormLayout.ResponsiveGridLayout) {
+                if (sLayout == SimpleFormLayout.ResponsiveGridLayout) {
                     checkProperty('maxContainerCols');
                 }
                 for (var i = 0; i < aFields.length; i++) {
@@ -415,15 +419,15 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
         resolutionurls: [
             {
                 text: 'API Reference: Form',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.Form.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form'
             },
             {
                 text: 'API Reference: SimpleForm',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.SimpleForm.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm'
             },
             {
                 text: 'API Reference: FormElement',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.FormElement.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormElement'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
@@ -575,11 +579,11 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
         resolutionurls: [
             {
                 text: 'API Reference: ResponsiveGridLayout',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.ResponsiveGridLayout.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ResponsiveGridLayout'
             },
             {
                 text: 'API Reference: ResponsiveLayout',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.ResponsiveLayout.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ResponsiveLayout'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
@@ -627,15 +631,15 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
         resolutionurls: [
             {
                 text: 'API Reference: Form',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.Form.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form'
             },
             {
                 text: 'API Reference: SimpleForm',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.SimpleForm.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm'
             },
             {
                 text: 'API Reference: FormElement',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.FormElement.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormElement'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
@@ -693,11 +697,11 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
         resolutionurls: [
             {
                 text: 'API Reference: Form',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.Form.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form'
             },
             {
                 text: 'API Reference: FormElement',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.FormElement.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormElement'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
@@ -750,19 +754,19 @@ sap.ui.predefine('sap/ui/layout/rules/Form.support', ['sap/ui/support/library'],
         resolutionurls: [
             {
                 text: 'API Reference: Form',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.Form.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form'
             },
             {
                 text: 'API Reference: SimpleForm',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.SimpleForm.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm'
             },
             {
                 text: 'API Reference: ResponsiveGridLayout',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.ResponsiveGridLayout.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ResponsiveGridLayout'
             },
             {
                 text: 'API Reference: ColumnLayout',
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.layout.form.ColumnLayout.html'
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ColumnLayout'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {

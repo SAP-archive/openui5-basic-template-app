@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,6 +12,7 @@ sap.ui.define([
 	'./SuggestionsPopover',
 	'sap/ui/core/SeparatorItem',
 	'sap/ui/core/InvisibleText',
+	"sap/ui/base/ManagedObject",
 	'sap/base/Log',
 	'./library',
 	'sap/ui/Device',
@@ -21,7 +22,8 @@ sap.ui.define([
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
 	"sap/base/security/encodeXML",
-	"sap/base/strings/escapeRegExp"
+	"sap/base/strings/escapeRegExp",
+	"sap/m/inputUtils/highlightDOMElements"
 ],
 	function(
 		Dialog,
@@ -31,6 +33,7 @@ sap.ui.define([
 		SuggestionsPopover,
 		SeparatorItem,
 		InvisibleText,
+		ManagedObject,
 		Log,
 		library,
 		Device,
@@ -40,9 +43,12 @@ sap.ui.define([
 		KeyCodes,
 		jQuery,
 		encodeXML,
-		escapeRegExp
+		escapeRegExp,
+		highlightDOMElements
 	) {
 		"use strict";
+		// shortcut for sap.m.ListType
+		var ListType = library.ListType;
 
 		// shortcut for sap.m.PlacementType
 		var PlacementType = library.PlacementType;
@@ -62,7 +68,7 @@ sap.ui.define([
 		 * @abstract
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @constructor
 		 * @public
@@ -112,7 +118,7 @@ sap.ui.define([
 				aggregations: {
 
 					/**
-					 * Defines the items contained within this control.
+					 * Defines the items contained within this control. <b>Note:</b> Disabled items are not visualized in the list with the available options, however they can still be accessed through the aggregation.
 					 */
 					items: {
 						type: "sap.ui.core.Item",
@@ -153,29 +159,6 @@ sap.ui.define([
 				dnd: { draggable: false, droppable: true }
 			}
 		});
-
-		/**
-		 * Default filtering function for items.
-		 *
-		 * @param {string} sInputValue Current value of the input field.
-		 * @param {sap.ui.core.Item} oItem Item to be matched
-		 * @param {string} sPropertyGetter A Getter for property of an item (could be getText or getAdditionalText)
-		 * @static
-		 * @since 1.58
-		 */
-		ComboBoxBase.DEFAULT_TEXT_FILTER = function (sInputValue, oItem, sPropertyGetter) {
-			var sLowerCaseText, sInputLowerCaseValue, oMatchingTextRegex;
-
-			if (!oItem[sPropertyGetter]) {
-				return false;
-			}
-
-			sLowerCaseText = oItem[sPropertyGetter]().toLowerCase();
-			sInputLowerCaseValue = sInputValue.toLowerCase();
-			oMatchingTextRegex = new RegExp('(^|\\s)' + escapeRegExp(sInputLowerCaseValue) + ".*", 'g');
-
-			return oMatchingTextRegex.test(sLowerCaseText);
-		};
 
 		/**
 		 * Called when the composition of a passage of text is started.
@@ -267,51 +250,17 @@ sap.ui.define([
 		};
 
 		/**
-		 * Highlights Dom Refs based on a value of the input and text of an item
-		 *
-		 * @param {string} sValue Currently typed value of the input
-		 * @param {object[]} aItemsDomRefs Array of objects with information for dom ref and text to be highlighted
-		 * @param {function} fnBold Method for bolding the text
-		 *
-		 * @protected
-		 * @since 1.58
-		 */
-		ComboBoxBase.prototype.highLightList = function (sValue, aItemsDomRefs, fnBold) {
-			if (fnBold && typeof fnBold === "function") {
-				fnBold(aItemsDomRefs, sValue);
-			} else {
-				this._oSuggestionPopover.highlightSuggestionItems(aItemsDomRefs, sValue, true);
-			}
-		};
-
-		/**
 		 * Handles highlighting of items after filtering.
 		 *
 		 * @param {string} sValue The value of the item
 		 * @protected
 		 */
-		ComboBoxBase.prototype._highlightList = function (sValue) {
-			var aListItemsDOM = [],
-				aListItemAdditionalText = [],
-				oItemAdditionalTextRef, oItemDomRef, oItemTitleDomRef;
+		ComboBoxBase.prototype.highlightList = function (sValue) {
+			var aListItemsDOM = [];
 
-			this._getList().getItems().forEach(function (oItem) {
-				oItemDomRef = oItem.getDomRef();
-				oItemTitleDomRef = oItemDomRef && oItemDomRef.getElementsByClassName("sapMSLITitleOnly")[0];
+			aListItemsDOM = this._getList().$().find('.sapMSLIInfo, .sapMSLITitleOnly');
 
-				if (oItemTitleDomRef) {
-					aListItemsDOM.push(oItemTitleDomRef);
-
-					oItemAdditionalTextRef = oItemDomRef.querySelector(".sapMSLIInfo");
-
-					if (oItemAdditionalTextRef && oItem.getInfo) {
-						aListItemAdditionalText.push(oItemAdditionalTextRef);
-					}
-				}
-			});
-
-			this.highLightList(sValue, aListItemsDOM);
-			this.highLightList(sValue, aListItemAdditionalText);
+			highlightDOMElements(aListItemsDOM, sValue);
 		};
 
 		ComboBoxBase.prototype._modifyPopupInput = function (oInput) {
@@ -611,8 +560,8 @@ sap.ui.define([
 
 		ComboBoxBase.prototype.onBeforeRendering = function () {
 			var bSuggestionsPopoverIsOpen =  this.getOpen(),
-			sValueStateHeaderText = bSuggestionsPopoverIsOpen ?  this._oSuggestionPopover._getValueStateHeader().getText() : null,
-			sValueStateHeaderValueState = bSuggestionsPopoverIsOpen ?  this._oSuggestionPopover._getValueStateHeader().getValueState() : null;
+			sValueStateHeaderText = bSuggestionsPopoverIsOpen ?  this._getSuggestionsPopover()._getValueStateHeader().getText() : null,
+			sValueStateHeaderValueState = bSuggestionsPopoverIsOpen ?  this._getSuggestionsPopover()._getValueStateHeader().getValueState() : null;
 
 			ComboBoxTextField.prototype.onBeforeRendering.apply(this, arguments);
 
@@ -1138,8 +1087,7 @@ sap.ui.define([
 		/**
 		 * Gets the control's suggestions popover.
 		 *
-		 * @returns {sap.m.SuggestionsPopover} The SuggestionsPopover instance, creating it if necessary by calling
-		 * the <code>createPicker()</code> method.
+		 * @returns {sap.m.SuggestionsPopover} The SuggestionsPopover instance.
 		 * @private
 		 */
 		ComboBoxBase.prototype._getSuggestionsPopover = function() {
@@ -1513,7 +1461,9 @@ sap.ui.define([
 		 */
 		ComboBoxBase.prototype.addItemGroup = function(oGroup, oHeader, bSuppressInvalidate) {
 			oHeader = oHeader || new SeparatorItem({
-				text: oGroup.text || oGroup.key
+				// The SeparatorItem does not escape those settings, so we need to take care of that.
+				// This will ensure that values containing curly braces do not break the code.
+				text: ManagedObject.escapeSettingsValue(oGroup.text) || ManagedObject.escapeSettingsValue(oGroup.key)
 			});
 
 			this.addAggregation("items", oHeader, bSuppressInvalidate);
@@ -1533,16 +1483,14 @@ sap.ui.define([
 		 * @returns {sap.m.GroupHeaderListItem} The matched GroupHeaderListItem
 		 * @private
 		 */
-		ComboBoxBase.prototype._mapSeparatorItemToGroupHeader = function (oSeparatorItem, oControlRenderer) {
+		ComboBoxBase.prototype._mapSeparatorItemToGroupHeader = function (oSeparatorItem) {
 			var oGroupHeaderListItem = new GroupHeaderListItem({
-				title: oSeparatorItem.getText(),
-				ariaLabelledBy: this._getGroupHeaderInvisibleText().getId()
+				title: ManagedObject.escapeSettingsValue(oSeparatorItem.getText()),
+				ariaLabelledBy: this._getGroupHeaderInvisibleText().getId(),
+				type: ListType.Inactive
 			});
 
-			oGroupHeaderListItem.addStyleClass(oControlRenderer.CSS_CLASS_COMBOBOXBASE + "NonInteractiveItem");
-			if (oSeparatorItem.getText && !oSeparatorItem.getText()) {
-				oGroupHeaderListItem.addStyleClass(oControlRenderer.CSS_CLASS_COMBOBOXBASE + "SeparatorItemNoText");
-			}
+			oGroupHeaderListItem.addStyleClass(this.getRenderer().CSS_CLASS_COMBOBOXBASE + "NonInteractiveItem");
 
 			return oGroupHeaderListItem;
 		};

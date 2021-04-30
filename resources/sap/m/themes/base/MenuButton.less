@@ -12,6 +12,7 @@
 	text-align: left;
 	padding-right: 2rem;
 	position: relative;
+	padding-left: 0.625rem;
 }
 
 .sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner:not(.sapMBtnText) {
@@ -44,6 +45,7 @@
 .sapUiSizeCompact {
 	.sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner {
 		padding-right: 1.625rem;
+		padding-left: 0.5rem;
 	}
 
 	.sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner:not(.sapMBtnText) {
@@ -91,7 +93,6 @@
 
 //Transparent(footer)
 .sapMIBar-CTX.sapMFooter-CTX .sapMMenuBtn.sapMMenuBtnRegular .sapMBtnInner::after {
-	color: @sapUiContentContrastIconColor;
 	text-shadow: @sapUiButtonEmphasizedTextShadow;
 }
 
@@ -129,4 +130,12 @@
 
 .sapMMenuBtn .sapMBtn .sapMBtnInner {
 	display: block;
+}
+
+.sapMMenuBtn .sapMBtn:not(.sapMSBArrow) .sapMBtnInner.sapMBtnIconFirst .sapMBtnIcon {
+	padding-right: 0.375rem;
+}
+
+.sapMMenuBtn .sapMBtn .sapMBtnInner.sapMBtnText:not(.sapMBtnIconFirst) .sapMBtnContent{
+	width: 100%;
 }

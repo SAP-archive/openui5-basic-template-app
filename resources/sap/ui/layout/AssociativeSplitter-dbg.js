@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,7 +25,7 @@ sap.ui.define([
 	 * @extends sap.ui.layout.Splitter
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @private
@@ -347,6 +347,27 @@ sap.ui.define([
 				continue;
 			} else if (i === (aAreas.length - 1) && bAllCollapsed) {
 				this._getContentAreas()[iBar + 1].setLayoutData(new SplitterLayoutData({ size: "100%" }));
+			}
+		}
+	};
+
+	AssociativeSplitter.prototype.containsControl = function (sControlId) {
+		var aContentAreas = this._getContentAreas(),
+			oContentArea,
+			i;
+
+		for (i = 0; i < aContentAreas.length; i++) {
+
+			oContentArea = aContentAreas[i];
+
+			if (oContentArea.isA("sap.ui.layout.AssociativeSplitter")) {
+				if (oContentArea.containsControl(sControlId)) {
+					return true;
+				}
+			} else {
+				if (oContentArea.getId() === sControlId) {
+					return true;
+				}
 			}
 		}
 	};

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -132,7 +132,7 @@ sap.ui.define([
 		var oDomRef = this.get(0);
 
 		if (oDomRef && oDomRef.outerHTML) {
-			return jQuery.trim(oDomRef.outerHTML);
+			return oDomRef.outerHTML.trim();
 		} else {
 			var doc = this[0] ? this[0].ownerDocument : document;
 

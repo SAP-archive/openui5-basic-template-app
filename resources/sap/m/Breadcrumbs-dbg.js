@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Breadcrumbs.
 sap.ui.define([
 	"sap/ui/core/Control",
+	"sap/ui/util/openWindow",
 	"sap/m/Text",
 	"sap/m/Link",
 	"sap/m/Select",
@@ -19,6 +20,7 @@ sap.ui.define([
 	"./BreadcrumbsRenderer"
 ], function(
 	Control,
+	openWindow,
 	Text,
 	Link,
 	Select,
@@ -54,7 +56,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -182,7 +184,7 @@ sap.ui.define([
 				icon: IconPool.getIconURI("slim-arrow-down"),
 				type: SelectType.IconOnly,
 				tooltip: BreadcrumbsRenderer._getResourceBundleText("BREADCRUMB_SELECT_TOOLTIP")
-			})));
+			})), true);
 		}
 		return this.getAggregation("_select");
 	};
@@ -344,7 +346,8 @@ sap.ui.define([
 
 		if (sLinkHref) {
 			if (sLinkTarget) {
-				window.open(sLinkHref, sLinkTarget);
+				// TODO: take oLink.getRel() value into account ('links' is a PUBLIC aggregation)
+				openWindow(sLinkHref, sLinkTarget);
 			} else {
 				window.location.href = sLinkHref;
 			}
@@ -406,7 +409,7 @@ sap.ui.define([
 		return {
 			id: oControl.getId(),
 			control: oControl,
-			width: oControl.$().parent().outerWidth(true),
+			width: getElementWidth(oControl.$().parent()),
 			bCanOverflow: oControl instanceof Link
 		};
 	};
@@ -467,9 +470,9 @@ sap.ui.define([
 	 */
 	Breadcrumbs.prototype._getControlsInfo = function () {
 		if (!this._bControlsInfoCached) {
-			this._iSelectWidth = this._getSelect().$().parent().outerWidth(true) || 0;
+			this._iSelectWidth = getElementWidth(this._getSelect().$().parent()) || 0;
 			this._aControlInfo = this._getControlsForBreadcrumbTrail().map(this._getControlInfo);
-			this._iContainerSize = this.$().outerWidth(true);
+			this._iContainerSize = getElementWidth(this.$());
 			this._bControlsInfoCached = true;
 		}
 
@@ -644,6 +647,16 @@ sap.ui.define([
 		this.invalidate(this);
 		return this;
 	};
+
+	// helper functions
+	function getElementWidth($element) {
+		var iMargins;
+		if ($element.length) {
+			iMargins = $element.outerWidth(true) - $element.outerWidth();
+
+			return $element.get(0).getBoundingClientRect().width + iMargins;
+		}
+	}
 
 	return Breadcrumbs;
 

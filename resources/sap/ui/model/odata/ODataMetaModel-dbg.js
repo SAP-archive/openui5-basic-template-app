@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,9 +17,10 @@ sap.ui.define([
 	'sap/ui/model/json/JSONTreeBinding',
 	'sap/ui/model/MetaModel',
 	'./_ODataMetaModelUtils',
-	"sap/ui/performance/Measurement",
-	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
+	'sap/ui/performance/Measurement',
+	'sap/base/Log',
+	'sap/base/util/extend',
+	'sap/base/util/isEmptyObject'
 ], function (
 	BindingMode,
 	BindingParser,
@@ -35,7 +36,8 @@ sap.ui.define([
 	Utils,
 	Measurement,
 	Log,
-	jQuery
+	extend,
+	isEmptyObject
 ) {
 	"use strict";
 
@@ -219,7 +221,7 @@ sap.ui.define([
 	 * {@link #loaded loaded} has been resolved!
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @alias sap.ui.model.odata.ODataMetaModel
 	 * @extends sap.ui.model.MetaModel
 	 * @public
@@ -906,12 +908,12 @@ sap.ui.define([
 				that.mQName2PendingRequest[sQualifiedTypeName + "/" + oProperty.name] = {
 					resolve : function (oResponse) {
 						// enhance property by annotations from response to get value lists
-						jQuery.extend(oProperty,
+						extend(oProperty,
 							(oResponse.annotations.propertyAnnotations[sQualifiedTypeName] || {})
 								[oProperty.name]
 						);
 						mValueLists = Utils.getValueLists(oProperty);
-						if (jQuery.isEmptyObject(mValueLists)) {
+						if (isEmptyObject(mValueLists)) {
 							fnReject(new Error("No value lists returned for " + sPropertyPath));
 						} else {
 							delete that.mContext2Promise[sPropertyPath];

@@ -1,7 +1,7 @@
 
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,13 +12,11 @@ sap.ui.define([
 	'./InstanceManager',
 	'./library',
 	'./Title',
-	'./TitleAlignmentMixin',
 	'sap/ui/core/Control',
 	'sap/ui/core/Popup',
 	'sap/ui/core/delegate/ScrollEnablement',
 	'sap/ui/core/theming/Parameters',
 	'sap/ui/Device',
-	'sap/ui/base/ManagedObject',
 	"sap/ui/core/util/ResponsivePaddingsEnablement",
 	'sap/ui/core/library',
 	'sap/ui/core/Element',
@@ -39,13 +37,11 @@ sap.ui.define([
 		InstanceManager,
 		library,
 		Title,
-		TitleAlignmentMixin,
 		Control,
 		Popup,
 		ScrollEnablement,
 		Parameters,
 		Device,
-		ManagedObject,
 		ResponsivePaddingsEnablement,
 		coreLibrary,
 		Element,
@@ -117,7 +113,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Control
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.79.0
+		* @version 1.84.11
 		*
 		* @public
 		* @alias sap.m.Popover
@@ -579,18 +575,23 @@ sap.ui.define([
 			this.oPopup.close = function (bBeforeCloseFired) {
 				var bBooleanParam = typeof bBeforeCloseFired === "boolean";
 				var eOpenState = that.oPopup.getOpenState();
+				var bIsOpenerExisting = that._oOpenBy && that._oOpenBy.getDomRef && !!that._oOpenBy.getDomRef();
 
-				// Only when the given parameter is "true", the beforeClose event isn't fired here.
-				// Because it's already fired in the sap.m.Popover.prototype.close function.
-				//
-				// The event also should not be fired if the focus is still inside the Popup. This could occur when the
-				// autoclose mechanism is fired by the child Popup and is called throught the EventBus
-				//
-				// When Popup's destroy method is called without even being opened there should not be onBeforeClose event.
-				//
-				// When the Popover/Popoup is already closed or is closing, this should not be triggered.
-				if (bBeforeCloseFired !== true && (this.touchEnabled || !this._isFocusInsidePopup()) && this.isOpen() &&
-					!(eOpenState === OpenState.CLOSED || eOpenState === OpenState.CLOSING)) {
+				/* Only when the given parameter is "true", the beforeClose event isn't fired here.
+				Because it's already fired in the sap.m.Popover.prototype.close function.
+
+				The event also should not be fired if the focus is still inside the Popup (with one exception described in the paragraph below).
+				This could occur when the autoclose mechanism is fired by the child Popup and is called throught the EventBus.
+
+				However, we want to fire the event if the focus is still in the Popup, but the Popover opener doesn't exist anymore.
+				There are cases when the popover should be closed from a control (like a Closе button) inside of it, but a moment earlier
+				its opener gets hidden by other aside logic - this is causing the auto close to be fired first and this auto-close function
+				being called before the 'close' function handling the closing from the button press. See BCP: 2080253679.
+
+				When Popup's destroy method is called without even being opened there should not be onBeforeClose event.
+				When the Popover/Popoup is already closed or is closing, this should not be triggered. */
+				if (bBeforeCloseFired !== true && (this.touchEnabled || !(this._isFocusInsidePopup() && bIsOpenerExisting))
+					&& this.isOpen() && !(eOpenState === OpenState.CLOSED || eOpenState === OpenState.CLOSING)) {
 
 					that.fireBeforeClose({openBy: that._oOpenBy});
 				}
@@ -611,7 +612,8 @@ sap.ui.define([
 				bHorScrolling = this.getHorizontalScrolling(),
 				bVerScrolling = this.getVerticalScrolling(),
 				bHorScrollingNotApplied = !bHorScrolling || this.isPropertyInitial("horizontalScrolling"),
-				bVerScrollingNotApplied = !bVerScrolling || this.isPropertyInitial("verticalScrolling");
+				bVerScrollingNotApplied = !bVerScrolling || this.isPropertyInitial("verticalScrolling"),
+				oHeader = this.getCustomHeader() || this._internalHeader;
 
 			if (!this._initialWindowDimensions.width || !this._initialWindowDimensions.height) {
 				this._initialWindowDimensions = {
@@ -684,6 +686,12 @@ sap.ui.define([
 			if (!Device.system.desktop) {
 				this.setResizable(false);
 			}
+
+			// title alignment
+			if (oHeader && oHeader.getTitleAlignment) {
+				oHeader.setProperty("titleAlignment", this.getTitleAlignment(), true);
+			}
+
 		};
 
 		/**
@@ -974,6 +982,10 @@ sap.ui.define([
 		/*                      begin: event handlers                  */
 		/* =========================================================== */
 		Popover.prototype._clearCSSStyles = function () {
+			if (!this.getDomRef()) {
+				return;
+			}
+
 			var oStyle = this.getDomRef().style,
 				$content = this.$("cont"),
 				$scrollArea = $content.children(".sapMPopoverScroll"),
@@ -1188,7 +1200,7 @@ sap.ui.define([
 		 */
 		Popover.prototype.onmousedown = function (oEvent) {
 			var bRTL = sap.ui.getCore().getConfiguration().getRTL();
-			if (!oEvent.target.classList.contains("sapMPopoverResizeHandle")) {
+			if (!oEvent.target.classList || !oEvent.target.classList.contains("sapMPopoverResizeHandle")) {
 				return;
 			}
 
@@ -1636,8 +1648,8 @@ sap.ui.define([
 
 		/**
 		 * Calculate outerWidth of the element; used as hook for SVG elements
-		 * @param {HTMLElement} oElement An Element for which outerWidth will be calculated.
-		 * @param {boolean} bIncludeMargin Determines if the margins should be included in the calculated outerWidth. Default value is false.
+		 * @param {HTMLElement} oElement An Element for which outerWidth will be calculated
+		 * @param {boolean} [bIncludeMargin=false] Determines if the margins should be included in the calculated outerWidth
 		 * @returns {number} The outer width of the element
 		 * @protected
 		 */
@@ -1652,7 +1664,7 @@ sap.ui.define([
 		/**
 		 * Calculate outerHeight of the element; used as hook for SVG elements
 		 * @param {HTMLElement} oElement An Element for which outerHeight will be calculated.
-		 * @param {boolean} bIncludeMargin Determines if the margins should be included in the calculated outerHeight. Default value is false.
+		 * @param {boolean} [bIncludeMargin=false] Determines if the margins should be included in the calculated outerHeight
 		 * * @returns {number} The outer height of the element
 		 * @protected
 		 */
@@ -2155,11 +2167,9 @@ sap.ui.define([
 		Popover.prototype._createInternalHeader = function () {
 			if (!this._internalHeader) {
 				var that = this;
-				this._internalHeader = new Bar(this.getId() + "-intHeader");
-
-				// call the method that registers this Bar for alignment
-				this._setupBarTitleAlignment(this._internalHeader, this.getId() + "_internalHeader");
-
+				this._internalHeader = new Bar(this.getId() + "-intHeader", {
+					titleAlignment: this.getTitleAlignment()
+				});
 				this.setAggregation("_internalHeader", this._internalHeader);
 				this._internalHeader.addEventDelegate({
 					onAfterRendering: function () {
@@ -2617,11 +2627,8 @@ sap.ui.define([
 		 * @private
 		 */
 		Popover.prototype._applyContextualSettings = function () {
-			ManagedObject.prototype._applyContextualSettings.call(this, ManagedObject._defaultContextualSettings);
+			Control.prototype._applyContextualSettings.call(this);
 		};
-
-		// enrich the control functionality with TitleAlignmentMixin
-		TitleAlignmentMixin.mixInto(Popover.prototype);
 
 		return Popover;
 	});

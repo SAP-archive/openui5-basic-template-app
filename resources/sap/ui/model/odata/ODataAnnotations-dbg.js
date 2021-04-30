@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,10 +9,11 @@ sap.ui.define([
 	"./AnnotationParser",
 	"sap/base/assert",
 	"sap/base/Log",
+	"sap/base/util/isEmptyObject",
 	"sap/ui/Device",
 	"sap/ui/base/EventProvider",
 	"sap/ui/thirdparty/jquery"
-], function (AnnotationParser, assert, Log, Device, EventProvider, jQuery) {
+], function (AnnotationParser, assert, Log, isEmptyObject, Device, EventProvider, jQuery) {
 	"use strict";
 
 	/*global ActiveXObject */
@@ -28,7 +29,7 @@ sap.ui.define([
 	 *
 	 * @author SAP SE
 	 * @version
-	 * 1.79.0
+	 * 1.84.11
 	 *
 	 * @public
 	 * @deprecated As of version 1.66, please use {@link sap.ui.model.odata.v2.ODataAnnotations} instead.
@@ -70,7 +71,7 @@ sap.ui.define([
 				if (!this.bAsync) {
 					// Synchronous loading, we can directly check for errors
 					assert(
-						!jQuery.isEmptyObject(this.oMetadata),
+						!isEmptyObject(this.oMetadata),
 						"Metadata must be available for synchronous annotation loading"
 					);
 					if (this.oError) {
@@ -410,7 +411,7 @@ sap.ui.define([
 			// Check if Metadata is loaded on the model. We need the Metadata to parse the annotations
 
 			var oMetadata = this.oMetadata.getServiceMetadata();
-			if (!oMetadata || jQuery.isEmptyObject(oMetadata)) {
+			if (!oMetadata || isEmptyObject(oMetadata)) {
 				// Metadata is not loaded, wait for it before trying to parse
 				this.oMetadata.attachLoaded(fnParseDocument);
 			} else {

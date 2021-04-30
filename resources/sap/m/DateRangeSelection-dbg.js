@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -129,8 +129,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.79.0
-	 * @version 1.79.0
+	 * @version 1.84.11
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -176,11 +176,6 @@ sap.ui.define([
 		ENDASH = String.fromCharCode(8211),
 		EMDASH = String.fromCharCode(8212);
 
-	/**
-	 * This file defines behavior for the control
-	 * @public
-	 */
-
 	/* eslint-disable no-lonely-if */
 
 	DateRangeSelection.prototype.init = function(){
@@ -207,6 +202,10 @@ sap.ui.define([
 		if (oCalendar instanceof CustomYearPicker) {
 			oCalendar._getYearPicker().setIntervalSelection(true);
 		}
+
+		this._getCalendar().attachWeekNumberSelect(this._handleWeekSelect, this);
+		this._getCalendar().getSelectedDates()[0].setStartDate(this._oDateRange.getStartDate());
+		this._getCalendar().getSelectedDates()[0].setEndDate(this._oDateRange.getEndDate());
 	};
 
 	DateRangeSelection.prototype.onkeypress = function(oEvent){
@@ -456,7 +455,7 @@ sap.ui.define([
 	 */
 	DateRangeSelection.prototype.setDateValue = function(oDateValue) {
 
-		if (this._isValidDate(oDateValue)) {
+		if (!this._isValidDate(oDateValue)) {
 			throw new Error("Date must be a JavaScript date object; " + this);
 		}
 
@@ -473,7 +472,7 @@ sap.ui.define([
 
 	DateRangeSelection.prototype.setSecondDateValue = function(oSecondDateValue) {
 
-		if (this._isValidDate(oSecondDateValue)) {
+		if (!this._isValidDate(oSecondDateValue)) {
 			throw new Error("Date must be a JavaScript date object; " + this);
 		}
 
@@ -867,6 +866,9 @@ sap.ui.define([
 					}
 				}
 
+				this._oDateRange.setStartDate(this._getCalendar().getSelectedDates()[0].getStartDate());
+				this._oDateRange.setEndDate(this._getCalendar().getSelectedDates()[0].getEndDate());
+
 				// close popup and focus input after change event to allow application to reset value state or similar things
 				this._oPopup.close();
 			}
@@ -886,6 +888,24 @@ sap.ui.define([
 		this._selectDate();
 	};
 
+	DateRangeSelection.prototype._handleWeekSelect = function(oEvent){
+		var oSelectedDates = oEvent.getParameter("weekDays"),
+			oSelectedStartDate = oSelectedDates.getStartDate(),
+			oSelectedEndDate = oSelectedDates.getEndDate();
+
+		if (this.getShowFooter()) {
+			this._oPopup.getBeginButton().setEnabled(!!(oSelectedStartDate && oSelectedEndDate));
+			return;
+		}
+
+		this._getCalendar().getSelectedDates()[0].setStartDate(oSelectedStartDate);
+		this._getCalendar().getSelectedDates()[0].setEndDate(oSelectedEndDate);
+		this._oDateRange.setStartDate(oSelectedStartDate);
+		this._oDateRange.setEndDate(oSelectedEndDate);
+
+		this._selectDate();
+	};
+
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @returns {Object} Current accessibility state of the control
@@ -901,6 +921,7 @@ sap.ui.define([
 				sValue = this._formatValue(oDate, this.getSecondDateValue());
 			}
 		}
+		oInfo.type = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_DATERANGEINPUT");
 		oInfo.description = [sValue, oRenderer.getLabelledByAnnouncement(this), oRenderer.getDescribedByAnnouncement(this)].join(" ").trim();
 		return oInfo;
 	};

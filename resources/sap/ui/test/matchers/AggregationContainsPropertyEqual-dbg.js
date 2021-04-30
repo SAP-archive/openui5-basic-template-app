@@ -1,14 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/base/ManagedObject",
 	"sap/ui/test/matchers/Matcher",
 	"sap/base/strings/capitalize",
 	"sap/ui/thirdparty/jquery"
-], function (Matcher, capitalize, jQueryDOM) {
+], function (ManagedObject, Matcher, capitalize, jQueryDOM) {
 	"use strict";
 
 	/**
@@ -56,6 +57,13 @@ sap.ui.define([
 					type: "any"
 				}
 			}
+		},
+
+		constructor: function (mSettings) {
+			if (mSettings && mSettings.propertyValue) {
+				mSettings.propertyValue = ManagedObject.escapeSettingsValue(mSettings.propertyValue);
+			}
+			Matcher.prototype.constructor.call(this, mSettings);
 		},
 
 		/**

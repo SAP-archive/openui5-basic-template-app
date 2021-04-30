@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([], function() {
@@ -24,9 +24,9 @@ sap.ui.define([], function() {
 	 */
 	var fnIsPlainObject = function(obj) {
 		/*
-		 * The code in this function is taken from jQuery 3.1.1 "jQuery.isPlainObject" and got modified.
+		 * The code in this function is taken from jQuery 3.5.1 "jQuery.isPlainObject" and got modified.
 		 *
-		 * jQuery JavaScript Library v3.1.1
+		 * jQuery JavaScript Library v3.5.1
 		 * http://jquery.com/
 		 *
 		 * Copyright jQuery Foundation and other contributors
@@ -50,6 +50,10 @@ sap.ui.define([], function() {
 
 		// Objects with a prototype are considered plain only if they were constructed by a global Object function
 		Ctor = hasOwn.call( proto, "constructor" ) && proto.constructor;
+
+		// Known Issue in IE:
+		// TypeError: Function.prototype.toString: 'this' is not a Function object
+		// https://github.com/jquery/jquery/issues/3841
 		return typeof Ctor === "function" && fnToString.call( Ctor ) === ObjectFunctionString;
 	};
 	return fnIsPlainObject;

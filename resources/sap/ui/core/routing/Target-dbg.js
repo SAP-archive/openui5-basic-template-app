@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -130,6 +130,7 @@ sap.ui.define([
 			 * @param {object} oEvent.getParameters.control The control that now contains the view in the controlAggregation
 			 * @param {object} oEvent.getParameters.config The options object passed to the constructor {@link sap.ui.core.routing.Target#constructor}
 			 * @param {object} oEvent.getParameters.data The data passed into the {@link sap.ui.core.routing.Target#display} function
+			 * @param {object} oEvent.getParameters.routeRelevant=false Whether the target is relevant to the matched route or not
 			 * @public
 			 */
 

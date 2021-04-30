@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -62,19 +62,15 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library'],
 			oRm.style("text-align", sTextAlign);
 		}
 
-		// ARIA
-		// when the status is "None" there is nothing for reading
-		if (oON.getState() !== ValueState.None) {
-			oRm.accessibilityState({
-			describedby: oON.getId() + "-state"
-			});
-		}
+		oRm.accessibilityState(oON);
 
 		oRm.openEnd();
 
 		this.renderText(oRm, oON);
 		oRm.text("  "); // space between the number text and unit
 		this.renderUnit(oRm, oON);
+
+		this.renderEmphasizedInfoElement(oRm, oON);
 		this.renderHiddenARIAElement(oRm, oON);
 
 		oRm.close("div");
@@ -100,6 +96,18 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library'],
 		}
 	};
 
+	ObjectNumberRenderer.renderEmphasizedInfoElement = function(oRm, oON) {
+		if (!oON.getEmphasized()) {
+			return;
+		}
+
+		oRm.openStart("span", oON.getId() + "-emphasized");
+		oRm.class("sapUiPseudoInvisibleText");
+		oRm.openEnd();
+		oRm.text(sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("OBJECTNUMBER_EMPHASIZED"));
+		oRm.close("span");
+	};
+
 	ObjectNumberRenderer.renderHiddenARIAElement = function(oRm, oON) {
 
 		if (oON.getState() == ValueState.None) {
@@ -107,8 +115,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library'],
 		}
 
 		oRm.openStart("span", oON.getId() + "-state");
-		oRm.class("sapUiInvisibleText");
-		oRm.attr("aria-hidden", false);
+		oRm.class("sapUiPseudoInvisibleText");
 		oRm.openEnd();
 		oRm.text(oON._getStateText());
 		oRm.close("span");

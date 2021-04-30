@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,7 +19,11 @@ sap.ui.define([
 	 * @param {object} [oFormatOptions]
 	 *   See parameter <code>oFormatOptions</code> of {@link sap.ui.model.type.Unit#constructor}.
 	 *   Format options are immutable, that is, they can only be set once on construction. Format
-	 *   options that are not supported or have a different default are listed below.
+	 *   options that are not supported or have a different default are listed below. If the format
+	 *   option <code>showMeasure</code> is set to <code>false</code>, model messages for the unit
+	 *   of measure are not propagated to the control if the corresponding binding supports the
+	 *   feature of ignoring messages, see {@link sap.ui.model.Binding#supportsIgnoreMessages}, and
+	 *   the corresponding binding parameter is not set manually.
 	 * @param {object} [oFormatOptions.customUnits]
 	 *   Not supported; the type derives this from its unit customizing part.
 	 * @param {boolean} [oFormatOptions.parseAsString=true]
@@ -47,7 +51,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.type.Unit
 	 * @public
 	 * @since 1.63.0
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @borrows sap.ui.model.odata.type.UnitMixin#getInterface as #getInterface
 	 * @borrows sap.ui.model.odata.type.UnitMixin#validateValue as #validateValue

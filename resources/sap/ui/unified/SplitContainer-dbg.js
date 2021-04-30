@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,7 +33,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -101,8 +101,8 @@ sap.ui.define([
 
 	// Design decided that content does not need to be handled differently depending on device - remove
 	// comments if needed again...
-	//	sap.ui.Device.media.attachHandler(
-	//		this._handleMediaChange, this, sap.ui.Device.media.RANGESETS.SAP_STANDARD
+	//	Device.media.attachHandler(
+	//		this._handleMediaChange, this, Device.media.RANGESETS.SAP_STANDARD
 	//	);
 
 		// By default move the content when the secondaryContent is shown
@@ -138,7 +138,7 @@ sap.ui.define([
 	// comments if needed again...
 	//	this._lastDeviceName = "";
 	//	this._handleMediaChange(
-	//		sap.ui.Device.media.getCurrentRange(sap.ui.Device.media.RANGESETS.SAP_STANDARD)
+	//		sap.ui.Device.media.getCurrentRange(Device.media.RANGESETS.SAP_STANDARD)
 	//	);
 
 		this._applySecondaryContentSize();
@@ -155,7 +155,7 @@ sap.ui.define([
 	// *
 	// * @private
 	// */
-	//sap.ui.unified.SplitContainer.prototype._handleMediaChange = function(mParams) {
+	//SplitContainer.prototype._handleMediaChange = function(mParams) {
 	//	var sDeviceName = mParams.name;
 	//
 	//	// By default, move the content to the right, there should be enough space

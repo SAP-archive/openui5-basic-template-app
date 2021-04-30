@@ -1,10 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/model/odata/ODataMetadata",
 	"sap/ui/model/odata/ODataUtils",
 	"sap/ui/core/library",
 	"sap/ui/thirdparty/URI",
@@ -13,7 +14,7 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(ODataUtils, coreLibrary, URI, MessageParser, Message, Log, jQuery) {
+	function(ODataMetadata, ODataUtils, coreLibrary, URI, MessageParser, Message, Log, jQuery) {
 	"use strict";
 
 var sClassName = "sap.ui.model.odata.ODataMessageParser",
@@ -68,17 +69,24 @@ var sClassName = "sap.ui.model.odata.ODataMessageParser",
  */
 
 /**
- * OData implementation of the sap.ui.core.message.MessageParser class. Parses message responses from the back-end.
+ * OData implementation of the sap.ui.core.message.MessageParser class. Parses message responses
+ * from the back end.
+ *
+ * @param {string} sServiceUrl
+ *   Base URI of the service used for the calculation of message targets
+ * @param {sap.ui.model.odata.ODataMetadata} oMetadata
+ *   The ODataMetadata object
+ * @param {boolean} bPersistTechnicalMessages
+ *   Whether technical messages should always be treated as persistent, since 1.83.0
  *
  * @class
- * @classdesc
- *   OData implementation of the sap.ui.core.message.MessageParser class. Parses message responses from the back-end.
+ *   OData implementation of the sap.ui.core.message.MessageParser class. Parses message responses
+ *   from the back end.
  * @extends sap.ui.core.message.MessageParser
  *
  * @author SAP SE
- * @version 1.79.0
+ * @version 1.84.11
  * @public
- * @abstract
  * @alias sap.ui.model.odata.ODataMessageParser
  */
 var ODataMessageParser = MessageParser.extend("sap.ui.model.odata.ODataMessageParser", {
@@ -86,13 +94,13 @@ var ODataMessageParser = MessageParser.extend("sap.ui.model.odata.ODataMessagePa
 		publicMethods: [ "parse", "setProcessor", "getHeaderField", "setHeaderField" ]
 	},
 
-	constructor: function(sServiceUrl, oMetadata) {
+	constructor: function(sServiceUrl, oMetadata, bPersistTechnicalMessages) {
 		MessageParser.apply(this);
 		this._serviceUrl = getRelativeServerUrl(this._parseUrl(sServiceUrl).url);
 		this._metadata = oMetadata;
-		this._processor = null;
 		this._headerField = "sap-message"; // Default header field
 		this._lastMessages = [];
+		this._bPersistTechnicalMessages = bPersistTechnicalMessages;
 	}
 });
 
@@ -126,20 +134,32 @@ ODataMessageParser.prototype.setHeaderField = function(sFieldName) {
  * Parses the given response for messages, calculates the delta and fires the messageChange-event
  * on the MessageProcessor if messages are found.
  *
- * @param {object} oResponse - The response from the server containing body and headers
- * @param {object} oRequest - The original request that lead to this response
- * @param {Object<string,any>} mGetEntities - A map containing the entities requested from the back-end as keys
- * @param {Object<string,any>} mChangeEntities - A map containing the entities changed on the back-end as keys
+ * @param {object} oResponse
+ *   The response from the server containing body and headers
+ * @param {object} oRequest
+ *   The original request that leads to this response
+ * @param {object} mGetEntities
+ *   A map with the keys of the entities requested from the back-end mapped to true
+ * @param {object} mChangeEntities
+ *   A map with the keys of the entities changed in the back-end mapped to true
+ * @param {boolean} bMessageScopeSupported
+ *   Whether the used OData service supports the message scope
+ *   {@link sap.ui.model.odata.MessageScope.BusinessObject}
  * @public
  */
-ODataMessageParser.prototype.parse = function(oResponse, oRequest, mGetEntities, mChangeEntities, bMessageScopeSupported) {
-	// TODO: Implement filter function
-	var aMessages = [];
+ODataMessageParser.prototype.parse = function(oResponse, oRequest, mGetEntities, mChangeEntities,
+		bMessageScopeSupported) {
+	var aMessages, mRequestInfo;
 
-	var mRequestInfo = {
-		url: oRequest ? oRequest.requestUri : oResponse.requestUri,
+	if (oRequest.method === "GET" && String(oResponse.statusCode) === "204") {
+		return;
+	}
+
+	aMessages = [];
+	mRequestInfo = {
 		request: oRequest,
-		response: oResponse
+		response: oResponse,
+		url: oRequest ? oRequest.requestUri : oResponse.requestUri
 	};
 
 	if (oResponse.statusCode >= 200 && oResponse.statusCode < 300) {
@@ -150,19 +170,13 @@ ODataMessageParser.prototype.parse = function(oResponse, oRequest, mGetEntities,
 		this._parseBody(/* ref: */ aMessages, oResponse, mRequestInfo);
 	} else {
 		// Status neither ok nor error - I don't know what to do
-		// TODO: Maybe this is ok and should be silently ignored...?
 		Log.warning(
 			"No rule to parse OData response with status " + oResponse.statusCode + " for messages"
 		);
 	}
 
-	if (this._processor) {
-		this._propagateMessages(aMessages, mRequestInfo, mGetEntities, mChangeEntities, !bMessageScopeSupported /* use simple message lifecycle */);
-	} else {
-		// In case no message processor is attached, at least log to console.
-		// TODO: Maybe we should just output an error and do nothing, since this is not how messages are meant to be used like?
-		this._outputMesages(aMessages);
-	}
+	this._propagateMessages(aMessages, mRequestInfo, mGetEntities, mChangeEntities,
+		!bMessageScopeSupported);
 };
 
 
@@ -182,9 +196,9 @@ ODataMessageParser.prototype.parse = function(oResponse, oRequest, mGetEntities,
  * @param {object} mRequestInfo
  *   The request info
  * @param {object} mGetEntities
- *   A map with the the keys of the entities requested from the back-end mapped to true
+ *   A map with the keys of the entities requested from the back-end mapped to true
  * @param {object} mChangeEntities
- *   A map with the the keys of the entities changed in the back-end mapped to true
+ *   A map with the keys of the entities changed in the back-end mapped to true
  * @returns {object}
  *   A map of affected targets as keys mapped to true
  */
@@ -237,24 +251,30 @@ ODataMessageParser.prototype._getAffectedTargets = function (aMessages, mRequest
  * "sap-messages" with the value <code>transientOnly</code> all existing messages are kept with the
  * expectation to only receive transition messages from the back end.
  *
- * @param {sap.ui.core.message.Message[]} aMessages - All messaged returned from the back-end in this request
+ * @param {sap.ui.core.message.Message[]} aMessages
+ *   All messaged returned from the back-end in this request
  * @param {ODataMessageParser~RequestInfo} mRequestInfo
  *   Info object about the request URL. If the "request" property of "mRequestInfo" is flagged with
  *   "updateAggregatedMessages=true", all aggregated messages for the entities in the response are
  *   updated. Aggregated messages are messages of child entities of these entities which belong to
  *   the same business object.
- * @param {map} mGetEntities - A map containing the entities requested from the back-end as keys
- * @param {map} mChangeEntities - A map containing the entities changed on the back-end as keys
- * @param {boolean} bSimpleMessageLifecycle - This flag is set to false, if the used OData Model v2 supports message scopes
+ * @param {map} [mGetEntities] - A map containing the entities requested from the back-end as keys
+ * @param {map} [mChangeEntities] - A map containing the entities changed on the back-end as keys
+ * @param {boolean} bSimpleMessageLifecycle
+ *   This flag is set to false, if the used OData Model v2 supports message scopes
  */
-ODataMessageParser.prototype._propagateMessages = function(aMessages, mRequestInfo, mGetEntities, mChangeEntities, bSimpleMessageLifecycle) {
+ODataMessageParser.prototype._propagateMessages = function(aMessages, mRequestInfo, mGetEntities,
+		mChangeEntities, bSimpleMessageLifecycle) {
 	var mAffectedTargets,
 		sDeepPath = mRequestInfo.request.deepPath,
 		aKeptMessages = [],
+		aCanonicalPathsOfReturnedEntities,
 		bPrefixMatch = sDeepPath && mRequestInfo.request.updateAggregatedMessages,
 		bTransitionMessagesOnly = mRequestInfo.request.headers
 			&& mRequestInfo.request.headers["sap-messages"] === "transientOnly",
 		aRemovedMessages = [],
+		bReturnsCollection
+			= ODataMetadata._returnsCollection(mRequestInfo.request.functionMetadata),
 		bStateMessages,
 		iStatusCode,
 		bSuccess;
@@ -262,9 +282,18 @@ ODataMessageParser.prototype._propagateMessages = function(aMessages, mRequestIn
 	function isTargetMatching(oMessage, aTargets) {
 		return aTargets.some(function (sTarget) { return mAffectedTargets[sTarget]; })
 			|| bPrefixMatch && oMessage.aFullTargets.some(function (sFullTarget) {
-				return sFullTarget.startsWith(sDeepPath);
+				if (bReturnsCollection) {
+					return aCanonicalPathsOfReturnedEntities.some(function (sKey) {
+						var sKeyPredicate = sKey.slice(sKey.indexOf("("));
+						return sFullTarget.startsWith(sDeepPath + sKeyPredicate);
+					});
+				} else {
+					return sFullTarget.startsWith(sDeepPath);
+				}
 			});
 	}
+
+	mGetEntities = mGetEntities || {};
 
 	if (bTransitionMessagesOnly) {
 		aKeptMessages = this._lastMessages;
@@ -278,6 +307,9 @@ ODataMessageParser.prototype._propagateMessages = function(aMessages, mRequestIn
 	} else {
 		mAffectedTargets = this._getAffectedTargets(aMessages, mRequestInfo, mGetEntities,
 			mChangeEntities);
+		// only the mGetEntities are relevant for function imports; mChangeEntities are used for
+		// DELETE and MERGE requests
+		aCanonicalPathsOfReturnedEntities = Object.keys(mGetEntities);
 		iStatusCode = mRequestInfo.response.statusCode;
 		bSuccess = (iStatusCode >= 200 && iStatusCode < 300);
 		this._lastMessages.forEach(function (oCurrentMessage) {
@@ -337,7 +369,8 @@ ODataMessageParser.prototype._createMessage = function (oMessageObject, mRequest
 		bIsTechnical) {
 	var bPersistent = oMessageObject.target && oMessageObject.target.indexOf("/#TRANSIENT#") === 0
 			|| oMessageObject.transient
-			|| oMessageObject.transition,
+			|| oMessageObject.transition
+			|| bIsTechnical && this._bPersistTechnicalMessages,
 		oTargetInfos,
 		sText = typeof oMessageObject.message === "object"
 			? oMessageObject.message.value
@@ -363,91 +396,6 @@ ODataMessageParser.prototype._createMessage = function (oMessageObject, mRequest
 		},
 		type : mSeverity2MessageType[sType] || sType
 	});
-};
-
-/**
- * Returns the path of the Entity affected by the given FunctionImport. It either uses the location header sent by the
- * back-end or if none is sent tries to construct the correct URL from the metadata information about the function.
- * In case the URL of the target is built using only one key, the parameter-name is removed from the URL.
- * Example, if there are two keys "A" and "B", the URL mitgt look like this: "/List(A=1,B=2)" in case there is only one
- * key named "A", the URL would be "/List(1)"
- *
- * @param {map} mFunctionInfo - Function information map as returned by sap.ui.model.odata.ODataMetadata._getFunctionImportMetadata
- * @param {ODataMessageParser~RequestInfo} mRequestInfo - Map containing information about the current request
- * @param {ODataMessageParser~UrlInfo} mUrlData - Map containing parsed URL information as returned by sap.ui.mode.odata.ODataMessageParser._parseUrl
- * @returns {string} The Path to the affected entity
- */
-ODataMessageParser.prototype._getFunctionTarget = function(mFunctionInfo, mRequestInfo, mUrlData) {
-	var sTarget = "";
-
-	var i;
-
-	// In case of a function import the location header may point to the correct entry in the service.
-	// This should be the case for writing/changing operations using POST
-	if (mRequestInfo.response && mRequestInfo.response.headers && mRequestInfo.response.headers["location"]) {
-		sTarget = mRequestInfo.response.headers["location"];
-
-		var iPos = sTarget.lastIndexOf(this._serviceUrl);
-		if (iPos > -1) {
-			sTarget = sTarget.substr(iPos + this._serviceUrl.length);
-		}
-	} else {
-
-		// Search for "action-for" annotation
-		var sActionFor = null;
-		if (mFunctionInfo.extensions) {
-			for (i = 0; i < mFunctionInfo.extensions.length; ++i) {
-				if (mFunctionInfo.extensions[i].name === "action-for") {
-					sActionFor = mFunctionInfo.extensions[i].value;
-					break;
-				}
-			}
-		}
-
-		var mEntityType;
-		if (sActionFor) {
-			mEntityType = this._metadata._getEntityTypeByName(sActionFor);
-		} else if (mFunctionInfo.entitySet) {
-			mEntityType = this._metadata._getEntityTypeByPath(mFunctionInfo.entitySet);
-		} else if (mFunctionInfo.returnType) {
-			mEntityType = this._metadata._getEntityTypeByName(mFunctionInfo.returnType);
-		}
-		if (mEntityType){
-			var mEntitySet = this._metadata._getEntitySetByType(mEntityType);
-
-			if (mEntitySet && mEntityType && mEntityType.key && mEntityType.key.propertyRef) {
-
-				var sId = "";
-				var sParam;
-
-				if (mEntityType.key.propertyRef.length === 1) {
-					// Just the ID in brackets
-					sParam = mEntityType.key.propertyRef[0].name;
-					if (mUrlData.parameters[sParam]) {
-						sId = mUrlData.parameters[sParam];
-					}
-				} else {
-					// Build ID string from keys
-					var aKeys = [];
-					for (i = 0; i < mEntityType.key.propertyRef.length; ++i) {
-						sParam = mEntityType.key.propertyRef[i].name;
-						if (mUrlData.parameters[sParam]) {
-							aKeys.push(sParam + "=" + mUrlData.parameters[sParam]);
-						}
-					}
-					sId = aKeys.join(",");
-				}
-
-				sTarget = "/" + mEntitySet.name + "(" + sId + ")";
-			} else if (!mEntitySet) {
-				Log.error("Could not determine path of EntitySet for function call: " + mUrlData.url);
-			} else {
-				Log.error("Could not determine keys of EntityType for function call: " + mUrlData.url);
-			}
-		}
-	}
-
-	return sTarget;
 };
 
 /**
@@ -506,26 +454,22 @@ ODataMessageParser._isResponseForCreate = function (mRequestInfo) {
  */
 ODataMessageParser.prototype._createTarget = function (sODataTarget, mRequestInfo, bIsTechnical,
 		bODataTransition) {
-	var sCanonicalTarget, bCreate, mFunctionInfo, iPos, sPreviousCanonicalTarget, sRequestTarget,
-		sUrl, mUrlData, sUrlForTargetCalculation,
-		sDeepPath = "",
+	var sCanonicalTarget, bCreate, sDeepPath, iPos, sPreviousCanonicalTarget, sRequestTarget, sUrl,
+		mUrlData, sUrlForTargetCalculation,
 		oRequest = mRequestInfo.request,
-		oResponse = mRequestInfo.response,
-		oTargetInfo = {};
+		oResponse = mRequestInfo.response;
 
-	if (sODataTarget === undefined && !bIsTechnical
-			&& oRequest.headers["sap-message-scope"] === "BusinessObject"
-		|| bIsTechnical && bODataTransition) {
-		oTargetInfo.deepPath = "";
-		oTargetInfo.target = "";
-
-		return oTargetInfo;
+	if (sODataTarget === undefined
+			&& (!bIsTechnical && oRequest.headers["sap-message-scope"] === "BusinessObject"
+			|| bIsTechnical && bODataTransition)) {
+		return {deepPath : "", target : ""};
 	}
 	sODataTarget = sODataTarget || "";
 	sODataTarget = sODataTarget.startsWith("/#TRANSIENT#") ? sODataTarget.slice(12) : sODataTarget;
 
 	if (sODataTarget[0] !== "/") {
 		bCreate = ODataMessageParser._isResponseForCreate(mRequestInfo);
+		sDeepPath = oRequest.deepPath || "";
 
 		if (bCreate === true) { // successful create
 			// special case for 201 POST requests which create a resource;
@@ -546,17 +490,9 @@ ODataMessageParser.prototype._createTarget = function (sODataTarget, mRequestInf
 			sRequestTarget = "/" + sUrl;
 		}
 
-		if (!bCreate) { // bCreate === false might be a failed function import
-			mFunctionInfo = this._metadata._getFunctionImportMetadata(sRequestTarget,
-				oRequest.method);
-
-			if (mFunctionInfo) {
-				sRequestTarget = this._getFunctionTarget(mFunctionInfo, mRequestInfo, mUrlData);
-				sDeepPath = sRequestTarget;
-			}
-		}
-		if (!sDeepPath && oRequest.deepPath){
-			sDeepPath = oRequest.deepPath;
+		// bCreate === false might be a failed function import
+		if (!bCreate && oRequest.functionMetadata) {
+			sRequestTarget = oRequest.functionTarget;
 		}
 		// If sRequestTarget is a collection, we have to add the target without a "/". In this case
 		// a target would start with the specific product (like "(23)"), but the request itself
@@ -571,23 +507,22 @@ ODataMessageParser.prototype._createTarget = function (sODataTarget, mRequestInf
 		}
 	}
 
-	if (this._processor) {
-		sCanonicalTarget = this._processor.resolve(sODataTarget, undefined, true);
-		// Multiple resolve steps are necessary for paths containing multiple navigation properties
-		// with to n relation, e.g. /SalesOrder(1)/toItem(2)/toSubItem(3)
-		while (sCanonicalTarget && sCanonicalTarget.lastIndexOf("/") > 0
-				&& sCanonicalTarget !== sPreviousCanonicalTarget) {
-			sPreviousCanonicalTarget = sCanonicalTarget;
-			sCanonicalTarget = this._processor.resolve(sCanonicalTarget, undefined, true)
-				// if canonical path cannot be determined, take the previous
-				|| sPreviousCanonicalTarget;
-		}
-		sODataTarget = sCanonicalTarget || sODataTarget;
-		oTargetInfo.deepPath = this._metadata._getReducedPath(sDeepPath || sODataTarget);
+	sCanonicalTarget = this._processor.resolve(sODataTarget, undefined, true);
+	// Multiple resolve steps are necessary for paths containing multiple navigation properties
+	// with to n relation, e.g. /SalesOrder(1)/toItem(2)/toSubItem(3)
+	while (sCanonicalTarget && sCanonicalTarget.lastIndexOf("/") > 0
+			&& sCanonicalTarget !== sPreviousCanonicalTarget) {
+		sPreviousCanonicalTarget = sCanonicalTarget;
+		sCanonicalTarget = this._processor.resolve(sCanonicalTarget, undefined, true)
+			// if canonical path cannot be determined, take the previous
+			|| sPreviousCanonicalTarget;
 	}
-	oTargetInfo.target = ODataUtils._normalizeKey(sODataTarget);
+	sODataTarget = sCanonicalTarget || sODataTarget;
 
-	return oTargetInfo;
+	return {
+		deepPath : this._metadata._getReducedPath(sDeepPath || sODataTarget),
+		target : ODataUtils._normalizeKey(sODataTarget)
+	};
 };
 
 /**
@@ -860,38 +795,14 @@ ODataMessageParser.prototype._parseUrl = function(sUrl) {
 };
 
 /**
- * Outputs messages to the browser console. This is a fallback for when there is no MessageProcessor
- * attached to this parser. This should not happen in standard cases, as the ODataModel registers
- * itself as MessageProcessor. Only if used stand-alone, this can at least prevent the messages
- * from being ignored completely.
+ * Sets whether technical messages should always be treated as persistent.
  *
- * @param {sap.ui.message.Message[]} aMessages - The messages to be displayed on the console
+ * @param {boolean} bPersistTechnicalMessages
+ *   Whether technical messages should always be treated as persistent
  * @private
  */
-ODataMessageParser.prototype._outputMesages = function(aMessages) {
-	for (var i = 0; i < aMessages.length; ++i) {
-		var oMessage = aMessages[i];
-		var sOutput = "[OData Message] " + oMessage.getMessage() + " - " + oMessage.getDescription() + " (" + oMessage.getTarget() + ")";
-		switch (aMessages[i].getType()) {
-			case MessageType.Error:
-				Log.error(sOutput);
-				break;
-
-			case MessageType.Warning:
-				Log.warning(sOutput);
-				break;
-
-			case MessageType.Success:
-				Log.debug(sOutput);
-				break;
-
-			case MessageType.Information:
-			case MessageType.None:
-			default:
-				Log.info(sOutput);
-				break;
-		}
-	}
+ODataMessageParser.prototype._setPersistTechnicalMessages = function (bPersistTechnicalMessages) {
+	this._bPersistTechnicalMessages = bPersistTechnicalMessages;
 };
 
 ///////////////////////////////////////// Hidden Functions /////////////////////////////////////////

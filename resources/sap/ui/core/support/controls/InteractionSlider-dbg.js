@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,6 +8,9 @@ sap.ui.define(['sap/ui/base/ManagedObject', "sap/ui/events/KeyCodes", "sap/ui/th
     function(ManagedObject, KeyCodes, jQuery) {
         'use strict';
         var InteractionSlider = ManagedObject.extend("sap.ui.core.support.controls.InteractionSlider", {
+            metadata: {
+                library: "sap.ui.core"
+            },
             constructor: function () {
                 //this.SIDE_LIST_WIDTH = 250;
                 this.SIDE_LIST_WIDTH = 0;

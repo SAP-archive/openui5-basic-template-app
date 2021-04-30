@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -81,7 +81,7 @@ sap.ui.define([
 			function line(buffer, right, border, label, content) {
 				buffer.push("<tr class='sapUiSelectable'><td class='sapUiSupportTechInfoBorder sapUiSelectable'><label class='sapUiSupportLabel sapUiSelectable'>", encodeXML(label), "</label><br>");
 				var ctnt = content;
-				if (jQuery.isFunction(content)) {
+				if (typeof content === "function") {
 					ctnt = content(buffer) || "";
 				}
 				buffer.push(encodeXML(ctnt));
@@ -97,8 +97,8 @@ sap.ui.define([
 						if (v !== undefined && v !== null) {
 							if (typeof (v) == "string" || typeof (v) == "boolean" || (Array.isArray(v) && v.length == 1)) {
 								val = v;
-							} else if ((Array.isArray(v) || isPlainObject(v)) && window.JSON) {
-								val = window.JSON.stringify(v);
+							} else if (Array.isArray(v) || isPlainObject(v)) {
+								val = JSON.stringify(v);
 							}
 						}
 						line(buffer, false, false, i, "" + val);

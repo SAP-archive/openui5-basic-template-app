@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -75,7 +75,7 @@ sap.ui.define([
 	 */
 	function getChangeSetContentType(sMimeTypeHeaders) {
 		var sContentType = getHeaderValue(sMimeTypeHeaders, "content-type");
-		return sContentType.indexOf("multipart/mixed;") === 0 ? sContentType : undefined;
+		return sContentType.startsWith("multipart/mixed;") ? sContentType : undefined;
 	}
 
 	/**
@@ -233,18 +233,21 @@ sap.ui.define([
 	}
 
 	/**
-	 * Serializes the given array of request objects into $batch request body.
+	 * Serializes the given array of request objects into a $batch request body.
 	 *
 	 * @param {object[]} aRequests
-	 *   See parameter <code>aRequests</code> of serializeBatchRequest function
+	 *   An array consisting of request objects or arrays of request objects, in case requests need
+	 *   to be sent in scope of a change set. Change set requests are annotated with a property
+	 *   <code>$ContentID</code> containing the corresponding Content-ID from the serialized batch
+	 *   request body.
 	 * @param {number} [iChangeSetIndex]
 	 *   Is only specified if the function is called to serialize change sets and
 	 *   contains zero-based index of the change set within <code>aRequests</code> array.
 	 * @returns {object}
 	 *   The $batch request object with the following structure
 	 *   <ul>
-	 *     <li><code>body</code>: {string[]} Array of strings representing batch request body
-	 *     <li><code>batchBoundary</code>: {string} Batch boundary value
+	 *     <li> <code>body</code>: {string[]} Array of strings representing batch request body
+	 *     <li> <code>batchBoundary</code>: {string} Batch boundary value
 	 *   </ul>
 	 */
 	function _serializeBatchRequest(aRequests, iChangeSetIndex) {
@@ -263,7 +266,8 @@ sap.ui.define([
 				sUrl = oRequest.url;
 
 			if (bIsChangeSet) {
-				sContentIdHeader = "Content-ID:" + iRequestIndex + "." + iChangeSetIndex + "\r\n";
+				oRequest.$ContentID = iRequestIndex + "." + iChangeSetIndex;
+				sContentIdHeader = "Content-ID:" + oRequest.$ContentID + "\r\n";
 			}
 
 			aRequestBody = aRequestBody.concat("--", sBatchBoundary, "\r\n");
@@ -314,18 +318,18 @@ sap.ui.define([
 		 * @returns {object[]} Array containing responses from the batch response body. Each of the
 		 *   returned responses has the following structure:
 		 *   <ul>
-		 *     <li><code>status</code>: {number} HTTP status code
-		 *     <li><code>statusText</code>: {string} (optional) HTTP status text
-		 *     <li><code>headers</code>: {object} Map of the response headers
-		 *     <li><code>responseText</code>: {string} Response body
+		 *     <li> <code>status</code>: {number} HTTP status code
+		 *     <li> <code>statusText</code>: {string} (optional) HTTP status text
+		 *     <li> <code>headers</code>: {object} Map of the response headers
+		 *     <li> <code>responseText</code>: {string} Response body
 		 *   </ul>
 		 *   If the specified <code>sResponseBody</code> contains responses for change sets, then
 		 *   the corresponding response objects will be returned in a nested array.
 		 * @throws {Error}
 		 *   <ul>
-		 *     <li>If <code>sContentType</code> parameter does not represent "multipart/mixed"
+		 *     <li> If <code>sContentType</code> parameter does not represent "multipart/mixed"
 		 *       media type with "boundary" parameter
-		 *     <li>If "charset" parameter of "Content-Type" header of a nested response has value
+		 *     <li> If "charset" parameter of "Content-Type" header of a nested response has value
 		 *       other than "utf-8".
 		 *   </ul>
 		 */
@@ -338,9 +342,10 @@ sap.ui.define([
 		 * mandatory headers for the batch request.
 		 *
 		 * @param {object[]} aRequests
-		 *  An array consisting of request objects <code>oRequest</code> or out of array(s)
-		 *  of request objects <code>oRequest</code>, in case requests need to be sent in scope of
-		 *  a change set. See example below.
+		 *   An array consisting of request objects or arrays of request objects, in case requests
+		 *   need to be sent in scope of a change set. See example below. Change set requests are
+		 *   annotated with a property <code>$ContentID</code> containing the corresponding
+		 *   Content-ID from the serialized batch request body.
 		 * @param {string} oRequest.method
 		 *   HTTP method, e.g. "GET"
 		 * @param {string} oRequest.url
@@ -356,12 +361,12 @@ sap.ui.define([
 		 *   either without "charset" parameter or with "charset" parameter having value "UTF-8".
 		 * @returns {object} Object containing the following properties:
 		 *   <ul>
-		 *     <li><code>body</code>: Batch request body
-		 *     <li><code>headers</code>: Batch-specific request headers
-		 *     <ul>
-		 *       <li><code>Content-Type</code>: Value for the 'Content-Type' header
-		 *       <li><code>MIME-Version</code>: Value for the 'MIME-Version' header
-		 *     </ul>
+		 *     <li> <code>body</code>: Batch request body
+		 *     <li> <code>headers</code>: Batch-specific request headers
+		 *       <ul>
+		 *         <li> <code>Content-Type</code>: Value for the 'Content-Type' header
+		 *         <li> <code>MIME-Version</code>: Value for the 'MIME-Version' header
+		 *       </ul>
 		 *   </ul>
 		 * @example
 		 *   var oBatchRequest = Batch.serializeBatchRequest([

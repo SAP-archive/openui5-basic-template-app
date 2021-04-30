@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,7 +18,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @public
 	 * @alias sap.ui.core.LocaleData
 	 */
@@ -66,6 +66,49 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 */
 		getOrientation: function() {
 			return this._get("orientation");
+		},
+
+		/**
+		 * Get a display name for the language of the Locale of this LocaleData, using
+		 * the CLDR display names for languages.
+		 *
+		 * The lookup logic works as follows:
+		 * 1. language code and region is checked (e.g. "en-GB")
+		 * 2. If not found: language code and script is checked (e.g. "zh-Hant")
+		 * 3. If not found language code is checked (e.g. "en")
+		 * 4. If it is then still not found <code>undefined</code> is returned.
+		 *
+		 * @returns {string} language name, e.g. "English", "British English", "American English"
+		 *  or <code>undefined</code> if language cannot be found
+		 * @private
+		 * @ui5-restricted sap.ushell
+		 */
+		getCurrentLanguageName: function() {
+			var oLanguages = this.getLanguages();
+			var sCurrentLanguage;
+			var sLanguage = this.oLocale.getModernLanguage();
+			var sScript = this.oLocale.getScript();
+			// special case for "sr_Latn" language: "sh" should then be used
+			// the key used in the languages object for serbian latin is "sh"
+			if (sLanguage === "sr" && sScript === "Latn") {
+				sLanguage = "sh";
+				sScript = null;
+			}
+			if (this.oLocale.getRegion()) {
+				// fall back to language and region, e.g. "en_GB"
+				sCurrentLanguage = oLanguages[sLanguage + "_" + this.oLocale.getRegion()];
+			}
+
+			if (!sCurrentLanguage && sScript) {
+				// fall back to language and script, e.g. "zh_Hant"
+				sCurrentLanguage = oLanguages[sLanguage + "_" + sScript];
+			}
+
+			if (!sCurrentLanguage) {
+				// fall back to language only, e.g. "en"
+				sCurrentLanguage = oLanguages[sLanguage];
+			}
+			return sCurrentLanguage;
 		},
 
 		/**
@@ -1939,98 +1982,98 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 						"Year": "{0} {1}"
 					},
 					"intervalFormats": {
-						"intervalFormatFallback":"{0} – {1}",
+						"intervalFormatFallback":"{0} \u2013 {1}",
 						"d": {
-							"d": "d – d"
+							"d": "d \u2013 d"
 						},
 						"h": {
-							"a": "h a – h a",
-							"h": "h – h a"
+							"a": "h a \u2013 h a",
+							"h": "h \u2013 h a"
 						},
 						"H": {
-							"H": "HH – HH"
+							"H": "HH \u2013 HH"
 						},
 						"hm": {
-							"a": "h:mm a – h:mm a",
-							"h": "h:mm – h:mm a",
-							"m": "h:mm – h:mm a"
+							"a": "h:mm a \u2013 h:mm a",
+							"h": "h:mm \u2013 h:mm a",
+							"m": "h:mm \u2013 h:mm a"
 						},
 						"Hm": {
-							"H": "HH:mm – HH:mm",
-							"m": "HH:mm – HH:mm"
+							"H": "HH:mm \u2013 HH:mm",
+							"m": "HH:mm \u2013 HH:mm"
 						},
 						"hmv": {
-							"a": "h:mm a – h:mm a v",
-							"h": "h:mm – h:mm a v",
-							"m": "h:mm – h:mm a v"
+							"a": "h:mm a \u2013 h:mm a v",
+							"h": "h:mm \u2013 h:mm a v",
+							"m": "h:mm \u2013 h:mm a v"
 						},
 						"Hmv": {
-							"H": "HH:mm – HH:mm v",
-							"m": "HH:mm – HH:mm v"
+							"H": "HH:mm \u2013 HH:mm v",
+							"m": "HH:mm \u2013 HH:mm v"
 						},
 						"hv": {
-							"a": "h a – h a v",
-							"h": "h – h a v"
+							"a": "h a \u2013 h a v",
+							"h": "h \u2013 h a v"
 						},
 						"Hv": {
-							"H": "HH – HH v"
+							"H": "HH \u2013 HH v"
 						},
 						"M": {
-							"M": "M – M"
+							"M": "M \u2013 M"
 						},
 						"Md": {
-							"d": "M/d – M/d",
-							"M": "M/d – M/d"
+							"d": "M/d \u2013 M/d",
+							"M": "M/d \u2013 M/d"
 						},
 						"MEd": {
-							"d": "E, M/d – E, M/d",
-							"M": "E, M/d – E, M/d"
+							"d": "E, M/d \u2013 E, M/d",
+							"M": "E, M/d \u2013 E, M/d"
 						},
 						"MMM": {
-							"M": "MMM – MMM"
+							"M": "MMM \u2013 MMM"
 						},
 						"MMMd": {
-							"d": "MMM d – d",
-							"M": "MMM d – MMM d"
+							"d": "MMM d \u2013 d",
+							"M": "MMM d \u2013 MMM d"
 						},
 						"MMMEd": {
-							"d": "E, MMM d – E, MMM d",
-							"M": "E, MMM d – E, MMM d"
+							"d": "E, MMM d \u2013 E, MMM d",
+							"M": "E, MMM d \u2013 E, MMM d"
 						},
 						"y": {
-							"y": "y – y"
+							"y": "y \u2013 y"
 						},
 						"yM": {
-							"M": "M/y – M/y",
-							"y": "M/y – M/y"
+							"M": "M/y \u2013 M/y",
+							"y": "M/y \u2013 M/y"
 						},
 						"yMd": {
-							"d": "M/d/y – M/d/y",
-							"M": "M/d/y – M/d/y",
-							"y": "M/d/y – M/d/y"
+							"d": "M/d/y \u2013 M/d/y",
+							"M": "M/d/y \u2013 M/d/y",
+							"y": "M/d/y \u2013 M/d/y"
 						},
 						"yMEd": {
-							"d": "E, M/d/y – E, M/d/y",
-							"M": "E, M/d/y – E, M/d/y",
-							"y": "E, M/d/y – E, M/d/y"
+							"d": "E, M/d/y \u2013 E, M/d/y",
+							"M": "E, M/d/y \u2013 E, M/d/y",
+							"y": "E, M/d/y \u2013 E, M/d/y"
 						},
 						"yMMM": {
-							"M": "MMM – MMM y",
-							"y": "MMM y – MMM y"
+							"M": "MMM \u2013 MMM y",
+							"y": "MMM y \u2013 MMM y"
 						},
 						"yMMMd": {
-							"d": "MMM d – d, y",
-							"M": "MMM d – MMM d, y",
-							"y": "MMM d, y – MMM d, y"
+							"d": "MMM d \u2013 d, y",
+							"M": "MMM d \u2013 MMM d, y",
+							"y": "MMM d, y \u2013 MMM d, y"
 						},
 						"yMMMEd": {
-							"d": "E, MMM d – E, MMM d, y",
-							"M": "E, MMM d – E, MMM d, y",
-							"y": "E, MMM d, y – E, MMM d, y"
+							"d": "E, MMM d \u2013 E, MMM d, y",
+							"M": "E, MMM d \u2013 E, MMM d, y",
+							"y": "E, MMM d, y \u2013 E, MMM d, y"
 						},
 						"yMMMM": {
-							"M": "MMMM – MMMM y",
-							"y": "MMMM y – MMMM y"
+							"M": "MMMM \u2013 MMMM y",
+							"y": "MMMM y \u2013 MMMM y"
 						}
 					}
 				},
@@ -2426,17 +2469,17 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 			},
 			"decimalFormat": { "standard": "#,##0.###" },
 			"currencyFormat": {
-				"standard": "¤#,##0.00",
+				"standard": "\xa4#,##0.00",
 				"currencySpacing": {
 					"beforeCurrency": {
 						"currencyMatch": "[:^S:]",
 						"surroundingMatch": "[:digit:]",
-						"insertBetween": " "
+						"insertBetween": "\xa0"
 					},
 					"afterCurrency": {
 						"currencyMatch": "[:^S:]",
 						"surroundingMatch": "[:digit:]",
-						"insertBetween": " "
+						"insertBetween": "\xa0"
 					}
 				}
 			},
@@ -2444,8 +2487,8 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 			"miscPattern": {
 				"approximately": "~{0}",
 				"atLeast": "{0}+",
-				"atMost": "≤{0}",
-				"range": "{0}–{1}"
+				"atMost": "\u2264{0}",
+				"range": "{0}\u2013{1}"
 			},
 			"symbols-latn-decimal":".",
 			"symbols-latn-group":",",
@@ -2461,9 +2504,9 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 				_preferred: "H"
 			},
 			"lenient-scope-number": {
-				"minusSign": "-‐‒–⁻₋−➖﹣",
-				"commaSign": ",،٫、︐︑﹐﹑，",
-				"plusSign": "+⁺₊➕﬩﹢"
+				"minusSign": "\x2d\u2010\u2012\u2013\u207b\u208b\u2212\u2796\ufe63",
+				"commaSign": "\x2c\u060c\u066b\u3001\ufe10\ufe11\ufe50\ufe51\uff0c",
+				"plusSign": "\x2b\u207a\u208a\u2795\ufb29\ufe62"
 			},
 			"plurals": {},
 			"units": {
@@ -2477,9 +2520,9 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					"unitPattern-count-other": "{0} G"
 				},
 				"acceleration-meter-per-second-squared": {
-					"displayName": "meters/sec²",
-					"unitPattern-count-one": "{0} m/s²",
-					"unitPattern-count-other": "{0} m/s²"
+					"displayName": "meters/sec\xb2",
+					"unitPattern-count-one": "{0} m/s\xb2",
+					"unitPattern-count-other": "{0} m/s\xb2"
 				},
 				"angle-revolution": {
 					"displayName": "rev",
@@ -2507,10 +2550,10 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					"unitPattern-count-other": "{0} arcsecs"
 				},
 				"area-square-kilometer": {
-					"displayName": "km²",
-					"unitPattern-count-one": "{0} km²",
-					"unitPattern-count-other": "{0} km²",
-					"perUnitPattern": "{0}/km²"
+					"displayName": "km\xb2",
+					"unitPattern-count-one": "{0} km\xb2",
+					"unitPattern-count-other": "{0} km\xb2",
+					"perUnitPattern": "{0}/km\xb2"
 				},
 				"area-hectare": {
 					"displayName": "hectares",
@@ -2518,22 +2561,22 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					"unitPattern-count-other": "{0} ha"
 				},
 				"area-square-meter": {
-					"displayName": "meters²",
-					"unitPattern-count-one": "{0} m²",
-					"unitPattern-count-other": "{0} m²",
-					"perUnitPattern": "{0}/m²"
+					"displayName": "meters\xb2",
+					"unitPattern-count-one": "{0} m\xb2",
+					"unitPattern-count-other": "{0} m\xb2",
+					"perUnitPattern": "{0}/m\xb2"
 				},
 				"area-square-centimeter": {
-					"displayName": "cm²",
-					"unitPattern-count-one": "{0} cm²",
-					"unitPattern-count-other": "{0} cm²",
-					"perUnitPattern": "{0}/cm²"
+					"displayName": "cm\xb2",
+					"unitPattern-count-one": "{0} cm\xb2",
+					"unitPattern-count-other": "{0} cm\xb2",
+					"perUnitPattern": "{0}/cm\xb2"
 				},
 				"area-square-mile": {
 					"displayName": "sq miles",
 					"unitPattern-count-one": "{0} sq mi",
 					"unitPattern-count-other": "{0} sq mi",
-					"perUnitPattern": "{0}/mi²"
+					"perUnitPattern": "{0}/mi\xb2"
 				},
 				"area-acre": {
 					"displayName": "acres",
@@ -2541,9 +2584,9 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					"unitPattern-count-other": "{0} ac"
 				},
 				"area-square-yard": {
-					"displayName": "yards²",
-					"unitPattern-count-one": "{0} yd²",
-					"unitPattern-count-other": "{0} yd²"
+					"displayName": "yards\xb2",
+					"unitPattern-count-one": "{0} yd\xb2",
+					"unitPattern-count-other": "{0} yd\xb2"
 				},
 				"area-square-foot": {
 					"displayName": "sq feet",
@@ -2551,10 +2594,10 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					"unitPattern-count-other": "{0} sq ft"
 				},
 				"area-square-inch": {
-					"displayName": "inches²",
-					"unitPattern-count-one": "{0} in²",
-					"unitPattern-count-other": "{0} in²",
-					"perUnitPattern": "{0}/in²"
+					"displayName": "inches\xb2",
+					"unitPattern-count-one": "{0} in\xb2",
+					"unitPattern-count-other": "{0} in\xb2",
+					"perUnitPattern": "{0}/in\xb2"
 				},
 				"concentr-karat": {
 					"displayName": "karats",
@@ -2699,9 +2742,9 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					"unitPattern-count-other": "{0} ms"
 				},
 				"duration-microsecond": {
-					"displayName": "μsecs",
-					"unitPattern-count-one": "{0} μs",
-					"unitPattern-count-other": "{0} μs"
+					"displayName": "\u03bcsecs",
+					"unitPattern-count-one": "{0} \u03bcs",
+					"unitPattern-count-other": "{0} \u03bcs"
 				},
 				"duration-nanosecond": {
 					"displayName": "nanosecs",
@@ -2720,8 +2763,8 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 				},
 				"electric-ohm": {
 					"displayName": "ohms",
-					"unitPattern-count-one": "{0} Ω",
-					"unitPattern-count-other": "{0} Ω"
+					"unitPattern-count-one": "{0} \u03a9",
+					"unitPattern-count-other": "{0} \u03a9"
 				},
 				"electric-volt": {
 					"displayName": "volts",
@@ -2807,9 +2850,9 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					"unitPattern-count-other": "{0} mm"
 				},
 				"length-micrometer": {
-					"displayName": "µmeters",
-					"unitPattern-count-one": "{0} µm",
-					"unitPattern-count-other": "{0} µm"
+					"displayName": "\xb5meters",
+					"unitPattern-count-one": "{0} \xb5m",
+					"unitPattern-count-other": "{0} \xb5m"
 				},
 				"length-nanometer": {
 					"displayName": "nm",
@@ -2911,9 +2954,9 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					"unitPattern-count-other": "{0} mg"
 				},
 				"mass-microgram": {
-					"displayName": "µg",
-					"unitPattern-count-one": "{0} µg",
-					"unitPattern-count-other": "{0} µg"
+					"displayName": "\xb5g",
+					"unitPattern-count-one": "{0} \xb5g",
+					"unitPattern-count-other": "{0} \xb5g"
 				},
 				"mass-ton": {
 					"displayName": "tons",
@@ -3023,18 +3066,18 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					"unitPattern-count-other": "{0} kn"
 				},
 				"temperature-generic": {
-					"displayName": "°",
-					"unitPattern-count-other": "{0}°"
+					"displayName": "\xb0",
+					"unitPattern-count-other": "{0}\xb0"
 				},
 				"temperature-celsius": {
 					"displayName": "deg. C",
-					"unitPattern-count-one": "{0}°C",
-					"unitPattern-count-other": "{0}°C"
+					"unitPattern-count-one": "{0}\xb0C",
+					"unitPattern-count-other": "{0}\xb0C"
 				},
 				"temperature-fahrenheit": {
 					"displayName": "deg. F",
-					"unitPattern-count-one": "{0}°F",
-					"unitPattern-count-other": "{0}°F"
+					"unitPattern-count-one": "{0}\xb0F",
+					"unitPattern-count-other": "{0}\xb0F"
 				},
 				"temperature-kelvin": {
 					"displayName": "K",
@@ -3042,41 +3085,41 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 					"unitPattern-count-other": "{0} K"
 				},
 				"volume-cubic-kilometer": {
-					"displayName": "km³",
-					"unitPattern-count-one": "{0} km³",
-					"unitPattern-count-other": "{0} km³"
+					"displayName": "km\xb3",
+					"unitPattern-count-one": "{0} km\xb3",
+					"unitPattern-count-other": "{0} km\xb3"
 				},
 				"volume-cubic-meter": {
-					"displayName": "m³",
-					"unitPattern-count-one": "{0} m³",
-					"unitPattern-count-other": "{0} m³",
-					"perUnitPattern": "{0}/m³"
+					"displayName": "m\xb3",
+					"unitPattern-count-one": "{0} m\xb3",
+					"unitPattern-count-other": "{0} m\xb3",
+					"perUnitPattern": "{0}/m\xb3"
 				},
 				"volume-cubic-centimeter": {
-					"displayName": "cm³",
-					"unitPattern-count-one": "{0} cm³",
-					"unitPattern-count-other": "{0} cm³",
-					"perUnitPattern": "{0}/cm³"
+					"displayName": "cm\xb3",
+					"unitPattern-count-one": "{0} cm\xb3",
+					"unitPattern-count-other": "{0} cm\xb3",
+					"perUnitPattern": "{0}/cm\xb3"
 				},
 				"volume-cubic-mile": {
-					"displayName": "mi³",
-					"unitPattern-count-one": "{0} mi³",
-					"unitPattern-count-other": "{0} mi³"
+					"displayName": "mi\xb3",
+					"unitPattern-count-one": "{0} mi\xb3",
+					"unitPattern-count-other": "{0} mi\xb3"
 				},
 				"volume-cubic-yard": {
-					"displayName": "yards³",
-					"unitPattern-count-one": "{0} yd³",
-					"unitPattern-count-other": "{0} yd³"
+					"displayName": "yards\xb3",
+					"unitPattern-count-one": "{0} yd\xb3",
+					"unitPattern-count-other": "{0} yd\xb3"
 				},
 				"volume-cubic-foot": {
-					"displayName": "feet³",
-					"unitPattern-count-one": "{0} ft³",
-					"unitPattern-count-other": "{0} ft³"
+					"displayName": "feet\xb3",
+					"unitPattern-count-one": "{0} ft\xb3",
+					"unitPattern-count-other": "{0} ft\xb3"
 				},
 				"volume-cubic-inch": {
-					"displayName": "inches³",
-					"unitPattern-count-one": "{0} in³",
-					"unitPattern-count-other": "{0} in³"
+					"displayName": "inches\xb3",
+					"unitPattern-count-one": "{0} in\xb3",
+					"unitPattern-count-other": "{0} in\xb3"
 				},
 				"volume-megaliter": {
 					"displayName": "ML",
@@ -3183,9 +3226,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 
 	var M_ISO639_OLD_TO_NEW = {
 			"iw" : "he",
-			"ji" : "yi",
-			"in" : "id",
-			"sh" : "sr"
+			"ji" : "yi"
 	};
 
 	/**
@@ -3311,6 +3352,12 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 			} else if ( sScript === "Hant" ) {
 				sRegion = "TW";
 			}
+		}
+
+		// Special case 3: for Serbian, there is script cyrillic and latin, "sh" and "sr-latn" map to "latin", "sr" maps to cyrillic
+		// CLDR files: sr.json (cyrillic) and sr_Latn.json (latin)
+		if (sLanguage === "sh" || (sLanguage === "sr" && sScript === "Latn")) {
+			sLanguage = "sr_Latn";
 		}
 
 		var sId = sLanguage + "_" + sRegion; // the originally requested locale; this is the key under which the result (even a fallback one) will be stored in the end

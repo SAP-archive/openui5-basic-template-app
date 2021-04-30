@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.getCore().loadLibrary("sap.ui.unified");
 sap.ui.define([
 	'sap/ui/thirdparty/jquery',
 	'sap/ui/Device',
+	"sap/ui/core/Element",
 	'./InputBase',
 	'./DateTimeField',
 	'./Button',
@@ -30,13 +31,17 @@ sap.ui.define([
 	// jQuery Plugin "cursorPos"
 	"sap/ui/unified/Calendar",
 	"sap/ui/unified/DateRange",
+	'sap/ui/unified/DateTypeRange',
 	"sap/ui/unified/calendar/CustomMonthPicker",
 	"sap/ui/unified/calendar/CustomYearPicker",
+	"sap/ui/core/LabelEnablement",
+	"sap/ui/unified/library",
 	"sap/ui/dom/jquery/cursorPos"
 ],
 	function(
 		jQuery,
 		Device,
+		Element,
 		InputBase,
 		DateTimeField,
 		Button,
@@ -53,8 +58,11 @@ sap.ui.define([
 		InstanceManager,
 		Calendar,
 		DateRange,
+		DateTypeRange,
 		CustomMonthPicker,
-		CustomYearPicker
+		CustomYearPicker,
+		LabelEnablement,
+		unifiedLibrary
 	) {
 	"use strict";
 
@@ -141,7 +149,7 @@ sap.ui.define([
 	 * the close event), or select Cancel.
 	 *
 	 * @extends sap.m.DateTimeField
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -551,7 +559,7 @@ sap.ui.define([
 	 *
 	 * Returns a date as a string in the format defined in property <code>valueFormat</code>.
 	 *
-	 * <b>Note:</b> The value is always expected and updated in Gregorian calendar format. (If data binding is used the format of the binding is used.)
+	 * <b>Note:</b> If there is no data binding, the value is expected and updated in Gregorian calendar type. (Otherwise, the type of the binding is used.)
 	 *
 	 * If this property is used, the <code>dateValue</code> property should not be changed from the caller.
 	 *
@@ -566,7 +574,7 @@ sap.ui.define([
 	 *
 	 * Expects a date as a string in the format defined in property <code>valueFormat</code>.
 	 *
-	 * <b>Note:</b> The value is always expected and updated in Gregorian calendar format. (If data binding is used the format of the binding is used.)
+	 * <b>Note:</b> If there is no data binding, the value is expected and updated in Gregorian calendar type. (Otherwise, the type of the binding is used.)
 	 *
 	 * If this property is used, the <code>dateValue</code> property should not be changed from the caller.
 	 *
@@ -601,7 +609,7 @@ sap.ui.define([
 
 	DatePicker.prototype.setMinDate = function(oDate) {
 
-		if (this._isValidDate(oDate)) {
+		if (!this._isValidDate(oDate)) {
 			throw new Error("Date must be a JavaScript date object; " + this);
 		}
 
@@ -641,7 +649,7 @@ sap.ui.define([
 
 	DatePicker.prototype.setMaxDate = function(oDate) {
 
-		if (this._isValidDate(oDate)) {
+		if (!this._isValidDate(oDate)) {
 			throw new Error("Date must be a JavaScript date object; " + this);
 		}
 
@@ -1081,15 +1089,21 @@ sap.ui.define([
 
 	// to be overwritten by DateTimePicker
 	DatePicker.prototype._createPopup = function(){
-		var sArialabelledby,
-			sLabel;
+		var sTitleText = "";
 
 		if (!this._oPopup) {
 			this._oPopup = new ResponsivePopover(this.getId() + "-RP", {
 				showCloseButton: false,
 				showArrow: false,
 				showHeader: false,
-				placement: library.PlacementType.VerticalPreferedBottom
+				placement: library.PlacementType.VerticalPreferedBottom,
+				beginButton: new Button({
+					type: library.ButtonType.Emphasized,
+					text: oResourceBundle.getText("DATEPICKER_SELECTION_CONFIRM"),
+					press: this._handleOKButton.bind(this)
+				}),
+				afterOpen: _handleOpen.bind(this),
+				afterClose: _handleClose.bind(this)
 			}).addStyleClass("sapMRPCalendar");
 
 			if (this.getShowFooter()) {
@@ -1097,18 +1111,17 @@ sap.ui.define([
 			}
 
 			this._oPopup._getPopup().setAutoClose(true);
-			this._oPopup.attachAfterOpen(_handleOpen, this);
-			this._oPopup.attachAfterClose(_handleClose, this);
-			this._oPopup.setBeginButton(new Button({
-					text: oResourceBundle.getText("DATEPICKER_SELECTION_CONFIRM"),
-					press: this._handleOKButton.bind(this)
-				})
-			);
 
 			if (Device.system.phone) {
-				sArialabelledby = this.$("inner").attr("aria-labelledby");
-				sLabel = sArialabelledby ? document.getElementById(sArialabelledby).getAttribute("aria-label") : "";
-				this._oPopup.setTitle(sLabel);
+				sTitleText = LabelEnablement.getReferencingLabels(this)
+					.concat(this.getAriaLabelledBy())
+					.reduce(function(sAccumulator, sCurrent) {
+						var oCurrentControl = Element.registry.get(sCurrent);
+						return sAccumulator + " " + (oCurrentControl.getText ? oCurrentControl.getText() : "");
+					}, "")
+					.trim();
+
+				this._oPopup.setTitle(sTitleText);
 				this._oPopup.setShowHeader(true);
 				this._oPopup.setShowCloseButton(true);
 			} else {
@@ -1116,7 +1129,6 @@ sap.ui.define([
 				// correctly without an animation on mobile devices so we remove the animation
 				// only for desktop when sap.m.Popover is used instead of sap.m.Dialog
 				this._oPopup._getPopup().setDurations(0, 0);
-				this._oPopup.getBeginButton().setType(library.ButtonType.Emphasized);
 				this._oPopup.setEndButton(new Button({
 						text: oResourceBundle.getText("DATEPICKER_SELECTION_CANCEL"),
 						press: this._handleCancelButton.bind(this)
@@ -1180,6 +1192,8 @@ sap.ui.define([
 			this._oDateRange = new DateRange();
 			this._getCalendar().addSelectedDate(this._oDateRange);
 			this._getCalendar()._setSpecialDatesControlOrigin(this);
+			this._getCalendar().attachCancel(_cancel, this);
+			this._getCalendar().setPopupMode(true);
 
 			if (this.$().closest(".sapUiSizeCompact").length > 0) {
 				this._getCalendar().addStyleClass("sapUiSizeCompact");
@@ -1189,9 +1203,7 @@ sap.ui.define([
 			}
 			if (this._bOnlyCalendar) {
 				this._getCalendar().attachSelect(this._handleCalendarSelect, this);
-				this._getCalendar().attachCancel(_cancel, this);
 				this._getCalendar().attachEvent("_renderMonth", _resizeCalendar, this);
-				this._oCalendar.setPopupMode(true);
 
 				this._oPopup._getButtonFooter().setVisible(this.getShowFooter());
 				this._getCalendar()._bSkipCancelButtonRendering = true;
@@ -1458,6 +1470,26 @@ sap.ui.define([
 
 	};
 
+
+	DatePicker.prototype._getSpecialDates = function() {
+		var specialDates = this.getSpecialDates();
+		for (var i = 0; i < specialDates.length; i++) {
+			var bNeedsSecondTypeAdding = specialDates[i].getSecondaryType() === unifiedLibrary.CalendarDayType.NonWorking
+					&& specialDates[i].getType() !== unifiedLibrary.CalendarDayType.NonWorking;
+			if (bNeedsSecondTypeAdding) {
+				var newSpecialDate = new DateTypeRange();
+				newSpecialDate.setType(specialDates[i].getSecondaryType());
+				newSpecialDate.setStartDate(specialDates[i].getStartDate());
+				if (specialDates[i].getEndDate()) {
+					newSpecialDate.setEndDate(specialDates[i].getEndDate());
+				}
+				specialDates.push(newSpecialDate);
+			}
+		}
+
+		return specialDates;
+	};
+
 	function _handleOpen() {
 		this.addStyleClass(InputBase.ICON_PRESSED_CSS_CLASS);
 		this._renderedDays = this._getCalendar().$("-Month0-days").find(".sapUiCalItem").length;
@@ -1531,6 +1563,7 @@ sap.ui.define([
 	 * @param {sap.ui.base.EventProvider} oControlEvent.getSource
 	 * @param {object} oControlEvent.getParameters
 	 * @param {string} oControlEvent.getParameters.value The new value of the <code>sap.m.DatePicker</code> as specified by <code>valueFormat</code>.
+	 * <b>Note:</b> If there is no data binding, the value is expected and updated in Gregorian calendar type. (Otherwise, the type of the binding is used.)
 	 * @param {boolean} oControlEvent.getParameters.valid Indicator for a valid date.
 	 * @public
 	 */

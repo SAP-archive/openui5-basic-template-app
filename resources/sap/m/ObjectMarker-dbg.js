@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -62,7 +62,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -391,6 +391,9 @@ sap.ui.define([
 		var oType = ObjectMarker.M_PREDEFINED_TYPES[this.getType()],
 			oInnerControl = this._getInnerControl(),
 			sAdditionalInfo = this.getAdditionalInfo(),
+			bIsIconVisible = this._isIconVisible(),
+			bIsTextVisible = this._isTextVisible(),
+			bIsIconOnly = bIsIconVisible && !bIsTextVisible,
 			sType = this.getType(),
 			sText;
 
@@ -403,15 +406,16 @@ sap.ui.define([
 			sText = this._getMarkerText(oType, sType, sAdditionalInfo);
 		}
 
-		if (this._isIconVisible()) {
+		if (bIsIconVisible) {
 			oInnerControl.setIcon(oType.icon.src, bSuppressInvalidate);
+			oInnerControl._getIconAggregation().setDecorative(!bIsIconOnly); // icon should be decorative if we have text
 			this.addStyleClass("sapMObjectMarkerIcon");
 		} else {
 			oInnerControl.setIcon(null, bSuppressInvalidate);
 			this.removeStyleClass("sapMObjectMarkerIcon");
 		}
 
-		if (this._isTextVisible()) {
+		if (bIsTextVisible) {
 			oInnerControl.setAggregation("tooltip", null, bSuppressInvalidate);
 			oInnerControl.setText(sText, bSuppressInvalidate);
 			this.addStyleClass("sapMObjectMarkerText");
@@ -422,6 +426,17 @@ sap.ui.define([
 			oInnerControl.setText(null, bSuppressInvalidate);
 			this.removeStyleClass("sapMObjectMarkerText");
 		}
+
+		oInnerControl.removeAllAssociation("ariaLabelledBy", bSuppressInvalidate);
+		oInnerControl.removeAllAssociation("ariaDescribedBy", bSuppressInvalidate);
+
+		this.getAriaLabelledBy().forEach(function(ariaLabelledBy) {
+			oInnerControl.addAssociation("ariaLabelledBy", ariaLabelledBy, bSuppressInvalidate);
+		});
+
+		this.getAriaDescribedBy().forEach(function(ariaDescribedBy){
+			oInnerControl.addAssociation("ariaDescribedBy", ariaDescribedBy, bSuppressInvalidate);
+		});
 
 		return true;
 	};
@@ -558,9 +573,7 @@ sap.ui.define([
 		});
 	};
 
-	["getAriaLabelledBy", "addAriaLabelledBy", "removeAriaLabelledBy", "removeAllAriaLabelledBy",
-		"getAriaDescribedBy", "addAriaDescribedBy", "removeAriaDescribedBy", "removeAllAriaDescribedBy",
-		"getAccessibilityInfo"].map(function(sFn) {
+	["getAccessibilityInfo"].map(function(sFn) {
 		var bChainable = /^add/.test(sFn);
 		ObjectMarker.prototype[sFn] = function() {
 			var oInnerControl = this._getInnerControl(),

@@ -4,9 +4,9 @@
   <name>sap.ui.core</name>
   <vendor>SAP SE</vendor>
   <copyright>OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.79.0</version>
+  <version>1.84.11</version>
 
   <documentation>The SAPUI5 Core Runtime.
 
@@ -44,7 +44,7 @@
         <raw-module name="sap/ui/thirdparty/IPv6.js" />
         <raw-module name="sap/ui/thirdparty/iscroll-lite.js" />
         <raw-module name="sap/ui/thirdparty/iscroll.js" />
-        <raw-module name="sap/ui/thirdparty/jquery.js" />
+        <raw-module name="sap/ui/thirdparty/jquery.js" depends="sap/ui/thirdparty/jquery-compat.js" />
         <raw-module name="sap/ui/thirdparty/jquery-mobile-custom.js" depends="sap/ui/thirdparty/jquery.js" />
         <raw-module name="sap/ui/thirdparty/jqueryui/jquery-effects-blind.js" depends="sap/ui/thirdparty/jqueryui/jquery-effects-core.js" />
         <raw-module name="sap/ui/thirdparty/jqueryui/jquery-effects-bounce.js" depends="sap/ui/thirdparty/jqueryui/jquery-effects-core.js" />
@@ -141,7 +141,7 @@
         <exclude name="sap/ui/thirdparty/bignumber.js" />
         <exclude name="sap/ui/thirdparty/blanket.js" />
         <!-- <exclude name="sap/ui/thirdparty/crossroads.js" /> -->
-        <!-- <exclude name="sap/ui/thirdparty/caja-htmlsanitizer.js" /> -->
+        <!-- <exclude name="sap/ui/thirdparty/caja-html-sanitizer.js" /> -->
         <exclude name="sap/ui/thirdparty/d3.js" />
         <exclude name="sap/ui/thirdparty/datajs.js" />
         <exclude name="sap/ui/thirdparty/es6-object-assign.js" />
@@ -216,8 +216,10 @@
     <jsdoc xmlns="http://www.sap.com/ui5/buildext/jsdoc" >
         <exclude name=".library-all" />
         <exclude name=".library-all-dbg" />
-        <exclude name=".library-preload" />
-        <exclude name=".library-preload-dbg" />
+        <exclude name=".library-preload*" />
+        <exclude name=".library-h2-preload*" />
+        <exclude name=".Component-preload*" />
+        <exclude name=".Component-h2-preload*" />
         <exclude name=".*[legacy]" />
         <exclude name=".*[legacy]-dbg" />
         <exclude name="jquery-*" />
@@ -253,8 +255,14 @@
         <lib name="jquery" displayName="jQuery, QUnit, jQueryUI" homepage="http://jquery.org">
         	<license url="http://jQuery.org/license" type="MIT License" file="../thirdparty/licenses/jQuery-MIT-LICENSE.txt" />
         </lib>
+        <lib name="jquery-migrate" displayName="jQuery-Migrate" homepage="https://github.com/jquery/jquery-migrate/">
+        	<license url="https://github.com/jquery/jquery-migrate/blob/3.3.1/LICENSE.txt" type="MIT License" file="../thirdparty/licenses/jQuery-Migrate-LICENSE.txt" />
+        </lib>
         <lib name="jquery_mobile" displayName="jQuery Mobile" homepage="http://jquerymobile.com">
         	<license url="http://jQuery.org/license" type="MIT License" file="../thirdparty/licenses/jQuery-MIT-LICENSE.txt" />
+        </lib>
+        <lib name="jquery.rtl-scroll-type" displayName="jQuery.rtl-scroll-type" homepage="https://github.com/othree/jquery.rtl-scroll-type">
+        	<license url="https://github.com/othree/jquery.rtl-scroll-type/blob/master/LICENSE" type="MIT License" file="../thirdparty/licenses/jQuery.rtl-scroll-type-MIT-LICENSE.txt" />
         </lib>
         <lib name="qunit-composite" displayName="Qunit Composite" homepage="https://github.com/jquery/qunit-composite">
         	<license url="http://jquery.org/license" type="MIT License" file="../thirdparty/licenses/qunit-composite-MIT-LICENSE.txt" />
@@ -373,6 +381,12 @@
         <lib name="es6-shim-nopromise" displayName="ECMAScript 6 compatibility shims for legacy JavaScript engines" homepage="https://github.com/paulmillr/es6-shim">
             <license url="https://github.com/paulmillr/es6-shim/blob/master/LICENSE" type="MIT License" file="../thirdparty/licenses/es6-shim-nopromise-MIT-LICENSE.txt" />
         </lib>
+        <lib name="p-cancelable" displayName="p-cancelable" homepage="https://github.com/sindresorhus/p-cancelable/tree/v2.0.0">
+            <license url="https://github.com/sindresorhus/p-cancelable/blob/v2.0.0/license" type="MIT License" file="../thirdparty/licenses/p-cancelable-MIT-LICENSE.txt" />
+        </lib>
+        <lib name="@babel/helpers" displayName="@babel/helpers" homepage="https://github.com/babel/babel/tree/v7.10.4">
+            <license url="https://github.com/babel/babel/blob/v7.10.4/LICENSE" type="MIT License" file="../thirdparty/licenses/babel-MIT-LICENSE.txt" />
+        </lib>
     </thirdparty>
 
     <documentation xmlns="http://www.sap.com/ui5/buildext/documentation"
@@ -412,6 +426,8 @@
         <component>
             <name>CA-UI5-CTR</name>
             <modules>
+                <module>sap/ui/core/StandardMargins</module>
+                <module>sap/ui/core/ContainerPadding</module>
                 <module>sap/ui/core/InvisibleText</module>
             </modules>
         </component>
@@ -431,7 +447,7 @@
         </component>
 
         <component>
-            <name>CA-UI5-FST</name>
+            <name>CA-UI5-TA</name>
             <modules>
                 <module>sap/ui/test/*</module>
             </modules>

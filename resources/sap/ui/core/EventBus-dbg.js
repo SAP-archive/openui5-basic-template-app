@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,9 +21,16 @@ sap.ui.define([
 	 * @class Provides eventing capabilities for applications like firing events and attaching or detaching event
 	 *        handlers for events which are notified when events are fired.
 	 *
+	 *        It is recommended to use the EventBus only when there is no other option to communicate between different instances, e.g. native UI5 events.
+	 *        Custom events can be fired by classes that extend {@link sap.ui.base.EventProvider}, such as sap.ui.core.Control, sap.ui.core.mvc.View or sap.ui.core.Component,
+	 *        and the events can be consumed by other classes to achieve communication between different instances.
+	 *
+	 *        Heavily using the EventBus can easily result in code which is hard to read and maintain because it's
+	 *        difficult to keep an overview of all event publishers and subscribers.
+	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @public
 	 * @since 1.8.0
 	 * @alias sap.ui.core.EventBus

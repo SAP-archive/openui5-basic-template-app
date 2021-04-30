@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/core/Renderer", "sap/m/ListItemBaseRenderer"], function(Renderer, ListItemBaseRenderer) {
@@ -21,7 +21,7 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/m/ListItemBaseRenderer"], function(R
 
 	try {
 		var oParser = new DOMParser();
-		bIsDOMParserSupported = oParser.parseFromString("<svg />", "text/html") !== null;
+		bIsDOMParserSupported = oParser.parseFromString("<svg/>", "text/html") !== null;
 	} catch (ex) {
 		bIsDOMParserSupported = false;
 	}

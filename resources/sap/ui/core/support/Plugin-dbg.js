@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,7 +17,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 	 *
 	 * @abstract
 	 * @extends sap.ui.base.Object
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @private
 	 * @ui5-restricted
 	 * @alias sap.ui.core.support.Plugin
@@ -46,9 +46,9 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 	 */
 	Plugin.prototype.init = function(oSupportStub){
 		for (var i = 0; i < this._aEventIds.length; i++) {
-			var fHandler = this["on" + this._aEventIds[i]];
-			if (fHandler && jQuery.isFunction(fHandler)) {
-				oSupportStub.attachEvent(this._aEventIds[i], fHandler, this);
+			var fnHandler = this["on" + this._aEventIds[i]];
+			if (typeof fnHandler === "function") {
+				oSupportStub.attachEvent(this._aEventIds[i], fnHandler, this);
 			}
 		}
 		this._bActive = true;
@@ -65,9 +65,9 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 	 */
 	Plugin.prototype.exit = function(oSupportStub){
 		for (var i = 0; i < this._aEventIds.length; i++) {
-			var fHandler = this["on" + this._aEventIds[i]];
-			if (fHandler && jQuery.isFunction(fHandler)) {
-				oSupportStub.detachEvent(this._aEventIds[i], fHandler, this);
+			var fnHandler = this["on" + this._aEventIds[i]];
+			if (typeof fnHandler === "function") {
+				oSupportStub.detachEvent(this._aEventIds[i], fnHandler, this);
 			}
 		}
 		this._bActive = false;
@@ -170,7 +170,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 		if (this.isToolPlugin()) {
 			var jRef = jQuery(document.getElementById(sSuffix ? this.getId() + "-" + sSuffix : this.getId()));
 			if (jRef.length == 0 && !sSuffix) {
-				jRef = jQuery("<DIV/>", {id:this.getId()});
+				jRef = jQuery("<div></div>", {id:this.getId()});
 				jRef.appendTo(jQuery(".sapUiSupportCntnt"));
 			}
 			return jRef;

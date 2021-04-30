@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", "./ListItemBaseRenderer"],
@@ -176,7 +176,10 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 		}
 
 		// render no-data if needed
-		if (!bRenderItems && bShowNoData) {
+		// when all the items in the List are hidden via visible="false", then show the noDataText?
+		var bVisibleItems = oControl.getVisibleItems().length > 0;
+
+		if (bShowNoData && (!bRenderItems || !bVisibleItems)) {
 			this.renderNoData(rm, oControl);
 		}
 
@@ -258,14 +261,17 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 	 * Returns the inner aria labelledby ids for the accessibility
 	 *
 	 * @param {sap.ui.core.Control} oControl an object representation of the control
-	 * @returns {String|undefined}
+	 * @returns {String|undefined} header id
 	 */
 	ListBaseRenderer.getAriaLabelledBy = function(oControl) {
 		var oHeaderTBar = oControl.getHeaderToolbar();
 		if (oHeaderTBar) {
 			var oTitle = oHeaderTBar.getTitleControl();
 			if (oTitle) {
-				return oTitle.getId();
+				var sTitleId = oTitle.getId();
+				if (oControl.getAriaLabelledBy().indexOf(sTitleId) === -1) {
+					return sTitleId;
+				}
 			}
 		} else if (oControl.getHeaderText()) {
 			return oControl.getId("header");
@@ -344,6 +350,9 @@ sap.ui.define(["sap/m/library", "sap/ui/Device", "sap/ui/core/InvisibleText", ".
 
 		if (Device.system.desktop) {
 			rm.class("sapMListDummyArea");
+			if (sAreaId == "after") {
+				rm.class("sapMListDummyAreaSticky");
+			}
 		}
 
 		rm.openEnd().close("div");

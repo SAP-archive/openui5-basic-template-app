@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -34,8 +34,7 @@ sap.ui.define(['sap/ui/core/Renderer'],
 			.style("width", oControl.getWidth())
 			.openEnd();
 
-		oRm.openStart("div")
-			.attr("id", oControl.getId() + "-container")
+		oRm.openStart("div", oControl.getId() + "-container")
 			.style("left", "0%")
 			.style("right", "0%")
 			.class(CONSTANTS.MAIN_CLASS);

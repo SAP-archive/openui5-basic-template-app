@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -232,6 +232,12 @@ sap.ui.define([
 				if (this._oRouter._oTargets) {
 					// suspend the targets which were displayed when the route was matched
 					this._oRouter._oTargets.suspend(this._oConfig.target);
+
+					// suspend the dynamic targets
+					if (this._oConfig.dynamicTarget) {
+						this._oRouter._oTargets.suspend(this._oConfig.dynamicTarget);
+						delete this._oConfig.dynamicTarget;
+					}
 				}
 			},
 

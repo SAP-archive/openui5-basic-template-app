@@ -53,14 +53,14 @@
 	}
 }
 
-.sapMLIBHoverable:hover + .sapMListTblSubRow,
-.sapMLIBHoverable.sapMPopinHovered {
+.sapMLIBHoverable:not(.sapMLIBSelected):hover + .sapMListTblSubRow,
+.sapMLIBHoverable:not(.sapMLIBSelected) + .sapMListTblSubRow:hover,
+.sapMLIBHoverable:not(.sapMLIBSelected).sapMPopinHovered {
 	background : @sapUiListHoverBackground;
 }
 
 .sapMLIBHoverable + .sapMListTblSubRow:hover {
 	cursor: pointer;
-	background : @sapUiListHoverBackground;
 }
 
 .sapMLIBSelected + .sapMListTblSubRow,
@@ -73,7 +73,9 @@
 	background: @sapUiListActiveBackground;
 }
 
-.sapMLIBHoverable.sapMLIBSelected:hover + .sapMListTblSubRow {
+.sapMLIBHoverable.sapMLIBSelected:hover + .sapMListTblSubRow,
+.sapMLIBHoverable.sapMLIBSelected + .sapMListTblSubRow:hover,
+.sapMLIBHoverable.sapMLIBSelected.sapMPopinHovered {
 	background : @sapUiListSelectionHoverBackground;
 }
 
@@ -95,6 +97,7 @@
 
 .sapMListTblSubCntRow{
 	padding-bottom: 0;
+	padding-top: 1px;
 }
 
 .sapMListTblSubCntSpr {
@@ -142,13 +145,13 @@
 	border-color: transparent;
 }
 
-.sapMListShowSeparatorsAll .sapMListTblSubRow:last-child > td,
-.sapMListShowSeparatorsAll .sapMLIBShowSeparator:last-child > td {
+.sapMListShowSeparatorsAll .sapMListTblSubRow:last-child > td:not(.sapMListTblDummyCell),
+.sapMListShowSeparatorsAll .sapMLIBShowSeparator:last-child > td:not(.sapMListTblDummyCell) {
 	border-bottom: 1px solid @sapUiListBorderColor;
 }
 
-.sapMListShowSeparatorsAll .sapMLIBShowSeparator:last-child > td,
-.sapMListShowSeparatorsAll .sapMListTblSubRow:last-child > td{
+.sapMListShowSeparatorsAll .sapMLIBShowSeparator:last-child > td:not(.sapMListTblDummyCell),
+.sapMListShowSeparatorsAll .sapMListTblSubRow:last-child > td:not(.sapMListTblDummyCell) {
 	border-bottom: 1px solid @sapUiListTableFooterBorder;
 }
 
@@ -159,6 +162,11 @@
 
 .sapMListShowSeparatorsNone .sapMListTblFooter > td{
 	border-top-width: 2px;
+}
+
+.sapMTableTBody:not(.sapMListTblHasPopin) .sapMListTblDummyCell {
+	background-color: @sapUiBaseBG;
+	border-color: @sapUiBaseBG;
 }
 
 /********** COMPACT DESIGN ************/

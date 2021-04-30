@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,7 +18,11 @@ sap.ui.define([
 	 *   See parameter <code>oFormatOptions</code> of
 	 *   {@link sap.ui.model.type.Currency#constructor}. Format options are immutable, that is,
 	 *   they can only be set once on construction. Format options that are not supported or have a
-	 *   different default are listed below.
+	 *   different default are listed below. If the format option <code>showMeasure</code> is set to
+	 *   <code>false</code>, model messages for the currency code are not propagated to the control
+	 *   if the corresponding binding supports the feature of ignoring messages, see
+	 *   {@link sap.ui.model.Binding#supportsIgnoreMessages}, and the corresponding binding
+	 *   parameter is not set manually.
 	 * @param {object} [oFormatOptions.customCurrencies]
 	 *   Not supported; the type derives this from its currency customizing part.
 	 * @param {boolean} [oFormatOptions.parseAsString=true]
@@ -45,7 +49,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.type.Currency
 	 * @public
 	 * @since 1.63.0
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @borrows sap.ui.model.odata.type.UnitMixin#getInterface as #getInterface
 	 * @borrows sap.ui.model.odata.type.UnitMixin#validateValue as #validateValue

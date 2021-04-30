@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/thirdparty/jquery'], function(jQuery) {
@@ -45,7 +45,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery'], function(jQuery) {
 			return {width: 0, height: 0};
 		}
 
-		var $Area = jQuery("<DIV/>")
+		var $Area = jQuery("<DIV></DIV>")
 			.css("visibility", "hidden")
 			.css("height", "0")
 			.css("width", "0")

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,7 +17,7 @@ sap.ui.define(['sap/ui/base/Object', 'sap/ui/core/LocaleData', './_Calendars'],
 	 * The UniversalDate is the base class of calendar date instances. It contains the static methods to create calendar
 	 * specific instances.
 	 *
-	 * The member variable <code>this.oData</code> contains the JS Date object, which is the source value of the date information.
+	 * The member variable <code>this.oDate</code> contains the JS Date object, which is the source value of the date information.
 	 * The prototype is containing getters and setters of the JS Date and is delegating them to the internal date object.
 	 * Implementations for specific calendars may override methods needed for their specific calendar (e.g. getYear
 	 * and getEra for Japanese emperor calendar);
@@ -45,7 +45,16 @@ sap.ui.define(['sap/ui/base/Object', 'sap/ui/core/LocaleData', './_Calendars'],
 	UniversalDate.prototype.createDate = function(clDate, aArgs) {
 		switch (aArgs.length) {
 			case 0: return new clDate();
-			case 1: return new clDate(aArgs[0]);
+			// new Date(new Date()) is officially not supported
+			// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/Date
+			// IE 11 loses milliseconds when using new Date(new Date())
+			// var oDateWithMs = new Date(1985, 9, 9, 13, 37, 13, 370);
+			// new Date(oDateWithMs).getMilliseconds();
+			// ie11: 0
+			// chrome/edge/safari/ff: 370
+			// -> Date#getTime to circumvent this problem
+			// this is e.g. executed when calling <code>new UniversalDate(oDateWithMs)</code>
+			case 1: return new clDate(aArgs[0] instanceof Date ? aArgs[0].getTime() : aArgs[0]);
 			case 2: return new clDate(aArgs[0], aArgs[1]);
 			case 3: return new clDate(aArgs[0], aArgs[1], aArgs[2]);
 			case 4: return new clDate(aArgs[0], aArgs[1], aArgs[2], aArgs[3]);
@@ -59,15 +68,19 @@ sap.ui.define(['sap/ui/base/Object', 'sap/ui/core/LocaleData', './_Calendars'],
 	 * Returns an instance of Date, based on the calendar type from the configuration, or as explicitly
 	 * defined by parameter. The object provides all methods also known on the JavaScript Date object.
 	 *
-	 * @param {Date} oDate A JavaScript date object
-	 * @param {sap.ui.core.CalendarType} sCalendarType A calendar type
-	 * @returns {sap.ui.core.date.UniversalDate} A date instance
+	 * Note: Prefer this method over calling <code>new UniversalDate</code> with an instance of <code>Date</code>
+	 *
+	 * @param {Date|UniversalDate} [oDate] JavaScript date object, defaults to <code>new Date()</code>
+	 * @param {sap.ui.core.CalendarType} [sCalendarType] The calendar type, defaults to <code>sap.ui.getCore().getConfiguration().getCalendarType()</code>
+	 * @returns {sap.ui.core.date.UniversalDate} The date instance
 	 * @public
 	 */
 	UniversalDate.getInstance = function(oDate, sCalendarType) {
 		var clDate, oInstance;
 		if (oDate instanceof UniversalDate) {
 			oDate = oDate.getJSDate();
+		} else if (!oDate) {
+			oDate = new Date();
 		}
 		if (!sCalendarType) {
 			sCalendarType = sap.ui.getCore().getConfiguration().getCalendarType();

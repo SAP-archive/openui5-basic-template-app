@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,7 @@ sap.ui.define([
 	 * Provides methods to show or hide a waiting animation covering the whole
 	 * page and blocking user interaction.
 	 * @namespace
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @public
 	 * @alias sap.ui.core.BusyIndicator
 	 */
@@ -149,7 +149,7 @@ sap.ui.define([
 	 */
 	BusyIndicator._onOpen = function(oEvent) {
 		// Grab the focus once opened
-		var oDomRef = (BusyIndicator.sDOM_ID ? window.document.getElementById(BusyIndicator.sDOM_ID) : null);
+		var oDomRef = document.getElementById(BusyIndicator.sDOM_ID);
 		oDomRef.style.height = "100%";
 		oDomRef.style.width = "100%";
 

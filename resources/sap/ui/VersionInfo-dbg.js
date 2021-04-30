@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,8 +8,9 @@ sap.ui.define(['sap/base/util/LoaderExtensions'], function (LoaderExtensions) {
 	"use strict";
 
 	/**
-	 * @alias sap.ui.VersionInfo
+	 * @alias module:sap/ui/VersionInfo
 	 * @namespace
+	 * @since 1.56.0
 	 * @public
 	 */
 	var VersionInfo = {};
@@ -75,7 +76,7 @@ sap.ui.define(['sap/base/util/LoaderExtensions'], function (LoaderExtensions) {
 	});
 
 	/**
-	 * Version retrieval. Used by {@link sap.ui.getVersionInfo} and {@link sap.ui.VersionInfo.load}
+	 * Version retrieval. Used by {@link sap.ui.getVersionInfo} and {@link module:sap/ui/VersionInfo.load}
 	 *
 	 * @param {string|object} [mOptions] name of the library (e.g. "sap.ui.core") or an object map (see below)
 	 * @param {boolean} [mOptions.library] name of the library (e.g. "sap.ui.core")

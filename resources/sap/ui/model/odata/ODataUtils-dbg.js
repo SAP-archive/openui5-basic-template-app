@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -193,20 +193,20 @@ sap.ui.define([
 	 * @param {string|object|array} vParams
 	 */
 	ODataUtils._createUrlParamsArray = function(vParams) {
-		var aUrlParams, sType = jQuery.type(vParams), sParams;
-		if (sType === "array") {
+		var aUrlParams, sType = typeof vParams, sParams;
+		if (Array.isArray(vParams)) {
 			return vParams;
 		}
 
 		aUrlParams = [];
-		if (sType === "object") {
+		if (sType === "string" || vParams instanceof String) {
+			if (vParams) {
+				aUrlParams.push(vParams);
+			}
+		} else if (sType === "object") {
 			sParams = this._encodeURLParameters(vParams);
 			if (sParams) {
 				aUrlParams.push(sParams);
-			}
-		} else if (sType === "string") {
-			if (vParams) {
-				aUrlParams.push(vParams);
 			}
 		}
 
@@ -226,7 +226,7 @@ sap.ui.define([
 		}
 		var aUrlParams = [];
 		jQuery.each(mParams, function (sName, oValue) {
-			if (jQuery.type(oValue) === "string") {
+			if (typeof oValue === "string" || oValue instanceof String) {
 				oValue = encodeURIComponent(oValue);
 			}
 			sName = sName.startsWith('$') ? sName : encodeURIComponent(sName);

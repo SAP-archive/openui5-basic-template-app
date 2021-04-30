@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -34,7 +34,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.Model
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @param {string} [oData] URL where to load the data from
 	 * @public
@@ -62,19 +62,16 @@ sap.ui.define([
 
 	/**
 	 * Returns the current data of the model.
+	 *
 	 * Be aware that the returned object is a reference to the model data so all changes to that data will also change the model data.
 	 *
-	 * @return the data object
+	 * @returns {any} the data object
 	 * @public
 	 */
 	ClientModel.prototype.getData = function(){
 		return this.oData;
 	};
 
-	/**
-	 * @see sap.ui.model.Model.prototype.bindElement
-	 *
-	 */
 	/**
 	 * @see sap.ui.model.Model.prototype.createBindingContext
 	 *

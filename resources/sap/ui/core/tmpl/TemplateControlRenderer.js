@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(function(){"use strict";var e={};e.render=function(e,t){var i=t.isInline()||this.hasControlData;if(!i){e.write("<div");e.writeControlData(t);e.writeStyles();e.writeClasses();e.write(">")}var r=this.renderTemplate||t.getTemplateRenderer();if(r){r.apply(this,arguments)}if(!i){e.write("</div>")}};return e},true);
+sap.ui.define(function(){"use strict";var e={apiVersion:1};e.render=function(e,i){var n=i.isInline()||this.hasControlData;if(!n){e.openStart("div",i).openEnd()}var r=this.renderTemplate||i.getTemplateRenderer();if(r){r.apply(this,arguments)}if(!n){e.close("div")}};return e},true);

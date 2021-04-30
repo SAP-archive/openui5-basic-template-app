@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -29,7 +29,7 @@ sap.ui.define(['sap/ui/core/message/MessageProcessor'],
 	 * @extends sap.ui.core.message.MessageProcessor
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @public
 	 * @alias sap.ui.core.message.ControlMessageProcessor
@@ -91,7 +91,7 @@ sap.ui.define(['sap/ui/core/message/MessageProcessor'],
 			oControl = sap.ui.getCore().byId(aParts[0]);
 
 			//if control does not exist: nothing to do
-			if  (!oControl) {
+			if  (!oControl || oControl._bIsBeingDestroyed) {
 				return;
 			}
 

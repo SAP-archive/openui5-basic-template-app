@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,13 +23,14 @@ sap.ui.define([
 		 *   The version of the OData service. Supported values are "2.0" and "4.0".
 		 * @param {object} [mQueryParams={}]
 		 *   A map of query parameters as described in
-		 *   {@link sap.ui.model.odata.v4.lib._Helper.buildQuery}
+		 *   {@link sap.ui.model.odata.v4.lib._Helper.buildQuery}. Note that "sap-context-token"
+		 *   is deleted(!) after the first <code>read</code> for a metadata document.
 		 * @returns {object}
 		 *   A new MetadataRequestor object
 		 */
 		create : function (mHeaders, sODataVersion, mQueryParams) {
 			var mUrl2Promise = {},
-				sQueryStr = _Helper.buildQuery(mQueryParams);
+				sQuery = _Helper.buildQuery(mQueryParams);
 
 			return {
 				/**
@@ -77,7 +78,7 @@ sap.ui.define([
 						delete mUrl2Promise[sUrl];
 					} else {
 						oPromise = new Promise(function (fnResolve, fnReject) {
-							jQuery.ajax(bAnnotations ? sUrl : sUrl + sQueryStr, {
+							jQuery.ajax(bAnnotations ? sUrl : sUrl + sQuery, {
 								method : "GET",
 								headers : mHeaders
 							}).then(function (oData, sTextStatus, jqXHR) {
@@ -103,6 +104,11 @@ sap.ui.define([
 									"sap.ui.model.odata.v4.lib._MetadataRequestor");
 								fnReject(oError);
 							});
+							if (!bAnnotations
+								&& mQueryParams && "sap-context-token" in mQueryParams) {
+								delete mQueryParams["sap-context-token"];
+								sQuery = _Helper.buildQuery(mQueryParams);
+							}
 						});
 						if (bPrefetch) {
 							mUrl2Promise[sUrl] = oPromise;

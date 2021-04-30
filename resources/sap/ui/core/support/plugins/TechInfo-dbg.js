@@ -1,18 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.support.plugins.TechInfo (TechInfo support plugin)
 sap.ui.define([
 	'sap/base/Log',
+	'sap/base/util/isEmptyObject',
+	'sap/base/util/isPlainObject',
 	'../Plugin',
 	'../Support',
 	'../ToolsAPI',
-	"sap/base/security/encodeXML"
+	'sap/base/security/encodeXML'
 ],
-	function(Log, Plugin, Support, ToolsAPI, encodeXML) {
+	function(Log, isEmptyObject, isPlainObject, Plugin, Support, ToolsAPI, encodeXML) {
 	"use strict";
 
 
@@ -21,7 +23,7 @@ sap.ui.define([
 		 * @class This class represents the technical info plugin for the support tool functionality of UI5. This class is internal and all its functions must not be used by an application.
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 * @private
 		 * @alias sap.ui.core.support.plugins.TechInfo
 		 */
@@ -109,7 +111,7 @@ sap.ui.define([
 			line(html, true, true, "Application", oData.appurl);
 			multiline(html, true, true, "Configuration (bootstrap)", oData.bootconfig);
 			multiline(html, true, true, "Configuration (computed)", oData.config);
-			if (!jQuery.isEmptyObject(oData.libraries)) {
+			if (!isEmptyObject(oData.libraries)) {
 				multiline(html, true, true, "Libraries", oData.libraries);
 			}
 			multiline(html, true, true, "Loaded Libraries", oData.loadedLibraries);
@@ -316,8 +318,8 @@ sap.ui.define([
 					if (v) {
 						if (typeof (v) === "string" || typeof (v) === "string" || typeof (v) === "boolean") {
 							val = v;
-						} else if ((Array.isArray(v) || jQuery.isPlainObject(v)) && window.JSON) {
-							val = window.JSON.stringify(v);
+						} else if (Array.isArray(v) || isPlainObject(v)) {
+							val = JSON.stringify(v);
 						}
 					}
 					line(buffer, false, false, i, "" + val);

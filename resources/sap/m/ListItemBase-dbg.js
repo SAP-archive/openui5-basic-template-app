@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,6 +14,7 @@ sap.ui.define([
 	"sap/ui/core/Control",
 	"sap/ui/core/IconPool",
 	"sap/ui/core/Icon",
+	"sap/ui/core/InvisibleText",
 	"sap/ui/core/theming/Parameters",
 	"./library",
 	"./Button",
@@ -34,6 +35,7 @@ function(
 	Control,
 	IconPool,
 	Icon,
+	InvisibleText,
 	ThemeParameters,
 	library,
 	Button,
@@ -74,7 +76,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -184,8 +186,10 @@ function(
 	}});
 
 	ListItemBase.getAccessibilityText = function(oControl, bDetectEmpty) {
+		var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+
 		if (!oControl || !oControl.getVisible || !oControl.getVisible()) {
-			return "";
+			return bDetectEmpty ? oBundle.getText("CONTROL_EMPTY") : "";
 		}
 
 		var oAccInfo;
@@ -202,8 +206,7 @@ function(
 			children: []
 		}, oAccInfo);
 
-		var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
-			sText = oAccInfo.type + " " + oAccInfo.description + " ",
+		var sText = oAccInfo.type + " " + oAccInfo.description + " ",
 			sTooltip = oControl.getTooltip_AsString();
 
 		if (oAccInfo.enabled === false) {
@@ -433,7 +436,10 @@ function(
 			}
 		}
 
-		aOutput.push(this.getGroupAnnouncement() || "");
+		var sGroupAnnouncement = this.getGroupAnnouncement() || "";
+		if (sGroupAnnouncement) {
+			aOutput.push(sGroupAnnouncement);
+		}
 
 		if (this.getContentAnnouncement) {
 			aOutput.push((this.getContentAnnouncement(oBundle) || "").trim());
@@ -447,7 +453,12 @@ function(
 			aOutput.push(oBundle.getText("LIST_ITEM_NAVIGATED"));
 		}
 
-		return aOutput.join(" ");
+		if (this._bAnnounceNotSelected && this.isSelectable() && !this.getSelected()) {
+			aOutput.push(oBundle.getText("LIST_ITEM_NOT_SELECTED"));
+		}
+
+		//The dot is added  so the screenreader can pause
+		return aOutput.join(" . ");
 	};
 
 	ListItemBase.prototype.getAccessibilityInfo = function() {
@@ -527,6 +538,11 @@ function(
 
 		this._oDeleteControl._bExcludeFromTabChain = true;
 
+		// prevent disabling of internal controls by the sap.ui.core.EnabledPropagator
+		this._oDeleteControl.getEnabled = function() {
+			return true;
+		};
+
 		return this._oDeleteControl;
 	};
 
@@ -559,6 +575,11 @@ function(
 		}, this);
 
 		this._oDetailControl._bExcludeFromTabChain = true;
+
+		// prevent disabling of internal controls by the sap.ui.core.EnabledPropagator
+		this._oDetailControl.getEnabled = function() {
+			return true;
+		};
 
 		return this._oDetailControl;
 	};
@@ -600,12 +621,18 @@ function(
 			id: this.getId() + "-selectSingle",
 			groupName: this.getListProperty("id") + "_selectGroup",
 			activeHandling: false,
-			selected: this.getSelected()
+			selected: this.getSelected(),
+			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "LIST_ITEM_SELECTION")
 		}).addStyleClass("sapMLIBSelectS").setParent(this, null, true).setTabIndex(-1).attachSelect(function(oEvent) {
 			var bSelected = oEvent.getParameter("selected");
 			this.setSelected(bSelected);
 			this.informList("Select", bSelected);
 		}, this);
+
+		// prevent disabling of internal controls by the sap.ui.core.EnabledPropagator
+		this._oSingleSelectControl.getEnabled = function() {
+			return true;
+		};
 
 		return this._oSingleSelectControl;
 	};
@@ -625,7 +652,8 @@ function(
 		this._oMultiSelectControl = new CheckBox({
 			id: this.getId() + "-selectMulti",
 			activeHandling: false,
-			selected: this.getSelected()
+			selected: this.getSelected(),
+			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "LIST_ITEM_SELECTION")
 		}).addStyleClass("sapMLIBSelectM").setParent(this, null, true).setTabIndex(-1).addEventDelegate({
 			onkeydown: function (oEvent) {
 				this.informList("KeyDown", oEvent);
@@ -638,6 +666,11 @@ function(
 			this.setSelected(bSelected);
 			this.informList("Select", bSelected);
 		}, this);
+
+		// prevent disabling of internal controls by the sap.ui.core.EnabledPropagator
+		this._oMultiSelectControl.getEnabled = function() {
+			return true;
+		};
 
 		return this._oMultiSelectControl;
 	};

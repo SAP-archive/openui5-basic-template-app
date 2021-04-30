@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,7 +35,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.NumberFormat#constructor NumberFormat}.
@@ -112,7 +112,9 @@ sap.ui.define([
 			var oBundle = sap.ui.getCore().getLibraryResourceBundle(),
 				aViolatedConstraints = [],
 				aMessages = [],
-				iValue = vValue;
+				iValue = vValue,
+				that = this;
+
 			if (this.oInputFormat) {
 				iValue = this.oInputFormat.parse(vValue);
 			}
@@ -121,13 +123,15 @@ sap.ui.define([
 					case "minimum":
 						if (iValue < oContent) {
 							aViolatedConstraints.push("minimum");
-							aMessages.push(oBundle.getText("Integer.Minimum", [oContent]));
+							aMessages.push(oBundle.getText("Integer.Minimum",
+								[that.oOutputFormat.format(oContent)]));
 						}
 						break;
 					case "maximum":
 						if (iValue > oContent) {
 							aViolatedConstraints.push("maximum");
-							aMessages.push(oBundle.getText("Integer.Maximum", [oContent]));
+							aMessages.push(oBundle.getText("Integer.Maximum",
+								[that.oOutputFormat.format(oContent)]));
 						}
 				}
 			});

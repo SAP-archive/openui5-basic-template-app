@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -107,33 +107,33 @@ sap.ui.define([
 	 * The handler functions corresponding to nodes of an annotation expression all use
 	 * a parameter <code>oPathValue</code>. This parameter contains the following properties:
 	 * <ul>
-	 *  <li><code>asExpression</code>: {boolean} parser state: if this property is
-	 *    <code>true</code>, an embedded <code>concat</code> must be rendered as an expression
-	 *    binding and not a composite binding.
-	 *  <li><code>complexBinding</code>: {boolean} parser state: if this property is
-	 *    <code>true</code>, bindings shall have type and constraints information
-	 *  <li><code>ignoreAsPrefix</code>: {string} an optional prefix to be ignored in a path
-	 *    expression (for example, binding parameter name)
-	 *  <li><code>model</code>: {sap.ui.model.odata.v4.ODataMetaModel} the metamodel
-	 *  <li><code>path</code>: {string} the path in the metamodel that leads to the value
-	 *  <li><code>prefix</code>: {string} used in a path expression as a prefix for the
-	 *    value; is either an empty string or a path ending with a "/"
-	 *  <li><code>value</code>: {any} the value of the (sub) expression from the metamodel
+	 *   <li> <code>asExpression</code>: {boolean} parser state: if this property is
+	 *     <code>true</code>, an embedded <code>concat</code> must be rendered as an expression
+	 *     binding and not a composite binding.
+	 *   <li> <code>complexBinding</code>: {boolean} parser state: if this property is
+	 *     <code>true</code>, bindings shall have type and constraints information
+	 *   <li> <code>ignoreAsPrefix</code>: {string} an optional prefix to be ignored in a path
+	 *     expression (for example, binding parameter name)
+	 *   <li> <code>model</code>: {sap.ui.model.odata.v4.ODataMetaModel} the metamodel
+	 *   <li> <code>path</code>: {string} the path in the metamodel that leads to the value
+	 *   <li> <code>prefix</code>: {string} used in a path expression as a prefix for the
+	 *     value; is either an empty string or a path ending with a "/"
+	 *   <li> <code>value</code>: {any} the value of the (sub) expression from the metamodel
 	 * </ul>
 	 *
 	 * Unless specified otherwise all functions return a result object with the following
 	 * properties:
 	 * <ul>
-	 *  <li><code>result</code>: "binding", "composite", "constant" or "expression"
-	 *  <li><code>value</code>: depending on <code>result</code>:
-	 *   <ul>
-	 *    <li>when "binding": {string} the binding path
-	 *    <li>when "composite": {string} the binding string incl. the curly braces
-	 *    <li>when "constant": {any} the constant value (not escaped if string)
-	 *    <li>when "expression": {string} the expression unwrapped (no "{=" and "}")
-	 *   </ul>
-	 *  <li><code>type</code>:  the EDM data type (like "Edm.String") if it could be determined
-	 *  <li><code>constraints</code>: {object} type constraints if result is "binding"
+	 *   <li> <code>result</code>: "binding", "composite", "constant" or "expression"
+	 *   <li> <code>value</code>: depending on <code>result</code>:
+	 *     <ul>
+	 *       <li> when "binding": {string} the binding path
+	 *       <li> when "composite": {string} the binding string incl. the curly braces
+	 *       <li> when "constant": {any} the constant value (not escaped if string)
+	 *       <li> when "expression": {string} the expression unwrapped (no "{=" and "}")
+	 *     </ul>
+	 *   <li> <code>type</code>:  the EDM data type (like "Edm.String") if it could be determined
+	 *   <li> <code>constraints</code>: {object} type constraints if result is "binding"
 	 * </ul>
 	 */
 	Expression = {
@@ -185,6 +185,37 @@ sap.ui.define([
 		},
 
 		/**
+		 * Handling of "14.5.5 Expression edm:Collection".
+		 *
+		 * @param {object} oPathValue
+		 *   path and value information pointing to the array (see Expression object)
+		 * @returns {sap.ui.base.SyncPromise}
+		 *   a sync promise which resolves with the result object or is rejected with an error
+		 */
+		collection : function (oPathValue) {
+			var aPromises;
+
+			// needed so that we can safely call Array#map
+			Basics.expectType(oPathValue, "array");
+			aPromises = oPathValue.value.map(function (oUnused, i) {
+				return Expression.expression(
+					Basics.descend(oPathValue, i, true/*"as expression"*/),
+					/*bInCollection*/true);
+			});
+
+			return SyncPromise.all(aPromises).then(function (aElements) {
+				aElements = aElements.map(function (oElement) {
+					return Basics.resultToString(oElement, true);
+				});
+
+				return {
+					result : "expression",
+					value : "odata.collection([" + aElements.join(",") + "])"
+				};
+			});
+		},
+
+		/**
 		 * Handling of "14.5.3.1.1 Function odata.concat".
 		 *
 		 * @param {object} oPathValue
@@ -195,7 +226,7 @@ sap.ui.define([
 		concat : function (oPathValue) {
 			var aPromises;
 
-			// needed so that we can safely call the forEach
+			// needed so that we can safely call Array#map
 			Basics.expectType(oPathValue, "array");
 			aPromises = oPathValue.value.map(function (oUnused, i) {
 				// an embedded concat must use expression binding
@@ -241,10 +272,13 @@ sap.ui.define([
 		 *   The first parameter element is the conditional expression and must evaluate to an
 		 *   Edm.Boolean. The second and third child elements are the expressions, which are
 		 *   evaluated conditionally.
+		 * @param {boolean} [bInCollection]
+		 *   Whether "14.5.6 Expression edm:If" appears as a direct child of
+		 *   "14.5.5 Expression edm:Collection" and thus needs no third child element ("else")
 		 * @returns {sap.ui.base.SyncPromise}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
-		conditional : function (oPathValue) {
+		conditional : function (oPathValue, bInCollection) {
 			var bComplexBinding = oPathValue.complexBinding,
 				oPathValueForCondition = bComplexBinding
 					? Object.assign({}, oPathValue, {complexBinding : false})
@@ -263,7 +297,9 @@ sap.ui.define([
 			return SyncPromise.all([
 				Expression.parameter(oPathValueForCondition, 0, "Edm.Boolean"),
 				Expression.parameter(oPathValue, 1),
-				Expression.parameter(oPathValue, 2)
+				bInCollection && oPathValue.value.length === 2
+					? {result : "constant", type : "edm:Null", value : undefined}
+					: Expression.parameter(oPathValue, 2)
 			]).then(function (aResults) {
 				var oCondition = aResults[0],
 					oThen = aResults[1],
@@ -290,15 +326,15 @@ sap.ui.define([
 		/**
 		 * Handling of "14.4 Constant Expressions", i.e.
 		 * <ul>
-		 *   <li>"14.4.2 Expression edm:Bool",</li>
-		 *   <li>"14.4.3 Expression edm:Date",</li>
-		 *   <li>"14.4.4 Expression edm:DateTimeOffset",</li>
-		 *   <li>"14.4.5 Expression edm:Decimal",</li>
-		 *   <li>"14.4.8 Expression edm:Float",</li>
-		 *   <li>"14.4.9 Expression edm:Guid",</li>
-		 *   <li>"14.4.10 Expression edm:Int",</li>
-		 *   <li>"14.4.11 Expression edm:String",</li>
-		 *   <li>"14.4.12 Expression edm:TimeOfDay".</li>
+		 *   <li> "14.4.2 Expression edm:Bool",
+		 *   <li> "14.4.3 Expression edm:Date",
+		 *   <li> "14.4.4 Expression edm:DateTimeOffset",
+		 *   <li> "14.4.5 Expression edm:Decimal",
+		 *   <li> "14.4.8 Expression edm:Float",
+		 *   <li> "14.4.9 Expression edm:Guid",
+		 *   <li> "14.4.10 Expression edm:Int",
+		 *   <li> "14.4.11 Expression edm:String",
+		 *   <li> "14.4.12 Expression edm:TimeOfDay".
 		 * </ul>
 		 *
 		 * @param {object} oPathValue
@@ -334,10 +370,13 @@ sap.ui.define([
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the expression (see Expression object)
+		 * @param {boolean} [bInCollection]
+		 *   Whether the current expression appears as a direct child of
+		 *  "14.5.5 Expression edm:Collection"
 		 * @returns {sap.ui.base.SyncPromise}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
-		expression : function (oPathValue) {
+		expression : function (oPathValue, bInCollection) {
 			var oRawValue = oPathValue.value,
 				oSubPathValue = oPathValue,
 				sType;
@@ -352,6 +391,8 @@ sap.ui.define([
 					: "Float";
 			} else if (typeof oRawValue === "string") {
 				sType = "String";
+			} else if (Array.isArray(oRawValue)) { // 14.5.5 Expression edm:Collection
+				return Expression.collection(oPathValue);
 			} else {
 				Basics.expectType(oPathValue, "object");
 
@@ -376,7 +417,7 @@ sap.ui.define([
 					return Expression.apply(oPathValue, oSubPathValue);
 
 				case "If": // 14.5.6 Expression edm:If
-					return Expression.conditional(oSubPathValue);
+					return Expression.conditional(oSubPathValue, bInCollection);
 
 				case "Name": // 12.4.1 Attribute Name
 				case "Path": // 14.5.12 Expression edm:Path

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["./PropertyBinding","./ChangeReason","sap/base/assert","sap/base/Log"],function(t,e,n,a){"use strict";var o=t.extend("sap.ui.model.StaticBinding",{constructor:function(e){t.apply(this,[null,""]);this.vValue=e},metadata:{publicMethods:["attachChange","detachChange"]}});o.prototype.getPath=function(){n(null,"Static Binding has no path!");return null};o.prototype.getModel=function(){return null};o.prototype.getContext=function(){n(null,"Static Binding has no context!");return null};o.prototype.updateRequired=function(){return true};o.prototype.getValue=function(){return this.vValue};o.prototype.setValue=function(t){if(t!==this.vValue){this.vValue=t;this._fireChange({reason:e.Change})}};o.prototype.attachChange=function(t,e){this.attachEvent("change",t,e)};o.prototype.detachChange=function(t,e){this.detachEvent("change",t,e)};return o});
+sap.ui.define(["./ChangeReason","./PropertyBinding"],function(t,e){"use strict";var n=e.extend("sap.ui.model.StaticBinding",{constructor:function(t){e.apply(this,[null,""]);this.vValue=t}});n.prototype.getPath=function(){return null};n.prototype.getModel=function(){return null};n.prototype.getContext=function(){return null};n.prototype.updateRequired=function(){return true};n.prototype.getValue=function(){return this.vValue};n.prototype.setValue=function(e){if(e!==this.vValue){this.vValue=e;this._fireChange({reason:t.Change})}};n.prototype.attachChange=function(t,e){this.attachEvent("change",t,e)};n.prototype.detachChange=function(t,e){this.detachEvent("change",t,e)};return n});

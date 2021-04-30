@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -175,6 +175,15 @@ sap.ui.define([
 	 *               This feature is not supported in <code>OperationMode.Server</code> and <code>OperationMode.Auto</code>.
 	 *               Please see also the {@link sap.ui.model.odata.ODataTreeBindingAdapter#getCurrentTreeState getCurrentTreeState}
 	 *               method in class <code>ODataTreeBindingAdapter</code>.
+	 *  @param {sap.ui.model.odata.CountMode} [mParameters.countMode]
+	 *    Defines the count mode of this binding; if not specified, the default count mode of the
+	 *    binding's model is applied. The resulting count mode must not be
+	 *    {@link sap.ui.model.odata.CountMode.None}.
+	 *  @param {boolean} [mParameters.usePreliminaryContext]
+	 *    Whether a preliminary context is used; defaults to the value of the parameter
+	 *    <code>preliminaryContext</code> given on construction of the binding's model, see
+	 *    {@link sap.ui.model.odata.v2.ODataModel}
+	 *
 	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataTreeBinding
 	 * @extends sap.ui.model.TreeBinding
@@ -195,6 +204,7 @@ sap.ui.define([
 			this.oKeys = {};
 			this.bNeedsUpdate = false;
 			this._bRootMissing = false;
+			this.bSkipDataEvents = false;
 
 			this.aSorters = aSorters || [];
 			this.sFilterParams = "";
@@ -260,6 +270,8 @@ sap.ui.define([
 
 			// a flag to decide if the OperationMode.Auto should "useServersideApplicationFilters", by default the filters are omitted.
 			this.bUseServersideApplicationFilters = (mParameters && mParameters.useServersideApplicationFilters) || false;
+			this.bUsePreliminaryContext = this.mParameters.usePreliminaryContext
+				|| oModel.bPreliminaryContext;
 
 			this.oAllKeys = null;
 			this.oAllLengths = null;
@@ -347,7 +359,6 @@ sap.ui.define([
 						that.bNeedsUpdate = true;
 						that._bRootMissing = true;
 						delete that.mRequestHandles[sRequestKey];
-
 						that.fireDataReceived();
 					}
 				}
@@ -1094,22 +1105,24 @@ sap.ui.define([
 			}.bind(this);
 
 			var fnError = function (oError) {
-				// Always fire data received event
-				this.fireDataReceived();
+				delete this.mRequestHandles[sRequestKey];
 
 				//Only perform error handling if the request was not aborted intentionally
 				if (oError && oError.statusCode === 0 && oError.statusText === "abort") {
 					return;
 				}
 
-				delete this.mRequestHandles[sRequestKey];
+				this.fireDataReceived();
 
 				reject(); // Application should retrieve error details via ODataModel events
 			}.bind(this);
 
 
 			// execute the request and use the metadata if available
-			this.fireDataRequested();
+			if (!this.bSkipDataEvents) {
+				this.fireDataRequested();
+			}
+			this.bSkipDataEvents = false;
 
 			sAbsolutePath = this.oModel.resolve(this.getPath(), this.getContext());
 			if (sAbsolutePath) {
@@ -1226,14 +1239,12 @@ sap.ui.define([
 		}
 
 		function fnError(oError) {
-			// Always fire data received event
-			that.fireDataReceived();
-
 			//Only perform error handling if the request was not aborted intentionally
 			if (oError && oError.statusCode === 0 && oError.statusText === "abort") {
 				return;
 			}
 
+			that.fireDataReceived();
 			delete that.mRequestHandles[sRequestKey];
 
 			if (oRequestedSection) {
@@ -1260,7 +1271,11 @@ sap.ui.define([
 		// !== because we use "null" as sNodeId in case the user only provided a root level
 		if (sNodeId !== undefined) {
 			// execute the request and use the metadata if available
-			this.fireDataRequested();
+			if (!this.bSkipDataEvents) {
+				this.fireDataRequested();
+			}
+			this.bSkipDataEvents = false;
+
 			var sAbsolutePath;
 			if (this.bHasTreeAnnotations) {
 				sAbsolutePath = this.oModel.resolve(this.getPath(), this.getContext());
@@ -1386,13 +1401,16 @@ sap.ui.define([
 				that.oAllLengths = {};
 				that.oAllFinalLengths = {};
 				that._fireChange({reason: ChangeReason.Change});
+				that.fireDataReceived();
 			}
-
-			that.fireDataReceived();
 		};
 
 		// request the tree collection
-		this.fireDataRequested();
+		if (!this.bSkipDataEvents) {
+			this.fireDataRequested();
+		}
+		this.bSkipDataEvents = false;
+
 		if (this.mRequestHandles[sRequestKey]) {
 			this.mRequestHandles[sRequestKey].abort();
 		}
@@ -1538,7 +1556,6 @@ sap.ui.define([
 		}
 		if (bForceUpdate || bChangeDetected) {
 			this.resetData();
-			// TODO: Abort pending requests --> like ODataListBinding
 			this.bNeedsUpdate = false;
 			this.bRefresh = true;
 			this._fireRefresh({reason: ChangeReason.Refresh});
@@ -2042,22 +2059,29 @@ sap.ui.define([
 
 	/**
 	 * Sets the binding context.
-	 * @param oContext
+	 *
+	 * @param {sap.ui.model.Context} [oContext] The new binding context
 	 * @private
 	 */
 	ODataTreeBinding.prototype.setContext = function(oContext) {
+		if (oContext && oContext.isPreliminary() && !this.bUsePreliminaryContext) {
+			return;
+		}
+
+		if (oContext && oContext.isUpdated() && this.bUsePreliminaryContext
+				&& this.oContext === oContext) {
+			this._fireChange({reason : ChangeReason.Context});
+			return;
+		}
+
 		if (Context.hasChanged(this.oContext, oContext)) {
 			this.oContext = oContext;
 
-			// If binding is not a relative binding, nothing to do here
 			if (!this.isRelative()) {
 				return;
 			}
 
-			// resolving the path makes sure that we can safely analyze the metadata
-			var sResolvedPath = this.oModel.resolve(this.sPath, this.oContext);
-
-			if (sResolvedPath) {
+			if (this.oModel.resolve(this.sPath, this.oContext)) {
 				this.resetData();
 				this._initialize(); // triggers metadata/annotation check
 				this._fireChange({ reason: ChangeReason.Context });
@@ -2423,13 +2447,17 @@ sap.ui.define([
 	* Abort all pending requests
 	*/
 	ODataTreeBinding.prototype._abortPendingRequest = function() {
-		// abort running request and clear the map afterwards
-		jQuery.each(this.mRequestHandles, function (sRequestKey, oRequestHandle) {
-			if (oRequestHandle) {
-				oRequestHandle.abort();
-			}
-		});
-		this.mRequestHandles = {};
+		if (!isEmptyObject(this.mRequestHandles)) {
+			this.bSkipDataEvents = true;
+
+			// abort running request and clear the map afterwards
+			jQuery.each(this.mRequestHandles, function (sRequestKey, oRequestHandle) {
+				if (oRequestHandle) {
+					oRequestHandle.abort();
+				}
+			});
+			this.mRequestHandles = {};
+		}
 	};
 
 	/**

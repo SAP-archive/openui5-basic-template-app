@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -180,7 +180,7 @@ sap.ui.define([
 	 *
 	 * @extends Object
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @alias sap.ui.core.RenderManager
 	 * @public
 	 */
@@ -473,9 +473,10 @@ sap.ui.define([
 		this.openEnd = function(bExludeStyleClasses /* private */) {
 			assertOpenTagHasStarted("openEnd");
 			assertOpenTagHasEnded(!bVoidOpen);
+			assert(bExludeStyleClasses === undefined || bExludeStyleClasses === true, "The private parameter bExludeStyleClasses must be true or omitted!");
 			sOpenTag = "";
 
-			this.writeClasses(bExludeStyleClasses ? false : undefined);
+			this.writeClasses(bExludeStyleClasses === true ? false : undefined);
 			this.writeStyles();
 			this.write(">");
 			return this;
@@ -705,7 +706,7 @@ sap.ui.define([
 
 		// @see sap.ui.core.RenderManager#openEnd
 		oDomInterface.openEnd = function(bExludeStyleClasses /* private */) {
-			if (!bExludeStyleClasses) {
+			if (bExludeStyleClasses !== true) {
 				var oStyle = aStyleStack[aStyleStack.length - 1];
 				var aStyleClasses = oStyle.aCustomStyleClasses;
 				if (aStyleClasses) {
@@ -716,6 +717,7 @@ sap.ui.define([
 
 			assertOpenTagHasStarted("openEnd");
 			assertOpenTagHasEnded(!bVoidOpen);
+			assert(bExludeStyleClasses === undefined || bExludeStyleClasses === true, "The private parameter bExludeStyleClasses must be true or omitted!");
 			sOpenTag = "";
 
 			Patcher.openEnd();
@@ -1748,7 +1750,7 @@ sap.ui.define([
 				this.openStart("span");
 				this.style("display", "none");
 				this.attr("id", sInvTextId);
-				this.openEnd("span");
+				this.openEnd();
 				this.text(sLabel);
 				this.close("span");
 			}
@@ -1882,7 +1884,7 @@ sap.ui.define([
 	function getPreserveArea() {
 		var $preserve = jQuery(document.getElementById(ID_PRESERVE_AREA));
 		if ($preserve.length === 0) {
-			$preserve = jQuery("<DIV/>",{"aria-hidden":"true",id:ID_PRESERVE_AREA}).
+			$preserve = jQuery("<div></div>",{"aria-hidden":"true",id:ID_PRESERVE_AREA}).
 				addClass("sapUiHidden").addClass("sapUiForcedHidden").css("width", "0").css("height", "0").css("overflow", "hidden").
 				appendTo(document.body);
 		}
@@ -1894,7 +1896,7 @@ sap.ui.define([
 	 * Create a placeholder node for the given node (which must have an ID) and insert it before the node
 	 */
 	function makePlaceholder(node) {
-		jQuery("<DIV/>", { id: RenderPrefixes.Dummy + node.id}).addClass("sapUiHidden").insertBefore(node);
+		jQuery("<div></div>", { id: RenderPrefixes.Dummy + node.id}).addClass("sapUiHidden").insertBefore(node);
 	}
 
 	// Stores {@link sap.ui.core.RenderManager.preserveContent} listener as objects with following structure:

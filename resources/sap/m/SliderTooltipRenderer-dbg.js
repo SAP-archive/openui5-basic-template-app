@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -47,10 +47,9 @@ sap.ui.define(['sap/ui/core/Renderer', "sap/ui/core/Core"],
 	};
 
 	SliderTooltipRenderer.renderTooltipElement = function (oRM, oControl) {
-		var bAccessibilityOn = sap.ui.getCore().getConfiguration().getAccessibility(),
-			oRb = Core.getLibraryResourceBundle("sap.m");
+		var oRb = Core.getLibraryResourceBundle("sap.m");
 
-		oRM.openStart("input")
+		oRM.voidStart("input", oControl.getId() + "-input")
 			.class(SliderTooltipRenderer.CSS_CLASS + "Input");
 
 		if (!oControl.getEditable()) {
@@ -59,17 +58,12 @@ sap.ui.define(['sap/ui/core/Renderer', "sap/ui/core/Core"],
 			oRM.attr("aria-label", oRb.getText("SLIDER_INPUT_LABEL"));
 		}
 
-		if (bAccessibilityOn) {
-			oRM.accessibilityState(oControl, {});
-		}
-
-		oRM.attr("tabindex", "-1")
+		oRM.accessibilityState(oControl)
+			.attr("tabindex", "-1")
 			.attr("value", oControl.getValue())
 			.attr("type", "number")
 			.attr("step", oControl.getStep())
-			.attr("id", oControl.getId() + "-input")
-			.openEnd()
-			.close("input");
+			.voidEnd();
 	};
 
 	return SliderTooltipRenderer;

@@ -1,6 +1,6 @@
 /*
  * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @class The <code>P13nColumnsPanel</code> control is used to define column-specific settings for table personalization.
 	 * @extends sap.m.P13nPanel
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @constructor
 	 * @public
 	 * @since 1.26.0
@@ -554,19 +554,19 @@ sap.ui.define([
 						moveToOverflow: false,
 						stayInOverflow: false
 					})
-				}), new Button({
+				}), new Button(this.getId() + "-showSelected", {
 					text: {
 						path: '/showOnlySelectedItems',
 						formatter: function(bShowOnlySelectedItems) {
 							return bShowOnlySelectedItems ? oRb.getText('COLUMNSPANEL_SHOW_ALL') : oRb.getText('COLUMNSPANEL_SHOW_SELECTED');
 						}
 					},
-					tooltip: {
+					/*tooltip: {
 						path: '/showOnlySelectedItems',
 						formatter: function(bShowOnlySelectedItems) {
 							return bShowOnlySelectedItems ? oRb.getText('COLUMNSPANEL_SHOW_ALL') : oRb.getText('COLUMNSPANEL_SHOW_SELECTED');
 						}
-					},
+					},*/
 					type: ButtonType.Transparent,
 					press: jQuery.proxy(this._onSwitchButtonShowSelected, this),
 					layoutData: new OverflowToolbarLayoutData({
@@ -695,11 +695,26 @@ sap.ui.define([
 
 		this._moveModelItems(iIndexFrom, iIndexTo);
 
+		this._checkButtonFocus(iIndexTo);
 		this._scrollToSelectedItem(this._getMarkedTableItem());
 		this._updateControlLogic();
 		this._fireChangeColumnsItems();
 		this._fireSetData();
 		this._notifyChange();
+	};
+
+	/**
+	 * Used to check whether the item is on the first or last index of the inner Table's <code>items</code> aggregration
+	 * and sets the focus to the 'Show Selected' Button.
+	 *
+	 * @param {int} iIndexTo index to which the item has been moved
+	 */
+	P13nColumnsPanel.prototype._checkButtonFocus = function(iIndexTo) {
+		var iMaxIndex = this._oTable.getItems().length - 1;
+
+		if (iIndexTo === 0 || iIndexTo === iMaxIndex) {
+			sap.ui.getCore().byId(this.getId() + "-showSelected").focus();
+		}
 	};
 
 	/**

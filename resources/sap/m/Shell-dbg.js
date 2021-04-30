@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,7 +35,7 @@ sap.ui.define([
 		 * The Shell control can be used as root element of applications. It can contain an App or a <code>SplitApp</code> control.
 		 * The Shell provides some overarching functionality for the overall application and takes care of visual adaptation, such as a frame around the App, on desktop browser platforms.
 		 * @extends sap.ui.core.Control
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @constructor
 		 * @public
@@ -55,6 +55,9 @@ sap.ui.define([
 
 				/**
 				 * Defines the logo to be displayed next to the App when the screen is sufficiently large.
+				 *
+				 * Note: If property value isn't set, then the logo address is taken from the theme parameters.
+				 * For reference please see: {@link sap.ui.core.theming.Parameters}
 				 */
 				logo : {type : "sap.ui.core.URI", group : "Appearance", defaultValue : null},
 

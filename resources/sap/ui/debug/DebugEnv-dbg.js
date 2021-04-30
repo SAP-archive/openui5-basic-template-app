@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,7 +16,7 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 	 * @class Central Class for the Debug Environment
 	 *
 	 * @author Martin Schaus, Frank Weigel
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @private
 	 * @alias sap.ui.debug.DebugEnv
 	 */
@@ -70,8 +70,8 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 	 * @private
 	 */
 	DebugEnv.prototype.init = function(bOnInit) {
-		this.oControlTreeWindow = this.bRunsEmbedded ? this.oWindow : (top.frames["sap-ui-ControlTreeWindow"] || top);
-		this.oPropertyListWindow = this.bRunsEmbedded ? this.oWindow : (top.frames["sap-ui-PropertyListWindow"] || top);
+		this.oControlTreeWindow = this.bRunsEmbedded ? this.oWindow : (top.document.getElementById("sap-ui-ControlTreeWindow") || top.frames["sap-ui-ControlTreeWindow"] || top);
+		this.oPropertyListWindow = this.bRunsEmbedded ? this.oWindow : (top.document.getElementById("sap-ui-PropertyListWindow") || top.frames["sap-ui-PropertyListWindow"] || top);
 
 		var bRtl = sap.ui.getCore().getConfiguration().getRTL();
 
@@ -103,8 +103,8 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 		}
 		*/
 
-		var oControlTreeRoot = this.oControlTreeWindow.document.getElementById("sap-ui-ControlTreeRoot"),
-			oPropertyWindowRoot = this.oPropertyListWindow.document.getElementById("sap-ui-PropertyWindowRoot");
+		var oControlTreeRoot = this.oControlTreeWindow.querySelector("#sap-ui-ControlTreeRoot"),
+			oPropertyWindowRoot = this.oPropertyListWindow.querySelector("#sap-ui-PropertyWindowRoot");
 
 		if ( !oControlTreeRoot ) {
 			oControlTreeRoot = this.oControlTreeWindow.document.createElement("DIV");
@@ -166,10 +166,10 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 			this.oControlTree.renderDelayed();
 		}
 
-		jQuery(window).unload(jQuery.proxy(function(oEvent) {
+		window.addEventListener("unload", function(oEvent) {
 			this.oControlTree.exit();
 			this.oPropertyList.exit();
-		}, this));
+		}.bind(this));
 
 	};
 
@@ -182,8 +182,13 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 		this.oLogger.setLogEntriesLimit(Infinity);
 		if ( !this.bRunsEmbedded ) {
 			// attach test suite log viewer to our Log
-			this.oTraceWindow = top.frames["sap-ui-TraceWindow"];
-			this.oTraceViewer = this.oTraceWindow.oLogViewer = new LogViewer(this.oTraceWindow, 'sap-ui-TraceWindowRoot');
+			this.oTraceWindow = top.document.getElementById("sap-ui-TraceWindow");
+			if ( this.oTraceWindow ) {
+				this.oTraceViewer = top.oLogViewer = new LogViewer(this.oTraceWindow, 'sap-ui-TraceWindowRoot');
+			} else {
+				this.oTraceWindow = top.frames["sap-ui-TraceWindow"];
+				this.oTraceViewer = this.oTraceWindow.oLogViewer = new LogViewer(this.oTraceWindow, 'sap-ui-TraceWindowRoot');
+			}
 			this.oTraceViewer.sLogEntryClassPrefix = "lvl"; // enforce use of CSS instead of DOM styles
 			this.oTraceViewer.lock();
 		} else {

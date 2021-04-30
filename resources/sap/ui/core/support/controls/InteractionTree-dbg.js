@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -37,7 +37,10 @@ sap.ui.define([
        var PlacementType = mobileLibrary.PlacementType;
 
        var InteractionTree = ManagedObject.extend("sap.ui.core.support.controls.InteractionTree", {
-          constructor: function () {
+         metadata: {
+           library: "sap.ui.core"
+         },
+         constructor: function () {
              this.start = 0;
              this.end = 1;
           }
@@ -280,7 +283,7 @@ sap.ui.define([
           rm.write('</span>');
 
 
-          rm.write("<br/>");
+          rm.write("<br>");
 
 
           rm.write('<span class="sapUiInteractionItemTriggerText">');
@@ -396,7 +399,7 @@ sap.ui.define([
           rm.write('</span>');
 
 
-          rm.write("<br/>");
+          rm.write("<br>");
 
 
           rm.write('<span class="sapUiInteractionItemTriggerText">');

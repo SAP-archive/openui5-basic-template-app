@@ -8,27 +8,23 @@
 /* ------------------------------ */
 
 .sapMSltPicker-CTX {
-	max-width: 600px;
-
 	.sapMSelectList {
 		.sapMSelectListRow {
-			max-width: 600px;
 			height: auto;
 			display: flex;
 			box-sizing: border-box;
+			word-break: break-all;
 
 			.sapMSelectListFirstCell {
 				height: auto;
 				overflow: hidden;
 				text-overflow: ellipsis;
 				white-space: nowrap;
-				width: 60%;
 				display: block;
-				box-sizing: border-box
+				box-sizing: border-box;
 			}
 
 			.sapMSelectListLastCell {
-				width: 40%;
 				display: block;
 				box-sizing: border-box
 			}
@@ -37,6 +33,9 @@
 			.sapMSelectListLastCell {
 				padding-top: 0.75rem;
 				padding-bottom: 0.75rem;
+				&:empty {
+					height: 2.5rem;
+				}
 			}
 		}
 
@@ -57,9 +56,13 @@
 				padding-bottom: 0.75rem;
 				line-height: 1rem;
 				height: auto;
+				&:empty {
+					height: 2.5rem;
+				}
 			}
 
 			.sapMSelectListRow {
+				display: table-row;
 				.sapMSelectListFirstCell {
 					white-space: normal;
 				}
@@ -67,7 +70,43 @@
 				.sapMSelectListLastCell {
 					vertical-align: top;
 				}
+
+				.sapMSelectListCell{
+					display: table-cell;
+				}
 			}
+		}
+	}
+}
+
+// sets max-width of 600px to selectList, only when wrapItemsText property is false
+.sapMSltPicker-CTX:not(.sapMPickerWrappedItems){
+	max-width: 600px;
+	.sapMSelectList:not(.sapMSelectListWrappedItems) {
+		max-width: 600px;
+			.sapMSelectListRow {
+				max-width: 600px;
+		}
+	}
+}
+
+// defines the ratio of columns inside selectList, when text is truncated
+.sapMSltPicker-CTX .sapMSelectList:not(.sapMSelectListWrappedItems){
+	.sapMSelectListFirstCell {
+		width: 60%;
+	}
+	.sapMSelectListLastCell {
+		width: 40%;
+	}
+}
+
+// sets max-width of 100% to selectList, only when wrapItemsText property is true
+.sapMSltPicker-CTX.sapMDialogPhone {
+	max-width: 100%;
+	.sapMSelectList:not(.sapMSelectListWrappedItems) {
+		max-width: 100%;
+			.sapMSelectListRow {
+				max-width: 100%;
 		}
 	}
 }
@@ -78,11 +117,17 @@
 		.sapMSelectListLastCell {
 			padding-top: 0.5rem;
 			padding-bottom: 0.5rem;
+			&:empty {
+				height: 2rem;
+			}
 		}
 	}
 	&.sapMSelectListWrappedItems .sapMSelectListItem {
 		padding-top: 0.5rem;
 		padding-bottom: 0.5rem;
+		&:empty {
+			height: 2rem;
+		}
 	}
 }
 
@@ -442,6 +487,15 @@ div.sapMSltPicker .sapMDialogScrollCont {
 	padding: 0;
 }
 
+.sap-phone {
+	.sapMSelectListTableLayout {
+		display: inline;
+	}
+	.sapMSelectListWrappedItems.sapMSelectListTableLayout {
+		display: table;
+	}
+}
+
 /* ================================================================================== */
 /* CSS for control sap.m/Select.control Belize theme smaller sizes - common part      */
 /* ================================================================================== */
@@ -547,4 +601,12 @@ div.sapMSltPicker .sapMDialogScrollCont {
 .sapUiSizeCondensed .sapUiTableCell .sapMSltLabelState,
 .sapUiSizeCondensed .sapUiTableCell .sapMSltArrowState {
 	line-height: 1.25rem;
+}
+
+/* hidden focus element */
+
+.sapMSltHiddenSelect {
+    width: 100%;
+    height: 100%;
+    border: none;
 }

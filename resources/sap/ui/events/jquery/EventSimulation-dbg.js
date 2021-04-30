@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -22,6 +22,8 @@ sap.ui.define([
 	 * @public
 	 */
 	var oEventSimulation = {};
+
+	var jQVersion = Version(jQuery.fn.jquery);
 
 	oEventSimulation.aAdditionalControlEvents = [];
 	oEventSimulation.aAdditionalPseudoEvents = [];
@@ -381,7 +383,7 @@ sap.ui.define([
 		// before the touchstart one, our flags don't work anymore.
 		//
 		// Therefore jQuery version needs to be checked in order to decide the event order in ControlEvents.events.
-		if (Version(jQuery.fn.jquery).compareTo("1.9.1") < 0) {
+		if (jQVersion.compareTo("1.9.1") < 0) {
 			aEvents = aEvents.concat(this.aAdditionalControlEvents);
 		} else {
 			aEvents = this.aAdditionalControlEvents.concat(aEvents);
@@ -420,7 +422,9 @@ sap.ui.define([
 			oEventSimulation.touchEventMode = "ON";
 
 			// ensure that "oEvent.touches", ... works (and not only "oEvent.originalEvent.touches", ...)
-			jQuery.event.props.push("touches", "targetTouches", "changedTouches");
+			if (jQVersion.compareTo("3.0.0") < 0) {
+				jQuery.event.props.push("touches", "targetTouches", "changedTouches");
+			} // else: jQuery 3.0ff already manages these properties
 		}
 
 		// Windows Phone (<10) doesn't need event emulation because IE supports

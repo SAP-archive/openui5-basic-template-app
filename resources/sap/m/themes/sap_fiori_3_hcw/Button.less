@@ -72,6 +72,14 @@ span.sapMBtnInner.sapMBtnEmphasized {
 	width: auto;
 }
 
+.sapMBtnInner .sapMBtnIcon.sapMImg {
+	max-height: 2.125rem;
+}
+
+.sapUiSizeCompact .sapMBtnInner .sapMBtnIcon.sapMImg {
+	max-height: 1.5rem;
+}
+
 /* ------------------- */
 /* Content area        */
 /* ------------------- */
@@ -264,4 +272,12 @@ html.sap-desktop .sapMFooter-CTX .sapMBtnInner.sapMBtnReject {
 :not(.sapMBtnDisabled) > span.sapMBtnInner.sapMBtnIconLast.sapMBtnTransparent.sapMBtnActive {
 	background-color: @sapUiButtonLiteActiveBackground;
 	border-color: @sapUiButtonLiteActiveBorderColor;
+}
+
+/* ----------------------*/
+/* Badges                */
+/* ----------------------*/
+
+.sapMBtn .sapMBadge .sapMBadgeIndicator:after {
+	border-color: @sapUiGroupContentBorderColor;
 }

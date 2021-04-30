@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["./ComponentMetadata","./library"],function(t,o){"use strict";var e=o.mvc.ViewType;var r=function(o,e){t.apply(this,arguments)};r.prototype=Object.create(t.prototype);r.prototype.constructor=r;r.preprocessClassInfo=function(t){if(t&&typeof t.metadata==="string"){t.metadata={_src:t.metadata}}return t};r.prototype.getRootView=function(t){return this.getManifestEntry("/sap.ui5/rootView",!t)};r.prototype.getRoutingConfig=function(t){return this.getManifestEntry("/sap.ui5/routing/config",!t)};r.prototype.getRoutes=function(t){return this.getManifestEntry("/sap.ui5/routing/routes",!t)};r.prototype._convertLegacyMetadata=function(o,r){t.prototype._convertLegacyMetadata.call(this,o,r);var i=r["sap.ui5"];var n=i["rootView"]||o["rootView"];if(n){i["rootView"]=n}var a=i["routing"]||o["routing"];if(a){i["routing"]=a}if(i["rootView"]&&typeof i["rootView"]==="string"){i["rootView"]={viewName:i["rootView"],type:e.XML}}};return r},true);

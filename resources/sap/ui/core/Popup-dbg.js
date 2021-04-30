@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -66,6 +66,33 @@ sap.ui.define([
 
 	// shortcut for sap.ui.core.OpenState
 	var OpenState = library.OpenState;
+
+	var oStaticUIArea;
+
+	function getStaticUIArea() {
+		if (oStaticUIArea) {
+			return oStaticUIArea;
+		}
+
+		var oStaticAreaRef, oControl;
+		try {
+			oStaticAreaRef = sap.ui.getCore().getStaticAreaRef();
+			// only a facade of the static UIArea is returned that contains only the public methods
+			oStaticUIArea = sap.ui.getCore().getUIArea(oStaticAreaRef);
+		} catch (e) {
+			Log.error(e);
+			throw new Error("Popup cannot be opened because static UIArea cannot be determined.");
+		}
+
+		oControl = new Control();
+		oStaticUIArea.addDependent(oControl);
+		// get the real instance (not facade) of the static UIArea
+		oStaticUIArea = oControl.getUIArea();
+
+		oControl.destroy();
+
+		return oStaticUIArea;
+	}
 
 	/**
 	 * Creates an instance of <code>sap.ui.core.Popup</code> that can be used to open controls as a Popup,
@@ -684,41 +711,36 @@ sap.ui.define([
 
 		this.eOpenState = OpenState.OPENING;
 
-		var oStatic;
-		try {
-			oStatic = sap.ui.getCore().getStaticAreaRef();
-			oStatic = sap.ui.getCore().getUIArea(oStatic);
-		} catch (e) {
-			Log.error(e);
-			throw new Error("Popup cannot be opened because static UIArea cannot be determined.");
-		}
+		var oStaticUIArea = getStaticUIArea(),
+			oUIArea;
 
-		// If the content is a control and has no parent, add it to the static UIArea.
-		// This makes automatic rerendering after invalidation work.
-		// When the popup closes, the content is removed again from the static UIArea.
-		this._bContentAddedToStatic = false;
-		if ( this.oContent instanceof Control && !this.oContent.getParent() ) {
-			oStatic.addContent(this.oContent, true);
-			this._bContentAddedToStatic = true;
-		}
-
-		// Check if the content isn't connected properly to a UIArea. This could cause strange behavior of events and rendering.
-		// To find a Popup issue in this case a warning should be logged to the console.
+		// If the content is a control and has no parent, add it to the static UIArea.  This makes automatic rerendering
+		// after invalidation work.  When the popup closes, the content is removed again from the static UIArea.
 		//
-		// E.g. if the content has a different UI-area than its parent -> warning is thrown if 'sap.ui.core.Popup._bEnableUIAreaCheck'
-		// is set
-		if (this.oContent.getUIArea) {
-			var oArea = this.oContent.getUIArea();
+		// If the content has a parent, but the parent isn't connected to any UIArea, the getUIArea function is
+		// overwritten to return the static UIArea to make further rerendering works. The function is deleted once the
+		// popup is closed.
+		this._bContentAddedToStatic = false;
+		this._bUIAreaPatched = false;
+		if (this.oContent instanceof Control) {
+			if (!this.oContent.getParent()) {
+				oStaticUIArea.addContent(this.oContent, true);
+				this._bContentAddedToStatic = true;
+			} else if (!this.oContent.getUIArea()) {
+				this.oContent.getUIArea = function() {
+					return oStaticUIArea;
+				};
+				this._bUIAreaPatched = true;
+			}
 
-			if (oArea === null) {
-				Log.warning("The Popup content is NOT connected with a UIArea and may not work properly!");
-			} else if (Popup._bEnableUIAreaCheck && oArea.getRootNode().id !== oStatic.getRootNode().id) {
-
+			oUIArea = this.oContent.getUIArea();
+			if (Popup._bEnableUIAreaCheck && oUIArea.getRootNode().id !== oStaticUIArea.getRootNode().id) {
 				// the variable 'sap.ui.core.Popup._bEnableUIAreaCheck' isn't defined anywhere. To enable this check this variable
 				// has to be defined within the console or somehow else.
 				Log.warning("The Popup content is NOT connected with the static-UIArea and may not work properly!");
 			}
 		}
+
 
 		// iDuration is optional... if not given:
 		if (typeof (iDuration) == "string") {
@@ -807,7 +829,7 @@ sap.ui.define([
 		}
 		$Ref.css("z-index", this._iZIndex);
 
-		Log.debug("position popup content " + $Ref.attr("id") + " at " + (window.JSON ? JSON.stringify(_oPosition.at) : String(_oPosition.at)));
+		Log.debug("position popup content " + $Ref.attr("id") + " at " + JSON.stringify(_oPosition.at));
 		this._applyPosition(_oPosition);
 
 		if (followOf !== undefined) {
@@ -1037,7 +1059,7 @@ sap.ui.define([
 
 			bContains = aChildPopups.some(function(sChildID) {
 				// sChildID can either be the popup id or the DOM id
-				// therefore we need to try with jQuery.sap.domById to check the DOM id case first
+				// therefore we need to try with document.getElementById to check the DOM id case first
 				// only when it doesn't contain the given DOM, we publish an event to the event bus
 				var oContainDomRef = (sChildID ? window.document.getElementById(sChildID) : null);
 				var bContains = containsOrEquals(oContainDomRef, oDomRef);
@@ -1231,18 +1253,23 @@ sap.ui.define([
 			Popup.DockTrigger.removeListener(Popup.checkDocking, this);
 		}
 
-		// If we added the content control to the static UIArea,
-		// then we should remove it again now.
-		// Assumption: application did not move the content in the meantime!
-		if ( this.oContent && this._bContentAddedToStatic ) {
-			//Fix for RTE in PopUp
-			sap.ui.getCore().getEventBus().publish("sap.ui","__beforePopupClose", { domNode : this._$().get(0) });
-			var oStatic = sap.ui.getCore().getStaticAreaRef();
-			oStatic = sap.ui.getCore().getUIArea(oStatic);
-			oStatic.removeContent(oStatic.indexOfContent(this.oContent), true);
+		if (this.oContent) {
+			// If we added the content control to the static UIArea,
+			// then we should remove it again now.
+			// Assumption: application did not move the content in the meantime!
+			if (this._bContentAddedToStatic ) {
+				//Fix for RTE in PopUp
+				sap.ui.getCore().getEventBus().publish("sap.ui","__beforePopupClose", { domNode : this._$().get(0) });
+				var oStatic = sap.ui.getCore().getStaticAreaRef();
+				oStatic = sap.ui.getCore().getUIArea(oStatic);
+				oStatic.removeContent(oStatic.indexOfContent(this.oContent), true);
+			} else if (this._bUIAreaPatched) { // if the getUIArea function is patched, delete it
+				delete this.oContent.getUIArea;
+			}
 		}
 
 		this._bContentAddedToStatic = false;
+		this._bUIAreaPatched = false;
 
 		this._sTimeoutId = null;
 
@@ -1698,7 +1725,7 @@ sap.ui.define([
 			} else if (typeof (oAt.left) === "number" && typeof (oAt.top) === "number") {
 				var domRef = $Ref[0];
 				if (domRef && domRef.style.right) { // in some RTL cases leave the Popup attached to the right side of the browser window
-					var width = $Ref.outerWidth();
+					var width = $Ref[0].getBoundingClientRect().width;
 					$Ref.css({
 						"right" : (document.documentElement.clientWidth - (oAt.left + width)) + "px",
 						"top" : oAt.top + "px"
@@ -1831,7 +1858,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Popup.prototype._mirrorOffset = function(sOffset) {
-		var aOffset = jQuery.trim(sOffset).split(/\s/);
+		var aOffset = String(sOffset).trim().split(/\s/);
 		var posX = parseInt(aOffset[0]);
 		return (-posX) + " " + aOffset[aOffset.length - 1]; // array could be longer than 2 with multiple whitespace characters
 	};
@@ -1843,31 +1870,35 @@ sap.ui.define([
 	 * - LTR mode and horizontal alignment is right or end
 	 * - RTL mode and horizontal alignment is right, begin or center
 	 *
+	 * @param {object} oPosition The position
+	 * @param {boolean} bRtl Determines if RTL <code>true</code> or LFT <code>false</code> mode is active
 	 * @private
 	 */
-	Popup.prototype._fixPositioning = function(sPosition, bRtl) {
-		var my = sPosition.my;
-		var $Ref = this._$();
-		var right = 0;
-
-		if (typeof (my) === "string") {
-			if (bRtl && ((my.indexOf("right") > -1) || (my.indexOf("begin") > -1) || (my.indexOf("center") > -1))) {
-				$Ref = this._$();
-				right = jQuery(window).width() - $Ref.outerWidth() - $Ref.offset().left;
+	Popup.prototype._fixPositioning = function (oPosition, bRtl) {
+		var sMy = oPosition.my;
+		if (typeof (sMy) === "string") {
+			if (Popup._isPositionFixingNeeded(sMy, bRtl)) {
+				var $Ref = this._$();
+				var fpRight = jQuery(window).width() - $Ref[0].getBoundingClientRect().width - $Ref.offset().left;
 				$Ref.css({
-					"right" : right + "px",
-					"left" : ""
-				});
-			} else if ((my.indexOf("right") > -1) || (my.indexOf("end") > -1)) {
-				// LTR
-				$Ref = this._$();
-				right = jQuery(window).width() - $Ref.outerWidth() - $Ref.offset().left;
-				$Ref.css({
-					"right" : right + "px",
-					"left" : ""
+					"right": fpRight + "px",
+					"left": ""
 				});
 			}
 		}
+	};
+
+	/**
+	 * Determines if the position of the popup has to be fixed
+	 *
+	 * @param {sap.ui.core.Popup.Dock} sMy The "my" position value
+	 * @param {boolean} bRtl Determines if RTL <code>true</code> or LFT <code>false</code> mode is active
+	 * @returns {boolean} <code>true</code> if position fixing is needed, <code>false</code> if not
+	 * @private
+	 */
+	Popup._isPositionFixingNeeded = function (sMy, bRtl) {
+		return bRtl && ((sMy.indexOf("right") > -1) || (sMy.indexOf("begin") > -1) || (sMy.indexOf("center") > -1))
+			|| !bRtl && ((sMy.indexOf("right") > -1) || (sMy.indexOf("end") > -1));
 	};
 
 	/**
@@ -2670,8 +2701,9 @@ sap.ui.define([
 
 	Popup.prototype._hideBlockLayer = function() {
 		// a dialog was closed so pop his z-index from the stack
-		var oLastPopup = Popup.blStack.pop();
-		var $oBlockLayer = jQuery("#sap-ui-blocklayer-popup");
+		var $oBlockLayer = jQuery("#sap-ui-blocklayer-popup"),
+			that = this,
+			oLastPopupInfo;
 
 		if ($oBlockLayer.length) {
 			// if there are more z-indices this means there are more dialogs stacked
@@ -2679,12 +2711,16 @@ sap.ui.define([
 			// current dialog which should be displayed.
 			var oBlockLayerDomRef = $oBlockLayer.get(0);
 
-			if (Popup.blStack.length > 0) {
+			if (Popup.blStack.length > 1) {
+				Popup.blStack = Popup.blStack.filter(function(oPopupInfo) {
+					return oPopupInfo.popup !== that;
+				});
 				// set the block layer z-index to the last z-index in the stack and show it
 				oBlockLayerDomRef.style.zIndex = Popup.blStack[Popup.blStack.length - 1].zIndex;
 				oBlockLayerDomRef.style.visibility = "visible";
 				oBlockLayerDomRef.style.display = "block";
 			} else {
+				oLastPopupInfo = Popup.blStack.pop();
 				// the last dialog was closed so we can hide the block layer now
 				oBlockLayerDomRef.style.visibility = "hidden";
 				oBlockLayerDomRef.style.display = "none";
@@ -2696,7 +2732,7 @@ sap.ui.define([
 
 				_fireBlockLayerStateChange({
 					visible: false,
-					zIndex: oLastPopup.zIndex
+					zIndex: oLastPopupInfo.zIndex
 				});
 			}
 		}
@@ -2885,6 +2921,8 @@ sap.ui.define([
 
 		// TODO all stuff done in 'open' is destroyed if the content was rerendered
 		$Ref.toggleClass("sapUiShd", this._bShadow);
+		Popup._clearSelection();
+		this._setupUserSelection();
 		$Ref.css("position", "absolute");
 
 		// set/update the identification properly
@@ -2898,7 +2936,7 @@ sap.ui.define([
 		var bottom = ref.style.bottom;
 
 		if (!(left && left != "auto" || right && right != "auto" || top && top != "auto" || bottom && bottom != "auto")) {
-			Log.debug("reposition popup content " + $Ref.attr("id") + " at " + (window.JSON ? JSON.stringify(this._oLastPosition.at) : String(this._oLastPosition.at)));
+			Log.debug("reposition popup content " + $Ref.attr("id") + " at " + JSON.stringify(this._oLastPosition.at));
 			this._applyPosition(this._oLastPosition);
 		}
 
@@ -3178,9 +3216,21 @@ sap.ui.define([
 
 		if (this._bModal){
 			if (Popup.blStack.length > 0){
-				// mark the last popup in the stack as not user selectable
+				// determine the last popup in the stack
 				var oLastPopup = Popup.blStack[Popup.blStack.length - 1];
-				Popup._markAsNotUserSelectable(oLastPopup.popup._$(false, true), /* bForce */true);
+
+				var fnGetPopupId = function(oPopup){
+					return oPopup.popup.getId();
+				};
+
+				if (Popup.blStack.map(fnGetPopupId).indexOf(this.getId()) === -1){
+					// new current popup does not exist in the stack -> it will be added soon,
+					// lets mark the last popup in the stack as explicitly not user selectable
+					Popup._markAsNotUserSelectable(oLastPopup.popup._$(false, true), /* bForce */true);
+				} else if (oLastPopup.popup.getId() !== this.getId()){
+					// the current popup exists however its not at the top of the stack, so it should be marked as explicitly not user selectable
+					Popup._markAsNotUserSelectable($Ref, /* bForce */true);
+				}
 			} else {
 				// freeze the whole screen
 				Popup._markAsNotUserSelectable(jQuery("html"), /* bForce */true);
@@ -3280,7 +3330,7 @@ sap.ui.define([
 	 *  </ul>
 	 *
 	 * @param {string[]|string} vSelectors One query selector or an array of query selectors to be added
-	 * @param {boolean} [bMarkAsSelectable] Whether the external content should be marked instantly as user selectable.
+	 * @param {boolean} [bMarkAsSelectable=false] Whether the external content should be marked instantly as user selectable.
 	 * 	If the external content which matches the given or default selector is added after a modal popup is opened,
 	 *  this parameter needs to be set to <code>true</code> to make the external content user selectable.
 	 * @public
@@ -3304,7 +3354,7 @@ sap.ui.define([
 	 * The default query selector <code>[data-sap-ui-integration-popup-content]</code> can't be deleted.
 	 *
 	 * @param {string[]|string} vSelectors One query selector or an array of query selectors to be deleted
-	 * @param {boolean} [bMarkAsNotSelectable] Whether the external content should be marked instantly as not user selectable.
+	 * @param {boolean} [bMarkAsNotSelectable=false] Whether the external content should be marked instantly as not user selectable.
 	 * 	If the selector is removed while a modal popup is still open, this parameter needs to be set to <code>true</code>
 	 *  to make the external content not user selectable.
 	 * @public

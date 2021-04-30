@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -146,7 +146,7 @@ sap.ui.define([
 		 */
 		CalendarDate.prototype.setMonth = function (month, date) {
 			checkNumericLike(month, "Invalid month: " + month);
-			if (date) {
+			if (date || date === 0) {
 				checkNumericLike(date, "Invalid date: " + date);
 				this._oUDate.setUTCMonth(month, date);
 			} else {
@@ -310,11 +310,7 @@ sap.ui.define([
 		CalendarDate.fromLocalJSDate = function (oJSDate, sCalendarType) {
 			// Cross frame check for a date should be performed here otherwise setDateValue would fail in OPA tests
 			// because Date object in the test is different than the Date object in the application (due to the iframe).
-			// We can use jQuery.type or this method:
-			// function isValidDate (date) {
-			//	return date && Object.prototype.toString.call(date) === "[object Date]" && !isNaN(date);
-			//}
-			if (jQuery.type(oJSDate) !== "date") {
+			if (!oJSDate || Object.prototype.toString.call(oJSDate) !== "[object Date]" || isNaN(oJSDate)) {
 				throw new Error("Date parameter must be a JavaScript Date object: [" + oJSDate + "].");
 			}
 			return new CalendarDate(oJSDate.getFullYear(), oJSDate.getMonth(), oJSDate.getDate(), sCalendarType);

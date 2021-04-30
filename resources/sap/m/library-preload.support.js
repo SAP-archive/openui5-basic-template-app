@@ -391,7 +391,10 @@ sap.ui.predefine('sap/m/rules/Dialog.support', ['sap/ui/support/library'], funct
     };
     return [oDialogRuleForJaws];
 }, true);
-sap.ui.predefine('sap/m/rules/FacetFilter.support', ['sap/ui/support/library'], function (SupportLib) {
+sap.ui.predefine('sap/m/rules/FacetFilter.support', [
+    'sap/ui/support/library',
+    'sap/ui/model/BindingMode'
+], function (SupportLib, BindingMode) {
     'use strict';
     var Categories = SupportLib.Categories, Severity = SupportLib.Severity, Audiences = SupportLib.Audiences;
     var oFacetFilterGrowingOneWayBinding = {
@@ -409,7 +412,7 @@ sap.ui.predefine('sap/m/rules/FacetFilter.support', ['sap/ui/support/library'], 
             }],
         check: function (oIssueManager, oCoreFacade, oScope) {
             oScope.getElementsByClassName('sap.m.FacetFilterList').forEach(function (oElement) {
-                if (oElement.getGrowing() && oElement.getModel() && oElement.getModel().getDefaultBindingMode() === sap.ui.model.BindingMode.TwoWay) {
+                if (oElement.getGrowing() && oElement.getModel() && oElement.getModel().getDefaultBindingMode() === BindingMode.TwoWay) {
                     var sElementId = oElement.getId(), sElementName = oElement.getMetadata().getElementName();
                     oIssueManager.addIssue({
                         severity: Severity.High,
@@ -422,9 +425,12 @@ sap.ui.predefine('sap/m/rules/FacetFilter.support', ['sap/ui/support/library'], 
     };
     return [oFacetFilterGrowingOneWayBinding];
 }, true);
-sap.ui.predefine('sap/m/rules/IconTabBar.support', ['sap/ui/support/library'], function (SupportLib) {
+sap.ui.predefine('sap/m/rules/IconTabBar.support', [
+    'sap/ui/support/library',
+    'sap/m/library'
+], function (SupportLib, mobileLibrary) {
     'use strict';
-    var Categories = SupportLib.Categories, Severity = SupportLib.Severity, Audiences = SupportLib.Audiences;
+    var Categories = SupportLib.Categories, Severity = SupportLib.Severity, Audiences = SupportLib.Audiences, IconTabFilterDesign = mobileLibrary.IconTabFilterDesign;
     var oIconTabBarRuleHDesign = {
         id: 'iconTabFilterWithHorizontalDesingShouldHaveIcons',
         audiences: [Audiences.Application],
@@ -440,7 +446,7 @@ sap.ui.predefine('sap/m/rules/IconTabBar.support', ['sap/ui/support/library'], f
             }],
         check: function (oIssueManager, oCoreFacade, oScope) {
             oScope.getElementsByClassName('sap.m.IconTabFilter').forEach(function (oElement) {
-                if (oElement.getProperty('design') === sap.m.IconTabFilterDesign.Horizontal && !oElement.getProperty('icon') && !oElement.getProperty('showAll')) {
+                if (oElement.getProperty('design') === IconTabFilterDesign.Horizontal && !oElement.getProperty('icon') && !oElement.getProperty('showAll')) {
                     var sElementId = oElement.getId(), sElementName = oElement.getMetadata().getElementName();
                     oIssueManager.addIssue({
                         severity: Severity.High,
@@ -511,7 +517,7 @@ sap.ui.predefine('sap/m/rules/IconTabBar.support', ['sap/ui/support/library'], f
             }],
         check: function (oIssueManager, oCoreFacade, oScope) {
             oScope.getElementsByClassName('sap.m.IconTabFilter').forEach(function (oElement) {
-                if (oElement.getProperty('design') === sap.m.IconTabFilterDesign.Vertical && oElement.getProperty('icon') && oElement.getProperty('count').length > 4) {
+                if (oElement.getProperty('design') === IconTabFilterDesign.Vertical && oElement.getProperty('icon') && oElement.getProperty('count').length > 4) {
                     var sElementId = oElement.getId(), sElementName = oElement.getMetadata().getElementName();
                     oIssueManager.addIssue({
                         severity: Severity.High,
@@ -1039,7 +1045,10 @@ sap.ui.predefine('sap/m/rules/ObjectStatus.support', ['sap/ui/support/library'],
     };
     return [oObjStatusActiveRule];
 }, true);
-sap.ui.predefine('sap/m/rules/Panel.support', ['sap/ui/support/library'], function (SupportLib) {
+sap.ui.predefine('sap/m/rules/Panel.support', [
+    'sap/ui/support/library',
+    'sap/base/util/isEmptyObject'
+], function (SupportLib, isEmptyObject) {
     'use strict';
     var Categories = SupportLib.Categories, Severity = SupportLib.Severity, Audiences = SupportLib.Audiences;
     var oPanelNeedHeaderRule = {
@@ -1059,7 +1068,7 @@ sap.ui.predefine('sap/m/rules/Panel.support', ['sap/ui/support/library'], functi
             }],
         check: function (oIssueManager, oCoreFacade, oScope) {
             oScope.getElementsByClassName('sap.m.Panel').forEach(function (oElement) {
-                if (!jQuery.isEmptyObject(oElement.getAggregation('Title text')) || !jQuery.isEmptyObject(oElement.getAggregation('Toolbar'))) {
+                if (!isEmptyObject(oElement.getAggregation('Title text')) || !isEmptyObject(oElement.getAggregation('Toolbar'))) {
                     var sElementId = oElement.getId(), sElementName = oElement.getMetadata().getElementName();
                     oIssueManager.addIssue({
                         severity: Severity.Medium,
@@ -1072,7 +1081,10 @@ sap.ui.predefine('sap/m/rules/Panel.support', ['sap/ui/support/library'], functi
     };
     return [oPanelNeedHeaderRule];
 }, true);
-sap.ui.predefine('sap/m/rules/Select.support', ['sap/ui/support/library'], function (SupportLib) {
+sap.ui.predefine('sap/m/rules/Select.support', [
+    'sap/ui/support/library',
+    'sap/ui/model/BindingMode'
+], function (SupportLib, BindingMode) {
     'use strict';
     var Categories = SupportLib.Categories, Severity = SupportLib.Severity, Audiences = SupportLib.Audiences;
     var DEFAULT_MODEL_SIZE_LIMIT = 100;
@@ -1118,7 +1130,7 @@ sap.ui.predefine('sap/m/rules/Select.support', ['sap/ui/support/library'], funct
                 if (oElement.isBound('selectedKey') && oElement.isBound('items')) {
                     oSelectedKeyModel = oElement.getBinding('selectedKey').getModel();
                     oItemsModel = oElement.getBinding('items').getModel();
-                    if (oSelectedKeyModel && oItemsModel && oSelectedKeyModel.getId() === oItemsModel.getId() && oSelectedKeyModel.getDefaultBindingMode() === sap.ui.model.BindingMode.TwoWay) {
+                    if (oSelectedKeyModel && oItemsModel && oSelectedKeyModel.getId() === oItemsModel.getId() && oSelectedKeyModel.getDefaultBindingMode() === BindingMode.TwoWay) {
                         sSelectedKeyBindingPath = oElement.getBindingPath('selectedKey');
                         sItemsBindingPath = oElement.getBindingPath('items');
                         sSelectedKeyMinusItemsBindingPath = sSelectedKeyBindingPath.replace(sItemsBindingPath, '');
@@ -1141,9 +1153,12 @@ sap.ui.predefine('sap/m/rules/Select.support', ['sap/ui/support/library'], funct
         oSelectedKeyBindingRule
     ];
 }, true);
-sap.ui.predefine('sap/m/rules/SelectDialog.support', ['sap/ui/support/library'], function (SupportLib) {
+sap.ui.predefine('sap/m/rules/SelectDialog.support', [
+    'sap/ui/support/library',
+    'sap/m/library'
+], function (SupportLib, mobileLibrary) {
     'use strict';
-    var Categories = SupportLib.Categories, Severity = SupportLib.Severity, Audiences = SupportLib.Audiences;
+    var Categories = SupportLib.Categories, Severity = SupportLib.Severity, Audiences = SupportLib.Audiences, ListType = mobileLibrary.ListType;
     var oSelectDialogNonActiveItem = {
         id: 'noContainInactiveItemsInSelectDialog',
         audiences: [Audiences.Control],
@@ -1161,7 +1176,7 @@ sap.ui.predefine('sap/m/rules/SelectDialog.support', ['sap/ui/support/library'],
             oScope.getElementsByClassName('sap.m.SelectDialog').forEach(function (oElement) {
                 var aListItems = oElement.getItems(), sListOfInactiveItems = '';
                 aListItems.forEach(function (oListItem) {
-                    if (oListItem.getType() === sap.m.ListType.Inactive) {
+                    if (oListItem.getType() === ListType.Inactive) {
                         var sListItemId = oListItem.getId(), sListItemName = oListItem.getMetadata().getElementName();
                         sListOfInactiveItems += sListItemName + ' (' + sListItemId + '); ';
                     }
@@ -1325,9 +1340,12 @@ sap.ui.predefine('sap/m/rules/Table.support', [
         oItemHighlightTextRule
     ];
 }, true);
-sap.ui.predefine('sap/m/rules/Title.support', ['sap/ui/support/library'], function (SupportLib) {
+sap.ui.predefine('sap/m/rules/Title.support', [
+    'sap/ui/support/library',
+    'sap/ui/core/library'
+], function (SupportLib, coreLibrary) {
     'use strict';
-    var Categories = SupportLib.Categories, Severity = SupportLib.Severity, Audiences = SupportLib.Audiences;
+    var Categories = SupportLib.Categories, Severity = SupportLib.Severity, Audiences = SupportLib.Audiences, TitleLevel = coreLibrary.TitleLevel;
     var oTitleRule = {
         id: 'titleLevelProperty',
         audiences: [Audiences.Internal],
@@ -1352,7 +1370,7 @@ sap.ui.predefine('sap/m/rules/Title.support', ['sap/ui/support/library'], functi
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
             oScope.getElementsByClassName('sap.m.Title').forEach(function (oElement) {
-                if (oElement.getProperty('level') === sap.ui.core.TitleLevel.Auto) {
+                if (oElement.getProperty('level') === TitleLevel.Auto) {
                     var sElementId = oElement.getId(), sElementName = oElement.getMetadata().getElementName();
                     oIssueManager.addIssue({
                         severity: Severity.Low,

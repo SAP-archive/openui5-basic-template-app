@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -126,7 +126,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @public
 	 * @alias sap.ui.core.Element
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
@@ -432,7 +432,7 @@ sap.ui.define([
 	 * @protected
 	 */
 	Element.prototype.getDomRef = function(sSuffix) {
-		return (((sSuffix ? this.getId() + "-" + sSuffix : this.getId())) ? window.document.getElementById(sSuffix ? this.getId() + "-" + sSuffix : this.getId()) : null);
+		return document.getElementById(sSuffix ? this.getId() + "-" + sSuffix : this.getId());
 	};
 
 	/**
@@ -837,27 +837,25 @@ sap.ui.define([
 	 */
 	Element.prototype.focus = function (oFocusInfo) {
 		var oFocusDomRef = this.getFocusDomRef(),
-			aScrollHierarchy;
+			aScrollHierarchy = [];
 
 		oFocusInfo = oFocusInfo || {};
 
 		if (oFocusDomRef) {
 			// save the scroll position of all ancestor DOM elements
-			// before the focus is set
-			if (oFocusInfo.preventScroll === true) {
-				aScrollHierarchy = getAncestorScrollPositions(oFocusDomRef);
-			}
-
-			oFocusDomRef.focus();
-
-			if (aScrollHierarchy && aScrollHierarchy.length > 0) {
-				// restore the scroll position if it's changed after setting focus
-				if (Device.browser.safari || Device.browser.msie || Device.browser.edge) {
+			// before the focus is set, because preventScroll is not supported by the following browsers
+			if (Device.browser.safari || Device.browser.msie || Device.browser.edge) {
+				if (oFocusInfo.preventScroll === true) {
+					aScrollHierarchy = getAncestorScrollPositions(oFocusDomRef);
+				}
+				oFocusDomRef.focus();
+				if (aScrollHierarchy.length > 0) {
+					// restore the scroll position if it's changed after setting focus
 					// Safari, IE11 and Edge need a little delay to get the scroll position updated
 					setTimeout(restoreScrollPositions.bind(null, aScrollHierarchy), 0);
-				} else {
-					restoreScrollPositions(aScrollHierarchy);
 				}
+			} else {
+				oFocusDomRef.focus(oFocusInfo);
 			}
 		}
 	};
@@ -1397,8 +1395,11 @@ sap.ui.define([
 	 * Bind the object to the referenced entity in the model, which is used as the binding context
 	 * to resolve bound properties or aggregations of the object itself and all of its children
 	 * relatively to the given path.
+	 *
 	 * If a relative binding path is used, this will be applied whenever the parent context changes.
-	 * There is no difference between {@link sap.ui.core.Element#bindElement} and {@link sap.ui.base.ManagedObject#bindObject}.
+	 *
+	 * There's no difference between <code>bindElement</code> and {@link sap.ui.base.ManagedObject#bindObject}.
+	 *
 	 * @param {string|object} vPath the binding path or an object with more detailed binding options
 	 * @param {string} vPath.path the binding path
 	 * @param {object} [vPath.parameters] map of additional parameters for this binding
@@ -1407,9 +1408,10 @@ sap.ui.define([
 	 * @param {object} [mParameters] map of additional parameters for this binding (only taken into account when vPath is a string in that case it corresponds to vPath.parameters).
 	 * The supported parameters are listed in the corresponding model-specific implementation of <code>sap.ui.model.ContextBinding</code>.
 	 *
-	 * @return {sap.ui.core.Element} reference to the instance itself
+	 * @returns {sap.ui.core.Element} reference to the instance itself
 	 * @public
 	 * @function
+	 * @see {@link sap.ui.base.ManagedObject#bindObject}
 	 */
 	Element.prototype.bindElement = ManagedObject.prototype.bindObject;
 
@@ -1673,7 +1675,7 @@ sap.ui.define([
 	 * the given ID, then <code>undefined</code> is returned.
 	 *
 	 * @param {sap.ui.core.ID} id ID of the element to retrieve
-	 * @returns {sap.ui.core.Element} Element with the given ID or <code>undefined</code>
+	 * @returns {sap.ui.core.Element|undefined} Element with the given ID or <code>undefined</code>
 	 * @name sap.ui.core.Element.registry.get
 	 * @function
 	 * @public

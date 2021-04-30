@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -45,11 +45,7 @@ sap.ui.define(["sap/ui/core/Renderer", "./SliderRenderer", "sap/ui/core/Invisibl
 			bEnabled = oControl.getEnabled(),
 			bRTL = sap.ui.getCore().getConfiguration().getRTL();
 
-		oRM.openStart("span");
-
-		if (mOptions && (mOptions.id !== undefined)) {
-			oRM.attr("id", mOptions.id);
-		}
+		oRM.openStart("span", mOptions && mOptions.id);
 		if (mOptions && (mOptions.position !== undefined)) {
 			fValue = aRange[mOptions.position === "start" ? 0 : 1];
 
@@ -58,6 +54,7 @@ sap.ui.define(["sap/ui/core/Renderer", "./SliderRenderer", "sap/ui/core/Invisibl
 
 			if (oControl.getInputsAsTooltips()) {
 				oRM.attr("aria-describedby", InvisibleText.getStaticId("sap.m", "SLIDER_INPUT_TOOLTIP"));
+				bEnabled && oRM.attr("aria-keyshortcuts", "F2");
 			}
 		}
 		if (oControl.getShowHandleTooltip() && !oControl.getShowAdvancedTooltip()) {

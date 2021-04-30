@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -11,15 +11,16 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "sap/ui/dom/jquery/control"],  // jQu
 		"use strict";
 
 		var CoreHelper = {
-			/***
-			 * Checks of passed node has parent control of type UI5.
+			/**
+			 * Checks if passed node has parent control of type UI5.
+			 *
 			 * @param node HTML element that will be checked.
-			 * @param oScope Scope in witch checking will be executed.
+			 * @param oScope Scope in which checking will be executed.
 			 * @returns {boolean} If node has parent of type UI5 control it will return true, otherwise false.
 			 */
 			nodeHasUI5ParentControl : function (node, oScope) {
 				/**
-				 * Here we white list all controls that can contain DOM elements with style different than the framework style
+				 * Here we list all controls that can contain DOM elements with style different than the framework style
 				 */
 				// jQuery Plugin "control"
 				var skipParents = ["sap.ui.core.HTML"],

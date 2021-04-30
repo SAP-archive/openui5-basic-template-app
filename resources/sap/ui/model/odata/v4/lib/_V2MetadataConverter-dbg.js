@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -368,6 +368,7 @@ sap.ui.define([
 	/**
 	 * Creates a converter for V2 metadata.
 	 *
+	 * @alias sap.ui.model.odata.v4.lib._V2MetadataConverter
 	 * @constructor
 	 */
 	function V2MetadataConverter() {
@@ -624,9 +625,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Finalizes the conversion after having traversed the XML completely.
-	 *
 	 * @override
+	 * @see sap.ui.model.odata.v4.lib._MetadataConverter#finalize
 	 */
 	V2MetadataConverter.prototype.finalize = function () {
 		this.result.$Version = "4.0"; // The result of the conversion is a V4 streamlined JSON
@@ -805,6 +805,7 @@ sap.ui.define([
 	 * @param {Element} oElement The element
 	 * @param {function} [fnProcessor] The processor
 	 */
+	// @override sap.ui.model.odata.v4.lib._MetadataConverter#processElement
 	V2MetadataConverter.prototype.processElement = function (oElement, fnProcessor) {
 		this.collectSapAnnotations(oElement);
 		if (fnProcessor) {

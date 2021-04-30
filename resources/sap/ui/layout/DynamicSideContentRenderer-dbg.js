@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -64,11 +64,12 @@ sap.ui.define(["sap/ui/layout/library", "sap/ui/Device"],
 
 			oRm.class("sapUiDSCM");
 
-			if (oSideControl._iMcSpan) {
+			if (oSideControl.getProperty("mcSpan")) {
 				if (oSideControl.getShowSideContent() && oSideControl._SCVisible) {
-					oRm.class("sapUiDSCSpan" + oSideControl._iMcSpan);
+					oRm.class("sapUiDSCSpan" + oSideControl.getProperty("mcSpan"));
 				} else {
 					oRm.class("sapUiDSCSpan12");
+					bShouldSetHeight = true;
 				}
 			}
 			if (bShouldSetHeight) {
@@ -95,11 +96,12 @@ sap.ui.define(["sap/ui/layout/library", "sap/ui/Device"],
 				role: "complementary"
 			});
 
-			if (oSideControl._iScSpan) {
+			if (oSideControl.getProperty("scSpan")) {
 				if (oSideControl.getShowMainContent() && oSideControl._MCVisible) {
-					oRm.class("sapUiDSCSpan" + oSideControl._iScSpan);
+					oRm.class("sapUiDSCSpan" + oSideControl.getProperty("scSpan"));
 				} else {
 					oRm.class("sapUiDSCSpan12");
+					bShouldSetHeight = true;
 				}
 			}
 			if (bShouldSetHeight) {

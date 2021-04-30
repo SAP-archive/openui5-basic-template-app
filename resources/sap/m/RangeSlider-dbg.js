@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -51,7 +51,7 @@ sap.ui.define([
          * @extends sap.m.Slider
          *
          * @author SAP SE
-         * @version 1.79.0
+         * @version 1.84.11
          *
          * @constructor
          * @public
@@ -132,6 +132,7 @@ sap.ui.define([
         };
 
         RangeSlider.prototype.exit = function () {
+            Slider.prototype.exit.apply(this, arguments);
             this._oResourceBundle = null;
             this._aInitialFocusRange = null;
             this._liveChangeLastValue = null;
@@ -945,7 +946,8 @@ sap.ui.define([
             if (fRangeMax + fOffset > fMax) {
                 fOffset = iOffsetSign * (Math.abs(fMax) - Math.abs(fRangeMax));
             } else if (fRangeMin + fOffset < fMin) {
-                fOffset = iOffsetSign * (Math.abs(fRangeMin) - Math.abs(fMin));
+                fOffset = Math.abs(fRangeMin) - Math.abs(fMin);
+                fOffset = fOffset < 0 ? fOffset : iOffsetSign * fOffset;
             }
 
             aHandles.map(function (oCurHandle) {

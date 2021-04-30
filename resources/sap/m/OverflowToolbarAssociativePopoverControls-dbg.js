@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,19 +13,23 @@
  * where CONTROL is a camel-cased version of the getMetadata().getName() value, f.e. "sap.m.Button" becomes "sapMButton"
  */
 
-sap.ui.define(['sap/ui/base/Metadata', './OverflowToolbarButton', './OverflowToolbarToggleButton', './ToggleButton', './Button', 'sap/m/library', "sap/base/Log"],
-	function(Metadata, OverflowToolbarButton, OverflowToolbarToggleButton, ToggleButton, Button, library, Log) {
+sap.ui.define(['sap/ui/base/Object', './OverflowToolbarButton', './OverflowToolbarToggleButton', './ToggleButton', './Button', 'sap/m/library', "sap/base/Log"],
+	function(BaseObject, OverflowToolbarButton, OverflowToolbarToggleButton, ToggleButton, Button, library, Log) {
 		"use strict";
 
 		// shortcut for sap.m.ButtonType
 		var ButtonType = library.ButtonType;
 
-		var OverflowToolbarAssociativePopoverControls = Metadata.createClass("sap.m._overflowToolbarHelpers.OverflowToolbarAssociativePopoverControls", {
+		var OverflowToolbarAssociativePopoverControls = BaseObject.extend("sap.m._overflowToolbarHelpers.OverflowToolbarAssociativePopoverControls", {
 			/**
 			 * @private
 			 */
 			constructor: function() {
 				this._mControlsCache = {};
+			},
+
+			getInterface: function() {
+				return this; // no facade
 			}
 		});
 
@@ -41,13 +45,6 @@ sap.ui.define(['sap/ui/base/Metadata', './OverflowToolbarButton', './OverflowToo
 				oControl.setProperty("type", ButtonType.Transparent, true);
 			}
 
-			// Set some css classes to apply the proper paddings in cases of buttons with/without icons
-			if (oControl.getIcon()) {
-				oControl.addStyleClass("sapMOTAPButtonWithIcon");
-			} else {
-				oControl.addStyleClass("sapMOTAPButtonNoIcon");
-			}
-
 			oControl.attachEvent("_change", this._onSapMButtonUpdated, this);
 		};
 
@@ -57,9 +54,6 @@ sap.ui.define(['sap/ui/base/Metadata', './OverflowToolbarButton', './OverflowToo
 			if (oControl.getType() !== oPrevState.buttonType) {
 				oControl.setProperty("type", oPrevState.buttonType, true);
 			}
-
-			oControl.removeStyleClass("sapMOTAPButtonNoIcon");
-			oControl.removeStyleClass("sapMOTAPButtonWithIcon");
 
 			oControl.detachEvent("_change", this._onSapMButtonUpdated, this);
 		};
@@ -125,7 +119,7 @@ sap.ui.define(['sap/ui/base/Metadata', './OverflowToolbarButton', './OverflowToo
 			"sap.m.Button": {
 				canOverflow: true,
 				listenForEvents: ["press"],
-				noInvalidationProps: ["enabled", "type"]
+				noInvalidationProps: ["enabled"]
 			},
 			"sap.m.MenuButton": {
 				canOverflow: true,

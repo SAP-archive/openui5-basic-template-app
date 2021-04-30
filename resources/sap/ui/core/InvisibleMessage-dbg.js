@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,19 +15,24 @@ function (coreLibrary, ManagedObject, Log) {
 	/**
 	 * @class
 	 *
-	 * The InvisibleMessage provides a way to programmaticaly expose dynamic content changes in a way that can be announced by screen readers.
+	 * The InvisibleMessage provides a way to programmatically expose dynamic content changes in a way
+	 * that can be announced by screen readers.
 	 *
 	 * <h3>Overview</h3>
-	 * This class is a singleton. The class instance can be retrieved via the static method <code>sap.ui.core.InvisibleMessage.getInstance()</code>.
+	 * This class is a singleton. The class instance can be retrieved via the static method
+	 * {@link sap.ui.core.InvisibleMessage.getInstance}.
 	 *
-	 * Note: Keep in mind that according to the ARIA standard, the live regions should be presented and should be empty.
-	 * Thus, we recommend to instantiate <code> InvisibleMessage</code> via <code>sap.ui.core.InvisibleMessage.getInstance()</code> as early as possible in the application logic – with the Component initialization, with the main Controller initialization, after Core initialization, ect.
-	 * Then, you should specify the text, that has to be announced by the screen reader, and the live region’s mode using the <code>announce</code> method.
+	 * <b>Note:</b> Keep in mind that, according to the ARIA standard, the live regions should be presented
+	 * and should be empty. Thus, we recommend to instantiate <code>InvisibleMessage</code> via
+	 * <code>sap.ui.core.InvisibleMessage.getInstance()</code> as early as possible in the application logic,
+	 * e.g. with the Component initialization, with the main Controller initialization, after Core initialization, etc.
+	 * Then, you should specify the text that has to be announced by the screen reader and the live region’s mode
+	 * using the <code>announce</code> method.
 	 *
-	 * @extends sap.ui.core.ManagedObject
+	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @hideconstructor
 	 * @public
 	 * @experimental Since 1.78. This class is experimental and the API might be changed in future.
@@ -97,7 +102,9 @@ function (coreLibrary, ManagedObject, Log) {
 		oNode.textContent = sText;
 
 		if (sMode !== InvisibleMessageMode.Assertive && sMode !== InvisibleMessageMode.Polite) {
-			Log.info('You have entered an invalid mode. Valid values are: ' + '"Polite" ' + 'and "Assertive". The framework will automatically set the mode to "Polite".');
+			Log.info(
+				'You have entered an invalid mode. Valid values are: ' + '"Polite" ' + 'and "Assertive".'
+				+ ' The framework will automatically set the mode to "Polite".');
 		}
 	};
 
@@ -108,7 +115,8 @@ function (coreLibrary, ManagedObject, Log) {
 	 */
 	InvisibleMessage.prototype.getPoliteInstance = function() {
 		var sId = this.getId();
-		return '<span id="' + sId + '-polite' + '" data-sap-ui="' + sId + '-polite' + '" class="sapUiInvisibleMessagePolite" role="status" aria-live="polite">' +
+		return '<span id="' + sId + '-polite' + '" data-sap-ui="' + sId + '-polite' +
+				'" class="sapUiInvisibleMessagePolite" role="status" aria-live="polite">' +
 				'</span>';
 	};
 
@@ -119,7 +127,8 @@ function (coreLibrary, ManagedObject, Log) {
 	 */
 	InvisibleMessage.prototype.getAssertiveInstance = function() {
 		var sId = this.getId();
-		return '<span id="' + sId + '-assertive' + '" data-sap-ui="' + sId + '-assertive' + '" class="sapUiInvisibleMessageAssertive" role="status" aria-live="assertive">' +
+		return '<span id="' + sId + '-assertive' + '" data-sap-ui="' + sId + '-assertive' +
+				'" class="sapUiInvisibleMessageAssertive" role="status" aria-live="assertive">' +
 				'</span>';
 	};
 

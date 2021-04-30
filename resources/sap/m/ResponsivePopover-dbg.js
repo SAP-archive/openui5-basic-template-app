@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,10 +9,8 @@ sap.ui.define([
 	'./Dialog',
 	'./Popover',
 	'./library',
-	'./TitleAlignmentMixin',
 	'sap/ui/core/Control',
 	'sap/ui/core/IconPool',
-	'sap/ui/base/ManagedObject',
 	'sap/ui/Device',
 	'./ResponsivePopoverRenderer',
 	'./Toolbar',
@@ -24,10 +22,8 @@ sap.ui.define([
 		Dialog,
 		Popover,
 		library,
-		TitleAlignmentMixin,
 		Control,
 		IconPool,
-		ManagedObject,
 		Device,
 		ResponsivePopoverRenderer,
 		Toolbar,
@@ -67,7 +63,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -334,6 +330,7 @@ sap.ui.define([
 			this._aNotSupportedProperties = ["placement", "modal", "offsetX", "offsetY", "showCloseButton"];
 			settings.stretch = true;
 			settings.type = DialogType.Standard;
+			settings.titleAlignment = this.getTitleAlignment();
 			this._oControl = new Dialog(this.getId() + "-dialog", settings);
 		} else {
 			this._aNotSupportedProperties = ["icon", "showCloseButton"];
@@ -377,6 +374,11 @@ sap.ui.define([
 
 					//register to the navigation inside navcontainer to insert the closebutton to the page which is being navigated to
 					oNavContent.attachEvent("navigate", this._fnOnNavigate , this);
+				}
+
+				// title alignment
+				if (this._oControl && this._oControl.setTitleAlignment) {
+					this._oControl.setTitleAlignment(this.getTitleAlignment());
 				}
 			}
 		};
@@ -744,7 +746,7 @@ sap.ui.define([
 			ResponsivePopover.prototype[sName] = function(){
 				var iLastUpperCase = this._lastIndexOfUpperCaseLetter(sName),
 					sMethodName, res;
-				if (jQuery.type(arguments[0]) === "string") {
+				if (typeof arguments[0] === "string") {
 					if (iLastUpperCase !== -1) {
 						sMethodName = sName.substring(0, iLastUpperCase) + this._firstLetterUpperCase(arguments[0]);
 						//_oControl can be already destroyed in exit method
@@ -763,7 +765,7 @@ sap.ui.define([
 
 	// forward the other necessary methods to the inner instance, but do not check the existence of generated methods like (addItem)
 	["invalidate", "close", "isOpen", "addStyleClass", "removeStyleClass", "toggleStyleClass", "hasStyleClass",
-		"getDomRef", "setBusy", "getBusy", "setBusyIndicatorDelay", "getBusyIndicatorDelay", "addEventDelegate", "_setAriaModal", "_setAriaRoleApplication"].forEach(function(sName){
+		"getDomRef", "setBusy", "getBusy", "setBusyIndicatorDelay", "getBusyIndicatorDelay", "addEventDelegate", "removeEventDelegate", "_setAriaModal", "_setAriaRoleApplication"].forEach(function(sName){
 			ResponsivePopover.prototype[sName] = function() {
 				if (this._oControl && this._oControl[sName]) {
 
@@ -785,7 +787,7 @@ sap.ui.define([
 	 * @private
 	 */
 	ResponsivePopover.prototype._applyContextualSettings = function () {
-		ManagedObject.prototype._applyContextualSettings.call(this, ManagedObject._defaultContextualSettings);
+		Control.prototype._applyContextualSettings.call(this);
 	};
 
 	return ResponsivePopover;

@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the FacetFilter control of sap.m library.
  */
-sap.ui.define(["sap/ui/support/library"], function(SupportLib) {
+sap.ui.define(["sap/ui/support/library", "sap/ui/model/BindingMode"], function(SupportLib, BindingMode) {
 	"use strict";
 
 	// shortcuts
@@ -39,7 +39,7 @@ sap.ui.define(["sap/ui/support/library"], function(SupportLib) {
 				.forEach(function(oElement) {
 					if (oElement.getGrowing()
 						&& oElement.getModel()
-						&& oElement.getModel().getDefaultBindingMode() === sap.ui.model.BindingMode.TwoWay) {
+						&& oElement.getModel().getDefaultBindingMode() === BindingMode.TwoWay) {
 						var sElementId = oElement.getId(),
 							sElementName = oElement.getMetadata().getElementName();
 

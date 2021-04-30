@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/core/routing/Targets', './TargetHandler', './Target', './async/Targets', './sync/Targets', "sap/base/Log", "sap/base/util/UriParameters"],
@@ -154,9 +154,8 @@ sap.ui.define(['sap/ui/core/routing/Targets', './TargetHandler', './Target', './
 		 * </pre>
 		 *
 		 *
-		 * @param {string} [oOptions.targets.anyName.viewType]
-		 * The type of the view that is going to be created. These are the supported types: {@link sap.ui.core.mvc.ViewType}.
-		 * You always have to provide a viewType except if you are using {@link sap.ui.core.routing.Views#setView}.
+		 * @param {string} [oOptions.targets.anyName.viewType=oOptions.config.viewType] The type of the view that is going to be created. These are the supported types: {@link sap.ui.core.mvc.ViewType}.
+		 * You always have to provide a viewType except if <code>oOptions.config.viewType</code> is set or using {@link sap.ui.core.routing.Views#setView}.
 		 * @param {string} [oOptions.targets.anyName.viewPath]
 		 * A prefix that will be prepended in front of the viewName.<br/>
 		 * <b>Example:</b> viewName is set to "myView" and viewPath is set to "myApp" - the created viewName will be "myApp.myView".

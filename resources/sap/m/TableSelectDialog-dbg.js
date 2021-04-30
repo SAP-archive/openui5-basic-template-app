@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,7 +11,6 @@ sap.ui.define([
 	'./SearchField',
 	'./Table',
 	'./library',
-	'./TitleAlignmentMixin',
 	'sap/ui/core/Control',
 	'sap/ui/Device',
 	'sap/m/Toolbar',
@@ -27,7 +26,6 @@ sap.ui.define([
 	SearchField,
 	Table,
 	library,
-	TitleAlignmentMixin,
 	Control,
 	Device,
 	Toolbar,
@@ -86,7 +84,7 @@ sap.ui.define([
 	 * <h4>Notes:</h4>
 	 * <ul>
 	 * <li>The property <code>growing</code> must not be used together with two-way binding.
-	 * <li>When the property <code>growing</code> is set to <code>true</code> (default value), the features <code>selected count</code> in info bar, <code>search</code> and <code>select/deselect all</code>, if present, work only for the currently loaded items.
+	 * <li>When the property <code>growing</code> is set to <code>true</code> (default value), selected count (if present) and search, will work for currently loaded items only.
 	 * To make sure that all items in the table are loaded at once and the above features work properly, set the property to <code>false</code>.
 	 * <li>Since version 1.58, the columns headers and the info toolbar are sticky (remain fixed on top when scrolling). This feature is not supported in all browsers.
 	 * <li>The TableSelectDialog is usually displayed at the center of the screen. Its size and position can be changed by the user.
@@ -100,7 +98,7 @@ sap.ui.define([
 	 * When using the <code>sap.m.TableSelectDialog</code> in SAP Quartz themes, the breakpoints and layout paddings could be determined by the dialog's width. To enable this concept and add responsive paddings to an element of the control, you have to add the following classes depending on your use case: <code>sapUiResponsivePadding--header</code>, <code>sapUiResponsivePadding--subHeader</code>, <code>sapUiResponsivePadding--content</code>, <code>sapUiResponsivePadding--footer</code>.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -133,8 +131,8 @@ sap.ui.define([
 				/**
 				 * Determines the progressive loading. When set to <code>true</code>, enables the growing feature of the control to load more items by requesting from the bound model.
 				 * <b>Note:</b> This feature only works when an <code>items</code> aggregation is bound. Growing must not be used together with two-way binding.
-				 * <b>Note:</b> If the property is set to true, the features <code>selected count</code> in info bar and <code>select/deselect all</code>, if present, work only for the currently loaded items.
-				 * To make sure that all items in the table are loaded at once and the above features work properly, we recommend setting the <code>growing</code> property to false.
+				 * <b>Note:</b> If the property is set to <code>true</code>, selected count (if present) and search, will work for currently loaded items only.
+				 * To make sure that all items in the table are loaded at once and the above features work properly, we recommend setting the <code>growing</code> property to <code>false</code>.
 				 * @since 1.56
 				 */
 				growing : {type : "boolean", group : "Behavior", defaultValue : true},
@@ -152,7 +150,7 @@ sap.ui.define([
 				contentWidth : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
 
 				/**
-				 * Controls whether the dialog clears the selection or not. When the dialog is opened multiple times in the same context to allow for corrections of previous user inputs, set this flag to "true". When the dialog should reset the selection to allow for a new selection each time set it to "false"
+				 * Controls whether the dialog clears the selection or not. When the dialog is opened multiple times in the same context to allow for corrections of previous user inputs, set this flag to <code>true</code>. When the dialog should reset the selection to allow for a new selection each time set it to <code>false</code>
 				 * Note: This property must be set before the Dialog is opened to have an effect.
 				 * @since 1.18
 				 */
@@ -247,8 +245,9 @@ sap.ui.define([
 						selectedItems : {type : "sap.m.StandardListItem[]"},
 
 						/**
-						 * Returns the binding contexts of the selected items including the non-visible items.
+						 * Returns the binding contexts of the selected items including the non-visible items, but excluding the not loaded items.
 						 * Note: In contrast to the parameter "selectedItems", this parameter includes the selected but NOT visible items (due to list filtering). An empty array is set for this parameter if no Databinding is used.
+						 * NOTE: When the list binding is pre-filtered and there are items in the selection that are not visible upon opening the dialog, these contexts are not loaded. Therefore, these items will not be included in the selectedContexts array unless they are displayed at least once.
 						 */
 						selectedContexts : {type : "string"}
 					}
@@ -413,6 +412,7 @@ sap.ui.define([
 		});
 
 		var oCustomHeader = new Bar(this.getId() + "-dialog-header", {
+			titleAlignment: this.getTitleAlignment(),
 			contentMiddle: [
 				new Title(this.getId()  + "-dialog-title", {
 					level: "H2"
@@ -420,12 +420,10 @@ sap.ui.define([
 			]
 		});
 
-		// call the method that registers this Bar for alignment
-		this._setupBarTitleAlignment(oCustomHeader, this.getId() + "_customHeader");
-
 		// store a reference to the internal dialog
 		this._oDialog = new Dialog(this.getId() + "-dialog", {
 			customHeader: oCustomHeader,
+			titleAlignment: this.getTitleAlignment(),
 			stretch: Device.system.phone,
 			contentHeight: "2000px",
 			subHeader: this._oSubHeader,
@@ -561,11 +559,9 @@ sap.ui.define([
 		// reset internal variables
 		this._bFirstRequest = true;
 
-		this._sSearchFieldValue = "";
-
 		// set search field value
 		this._oSearchField.setValue(sSearchValue);
-
+		this._sSearchFieldValue = sSearchValue || "";
 
 		// open the dialog
 		this._oDialog.open();
@@ -732,6 +728,14 @@ sap.ui.define([
 	TableSelectDialog.prototype.setTitle = function (sTitle) {
 		this.setProperty("title", sTitle, true);
 		this._oDialog.getCustomHeader().getAggregation("contentMiddle")[0].setText(sTitle);
+		return this;
+	};
+
+	TableSelectDialog.prototype.setTitleAlignment = function (sAlignment) {
+		this.setProperty("titleAlignment", sAlignment);
+		if (this._oDialog) {
+			this._oDialog.setTitleAlignment(sAlignment);
+		}
 		return this;
 	};
 
@@ -1100,6 +1104,9 @@ sap.ui.define([
 			fnOKAfterClose = null;
 
 		fnOKAfterClose = function () {
+				// reset internal selection values
+				that._sSearchFieldValue = null;
+
 				that._oSelectedItem = that._oTable.getSelectedItem();
 				that._aSelectedItems = that._oTable.getSelectedItems();
 
@@ -1273,9 +1280,6 @@ sap.ui.define([
 	/* =========================================================== */
 	/*           end: internal methods                             */
 	/* =========================================================== */
-
-	// enrich the control functionality with TitleAlignmentMixin
-	TitleAlignmentMixin.mixInto(TableSelectDialog.prototype);
 
 	return TableSelectDialog;
 

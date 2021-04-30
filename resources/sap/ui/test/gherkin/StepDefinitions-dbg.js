@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -84,10 +84,10 @@ sap.ui.define(["sap/ui/base/Object", "sap/ui/thirdparty/jquery"], function(BaseO
          * @static
          */
         register : function(rRegex, fnFunc) {
-          if (jQueryDOM.type(rRegex) !== "regexp") {
+          if (!(rRegex instanceof RegExp)) {
             throw new Error("StepDefinitions.register: parameter 'rRegex' must be a valid RegExp object");
           }
-          if (jQueryDOM.type(fnFunc) !== "function") {
+          if (typeof fnFunc !== "function") {
             throw new Error("StepDefinitions.register: parameter 'fnFunc' must be a valid Function");
           }
 

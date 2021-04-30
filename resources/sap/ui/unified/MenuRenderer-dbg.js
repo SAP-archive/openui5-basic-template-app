@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,7 +15,7 @@ sap.ui.define([],
 	 * Menu renderer.
 	 * @author SAP - TD Core UI&AM UI Infra
 	 *
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @namespace
 	 */
 	var MenuRenderer = {
@@ -73,19 +73,11 @@ sap.ui.define([],
 		oRm.openEnd();
 		MenuRenderer.renderItems(oRm, oMenu);
 		if (bAccessible) {
-			/*var _getText = function(sKey, aArgs) {
-				var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
-				if (rb) {
-					return rb.getText(sKey, aArgs);
-				}
-				return sKey;
-			};*/
-
 			oRm.openStart("span", oMenu.getId() + "-label");
 			oRm.class("sapUiInvisibleText");
 			oRm.attr("aria-hidden", true);
 			oRm.openEnd();
-			oRm.text(oMenu.getAriaDescription() ? oMenu.getAriaDescription() : ""/*_getText("MNU_ARIA_NAME")*/);
+			oRm.text(oMenu.getAriaDescription() ? oMenu.getAriaDescription() : "");
 			oRm.close("span");
 		}
 		oRm.close("div");

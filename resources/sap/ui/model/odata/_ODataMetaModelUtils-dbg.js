@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -990,7 +990,10 @@ sap.ui.define([
 				// annotations are already lifted up and can be used for calculating entity
 				// set annotations which are based on V2 annotations on entity properties
 				Utils.visitParents(oSchema, oAnnotations, "entityType", Utils.visitEntityType);
+			});
 
+			aSchemas.forEach(function (oSchema) {
+				// visit entity container after all entity types of all schemas are visited
 				Utils.visitParents(oSchema, oAnnotations, "entityContainer",
 					function (oEntityContainer, mChildAnnotations) {
 						Utils.visitChildren(oEntityContainer.associationSet, mChildAnnotations);

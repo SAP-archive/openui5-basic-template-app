@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/Core'],
@@ -29,10 +29,6 @@ sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/c
 	MultiComboBoxRenderer.addOuterClasses = function(oRm, oControl) {
 		ComboBoxBaseRenderer.addOuterClasses.apply(this, arguments);
 		oRm.class(MultiComboBoxRenderer.CSS_CLASS_MULTICOMBOBOX);
-
-		if (oControl._hasTokens()) {
-			oRm.class("sapMMultiComboBoxHasToken");
-		}
 	};
 	/**
 	 * Returns the inner aria describedby ids for the accessibility.
@@ -40,9 +36,10 @@ sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/c
 	 * @param {sap.ui.core.Control} oControl an object representation of the control.
 	 * @returns {String|undefined}
 	 */
-	MultiComboBoxRenderer.getAriaDescribedBy = function(oControl) {
+	MultiComboBoxRenderer.getAriaDescribedBy = function (oControl) {
 		var sAriaDescribedBy = ComboBoxTextFieldRenderer.getAriaDescribedBy.apply(this, arguments),
-		oInvisibleTextId = oControl._oTokenizer && oControl._oTokenizer.getTokensInfoId();
+			oTokenizer = oControl.getAggregation("tokenizer"),
+			oInvisibleTextId = oTokenizer && oTokenizer.getTokensInfoId();
 
 		return (sAriaDescribedBy || "") + " " + oInvisibleTextId;
 	};
@@ -63,7 +60,7 @@ sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/c
 	};
 
 	MultiComboBoxRenderer.prependInnerContent = function (oRm, oControl) {
-		oRm.renderControl(oControl._oTokenizer);
+		oRm.renderControl(oControl.getAggregation("tokenizer"));
 	};
 
 	return MultiComboBoxRenderer;

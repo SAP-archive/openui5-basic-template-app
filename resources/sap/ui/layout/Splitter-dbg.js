@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -66,7 +66,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -567,7 +567,7 @@ sap.ui.define([
 		// Enable auto resize after bar move if it was enabled before
 		this.enableAutoResize(/* temporarily: */ true);
 		if (this._move.$bar){
-			this._move.$bar.focus();
+			this._move.$bar.trigger("focus");
 		}
 	};
 
@@ -1039,13 +1039,23 @@ sap.ui.define([
 		var oBar = oTarget,
 			sId = this.getId();
 
-		if (oBar.classList.contains("sapUiLoSplitterBarGripIcon")) {
+		/* TODO remove after the end of support for Internet Explorer */
+		// Fix for IE not supporting classList for svg-s
+		function hasClass(oElement, sClass) {
+
+			if (oElement.getAttribute('class')){
+				return oElement.getAttribute('class').indexOf(sClass) > -1;
+			}
+			return null;
+		}
+
+		if (hasClass(oBar, "sapUiLoSplitterBarGripIcon")) {
 			oBar = oTarget.parentElement;
 		}
 
-		if (oBar.classList.contains("sapUiLoSplitterBarDecorationBefore")
-			|| oBar.classList.contains("sapUiLoSplitterBarDecorationAfter")
-			|| oBar.classList.contains("sapUiLoSplitterBarGrip")) {
+		if (hasClass(oBar, "sapUiLoSplitterBarDecorationBefore")
+			|| hasClass(oBar, "sapUiLoSplitterBarDecorationAfter")
+			|| hasClass(oBar, "sapUiLoSplitterBarGrip")) {
 				oBar = oBar.parentElement;
 		}
 
@@ -1053,7 +1063,6 @@ sap.ui.define([
 			// The clicked element was not one of my splitter bars
 			return null;
 		}
-
 		return oBar;
 	};
 

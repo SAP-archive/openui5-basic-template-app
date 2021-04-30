@@ -2,7 +2,7 @@
 /* eslint-disable valid-jsdoc */
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -31,6 +31,9 @@ sap.ui.define([
 ) {
 
 	"use strict";
+
+	var CUSTOM_DATA_NS = "http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1";
+
 	/**
 	 * Static utility class to access XMLNodes like ManagedObjects,
 	 * inside this classes oControl usually means XML node.
@@ -187,6 +190,13 @@ sap.ui.define([
 		/**
 		 * @inheritDoc
 		 */
+		createAndAddCustomData: function(oControl, sCustomDataKey, sValue) {
+			oControl.setAttributeNS(CUSTOM_DATA_NS, "custom.data.via.modifier:" + sCustomDataKey, XmlTreeModifier._escapeCurlyBracketsInString(sValue));
+		},
+
+		/**
+		 * @inheritDoc
+		 */
 		createControl: function (sClassName, oAppComponent, oView, oSelector, mSettings, bAsync) {
 			var sId, sLocalName, oError;
 			if (!XmlTreeModifier.bySelector(oSelector, oAppComponent, oView)) {
@@ -318,27 +328,20 @@ sap.ui.define([
 			return oControlMetadata.getAllAggregations();
 		},
 
-
-
 		/**
 		 * @inheritDoc
 		 */
 		getAggregation: function (oParent, sName) {
 			var oAggregationNode = XmlTreeModifier._findAggregationNode(oParent, sName);
 			var bSingleValueAggregation = XmlTreeModifier._isSingleValueAggregation(oParent, sName);
-			if (!oAggregationNode) {
-				if (bSingleValueAggregation && XmlTreeModifier._isAltTypeAggregation(oParent, sName)) {
-					return XmlTreeModifier.getProperty(oParent, sName);
-				}
-				return bSingleValueAggregation ? undefined : [];
-			}
-			var aChildren = XmlTreeModifier._getControlsInAggregation(oParent, oAggregationNode);
-			if (bSingleValueAggregation) {
-				return aChildren[0];
+			var aChildren = [];
+			if (oAggregationNode) {
+				aChildren = XmlTreeModifier._getControlsInAggregation(oParent, oAggregationNode);
+			} else if (XmlTreeModifier._isAltTypeAggregation(oParent, sName) && bSingleValueAggregation) {
+				aChildren.push(XmlTreeModifier.getProperty(oParent, sName));
 			}
 			if (sName === "customData") {
 				//check namespaced attributes:
-				var CUSTOM_DATA_NS = "http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1";
 				var mCustomSettings;
 				var aNewCustomData = Array.prototype.slice.call(oParent.attributes).reduce(function(aNamespacedCustomData, oAttribute) {
 					var sLocalName = XmlTreeModifier._getLocalName(oAttribute);
@@ -367,7 +370,7 @@ sap.ui.define([
 					aChildren.push(oNewCustomData);
 				}
 			}
-			return aChildren;
+			return bSingleValueAggregation ? aChildren[0] : aChildren;
 		},
 
 		/**
@@ -629,7 +632,7 @@ sap.ui.define([
 			if (!Array.isArray(aControls)) {
 				aControls = [aControls];
 			}
-			var bReturn = XmlTreeModifier._isInstanceOf(aControls[iIndex], sTypeOrInterface) || XmlTreeModifier._hasInterface(aControls[iIndex], sTypeOrInterface);
+			var bReturn = aControls[iIndex].isA(sTypeOrInterface);
 			aControls.forEach(function(oFragmentControl) {
 				oFragmentControl.destroy();
 			});

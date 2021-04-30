@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -49,7 +49,7 @@ sap.ui.define(['sap/ui/unified/library', "sap/ui/thirdparty/jquery"],
 		oRm.openStart("form", oFileUploader.getId() + "-fu_form");
 		oRm.style("display", "inline-block");
 		oRm.attr("enctype", "multipart/form-data");
-		oRm.attr("method", "post");
+		oRm.attr("method", oFileUploader.getHttpRequestMethod().toLowerCase());
 		oRm.attr('action', oFileUploader.getUploadUrl());
 		oRm.attr('target', oFileUploader.getId() + '-frame');
 		oRm.openEnd();

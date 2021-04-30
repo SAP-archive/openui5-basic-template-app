@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/ui/base/ManagedObject",
 	'sap/ui/test/matchers/Matcher',
 	'sap/ui/test/matchers/I18NText'
-], function (Matcher, I18NText) {
+], function (ManagedObject, Matcher, I18NText) {
 	"use strict";
 
 	var oI18nMatcher = new I18NText();
@@ -117,6 +118,13 @@ sap.ui.define([
 			}
 		},
 
+		constructor: function (mSettings) {
+			if (mSettings && mSettings.text) {
+				mSettings.text = ManagedObject.escapeSettingsValue(mSettings.text);
+			}
+			Matcher.prototype.constructor.call(this, mSettings);
+		},
+
 		/**
 		 * Checks for control with labelFor property annotating other control
 		 *
@@ -126,8 +134,6 @@ sap.ui.define([
 		 */
 		isMatching: function (oControl) {
 			var bIsMatching;
-			// depend on globally defined Opa5, to avoid circular dependency: opa5 > plugin > matcherfactory > labelfor > opa5
-			var oPlugin = this._getOpaPlugin();
 			var sModelName = this.getModelName();
 			var sLabelText = this.getText();
 			var aParameters = this.getParameters();
@@ -148,9 +154,9 @@ sap.ui.define([
 				return false;
 			}
 
-			var aLabelsInPage = oPlugin.getMatchingControls({
-				controlType: "sap.m.Label",
-				visible: false
+			var fnLabelType = this._getApplicationWindow().jQuery.sap.getObject("sap.m.Label");
+			var aLabelsInPage = this._getApplicationWindow().sap.ui.core.Element.registry.filter(function (oElement) {
+				return oElement instanceof fnLabelType;
 			});
 
 			oI18nMatcher.applySettings({

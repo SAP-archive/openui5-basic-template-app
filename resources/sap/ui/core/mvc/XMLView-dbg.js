@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -71,7 +71,7 @@ sap.ui.define([
 	 * control's dependents aggregation or add it by using {@link sap.ui.core.mvc.XMLView#addDependent}.
 	 *
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.XMLView
@@ -103,11 +103,15 @@ sap.ui.define([
 
 			/**
 			 * The processing mode of the XMLView.
-			 * The processing mode "sequential" is implicitly activated for the following type of async views:
-			 *      a) root views in the manifest
+			 * The processing mode "sequential" is implicitly activated for the following type of views:
+			 *      a) async root views in the manifest
 			 *      b) XMLViews created with the (XML)View.create factory
-			 *      c) XMLViews used via routing
+			 *      c) XMLViews used via async routing
+			 *      d) synchronous nested views created by a asynchronous view
+			 * The processing mode "sequential_legacy" is implicitly activated for the following type of views:
+			 *      a) XMLViews created with sap.ui.view/sap.ui.xmlview with async <code>true</code>
 			 * Additionally, all declarative nested async subviews are also processed asynchronously.
+			 * In all other cases the processingMode is <code>undefined</code>
 			 */
 			processingMode: { type: "string", visibility: "hidden" }
 		},
@@ -158,13 +162,14 @@ sap.ui.define([
 		 * @param {object} [vView.cache] Cache configuration, only for <code>async</code> views; caching gets active
 		 * when this object is provided with vView.cache.keys array; keys are used to store data in the cache and for
 		 * invalidation of the cache
-		 * @param {Array.<(string|Promise)>} [vView.cache.keys] Array with strings or Promises resolving with strings
+		 * @param {Array<(string|Promise<string>)>} [vView.cache.keys] Array with strings or Promises resolving with strings
 		 * @param {object} [vView.preprocessors] Preprocessors configuration, see {@link sap.ui.core.mvc.View}
 		 * @param {sap.ui.core.mvc.Controller} [vView.controller] Controller instance to be used for this view
 		 * @public
 		 * @static
 		 * @deprecated since 1.56: Use {@link sap.ui.core.mvc.XMLView.create XMLView.create} instead
-		 * @return {sap.ui.core.mvc.XMLView} the created XMLView instance
+		 * @returns {sap.ui.core.mvc.XMLView} the created XMLView instance
+		 * @ui5-global-only
 		 */
 		sap.ui.xmlview = function(sId, vView) {
 			return sap.ui.view(sId, vView, ViewType.XML);
@@ -204,13 +209,13 @@ sap.ui.define([
 		 * @param {object} [oOptions.cache] - Cache configuration; caching gets active when this object is provided
 		 *                     with vView.cache.keys array; keys are used to store data in the cache and for invalidation
 		 *                     of the cache.
-		 * @param {Array.<(string|Promise)>} [oOptions.cache.keys] - Array with strings or Promises resolving with strings
+		 * @param {Array<(string|Promise<string>)>} [oOptions.cache.keys] - Array with strings or Promises resolving with strings
 		 * @param {object} [oOptions.preprocessors] Preprocessors configuration, see {@link sap.ui.core.mvc.View}
 		 *                     <strong>Note</strong>: These preprocessors are only available to this instance.
 		 *                     For global or on-demand availability use {@link sap.ui.core.mvc.XMLView.registerPreprocessor}.
 		 * @public
 		 * @static
-		 * @return {Promise<sap.ui.core.mvc.XMLView>} A Promise that resolves with the view instance or rejects with any thrown error.
+		 * @returns {Promise<sap.ui.core.mvc.XMLView>} A Promise that resolves with the view instance or rejects with any thrown error.
 		 */
 		XMLView.create = function (oOptions) {
 			var mParameters = deepExtend({}, oOptions);
@@ -221,9 +226,6 @@ sap.ui.define([
 			// defaults for the async API
 			mParameters.async = true;
 			mParameters.type = ViewType.XML;
-
-			// for now the processing mode is always set to default, might be changeable later, e.g. "parallel"
-			mParameters.processingMode = mParameters.processingMode || "sequential";
 
 			return View.create(mParameters);
 		};
@@ -293,7 +295,7 @@ sap.ui.define([
 		 *
 		 * @param oView
 		 * @param mSettings
-		 * @return {undefined|Promise} will return a Promise if ResourceModel is instantiated asynchronously, otherwise undefined
+		 * @returns {undefined|Promise} will return a Promise if ResourceModel is instantiated asynchronously, otherwise undefined
 		 */
 		function setResourceModel(oView, mSettings) {
 			if ((oView._resourceBundleName || oView._resourceBundleUrl) && (!mSettings.models || !mSettings.models[oView._resourceBundleAlias])) {
@@ -465,7 +467,7 @@ sap.ui.define([
  		* This function initialized the view settings.
  		*
  		* @param {object} mSettings with view settings
- 		* @return {Promise|null} will be returned if running in async mode
+ 		* @returns {Promise|null} will be returned if running in async mode
  		*/
 		XMLView.prototype.initViewSettings = function(mSettings) {
 			var that = this, _xContent;
@@ -705,7 +707,7 @@ sap.ui.define([
 
 		XMLView.prototype._onChildRerenderedEmpty = function(oControl, oElement) {
 			// when the render manager notifies us about an empty child rendering, we replace the old DOM with a dummy
-			jQuery(oElement).replaceWith('<div id="' + RenderPrefixes.Dummy + oControl.getId() + '" class="sapUiHidden"/>');
+			jQuery(oElement).replaceWith('<div id="' + RenderPrefixes.Dummy + oControl.getId() + '" class="sapUiHidden"></div>');
 			return true; // indicates that we have taken care
 		};
 

@@ -1,17 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/core/mvc/View",
 	"sap/ui/core/Component",
-	"sap/ui/core/routing/HashChanger",
-	"sap/ui/core/library"
-], function(View, Component, HashChanger, library) {
+	"sap/ui/core/routing/HashChanger"
+], function(View, Component, HashChanger) {
 	"use strict";
-
-	var ViewType = library.mvc.ViewType;
 
 	/**
 	 * Provide methods for sap.ui.core.routing.TargetCache in async mode
@@ -27,10 +24,12 @@ sap.ui.define([
 		 * @param {object} oOptions The options of the desired object
 		 * @param {string} sType The type of the desired object, e.g. 'View', 'Component', etc.
 		 * @param {object} oTargetCreateInfo The object which contains extra information for the creation of the target
+		 * @param {boolean} [bSynchronousCreate] When <code>true</code> the <code>View._legacyCreate</code> is used for creating
+		 *  the view instance synchronously. In all other cases the asynchronous <code>View.create</code> factory is used.
 		 * @returns {Promise | object} The desired object, if the object already exists in the cache, if not the promise is returned
 		 * @private
 		 */
-		_getObjectWithGlobalId : function (oOptions, sType, oTargetCreateInfo) {
+		_getObjectWithGlobalId : function (oOptions, sType, oTargetCreateInfo, bSynchronousCreate) {
 			var that = this,
 				vPromiseOrObject,
 				sName,
@@ -45,14 +44,7 @@ sap.ui.define([
 					case "View":
 						oOptions.viewName = oOptions.name;
 						delete oOptions.name;
-
-						if (oOptions.type === ViewType.XML && !oOptions.processingMode) {
-							// when async is set to false, the processingMode will be ignored
-							// therefore it's not checked whether async is set to true
-							oOptions.processingMode = "sequential";
-						}
-
-						return View._legacyCreate(oOptions);
+						return (!oOptions.async || bSynchronousCreate) ? View._legacyCreate(oOptions) : View.create(oOptions);
 					case "Component":
 						oOptions.settings = oOptions.settings || {};
 
@@ -142,14 +134,16 @@ sap.ui.define([
 		 * Determines the view with the given <code>oOptions</code>
 		 *
 		 * @param {object} oOptions The options of the desired object
+		 * @param {boolean} [bSynchronousCreate] When <code>true</code> the <code>View._legacyCreate</code> is used for creating
+		 *  the view instance synchronously. In all other cases the asynchronous <code>View.create</code> factory is used.
 		 * @returns {Promise | object} The desired object, if the object already exists in the cache, if not the promise is returned
 		 * @private
 		 */
-		_getViewWithGlobalId : function (oOptions) {
+		_getViewWithGlobalId : function (oOptions, bSynchronousCreate) {
 			if (oOptions && !oOptions.name) {
 				oOptions.name = oOptions.viewName;
 			}
-			return this._getObjectWithGlobalId(oOptions, "View");
+			return this._getObjectWithGlobalId(oOptions, "View", undefined, bSynchronousCreate);
 		},
 
 		/**

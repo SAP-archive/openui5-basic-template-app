@@ -38,26 +38,24 @@
 }
 
 .sapMInputBaseIconContainer .sapMInputBaseIcon {
+	box-sizing: border-box;
 	color: @sapUiContentIconColor;
 
 	&:hover {
 		background: @sapUiButtonLiteHoverBackground;
 		border-left: 1px solid @sapUiListSelectionBorderColor;
-		margin-left: -1px;
 	}
 
 	&:active {
 		background-color: @sapUiButtonLiteActiveBackground;
 		color: @sapUiButtonActiveTextColor;
 		border-left: 1px solid @sapUiListSelectionBorderColor;
-		margin-left: -1px;
 	}
 }
 
 .sapMInputBaseIconPressed .sapMInputBaseIcon {
 	background: @sapUiButtonSelectedBackground;
 	border-left: 1px solid @sapUiListSelectionBorderColor;
-	margin-left: -1px;
 }
 
 .sapMInputBaseDisabledWrapper .sapMInputBaseIcon {
@@ -96,21 +94,6 @@
 	}
 }
 
-.sapMFocus .sapMInputBaseContentWrapper {
-	&::before {
-		border: 1px dotted @sapUiContentFocusColor;
-	}
-}
-
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapMFocus .sapMInputBaseContentWrapper:not(.sapMInputBaseDisabledWrapper) {
-		&::before {
-			border: 1px dashed @sapUiContentFocusColor;
-		}
-	}
-}
-
 .sapMInputBaseInner::-webkit-input-placeholder {
 	font-style: normal;
 }
@@ -121,4 +104,8 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 
 .sapMInputBaseInner:-ms-input-placeholder {
 	font-style: normal;
+}
+
+.sapUiSizeCompact .sapMInputBaseContentWrapper.sapMInputBaseContentWrapperState:not(.sapMInputBaseContentWrapperSuccess) .sapMInputBaseIcon {
+	line-height: 1.375rem;
 }

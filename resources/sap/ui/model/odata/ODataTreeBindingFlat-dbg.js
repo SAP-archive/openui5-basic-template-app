@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -117,7 +117,7 @@ sap.ui.define([
 	 * API used by the controls.
 	 */
 	ODataTreeBindingFlat.prototype.getContexts = function (iStartIndex, iLength, iThreshold, bReturnNodes) {
-		if (this.isInitial()) {
+		if (!this.isResolved() || this.isInitial()) {
 			return [];
 		}
 
@@ -479,7 +479,10 @@ sap.ui.define([
 	ODataTreeBindingFlat.prototype._loadData = function (iSkip, iTop, iThreshold) {
 		var that = this;
 
-		this.fireDataRequested();
+		if (!this.bSkipDataEvents) {
+			this.fireDataRequested();
+		}
+		this.bSkipDataEvents = false;
 
 		return this._requestServerIndexNodes(iSkip, iTop, iThreshold).then(function(oResponseData) {
 			that._addServerIndexNodes(oResponseData.oData, oResponseData.iSkip);
@@ -493,8 +496,8 @@ sap.ui.define([
 				that._aNodes = [];
 				that._bLengthFinal = true;
 				that._fireChange({reason: ChangeReason.Change});
+				that.fireDataReceived();
 			}
-			that.fireDataReceived();
 		});
 	};
 
@@ -740,7 +743,10 @@ sap.ui.define([
 	ODataTreeBindingFlat.prototype._loadChildren = function(oParentNode, iSkip, iTop) {
 		var that = this;
 
-		this.fireDataRequested();
+		if (!this.bSkipDataEvents) {
+			this.fireDataRequested();
+		}
+		this.bSkipDataEvents = false;
 
 		this._requestChildren(oParentNode, iSkip, iTop).then(function(oResponseData) {
 			that._addChildNodes(oResponseData.oData, oParentNode, oResponseData.iSkip);
@@ -756,8 +762,8 @@ sap.ui.define([
 					oParentNode.childCount = 0;
 					that._fireChange({reason: ChangeReason.Change});
 				}
+				that.fireDataReceived();
 			}
-			that.fireDataReceived();
 		});
 	};
 
@@ -1034,13 +1040,20 @@ sap.ui.define([
 		}
 
 		return missingSectionsLoaded.then(function () {
-			that.fireDataRequested();
+			if (!that.bSkipDataEvents) {
+				that.fireDataRequested();
+			}
+			that.bSkipDataEvents = false;
 			return that._requestSubTree(oParentNode, iLevel).then(function(oResponseData) {
 				that._addSubTree(oResponseData.oData, oParentNode);
 				that.fireDataReceived({data: oResponseData.oData});
 			}, function(oError) {
 				Log.warning("ODataTreeBindingFlat: Error during subtree request", oError.message);
-				that.fireDataReceived();
+
+				var bAborted = oError.statusCode === 0;
+				if (!bAborted) {
+					that.fireDataReceived();
+				}
 			});
 		});
 	};
@@ -1456,17 +1469,36 @@ sap.ui.define([
 	 * @param {int} iLevel the number of expanded levels
 	 */
 	ODataTreeBindingFlat.prototype.collapseToLevel = function (iLevel) {
+		var iOldLeadIndex = -1,
+			aChangedIndices = [],
+			iRowIndex;
+
 		if (this.bCollapseRecursive) {
 			// first remove selection up to the given level
 			for (var sKey in this._mSelected) {
 				var oSelectedNode = this._mSelected[sKey];
 				if (oSelectedNode.level > iLevel) {
+					iRowIndex = this.getRowIndexByNode(oSelectedNode);
+					aChangedIndices.push(iRowIndex);
+					// find old lead selection index
+					if (this._sLeadSelectionKey == sKey) {
+						iOldLeadIndex = iRowIndex;
+					}
+
 					this.setNodeSelection(oSelectedNode, false);
 				}
 			}
 		}
 
 		this.setNumberOfExpandedLevels(iLevel);
+
+		if (this.bCollapseRecursive && aChangedIndices.length) {
+			this._publishSelectionChanges({
+				rowIndices: aChangedIndices,
+				oldIndex: iOldLeadIndex,
+				leadIndex: -1
+			});
+		}
 	};
 
 	/**
@@ -1512,6 +1544,13 @@ sap.ui.define([
 				this.setNodeSelection(oSelectedNode, false);
 			}
 		}.bind(this));
+
+		if ((this.bCollapseRecursive || bForceDeselect) && aInvisibleNodes.length) {
+			this._publishSelectionChanges({
+				rowIndices: [],
+				indexChangesCouldNotBeDetermined: true
+			});
+		}
 	};
 
 	/**
@@ -2552,7 +2591,8 @@ sap.ui.define([
 		}
 
 		//only fire event if the selection actually changed somehow
-		if (mParams.rowIndices.length > 0 || (mParams.leadIndex != undefined && mParams.leadIndex !== -1)) {
+		if (mParams.rowIndices.length > 0 || (mParams.leadIndex != undefined && mParams.leadIndex !== -1) ||
+				mParams.indexChangesCouldNotBeDetermined) {
 			this.fireSelectionChanged(mParams);
 		}
 	};
@@ -3144,7 +3184,10 @@ sap.ui.define([
 			moved: []
 		};
 
-		this.fireDataRequested();
+		if (!this.bSkipDataEvents) {
+			this.fireDataRequested();
+		}
+		this.bSkipDataEvents = false;
 
 		// Restore tree state is done in the following steps:
 		// 1. Request preorder position for added nodes (if there's added node) _requestExtraInfoForAddedNodes
@@ -4184,19 +4227,20 @@ sap.ui.define([
 	* Abort all pending requests
 	*/
 	ODataTreeBindingFlat.prototype._abortPendingRequest = function() {
-		ODataTreeBinding.prototype._abortPendingRequest.apply(this, arguments);
+		if (this._aPendingRequests.length || this._aPendingChildrenRequests.length) {
+			this.bSkipDataEvents = true;
 
-		var i, j;
+			var i, j;
+			for (i = this._aPendingRequests.length - 1; i >= 0; i--) {
+				this._aPendingRequests[i].oRequestHandle.abort();
+			}
+			this._aPendingRequests = [];
 
-		for (i = this._aPendingRequests.length - 1; i >= 0; i--) {
-			this._aPendingRequests[i].oRequestHandle.abort();
+			for (j = this._aPendingChildrenRequests.length - 1; j >= 0; j--) {
+				this._aPendingChildrenRequests[j].oRequestHandle.abort();
+			}
+			this._aPendingChildrenRequests = [];
 		}
-		this._aPendingRequests = [];
-
-		for (j = this._aPendingChildrenRequests.length - 1; j >= 0; j--) {
-			this._aPendingChildrenRequests[j].oRequestHandle.abort();
-		}
-		this._aPendingChildrenRequests = [];
 	};
 
 	//*********************************************
@@ -4263,11 +4307,14 @@ sap.ui.define([
 	 * <ul>
 	 * <li>'leadIndex' of type <code>int</code> Lead selection index.</li>
 	 * <li>'rowIndices' of type <code>int[]</code> Other selected indices (if available)</li>
+	 * <li>'indexChangesCouldNotBeDetermined' of type <code>boolean</code> True in case changed indices could not be determined</li>
 	 * </ul>
 	 *
 	 * @param {object} oParameters Parameters to pass along with the event.
 	 * @param {int} oParameters.leadIndex Lead selection index
 	 * @param {int[]} [oParameters.rowIndices] Other selected indices (if available)
+	 * @param {boolean} [oParameters.indexChangesCouldNotBeDetermined]
+	 *						True in case changed indices could not be determined
 	 * @return {sap.ui.model.odata.ODataTreeBindingFlat} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
 	 */

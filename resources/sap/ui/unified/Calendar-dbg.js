@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 //Provides control sap.ui.unified.Calendar.
@@ -9,6 +9,7 @@ sap.ui.define([
 	'sap/ui/core/LocaleData',
 	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/unified/DateRange',
+	'sap/ui/unified/DateTypeRange',
 	'./calendar/Header',
 	'./calendar/Month',
 	'./calendar/MonthPicker',
@@ -32,6 +33,7 @@ sap.ui.define([
 	LocaleData,
 	CalendarUtils,
 	DateRange,
+	DateTypeRange,
 	Header,
 	Month,
 	MonthPicker,
@@ -70,7 +72,7 @@ sap.ui.define([
 	 * Basic Calendar.
 	 * This calendar is used for DatePickers
 	 * @extends sap.ui.core.Control
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -222,7 +224,7 @@ sap.ui.define([
 			/**
 			 * Hidden, for internal use only.
 			 */
-			header : {type : "sap.ui.unified.calendar.Header", multiple : false, visibility : "hidden"},
+			header : {type : "sap.ui.core.Control", multiple : false, visibility : "hidden"},
 			secondMonthHeader : {type : "sap.ui.unified.calendar.Header", multiple : false, visibility : "hidden"},
 			month : {type : "sap.ui.unified.calendar.Month", multiple : true, visibility : "hidden"},
 			monthPicker : {type : "sap.ui.unified.calendar.MonthPicker", multiple : false, visibility : "hidden"},
@@ -509,6 +511,10 @@ sap.ui.define([
 			aMonths[i].setShowWeekNumbers(this.getShowWeekNumbers());
 		}
 
+		if (this._getMonthPicker()) {
+			this._setDisabledMonths(oFocusedDate.getYear(), this._getMonthPicker());
+		}
+
 		this._updateHeader(oCalDate);
 
 		this._iSize = 0; // initialize to recalculate new after rendering
@@ -615,7 +621,6 @@ sap.ui.define([
 		} else {
 			return this.getAggregation("specialDates", []);
 		}
-
 	};
 
 	Calendar.prototype.removeAllDisabledDates = function() {
@@ -1144,19 +1149,26 @@ sap.ui.define([
 		}
 
 		oEvent.preventDefault(); //ie expands the address bar on F4
-		if (bShift) {
-			switch (this._iMode) {
-				case 0:
-				case 1:
+
+		switch (this._iMode) {
+			case 0:
+				if (bShift) {
 					this._showYearPicker();
-					break;
-				case 2:
+				} else {
+					this._showMonthPicker();
+				}
+				break;
+			case 1:
+				if (bShift) {
+					this._showYearPicker();
+				}
+				break;
+			case 2:
+				if (bShift) {
 					this._showYearRangePicker();
-					break;
-				default:
-			}
-		} else {
-			this._showMonthPicker();
+				}
+				break;
+			default:
 		}
 	};
 
@@ -1427,7 +1439,19 @@ sap.ui.define([
 	Calendar.prototype._updateHeader = function(oDate){
 
 		this._setHeaderText(oDate);
-		this._togglePrevNext(oDate, true);
+		switch (this._iMode) {
+			case 0: // date picker
+				this._togglePrevNext(oDate, true);
+				break;
+			case 1: // month picker
+				this._togglePrevNext(oDate, false);
+				break;
+			case 2: // year picker
+			case 3: // year range picker
+				this._togglePrevNexYearPicker();
+				break;
+			// no default
+		}
 
 	};
 
@@ -1607,7 +1631,7 @@ sap.ui.define([
 				oFocusedDate = this._getFocusedDate();
 			}
 			oFocusedDate.setMonth(oFocusedDate.getMonth() + 1, 1);
-			this._renderMonth();
+			this._renderMonth(false, false, false, true);
 			break;
 
 		case 1: // month picker
@@ -1733,12 +1757,12 @@ sap.ui.define([
 		var iMinMonth = 0;
 		var iMaxMonth = 11;
 
-		if (iYear == this._oMinDate.getYear()) {
+		if (iYear === this._oMinDate.getYear()) {
 			iMinMonth = this._oMinDate.getMonth();
 		}
 
 
-		if (iYear == this._oMaxDate.getYear()) {
+		if (iYear === this._oMaxDate.getYear()) {
 			iMaxMonth = this._oMaxDate.getMonth();
 		}
 
@@ -1786,8 +1810,9 @@ sap.ui.define([
 	 * @param {boolean} bSkipFocus if set no focus is set to the date
 	 * @param {boolean} bInLastMont if more than one month is used, date is rendered in last month
 	 * @param {boolean} bNoEvent if set, no startDateChange event is fired
+	 * @param {boolean} bNavigation if true is passed, the rendering is triggered because of navigation
 	 */
-	Calendar.prototype._renderMonth = function (bSkipFocus, bInLastMonth, bNoEvent){
+	Calendar.prototype._renderMonth = function (bSkipFocus, bInLastMonth, bNoEvent, bNavigation){
 
 		var oDate = this._getFocusedDate(),
 			aMonths = this.getAggregation("month"),
@@ -1795,11 +1820,13 @@ sap.ui.define([
 			oMonth,
 			oMonthDate,
 			oFirstDate,
-			i = 0;
+			i = 0,
+			iI;
 
 		for (i = 0; i < aMonths.length; i++) {
+			iI = bNavigation ? 0 : i;
 			oMonth = aMonths[i];
-			if (oMonth.checkDateFocusable(oDate.toLocalJSDate()) && aMonths[0].getDate() && oDate.getMonth() === aMonths[0].getDate().getMonth()) {
+			if (oMonth.checkDateFocusable(oDate.toLocalJSDate()) && aMonths[iI].getDate() && oDate.getMonth() === aMonths[iI].getDate().getMonth()) {
 				bIsDateInFirstMonth = true;
 			}
 			if (bIsDateInFirstMonth || aMonths.length == 1) {
@@ -2610,6 +2637,34 @@ sap.ui.define([
 		}
 	};
 
+	Calendar.prototype._getSpecialDates = function(){
+		var oParent = this.getParent();
+
+		if (this._oSpecialDatesControlOrigin) {
+			return this._oSpecialDatesControlOrigin._getSpecialDates();
+		}
+
+		if (oParent && oParent._getSpecialDates) {
+			return oParent._getSpecialDates();
+		} else {
+			var specialDates = this.getSpecialDates();
+			for (var i = 0; i < specialDates.length; i++) {
+				var bNeedsSecondTypeAdding = specialDates[i].getSecondaryType() === library.CalendarDayType.NonWorking
+					&& specialDates[i].getType() !== library.CalendarDayType.NonWorking;
+				if (bNeedsSecondTypeAdding) {
+					var newSpecialDate = new DateTypeRange();
+					newSpecialDate.setType(specialDates[i].getSecondaryType());
+					newSpecialDate.setStartDate(specialDates[i].getStartDate());
+					if (specialDates[i].getEndDate()) {
+						newSpecialDate.setEndDate(specialDates[i].getEndDate());
+					}
+					specialDates.push(newSpecialDate);
+				}
+			}
+			return specialDates;
+		}
+	};
+
 	function _determineFocusedDate(){
 
 		var aSelectedDates = this.getSelectedDates();
@@ -2808,7 +2863,7 @@ sap.ui.define([
 		this._setFocusedDate(oCalDate);
 
 		if (this.getDomRef() && this._iMode == 0) {
-			this._renderMonth(bSkipFocus, false, true); // fire no startDateChange event on programmatical change
+			this._renderMonth(bSkipFocus, false, true, true); // fire no startDateChange event on programmatical change
 		}
 
 	}

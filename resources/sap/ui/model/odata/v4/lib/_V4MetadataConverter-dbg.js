@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,9 +27,8 @@ sap.ui.define([
 	V4MetadataConverter.prototype = Object.create(_MetadataConverter.prototype);
 
 	/**
-	 * Finalizes the conversion after having traversed the XML completely.
-	 *
 	 * @override
+	 * @see sap.ui.model.odata.v4.lib._MetadataConverter#finalize
 	 */
 	V4MetadataConverter.prototype.finalize = function () {
 		if (this.result.$Version !== "4.0") {
@@ -115,9 +114,8 @@ sap.ui.define([
 	 *
 	 * @param {Element} oElement The element
 	 * @param {function} [fnProcessor] The processor
-	 *
-	 * @override
 	 */
+	// @override sap.ui.model.odata.v4.lib._MetadataConverter#processElement
 	V4MetadataConverter.prototype.processElement = function (oElement, fnProcessor) {
 		if (fnProcessor) {
 			fnProcessor.call(this, oElement);

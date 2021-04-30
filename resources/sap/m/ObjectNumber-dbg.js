@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,7 +43,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -114,6 +114,23 @@ sap.ui.define([
 			oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 
 			return oRB.getText("OBJECTNUMBER_ARIA_VALUE_STATE_" + sState.toUpperCase(), [], true);
+	};
+
+	/**
+	 * @see sap.ui.core.Control#getAccessibilityInfo
+	 * @returns {Object} Current accessibility state of the control
+	 * @protected
+	 */
+	ObjectNumber.prototype.getAccessibilityInfo = function() {
+		var sStateText = "";
+
+		if (this.getState() !== ValueState.None) {
+			sStateText = this._getStateText();
+		}
+
+		return {
+			description: (this.getNumber() + " " + this.getUnit() + " " + sStateText).trim()
+		};
 	};
 
 	return ObjectNumber;

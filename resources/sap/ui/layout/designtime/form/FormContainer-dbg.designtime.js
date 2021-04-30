@@ -1,16 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the Design Time Metadata for the sap.ui.layout.form.FormContainer control
 sap.ui.define([
-	'sap/ui/fl/changeHandler/ChangeHandlerMediator',
 	"sap/ui/thirdparty/jquery",
 	'sap/ui/layout/form/Form'
 ], function (
-	ChangeHandlerMediator,
 	jQuery,
 	Form
 ) {
@@ -116,24 +114,10 @@ sap.ui.define([
 							if (fnIsLayoutSupported(oFormContainer)) {
 								return {
 									changeType: "addFormField",
-									changeOnRelevantContainer: true
-								};
-							}
-						}
-					},
-					addODataProperty: function (oFormContainer) {
-						if (fnIsLayoutSupported(oFormContainer)) {
-							var mChangeHandlerSettings = ChangeHandlerMediator.getAddODataFieldWithLabelSettings(oFormContainer);
-
-							if (mChangeHandlerSettings) {
-								return {
-									changeType: "addFormField",
 									changeOnRelevantContainer: true,
-									changeHandlerSettings: mChangeHandlerSettings
+									supportsDefaultDelegate: true
 								};
 							}
-						} else {
-							return null;
 						}
 					}
 				}

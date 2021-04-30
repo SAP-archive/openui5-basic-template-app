@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,7 +23,7 @@ sap.ui.define(["sap/ui/core/Element", "sap/base/Log", "sap/base/util/isPlainObje
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @protected
@@ -76,9 +76,9 @@ sap.ui.define(["sap/ui/core/Element", "sap/base/Log", "sap/base/util/isPlainObje
 	SelectionDetailsItemLine.prototype._getValueToRender = function() {
 		var sValue = "",
 			oValue = this.getValue();
-		if (jQuery.type(oValue) === "string") {
+		if (typeof oValue === "string" || oValue instanceof String) {
 			sValue = oValue;
-		} else if (jQuery.type(oValue) === "number") {
+		} else if (typeof oValue === "number") {
 			sValue = oValue.toString();
 		} else if (isPlainObject(oValue)) {
 			if (oValue.day && oValue.day.length > 0) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -39,6 +39,7 @@ sap.ui.define([
 		 */
 		With = ManagedObject.extend("sap.ui.core.util._with", {
 			metadata : {
+				library: "sap.ui.core",
 				properties : {
 					any : "any"
 				},
@@ -57,6 +58,7 @@ sap.ui.define([
 		 */
 		Repeat = With.extend("sap.ui.core.util._repeat", {
 			metadata : {
+				library: "sap.ui.core",
 				aggregations : {
 					list : {multiple : true, type : "n/a", _doesNotRequireFactory : true}
 				}
@@ -1581,7 +1583,8 @@ sap.ui.define([
 					error("Missing model '" + sModelName + "' in ", oElement);
 				}
 				oListBinding.enableExtendedChangeDetection();
-				aContexts = oListBinding.getContexts(oBindingInfo.startIndex, oBindingInfo.length);
+				aContexts = oListBinding.getContexts(oBindingInfo.startIndex,
+					oBindingInfo.length || /*no Model#iSizeLimit*/Infinity);
 				if (!oViewInfo.sync && aContexts.dataRequested) {
 					oPromise = new SyncPromise(function (resolve) {
 						oListBinding.attachEventOnce("change", resolve);

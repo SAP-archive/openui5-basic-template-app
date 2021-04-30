@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,11 +14,12 @@ sap.ui.define([
 	'sap/ui/core/delegate/ItemNavigation',
 	"sap/ui/core/InvisibleText",
 	'sap/ui/core/ResizeHandler',
+	'sap/ui/Device',
 	'sap/m/Button',
 	'sap/m/IconTabFilter',
 	'sap/m/IconTabSeparator',
 	'sap/m/IconTabBarDragAndDropUtil',
-	'sap/ui/core/dnd/DropPosition',
+	'sap/ui/core/library',
 	'sap/m/IconTabHeaderRenderer',
 	"sap/ui/thirdparty/jquery",
 	"sap/base/Log",
@@ -31,17 +32,21 @@ sap.ui.define([
 	ItemNavigation,
 	InvisibleText,
 	ResizeHandler,
+	Device,
 	Button,
 	IconTabFilter,
 	IconTabSeparator,
 	IconTabBarDragAndDropUtil,
-	DropPosition,
+	coreLibrary,
 	IconTabHeaderRenderer,
 	jQuery,
 	Log,
 	KeyCodes
 ) {
 	"use strict";
+
+	// shortcut for sap.ui.core.dnd.DropPosition
+	var DropPosition = coreLibrary.dnd.DropPosition;
 
 	// shortcut for sap.m.BackgroundDesign
 	var BackgroundDesign = library.BackgroundDesign;
@@ -64,7 +69,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -151,7 +156,17 @@ sap.ui.define([
 			 * For compatibility reasons, the default value is <code>Cozy</code>.
 			 * @since 1.56
 			 */
-			tabDensityMode :{type : "sap.m.IconTabDensityMode", group : "Appearance", defaultValue : IconTabDensityMode.Cozy}
+			tabDensityMode :{type : "sap.m.IconTabDensityMode", group : "Appearance", defaultValue : IconTabDensityMode.Cozy},
+
+			/**
+			 * Specifies optional texts for the screen reader.
+			 *
+			 * The given object can contain the following keys:
+			 * <code>headerLabel</code> - text to serve as a label for the header,
+			 * <code>headerDescription</code> - text to serve as a description for the header.
+			 * @since 1.80
+			 */
+			ariaTexts : {type : "object", group : "Accessibility", defaultValue : null}
 		},
 		aggregations : {
 
@@ -201,7 +216,7 @@ sap.ui.define([
 	IconTabHeader.prototype.init = function () {
 		this._aTabKeys = [];
 		this._oAriaHeadText = null;
-		this._oAriaTexts = {};
+		this._bIsRendered = false;
 	};
 
 	IconTabHeader.prototype.exit = function () {
@@ -220,25 +235,23 @@ sap.ui.define([
 			this._aTabKeys = null;
 		}
 
-		if (this._oPopover) {
-			this._oPopover.destroy();
-			this._oPopover = null;
-		}
-
-		if (this.getAggregation("_overflow")) {
-			this._getOverflow().removeEventDelegate(this._oOverflowEventDelegate);
+		if (this._oOverflow) {
+			this._oOverflow.removeEventDelegate(this._oOverflowEventDelegate);
 			this._oOverflowEventDelegate = null;
+			this._oOverflow = null;
 		}
 
 		if (this._oAriaHeadText) {
 			this._oAriaHeadText.destroy();
 			this._oAriaHeadText = null;
 		}
-		this._oAriaTexts = null;
 		this._bRtl = null;
 	};
 
 	IconTabHeader.prototype.onBeforeRendering = function () {
+
+		this._bIsRendered = false;
+
 		this._bRtl = Core.getConfiguration().getRTL();
 
 		if (this._sResizeListenerId) {
@@ -256,6 +269,7 @@ sap.ui.define([
 
 		if (this.oSelectedItem) {
 			this._applySelectionToFilters();
+			this.oSelectedItem._hideBadge();
 		}
 
 		if (Core.isThemeApplied()) {
@@ -268,6 +282,23 @@ sap.ui.define([
 
 		//listen to resize
 		this._sResizeListenerId = ResizeHandler.register(this.getDomRef(), jQuery.proxy(this._fnResize, this));
+
+		// notify items that they are rendered
+		this.getItems().forEach(function (oItem) {
+			if (oItem._onAfterParentRendering) {
+				oItem._onAfterParentRendering();
+			}
+		});
+
+		this._bIsRendered = true;
+	};
+
+	/**
+	 * Returns if the control is rendered
+	 * @private
+	 */
+	IconTabHeader.prototype._isRendered = function () {
+		return this._bIsRendered;
 	};
 
 	/**
@@ -279,8 +310,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns overflow tab
 	 * @private
+	 * @returns {sap.m.IconTabFilter} The overflow tab instance
 	 */
 	IconTabHeader.prototype._getOverflow = function () {
 		var oOverflow = this.getAggregation("_overflow");
@@ -291,11 +322,12 @@ sap.ui.define([
 				text: oResourceBundle.getText("ICONTABHEADER_OVERFLOW_MORE")
 			});
 			oOverflow._bIsOverflow = true;
-
-			oOverflow.addEventDelegate({ onsapnext: oOverflow.onsapdown }, oOverflow);
-			oOverflow.addEventDelegate({ onlongdragover: oOverflow._handleOnLongDragOver }, oOverflow);
-
+			this._oOverflowEventDelegate = {
+				onsapnext: oOverflow.onsapdown
+			};
+			oOverflow.addEventDelegate(this._oOverflowEventDelegate, oOverflow);
 			this.setAggregation("_overflow", oOverflow);
+			this._oOverflow = oOverflow;
 		}
 
 		return oOverflow;
@@ -307,13 +339,16 @@ sap.ui.define([
 	 * @private
 	 */
 	IconTabHeader.prototype._getInvisibleHeadText = function () {
+
+		var mAriaTexts = this.getAriaTexts() || {};
+
 		if (!this._oAriaHeadText) {
 			this._oAriaHeadText = new InvisibleText({
 				id: this.getId() + "-ariaHeadText"
 			});
 		}
 
-		this._oAriaHeadText.setText(this._oAriaTexts.headerDescription);
+		this._oAriaHeadText.setText(mAriaTexts.headerDescription);
 		return this._oAriaHeadText;
 	};
 
@@ -521,6 +556,8 @@ sap.ui.define([
 			}
 		}
 
+		this.oSelectedItem._startBadgeHiding();
+
 		this._setItemsForStrip();
 		return this;
 	};
@@ -695,7 +732,7 @@ sap.ui.define([
 			return oItem;
 		}
 
-		if (oItem && oItem == this.oSelectedItem && sAggregationName == 'items') {
+		if (!this._getPreserveSelection() && oItem && oItem == this.oSelectedItem && sAggregationName == 'items') {
 
 			var iIndexOf = (aItems ? Array.prototype.indexOf.call(aItems, oItem) : -1);
 			aItems = this.getTabFilters();
@@ -727,6 +764,23 @@ sap.ui.define([
 		}
 
 		return Control.prototype.removeAllAggregation.apply(this, arguments);
+	};
+
+	/**
+	 * Returns whether the currently selected item is preserved.
+	 * @private
+	 */
+	IconTabHeader.prototype._getPreserveSelection = function () {
+		return this._bPreserveSelection;
+	};
+
+	/**
+	 * Sets whether the currently selected item is preserved.
+	 * @param {Boolean} bPreserveSelection The new value
+	 * @private
+	 */
+	IconTabHeader.prototype._setPreserveSelection = function (bPreserveSelection) {
+		this._bPreserveSelection = bPreserveSelection;
 	};
 
 	/**
@@ -841,12 +895,7 @@ sap.ui.define([
 			return;
 		}
 
-		if (this._oPopover) {
-			this._oPopover.close();
-		}
-
 		var iTabStripWidth = oTabStrip.offsetWidth,
-			oItem,
 			i,
 			oSelectedItemDomRef = (oSelectedItem._getRootTab() || oSelectedItem).getDomRef(),
 			aItems = this.getItems()
@@ -861,43 +910,81 @@ sap.ui.define([
 		aItems.forEach(function (oItem) {
 			oItem.style.width = "";
 			oItem.classList.remove("sapMITBFilterHidden");
+			oItem.classList.remove("sapMITBFilterTruncated");
 		});
 
-		oSelectedItemDomRef.classList.remove("sapMITBFilterTruncated");
-
 		// find all fitting items, start with selected item's width
-		var oSelectedItemStyle = window.getComputedStyle(oSelectedItemDomRef);
-		var iSumFittingItems = oSelectedItemDomRef.offsetWidth  + Number.parseInt(oSelectedItemStyle.marginLeft) + Number.parseInt(oSelectedItemStyle.marginRight);
-		aItems.splice(aItems.indexOf(oSelectedItemDomRef), 1);
+		var iSelectedItemIndex = aItems.indexOf(oSelectedItemDomRef),
+			iSelectedItemSize = this._getItemSize(oSelectedItemDomRef),
+			oSelectedSeparator,
+			iSelectedSeparatorSize = 0,
+			iSelectedCombinedSize;
 
-		if (iTabStripWidth < iSumFittingItems) {
+		if (aItems[iSelectedItemIndex - 1] && aItems[iSelectedItemIndex - 1].classList.contains("sapMITBSep")) {
+			oSelectedSeparator = aItems[iSelectedItemIndex - 1];
+			iSelectedSeparatorSize = this._getItemSize(oSelectedSeparator);
+		}
+
+		iSelectedCombinedSize = iSelectedItemSize + iSelectedSeparatorSize;
+
+		if (iTabStripWidth < iSelectedCombinedSize) {
 			// selected item can't fit fully, truncate it's text and put all other items in the overflow
-			oSelectedItemDomRef.style.width = iTabStripWidth - 20 + "px";
+			oSelectedItemDomRef.style.width = (iTabStripWidth - 20 - iSelectedSeparatorSize) + "px";
 			oSelectedItemDomRef.classList.add("sapMITBFilterTruncated");
 		}
 
-		var iLastVisible = -1;
+		aItems.splice(iSelectedItemIndex, 1);
+
+		// if previous item is a separator - keep it
+		if (oSelectedSeparator) {
+			aItems.splice(iSelectedItemIndex - 1, 1);
+		}
+
+		var iLastVisible = this._findLastVisibleItem(aItems, iTabStripWidth, iSelectedCombinedSize);
+		for (i = iLastVisible + 1; i < aItems.length; i++) {
+			aItems[i].classList.add("sapMITBFilterHidden");
+		}
+
+		this._getOverflow()._updateExpandButtonBadge();
+		this._getOverflow().$().toggleClass("sapMITHOverflowVisible", iLastVisible + 1 !== aItems.length);
+		this.$().toggleClass("sapMITHOverflowList", iLastVisible + 1 !== aItems.length);
+	};
+
+	IconTabHeader.prototype._findLastVisibleItem  = function (aItems, iTabStripWidth, iSumFittingItems) {
+		var iLastVisible = -1,
+			iInd,
+			oItem,
+			iItemSize,
+			oPrevItem;
+
 		// hide all items after the fitting items, selected item will take place as the last fitting item, if it's out of order
-		for (i = 0; i < aItems.length; i++) {
-			oItem = aItems[i];
-			var oStyle = window.getComputedStyle(oItem);
-			var iItemSize = oItem.offsetWidth + Number.parseInt(oStyle.marginLeft) + Number.parseInt(oStyle.marginRight);
+		for (iInd = 0; iInd < aItems.length; iInd++) {
+			oItem = aItems[iInd];
+			iItemSize = this._getItemSize(oItem);
 
 			if (iTabStripWidth > (iSumFittingItems + iItemSize)) {
 				iSumFittingItems += iItemSize;
-				iLastVisible = i;
+				iLastVisible = iInd;
 			} else {
+				// if prev item is separator - hide it
+				oPrevItem = aItems[iInd - 1];
+				if (oPrevItem && oPrevItem.classList.contains("sapMITBSep")) {
+					iLastVisible -= 1;
+				}
+
 				break;
 			}
 		}
 
-		for (i = iLastVisible + 1; i < aItems.length; i++) {
-			oItem = aItems[i];
-			oItem.classList.add("sapMITBFilterHidden");
-		}
+		return iLastVisible;
+	};
 
-		this._getOverflow().$().toggleClass("sapMITHOverflowVisible", iLastVisible + 1 !== aItems.length);
-		this.$().toggleClass("sapMITHOverflowList", iLastVisible + 1 !== aItems.length);
+	IconTabHeader.prototype._getItemSize = function (oItemDomRef) {
+		var oStyle = window.getComputedStyle(oItemDomRef),
+			iWidth = oItemDomRef.offsetWidth,
+			iMargins = Number.parseInt(oStyle.marginLeft) + Number.parseInt(oStyle.marginRight);
+
+		return iWidth + iMargins;
 	};
 
 	/**
@@ -1176,11 +1263,26 @@ sap.ui.define([
 		}
 	};
 
-	/**
-	 * @private
-	 */
-	IconTabHeader.prototype._setAriaTexts = function (oAriaTexts) {
-		this._oAriaTexts = oAriaTexts || {};
+	IconTabHeader.prototype._getItemsForOverflow = function () {
+		var aItemsInStrip = this._getItemsInStrip(),
+			aItemsForList = [];
+
+		this.getItems().forEach(function (oItem) {
+			// If tab is an overflow tab and oItem is already in Tab Strip, do not add it to list
+			// on a mobile device, this behaviour doesn't occur, and all items are shown
+			if (!Device.system.phone && aItemsInStrip.indexOf(oItem) > -1) {
+				return;
+			}
+
+			aItemsForList.push(oItem);
+			if (oItem.isA("sap.m.IconTabFilter")) {
+				oItem._getAllSubItems().forEach(function (oSubItem) {
+					aItemsForList.push(oSubItem);
+				});
+			}
+		});
+
+		return aItemsForList;
 	};
 
 	/* =========================================================== */
@@ -1272,6 +1374,10 @@ sap.ui.define([
 		}
 
 		IconTabBarDragAndDropUtil.handleDrop(oContext, oEventDropPosition, oDraggedControl._getRealTab(), oDroppedControl, false, allowedNestingLevel);
+
+		if (oDraggedControl._getNestedLevel() > 1) {
+			oDraggedControl._getRootTab()._closePopover();
+		}
 
 		this._setItemsForStrip();
 		this._initItemNavigation();

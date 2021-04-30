@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ sap.ui.define(['./Interface', './Metadata', "sap/base/Log"],
 	 * @class Base class for all SAPUI5 Objects.
 	 * @abstract
 	 * @author Malte Wedel
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @public
 	 * @alias sap.ui.base.Object
 	 * @throws {Error} When an instance of the class or its subclasses is created without the <code>new</code> operator.
@@ -60,6 +60,7 @@ sap.ui.define(['./Interface', './Metadata', "sap/base/Log"],
 	 * The facade is created on the first call of <code>getInterface</code> and reused for all later calls.
 	 *
 	 * @public
+	 * @returns {sap.ui.base.Object} A facade for this object, with at least the public methods of the class of this.
 	 */
 	BaseObject.prototype.getInterface = function() {
 		// New implementation that avoids the overhead of a dedicated member for the interface

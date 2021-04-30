@@ -1,20 +1,29 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /*global XMLHttpRequest */
 sap.ui.define([
 	"sap/ui/thirdparty/sinon",
-	"sap/ui/test/_OpaLogger",
-	"sap/ui/test/autowaiter/_utils"
-], function (sinon, _OpaLogger, _utils) {
+	"sap/ui/test/autowaiter/_utils",
+	"./WaiterBase"
+], function (sinon, _utils, WaiterBase) {
 	"use strict";
 
-	var oLogger = _OpaLogger.getLogger("sap.ui.test.autowaiter._XHRWaiter");
-	var oHasPendingLogger = _OpaLogger.getLogger("sap.ui.test.autowaiter._XHRWaiter#hasPending");
 	var aXHRs = [];
+
+	var XHRWaiter = WaiterBase.extend("sap.ui.test.autowaiter._XHRWaiter", {
+		hasPending: function () {
+			var bHasPendingRequests = aXHRs.length > 0;
+			if (bHasPendingRequests) {
+				logPendingRequests();
+			}
+			return bHasPendingRequests;
+		}
+	});
+	var oXHRWaiter = new XHRWaiter();
 
 	// restore seems to be a new function everytime you call useFakeXmlHttpRequest so hook it everytime
 	var fnUseFakeOriginal = sinon.useFakeXMLHttpRequest;
@@ -101,16 +110,16 @@ sap.ui.define([
 
 		if (this.async) {
 			aXHRs.push(oNewPendingXHRInfo);
-			oLogger.trace("New pending:" + oNewPendingXHRLog);
+			oXHRWaiter._oLogger.trace("New pending:" + oNewPendingXHRLog);
 
 			this.addEventListener("readystatechange", function() {
 				if (this.readyState === 4) {
 					aXHRs.splice(aXHRs.indexOf(oNewPendingXHRInfo), 1);
-					oLogger.trace("Finished:" + oNewPendingXHRLog);
+					oXHRWaiter._oLogger.trace("Finished:" + oNewPendingXHRLog);
 				}
 			});
 		} else {
-			oLogger.trace("Finished:" + oNewPendingXHRLog);
+			oXHRWaiter._oLogger.trace("Finished:" + oNewPendingXHRLog);
 		}
 	}
 
@@ -127,7 +136,7 @@ sap.ui.define([
 			sLogMessage += createLogForSingleRequest(oXHR);
 		});
 
-		oHasPendingLogger.debug(sLogMessage);
+		oXHRWaiter._oHasPendingLogger.debug(sLogMessage);
 	}
 
 	function filterFakeXHRs(bIsFake) {
@@ -136,13 +145,5 @@ sap.ui.define([
 		});
 	}
 
-	return {
-		hasPending: function () {
-			var bHasPendingRequests = aXHRs.length > 0;
-			if (bHasPendingRequests) {
-				logPendingRequests();
-			}
-			return bHasPendingRequests;
-		}
-	};
+	return oXHRWaiter;
 }, true);

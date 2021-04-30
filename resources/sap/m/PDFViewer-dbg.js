@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -47,7 +47,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 * @since 1.48
 		 *
 		 * @constructor
@@ -266,7 +266,9 @@ sap.ui.define([
 				if (iCrossPosition > -1) {
 					sParametrizedSource = sParametrizedSource.substr(0, iCrossPosition);
 				}
-				sParametrizedSource += "#view=FitH";
+				if (!(Device.browser.safari && sParametrizedSource.startsWith("blob:"))) {
+					sParametrizedSource += "#view=FitH";
+				}
 				if (!URLWhitelist.validate(sParametrizedSource)) {
 					sParametrizedSource = encodeURI(sParametrizedSource);
 				}
@@ -282,6 +284,7 @@ sap.ui.define([
 				this.setBusy(true);
 				fnInitIframeElement();
 			} catch (error) {
+				Log.error(error);
 				this.setBusy(false);
 			}
 		};
@@ -321,8 +324,8 @@ sap.ui.define([
 			try {
 				this._getIframeDOMElement().removeClass("sapMPDFViewerLoading");
 			} catch (err) {
-				jQuery.log.fatal("Iframe not founded in loaded event");
-				jQuery.log.fatal(err);
+				Log.fatal("Iframe not founded in loaded event");
+				Log.fatal(err);
 			}
 			this.fireEvent("loaded");
 		};
@@ -434,6 +437,7 @@ sap.ui.define([
 		 */
 		PDFViewer.prototype.downloadPDF = function () {
 			var oWindow = window.open(this.getSource());
+			oWindow.opener = null;
 			oWindow.focus();
 		};
 
@@ -535,6 +539,7 @@ sap.ui.define([
 		 */
 		PDFViewer.prototype._openOnMobile = function () {
 			var oWindow = window.open(this.getSource());
+			oWindow.opener = null;
 			oWindow.focus();
 		};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer,
 	 * <code>text</code> property is styled and acts as a link. In this case the <code>text</code>
 	 * property must also be set, as otherwise there will be no link displayed for the user.
 	 * @extends sap.ui.core.Control
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -127,7 +127,9 @@ function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer,
 			bPageRTL = sap.ui.getCore().getConfiguration().getRTL(),
 			iMaxLines,
 			bWrap = true,
-			oppositeDirectionMarker = '';
+			oppositeDirectionMarker = '',
+			oCore = sap.ui.getCore(),
+			sResult;
 
 		if (sTextDir === TextDirection.LTR && bPageRTL) {
 			oppositeDirectionMarker = '\u200e';
@@ -136,10 +138,18 @@ function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer,
 			oppositeDirectionMarker = '\u200f';
 		}
 		sText = oppositeDirectionMarker + sText + oppositeDirectionMarker;
+
 		if (sTitle) {
-			sText = sTitle + ": " + sText;
+			sResult = sTitle;
+			if (oCore.getConfiguration().getLocale().getLanguage().toLowerCase() === "fr") {
+				sResult += " ";
+			}
+			sResult += ": " + sText;
+		} else {
+			sResult = sText;
 		}
-		oAttrAggregation.setProperty('text', sText, true);
+
+		oAttrAggregation.setProperty('text', sResult, true);
 
 		//if attribute is used inside responsive ObjectHeader or in ObjectListItem - only 1 line
 		if (oParent instanceof sap.m.ObjectListItem) {

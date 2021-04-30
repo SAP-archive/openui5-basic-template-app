@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /*global console */
 
-// This file provides a fallback to load UI5 in support.html / msiebridge.html
+// This file provides a fallback to load UI5 in support.html
 (function() {
 	'use strict';
 

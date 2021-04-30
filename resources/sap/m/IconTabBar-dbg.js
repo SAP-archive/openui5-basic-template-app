@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -76,6 +76,9 @@ sap.ui.define([
 	 *<li>Use an arrow (e.g. triple-chevron) as a separator to connect the steps.</li>
 	 *<li>Use counters to show the number of items in each filter.</li>
 	 *</ul>
+	 *<h3>Hierarchies</h3>
+	 * Multiple sub tabs could be placed underneath one main tab. Nesting allows deeper hierarchies with indentations to indicate the level of each nested tab.
+	 * When a tab has both sub tabs and own content its click area is split to allow the user to display the content or alternatively to expand/collapse the list of sub tabs.
 	 *<h3>Responsive Behavior</h3>
 	 *<ul>
 	 *<li>Text-only tabs are never truncated.</li>
@@ -88,7 +91,7 @@ sap.ui.define([
 	 * @implements sap.m.ObjectHeaderContainer, sap.f.IDynamicPageStickyContent
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @public
 	 * @alias sap.m.IconTabBar
@@ -316,6 +319,9 @@ sap.ui.define([
 		content: { suffix: "content" }
 	});
 
+	// List of classes to copy from IconTabBar to IconTabHeader when used as a sticky header inside a DynamicPage.
+	IconTabBar._CLASSES_TO_COPY = ["sapUiResponsiveContentPadding", "sapUiNoContentPadding", "sapUiContentPadding"];
+
 	/**
 	 * Initialization lifecycle method.
 	 *
@@ -406,6 +412,42 @@ sap.ui.define([
 		this._getIconTabHeader().setEnableTabReordering(value);
 
 		return this;
+	};
+
+	/**
+	 * Sets the ariaTexts property.
+	 *
+	 * @public
+	 * @param {object} oAriaTexts New value for ariaTexts.
+	 * @returns {sap.m.IconTabBar} this Reference to this in order to allow method chaining
+	 */
+	IconTabBar.prototype.setAriaTexts = function (oAriaTexts) {
+		// set internal property
+		this.setProperty("ariaTexts", oAriaTexts, true);
+
+		this._getIconTabHeader().setAriaTexts(oAriaTexts);
+
+		return this;
+	};
+
+	IconTabBar.prototype.addStyleClass = function (sClass, bSuppressRerendering) {
+		var oIconTabHeader = this._getIconTabHeader();
+
+		if (IconTabBar._CLASSES_TO_COPY.indexOf(sClass) !== -1) {
+			oIconTabHeader.addStyleClass(sClass, true);
+		}
+
+		return Control.prototype.addStyleClass.apply(this, arguments);
+	};
+
+	IconTabBar.prototype.removeStyleClass = function (sClass, bSuppressRerendering) {
+		var oIconTabHeader = this._getIconTabHeader();
+
+		if (IconTabBar._CLASSES_TO_COPY.indexOf(sClass) !== -1) {
+			oIconTabHeader.removeStyleClass(sClass, true);
+		}
+
+		return Control.prototype.removeStyleClass.apply(this, arguments);
 	};
 
 	/**
@@ -543,15 +585,7 @@ sap.ui.define([
 	};
 
 	IconTabBar.prototype._getStickyContent = function () {
-		var oIconTabHeader = this._getIconTabHeader();
-
-		IconTabBar._CLASSES_TO_COPY.forEach(function (sClassName) {
-			if (this.hasStyleClass(sClassName)) {
-				oIconTabHeader.addStyleClass(sClassName);
-			}
-		}.bind(this));
-
-		return oIconTabHeader;
+		return this._getIconTabHeader();
 	};
 
 	IconTabBar.prototype._returnStickyContent = function () {
@@ -574,7 +608,6 @@ sap.ui.define([
 		var oITH = this._getIconTabHeader(),
 			$ITH = oITH.$();
 
-		oITH._setAriaTexts(this.getAriaTexts());
 		oITH.setMaxNestingLevel(this.getMaxNestingLevel());
 
 		if (this._bStickyContentSticked && $ITH) {
@@ -645,9 +678,6 @@ sap.ui.define([
 	/* =========================================================== */
 	/*           end: reflectors for header properties             */
 	/* =========================================================== */
-
-	// List of classes to copy from IconTabBar to IconTabHeader when used as a sticky header inside a DynamicPage.
-	IconTabBar._CLASSES_TO_COPY = ["sapUiResponsiveContentPadding", "sapUiNoContentPadding", "sapUiContentPadding"];
 
 	return IconTabBar;
 });

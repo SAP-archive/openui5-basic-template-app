@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/LabelEnablement', 'sap/ui/Device'],
-	function(Renderer, coreLibrary, LabelEnablement, Device) {
+sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/Core', 'sap/ui/core/library', 'sap/ui/core/ValueStateSupport', 'sap/ui/core/LabelEnablement', 'sap/ui/Device'],
+	function(Renderer, Core, coreLibrary, ValueStateSupport, LabelEnablement, Device) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TextDirection
@@ -59,7 +59,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Label
 			oRm.class("sapMInputBaseReadonly");
 		}
 
-		if (sValueState !== ValueState.None) {
+		if (sValueState !== ValueState.None && oControl.getEditable() && oControl.getEnabled()) {
 			oRm.class("sapMInputBaseState");
 		}
 
@@ -102,7 +102,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Label
 			oRm.class("sapMInputBaseReadonlyWrapper");
 		}
 
-		if (sValueState !== ValueState.None) {
+		if (sValueState !== ValueState.None && oControl.getEditable() && oControl.getEnabled()) {
 			this.addValueStateClasses(oRm, oControl);
 		}
 
@@ -167,10 +167,6 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Label
 
 		this.writeInnerAttributes(oRm, oControl);
 
-		if (sValueState === ValueState.Error) {
-			oRm.attr("aria-invalid", "true");
-		}
-
 		// inner classes
 		oRm.class("sapMInputBaseInner");
 
@@ -200,6 +196,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Label
 		if (bAccessibility) {
 			this.renderAriaLabelledBy(oRm, oControl);
 			this.renderAriaDescribedBy(oRm, oControl);
+			this.renderValueStateAccDom(oRm, oControl);
 		}
 
 		// finish outer
@@ -304,6 +301,52 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Label
 	};
 
 	/**
+	 * Renders the hidden aria describedby and errormessage nodes for the accessibility.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
+	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
+	 */
+	InputBaseRenderer.renderValueStateAccDom = function(oRm, oControl) {
+		var sValueState = oControl.getValueState();
+
+		if (sValueState === ValueState.None || !oControl.getEditable() || !oControl.getEnabled()) {
+			return;
+		}
+
+		var bShouldBeLiveRegion = document.activeElement !== oControl.getFocusDomRef() || sValueState === ValueState.Error;
+		var sAccDomNodeId = oControl.getValueStateMessageId() + "-sr";
+		var oFormattedValueStateText = oControl.getAggregation("_invisibleFormattedValueStateText");
+		var sValueStateTypeText = Core.getLibraryResourceBundle("sap.m").getText("INPUTBASE_VALUE_STATE_" + sValueState.toUpperCase());
+
+		oRm.openStart("div", sAccDomNodeId).class("sapUiPseudoInvisibleText");
+		// Prevent double announcements for value state messages other than errors (referenced by aria-describedby),
+		// when value state is changed via user interaction
+		// Only make the acc DOM element an "assertive" "live region"when aria-errormessage is used, otherwise
+		// when the element is referenced by "aria-describedby" it is treated as "live region" by default
+		if (bShouldBeLiveRegion) {
+			oRm.attr("aria-live", "assertive");
+		}
+
+		// Tells screen readers to announce the live region as a whole even if only part of it is changed.
+		// This is needed because of the way semantic renderer works - it won't replace text content if it is the same -
+		// the so called in-place DOM patching - and the control will get rerendered when value state is not changed.
+		// For example if only the value state type is changed and not the text, if aria-atomic is not set to 'true'
+		// the value state text won't be announced.
+		oRm.attr("aria-atomic", "true")
+			.openEnd()
+			.text(sValueStateTypeText).text(" ");
+
+		if (oFormattedValueStateText) {
+			oRm.renderControl(oFormattedValueStateText);
+		} else {
+			// Flush previous value state text and populate it again even if the same as before to avoid the
+			// semantic renderer's DOM patching and update the live region
+			oRm.text(oControl.getValueStateText() || ValueStateSupport.getAdditionalText(oControl));
+		}
+		oRm.close("div");
+	};
+
+	/**
 	 * Returns the accessibility state of the control.
 	 * Hook for the subclasses.
 	 *
@@ -314,14 +357,18 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Label
 		var sAriaLabelledBy = this.getAriaLabelledBy(oControl),
 			sAriaDescribedBy = this.getAriaDescribedBy(oControl),
 			sRole = this.getAriaRole(oControl),
+			sValueStateAccNodeId = oControl.getValueStateMessageId() + "-sr",
 			mAccessibilityState = { };
 
 		if (sRole) {
 			mAccessibilityState.role = sRole;
 		}
 
-		if (oControl.getValueState() === ValueState.Error) {
+		if (oControl.getValueState() === ValueState.Error && oControl.getEditable() && oControl.getEnabled()) {
 			mAccessibilityState.invalid = true;
+			mAccessibilityState.errormessage = sValueStateAccNodeId;
+		} else if (oControl.getValueState() !== ValueState.None && oControl.getEditable() && oControl.getEnabled()) {
+			sAriaDescribedBy = sAriaDescribedBy ? sValueStateAccNodeId + " " + sAriaDescribedBy : sValueStateAccNodeId;
 		}
 
 		if (sAriaLabelledBy) {

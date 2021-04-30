@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -175,7 +175,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @param {sap.ui.core.Core} oCore internal API of the <core>Core</code> that manages this UIArea
 	 * @param {object} [oRootNode] reference to the DOM element that should be 'hosting' the UI Area.
 	 * @public
@@ -203,7 +203,7 @@ sap.ui.define([
 			if (oRootNode != null) {
 				this.setRootNode(oRootNode);
 				// Figure out whether UI Area is pre-rendered (server-side JS rendering)!
-				this.bNeedsRerendering = this.bNeedsRerendering && !((oRootNode.id + "-Init" ? window.document.getElementById(oRootNode.id + "-Init") : null));
+				this.bNeedsRerendering = this.bNeedsRerendering && !document.getElementById(oRootNode.id + "-Init");
 			}
 			this.mInvalidatedControls = {};
 
@@ -229,6 +229,27 @@ sap.ui.define([
 				 */
 				dependents : {name : "dependents", type : "sap.ui.core.Control", multiple : true}
 			}
+		},
+
+		// make 'dependents' a non-invalidating aggregation
+		insertDependent: function(oElement, iIndex) {
+			return this.insertAggregation("dependents", oElement, iIndex, true);
+		},
+
+		addDependent: function(oElement) {
+			return this.addAggregation("dependents", oElement, true);
+		},
+
+		removeDependent: function(vElement) {
+			return this.removeAggregation("dependents", vElement, true);
+		},
+
+		removeAllDependents: function() {
+			return this.removeAllAggregation("dependents", true);
+		},
+
+		destroyDependents: function() {
+			return this.destroyAggregation("dependents", true);
 		}
 	});
 
@@ -484,7 +505,7 @@ sap.ui.define([
 	 * @protected
 	 */
 	UIArea.prototype.isActive = function() {
-		return ((this.getId() ? window.document.getElementById(this.getId()) : null)) != null;
+		return !!this.getId() && document.getElementById(this.getId()) != null;
 	};
 
 	/**
@@ -736,7 +757,7 @@ sap.ui.define([
 			oDomRef = oControl.getDomRef();
 			if (!oDomRef || RenderManager.isPreservedContent(oDomRef) ) {
 				// In case no old DOM node was found or only preserved DOM, search for an 'invisible' placeholder
-				oDomRef = (RenderManager.RenderPrefixes.Invisible + oControl.getId() ? window.document.getElementById(RenderManager.RenderPrefixes.Invisible + oControl.getId()) : null);
+				oDomRef = document.getElementById(RenderManager.RenderPrefixes.Invisible + oControl.getId());
 			}
 		}
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,7 +19,7 @@ sap.ui.define([
 		* Change handler for adding a simple form group.
 		* @alias sap.ui.layout.changeHandler.AddSimpleFormGroup
 		* @author SAP SE
-		* @version 1.79.0
+		* @version 1.84.11
 		* @experimental Since 1.27.0
 		*/
 	var AddSimpleFormGroup = {};
@@ -214,6 +214,12 @@ sap.ui.define([
 		oChangeWrapper.resetRevertData();
 
 		return true;
+	};
+
+	AddSimpleFormGroup.getChangeVisualizationInfo = function(oChange) {
+		return {
+			affectedControls: [oChange.getDefinition().content.group.selector]
+		};
 	};
 
 	return AddSimpleFormGroup;

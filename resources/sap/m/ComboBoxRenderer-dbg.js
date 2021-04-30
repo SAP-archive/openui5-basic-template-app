@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['./ComboBoxBaseRenderer', 'sap/ui/core/Renderer', 'sap/ui/Device'
@@ -32,10 +32,6 @@ sap.ui.define(['./ComboBoxBaseRenderer', 'sap/ui/core/Renderer', 'sap/ui/Device'
 		ComboBoxRenderer.addOuterClasses = function(oRm, oControl) {
 			ComboBoxBaseRenderer.addOuterClasses.apply(this, arguments);
 			oRm.class(ComboBoxRenderer.CSS_CLASS_COMBOBOX);
-
-			if (!oControl.isOpen() && document.activeElement === oControl.getFocusDomRef()) {
-				oRm.class("sapMFocus");
-			}
 		};
 
 		/**
@@ -85,7 +81,7 @@ sap.ui.define(['./ComboBoxBaseRenderer', 'sap/ui/core/Renderer', 'sap/ui/Device'
 			// and the visual focus is on it or the visual focus is on the formatted text value state header
 			if (bFormattedTextHeaderFocused) {
 				oRm.attr("aria-activedescendant", oControl._getFormattedValueStateText().getId());
-			} else if (oSelectedListItem && oSelectedListItem.hasStyleClass("sapMLIBFocused")) {
+			} else if (bOpen && oSelectedListItem && oSelectedListItem.hasStyleClass("sapMLIBFocused") && oControl.getFocusDomRef() === document.activeElement) {
 				oRm.attr("aria-activedescendant", oSelectedListItem.getId());
 			}
 		};

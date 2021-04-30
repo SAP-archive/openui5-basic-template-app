@@ -1,15 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the Design Time Metadata for the sap.m.Table control
-sap.ui.define([
-	"sap/ui/fl/changeHandler/ChangeHandlerMediator"
-], function (
-	ChangeHandlerMediator
-) {
+sap.ui.define([],
+	function() {
 	"use strict";
 
 	var fCheckPersoController = function(oTable) {
@@ -44,15 +41,17 @@ sap.ui.define([
 				},
 				domRef: ":sap-domref .sapMListTblHeader",
 				actions: {
-					move: function(oColumn) {return fCheckPersoController(oColumn.getParent()) ? null : "moveTableColumns";},
-					addODataProperty: function (oTable) {
-						var mChangeHandlerSettings = ChangeHandlerMediator.getAddODataFieldSettings(oTable);
-
-						if (mChangeHandlerSettings && !fCheckPersoController(oTable)){
-							return {
-								changeType: "addTableColumn",
-								changeHandlerSettings : mChangeHandlerSettings
-							};
+					move: function(oColumn) {
+						return fCheckPersoController(oColumn.getParent()) ? null : "moveTableColumns";
+					},
+					add: {
+						delegate: function (oTable) {
+							if (!fCheckPersoController(oTable)){
+								return {
+									changeType: "addTableColumn",
+									supportsDefaultDelegate: true
+								};
+							}
 						}
 					}
 				}

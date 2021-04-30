@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,18 +8,28 @@
 sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
+	"sap/ui/Device",
+	'sap/ui/core/Icon',
+	'sap/ui/core/ResizeHandler',
 	'sap/ui/core/ValueStateSupport',
 	'sap/ui/core/library',
 	'./ProgressIndicatorRenderer',
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/m/Popover",
+	"sap/m/Text"
 ],
 	function(
 	library,
 	Control,
+	Device,
+	Icon,
+	ResizeHandler,
 	ValueStateSupport,
 	coreLibrary,
 	ProgressIndicatorRenderer,
-	Log
+	Log,
+	Popover,
+	Text
 	) {
 	"use strict";
 
@@ -31,7 +41,8 @@ sap.ui.define([
 	// shortcut for sap.ui.core.ValueState
 	var ValueState = coreLibrary.ValueState;
 
-
+	// shortcut for sap.m.PlacementType
+	var PlacementType = library.PlacementType;
 
 	/**
 	 * Constructor for a new ProgressIndicator.
@@ -48,7 +59,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -119,6 +130,9 @@ sap.ui.define([
 			 */
 			displayAnimation : {type : "boolean", group : "Behavior", defaultValue : true}
 		},
+		aggregations: {
+			_popover: {type: "sap.m.Popover", multiple: false, visibility: "hidden"}
+		},
 		associations : {
 			/**
 			 * Association to controls / IDs which describe this control (see WAI-ARIA attribute aria-describedby).
@@ -135,7 +149,159 @@ sap.ui.define([
 		designtime: "sap/m/designtime/ProgressIndicator.designtime"
 	}});
 
+	ProgressIndicator.RESIZE_HANDLER_ID = {
+		SELF: "_sResizeHandlerId"
+	};
+
 	var bUseAnimations = sap.ui.getCore().getConfiguration().getAnimation();
+
+	ProgressIndicator.prototype.init = function () {
+		this._bIEBrowser = Device.browser.internet_explorer;
+	};
+
+	ProgressIndicator.prototype.onBeforeRendering = function () {
+		this._deRegisterResizeHandler(ProgressIndicator.RESIZE_HANDLER_ID.SELF);
+	};
+
+	ProgressIndicator.prototype.onAfterRendering = function () {
+		this._updateHoverableScenario();
+		this._registerResizeHandler(ProgressIndicator.RESIZE_HANDLER_ID.SELF, this, this._onResize.bind(this));
+	};
+
+	ProgressIndicator.prototype.exit = function () {
+		if (this._oPopoverText) {
+			this._oPopoverText.destroy();
+			this._oPopoverText = null;
+		}
+
+		this._deRegisterResizeHandler(ProgressIndicator.RESIZE_HANDLER_ID.SELF);
+	};
+
+	/**
+	 * Registers resize handler.
+	 * @param {string} sHandler the handler ID
+	 * @param {Object} oObject
+	 * @param {Function} fnHandler
+	 * @private
+	 */
+	ProgressIndicator.prototype._registerResizeHandler = function (sHandler, oObject, fnHandler) {
+		if (!this[sHandler]) {
+			this[sHandler] = ResizeHandler.register(oObject, fnHandler);
+		}
+	};
+
+	/**
+	 * De-registers resize handler.
+	 * @param {string} sHandler the handler ID
+	 * @private
+	 */
+	ProgressIndicator.prototype._deRegisterResizeHandler = function (sHandler) {
+		if (this[sHandler]) {
+			ResizeHandler.deregister(this[sHandler]);
+			this[sHandler] = null;
+		}
+	};
+
+	/**
+	 * Handles the resize event of the <code>ProgressIndicator</code>.
+	 * @param {jQuery.Event} oEvent
+	 * @private
+	 */
+	ProgressIndicator.prototype._onResize = function (oEvent) {
+		this._updateHoverableScenario();
+	};
+
+	/**
+	 * Handles the <code>ProgressIndicator</code> press event.
+	 * @param {jQuery.Event} oEvent The <code>tap</code> event object
+	 */
+	ProgressIndicator.prototype.ontap = function (oEvent) {
+		var oPopover;
+
+		// By UX in ordeer to open the helper popover, we should have
+		// displayValue text and the text should be truncated (hoverable scenario).
+		if (this._isHoverable()) {
+			oPopover = this._getPopover();
+			if (oPopover.isOpen()) {
+				oPopover.close();
+			} else {
+				oPopover.openBy(this);
+			}
+		}
+	};
+
+	/**
+	 * Updates the hoverable scenario.
+	 * If we have a hoverable scenario we toggle on the "sapMPIHoverable" CSS class and vice-versa.
+	 * @private
+	 */
+	ProgressIndicator.prototype._updateHoverableScenario = function () {
+		var oDOMPIDisplayValueText = this.$(this.getPercentValue() > 50 ? "textLeft" : "textRight")[0],
+			iOffsetWidth = oDOMPIDisplayValueText && oDOMPIDisplayValueText.offsetWidth,
+			iScrollWidth = oDOMPIDisplayValueText && oDOMPIDisplayValueText.scrollWidth;
+
+		// TODO: IE specific code - adding 1px tolerance, because of a know issue with difference b/w offsetWidth and scrollWidth
+		if (this._bIEBrowser) {
+			iOffsetWidth += 1;
+		}
+
+		// By VD if we have displayValue text and the text is truncated, we
+		// need to change the cursor of the ProgressIndicator to "pointer" on hover.
+		this.toggleStyleClass("sapMPIHoverable", this.getDisplayValue() !== "" && iOffsetWidth < iScrollWidth);
+	};
+
+	/**
+	 * Whether or not the ProgressIndicator is hoverable.
+	 * @returns {boolean} True if ProgressIndicator has "sapMPIHoverable" CSS class.
+	 * @private
+	 */
+	ProgressIndicator.prototype._isHoverable = function () {
+		return this.hasStyleClass("sapMPIHoverable");
+	};
+
+	/**
+	 * Lazy loader for the popover.
+	 * @returns {sap.m.Popover}
+	 * @private
+	 */
+	ProgressIndicator.prototype._getPopover = function () {
+		var oPopover;
+
+		if (!this.getAggregation("_popover")) {
+			this._oPopoverText = new Text({
+				text: this.getDisplayValue()
+			});
+			// Create the Popover
+			oPopover = new Popover(this.getId() + "-popover", {
+				showHeader: false,
+				placement: PlacementType.Bottom,
+				content: [this._oPopoverText,
+					new Icon({
+						src: "sap-icon://decline",
+						press: this._onPopoverCloseIconPress.bind(this)
+					})
+				]
+			}).addStyleClass('sapMPIPopover');
+
+			this.setAggregation("_popover", oPopover, true);
+		}
+
+		return this.getAggregation("_popover");
+	};
+
+	ProgressIndicator.prototype._onPopoverCloseIconPress = function() {
+		this._getPopover().close();
+	};
+
+	ProgressIndicator.prototype.setDisplayValue = function(sDisplayValue) {
+		this.setProperty("displayValue", sDisplayValue);
+
+		if (this._oPopoverText) {
+			this._oPopoverText.setText(sDisplayValue);
+		}
+
+		return this;
+	};
 
 	ProgressIndicator.prototype.setPercentValue = function(fPercentValue) {
 		var that = this,

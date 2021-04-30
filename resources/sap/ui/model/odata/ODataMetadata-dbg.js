@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,15 +12,18 @@ sap.ui.define([
 	"sap/base/assert",
 	"sap/base/Log",
 	"sap/base/util/each",
+	"sap/base/util/isEmptyObject",
 	"sap/base/util/uid",
 	"sap/ui/base/EventProvider",
 	"sap/ui/core/cache/CacheManager",
 	"sap/ui/thirdparty/datajs",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(Utils, assert, Log, each, uid, EventProvider, CacheManager, OData, jQuery) {
+	function(Utils, assert, Log, each, isEmptyObject, uid, EventProvider, CacheManager, OData, jQuery) {
 	"use strict";
 	/*eslint max-nested-callbacks: 0*/
+
+	var sClassName = "sap.ui.model.odata.ODataMetadata";
 
 	/**
 	 * Constructor for a new ODataMetadata.
@@ -39,7 +42,7 @@ sap.ui.define([
 	 * Implementation to access OData metadata
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.ODataMetadata
@@ -123,6 +126,22 @@ sap.ui.define([
 		}
 
 	});
+
+	/**
+	 * Returns whether the function returns a collection.
+	 *
+	 * @param {object} mFunctionInfo The function info map
+	 * @returns {boolean} Whether the function returns a collection
+	 * @private
+	 */
+	ODataMetadata._returnsCollection = function (mFunctionInfo) {
+		if (mFunctionInfo && mFunctionInfo.returnType
+				&& mFunctionInfo.returnType.startsWith("Collection(")) {
+			return true;
+		}
+
+		return false;
+	};
 
 	ODataMetadata.prototype._setNamespaces = function(mNamespaces) {
 		this.mNamespaces = mNamespaces;
@@ -650,7 +669,7 @@ sap.ui.define([
 	 * @returns {boolean} Returns true, if the metadata was loaded.
 	 */
 	ODataMetadata.prototype._checkMetadataLoaded = function(){
-		if (!this.oMetadata || jQuery.isEmptyObject(this.oMetadata)) {
+		if (!this.oMetadata || isEmptyObject(this.oMetadata)) {
 			assert(undefined, "No metadata loaded!");
 			return false;
 		}
@@ -1585,6 +1604,88 @@ sap.ui.define([
 				return oKey.name;
 			});
 		}
+	};
+
+	/**
+	 * Gets the canonical path of the entity referenced by the given function import and its
+	 * parameters based on the function import's metadata.
+	 *
+	 * @param {Object<string,any>} mFunctionInfo
+	 *   The function import metadata as returned by {@link #_getFunctionImportMetadata}
+	 * @param {Object<string,string>} mFunctionParameters
+	 *   Maps the function parameter name to its correct formatted value; for example
+	 *   {SalesOrderID : "'42'"}
+	 * @returns {string}
+	 *   The canonical path of the entity referenced by the given function import and its
+	 *   parameters; empty string if the path cannot be determined
+	 * @private
+	 */
+	ODataMetadata.prototype._getCanonicalPathOfFunctionImport = function (mFunctionInfo,
+			mFunctionParameters) {
+		var sActionFor, mEntitySet, mEntityType, i, aKeys, sParameterName, aPropertyReferences,
+			aExtensions = mFunctionInfo.extensions,
+			sFunctionReturnType = mFunctionInfo.returnType,
+			sId = "",
+			bIsCollection = false;
+
+		if (aExtensions) {
+			for (i = 0; i < aExtensions.length; i += 1) {
+				if (aExtensions[i].name === "action-for") {
+					sActionFor = aExtensions[i].value;
+					break;
+				}
+			}
+		}
+		if (ODataMetadata._returnsCollection(mFunctionInfo)) {
+			bIsCollection = true;
+			sFunctionReturnType = sFunctionReturnType.slice(11/* "Collection(".length */, -1);
+		}
+		if (sActionFor) {
+			mEntityType = this._getEntityTypeByName(sActionFor);
+		} else if (mFunctionInfo.entitySet) {
+			mEntityType = this._getEntityTypeByPath(mFunctionInfo.entitySet);
+		} else if (sFunctionReturnType) {
+			mEntityType = this._getEntityTypeByName(sFunctionReturnType);
+		}
+		if (mEntityType) {
+			mEntitySet = this._getEntitySetByType(mEntityType);
+			if (mEntitySet && mEntityType.key && mEntityType.key.propertyRef) {
+				if (bIsCollection) {
+					return "/" + mEntitySet.name;
+				}
+				aPropertyReferences = mEntityType.key.propertyRef;
+				// Only if the function import is annotated with the SAP OData V2 annotation
+				// <code>sap:action-for</code>, the  names of the function import parameters and the
+				// names of the entity keys are the same. Otherwise it is not guaranteed that the
+				// function parameter name is equal to the corresponding key property of the
+				// resulting entity type.
+				if (aPropertyReferences.length === 1) {
+					sParameterName = aPropertyReferences[0].name;
+					if (mFunctionParameters[sParameterName]) {
+						sId = mFunctionParameters[sParameterName];
+					}
+				} else {
+					aKeys = [];
+					for (i = 0; i < aPropertyReferences.length; i += 1) {
+						sParameterName = aPropertyReferences[i].name;
+						if (mFunctionParameters[sParameterName]) {
+							aKeys.push(sParameterName + "=" + mFunctionParameters[sParameterName]);
+						}
+					}
+					sId = aKeys.join(",");
+				}
+
+				return "/" + mEntitySet.name + "(" + sId + ")";
+			} else if (!mEntitySet) {
+				Log.error("Cannot determine path of the entity set for the function import '"
+					+ mFunctionInfo.name + "'", this, sClassName);
+			} else {
+				Log.error("Cannot determine keys of the entity type '" + mEntityType.entityType
+					+ "' for the function import '" + mFunctionInfo.name + "'", this, sClassName);
+			}
+		}
+
+		return "";
 	};
 
 	return ODataMetadata;

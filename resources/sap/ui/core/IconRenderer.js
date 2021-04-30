@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["./IconPool","./library","sap/base/security/encodeCSS"],function(e,t,i){"use strict";var n=t.IconColor;var s={apiVersion:2};s.render=function(t,s){var o=e.getIconInfo(s.getSrc(),undefined,"mixed"),r=s.getWidth(),a=s.getHeight(),l=s.getColor(),c=s.getBackgroundColor(),g=s.getSize(),f=s._getOutputTitle(o),d,p,u,y=false;if(o instanceof Promise){o.then(s.invalidate.bind(s))}else if(o){y=true;d=s.getAriaLabelledBy();u=s._getAccessibilityAttributes(o);p=s.getAggregation("_invisibleText")}t.openStart("span",s);t.class("sapUiIcon");if(y){t.accessibilityState(s,u);t.attr("data-sap-ui-icon-content",o.content);t.style("font-family","'"+i(o.fontFamily)+"'");if(!o.suppressMirroring){t.class("sapUiIconMirrorInRTL")}}if(f){t.attr("title",f)}if(s.hasListeners("press")){t.class("sapUiIconPointer");if(!s.getNoTabStop()){t.attr("tabindex","0")}}t.style("width",r);t.style("height",a);t.style("line-height",a);t.style("font-size",g);if(l&&!(l in n)){t.style("color",l)}if(c&&!(c in n)){t.style("background-color",c)}t.openEnd();if(d&&d.length&&p){t.renderControl(p)}t.close("span")};return s},true);

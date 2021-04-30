@@ -90,7 +90,7 @@
 // TextOnly (same as cozy)
 @_sap_m_IconTabBar_Compact_TextOnlyVerticalHeight: @_sap_m_IconTabBar_TextOnlyVerticalHeight;
 @_sap_m_IconTabBar_Compact_TextOnlyTabPadding: @_sap_m_IconTabBar_TextOnlyTabPadding;
-@_sap_m_IconTabBar_Compact_TextOnlyHeadMargin: 0 0.75rem 0 0;
+@_sap_m_IconTabBar_Compact_TextOnlyHeadPadding: 0 0.925rem 0 0.1875rem;
 @_sap_m_IconTabBar_Compact_TextOnlyTextLineHeight: 1rem;
 @_sap_m_IconTabBar_Compact_TextOnlyTextPadding: 0;
 
@@ -112,8 +112,6 @@
 @_sap_m_IconTabBar_Compact_HorizontalFocusBottom: 1rem;
 
 // =========== Phone ===========
-
-@_sap_m_IconTabBar_Phone_HeadMargin: 0.875rem 0 0;
 
 // Content arrow
 @_sap_m_IconTabBar_Phone_ContentArrowHeight: 0.625rem;
@@ -139,27 +137,27 @@
 	z-index: 1; // shows the bottom shadow of the ITHeader over the content of the ITB
 
 	.sapMITBHead {
-		margin-top: 0.875rem;
+		padding-top: 0.875rem;
 	}
 
 	&.sapMITBNoText {
 
 		.sapMITBHead {
-			margin-top: 1rem;
+			padding-top: 1rem;
 		}
 	}
 
 	&.sapMITBTextOnly {
 
 		.sapMITBHead {
-			margin-top: 0.875rem;
+			padding-top: 0.875rem;
 		}
 	}
 
 	&.sapMITBInLine {
 
 		.sapMITBHead {
-			margin-top: 0;
+			padding-top: 0;
 		}
 	}
 }
@@ -169,20 +167,20 @@
 .sapUiSizeCompact.sapMITH {
 
 	.sapMITBHead {
-		margin-top: 0.875rem;
+		padding-top: 0.875rem;
 	}
 
 	&.sapMITBTextOnly {
 
 		.sapMITBHead {
-			margin-top: 0.875rem;
+			padding-top: 0.875rem;
 		}
 	}
 
 	&.sapMITBInLine {
 
 		.sapMITBHead {
-			margin-top: 0;
+			padding-top: 0;
 		}
 	}
 
@@ -370,20 +368,12 @@
 
 /* Custom focus outline */
 html.sap-desktop {
-
-	.sapMITBItem:not(.sapUiDnDDragging):focus .sapMITBFilterIcon,
-	.sapMITBTextOnly .sapMITBItem:not(.sapUiDnDDragging):focus .sapMITBText,
-	.sapMITBItem:not(.sapUiDnDDragging):focus.sapMITBAll,
-	.sapMITHOverflow .sapMITBItem:not(.sapUiDnDDragging):focus .sapMITBText {
+	.sapMITBTextOnly .sapMITBItem:not(.sapUiDnDDragging):focus .sapMITBText {
 		&::after {
-			content: "";
-			position: absolute;
-			top: -1px;
-			bottom: -1px;
-			right: -1px;
-			left: -1px;
-			border: 1px dotted @sapUiContentFocusColor;
-			pointer-events: none;
+			top: -0.1875rem;
+			bottom: -0.1875rem;
+			right: -0.1875rem;
+			left: -0.1875rem;
 		}
 	}
 
@@ -475,22 +465,32 @@ html.sap-desktop {
 // Semantic icons in Select List
 .sapMITBSelectItem .sapMITBText::before {
 	position: absolute;
-	margin-left: -3.6rem;
+	margin-left: -3.5rem;
 }
 
 .sapMITBSelectListTextOnly .sapMITBSelectItem .sapMITBText::before {
-	margin-left: -1.2rem;
+	margin-left: -1.5rem;
 	margin-top: 0.0625rem;
 }
 
 .sapUiSizeCompact {
 	.sapMITBSelectItem .sapMITBText::before {
 		position: absolute;
-		margin-left: -2.6rem;
+		margin-left: -2.75rem;
 	}
 
 	.sapMITBSelectListTextOnly .sapMITBSelectItem .sapMITBText::before {
-		margin-left: -1rem;
+		margin-left: -1.5rem;
 		margin-top: 0;
+	}
+}
+
+/* ------------------------------------------------ */
+/* IconTabBar Badge									*/
+/* ------------------------------------------------ */
+
+.sapMITH, .sapMITBFilterPopover {
+	.sapMBadge .sapMBadgeAttention {
+		background-color: @sapUiContentIconColor;
 	}
 }

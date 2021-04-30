@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,6 +17,7 @@ sap.ui.define([
 	/**
 	 * Creates the base class for the metadata converters.
 	 *
+	 * @alias sap.ui.model.odata.v4.lib._MetadataConverter
 	 * @constructor
 	 */
 	function MetadataConverter() {
@@ -143,7 +144,8 @@ sap.ui.define([
 	 * Finalizes the conversion after having traversed the XML completely.
 	 *
 	 * @abstract
-	 * @name MetadataConverter#finalize
+	 * @function
+	 * @name sap.ui.model.odata.v4.lib._MetadataConverter#finalize
 	 */
 
 	/**
@@ -542,7 +544,8 @@ sap.ui.define([
 	 * @param {function} [fnProcessor] The processor
 	 *
 	 * @abstract
-	 * @name MetadataConverter#processElement
+	 * @function
+	 * @name sap.ui.model.odata.v4.lib._MetadataConverter#processElement
 	 */
 
 	/**

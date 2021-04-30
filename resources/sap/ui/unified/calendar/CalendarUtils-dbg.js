@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -332,25 +332,25 @@ sap.ui.define([
 		 * @private
 		 */
 		CalendarUtils._updateUTCDate = function(oDate, iYear, iMonth, iDate, iHours, iMinutes, iSeconds, iMilliseconds) {
-			if (jQuery.isNumeric(iYear)) {
+			if (iYear != null) {
 				oDate.setUTCFullYear(iYear);
 			}
-			if (jQuery.isNumeric(iMonth)) {
+			if (iMonth != null) {
 				oDate.setUTCMonth(iMonth);
 			}
-			if (jQuery.isNumeric(iDate)) {
+			if (iDate != null) {
 				oDate.setUTCDate(iDate);
 			}
-			if (jQuery.isNumeric(iHours)) {
+			if (iHours != null) {
 				oDate.setUTCHours(iHours);
 			}
-			if (jQuery.isNumeric(iMinutes)) {
+			if (iMinutes != null) {
 				oDate.setUTCMinutes(iMinutes);
 			}
-			if (jQuery.isNumeric(iSeconds)) {
+			if (iSeconds != null) {
 				oDate.setUTCSeconds(iSeconds);
 			}
-			if (jQuery.isNumeric(iMilliseconds)) {
+			if (iMilliseconds != null) {
 				oDate.setUTCMilliseconds(iMilliseconds);
 			}
 		};
@@ -363,11 +363,7 @@ sap.ui.define([
 		CalendarUtils._checkJSDateObject = function(oDate) {
 			// Cross frame check for a date should be performed here otherwise setDateValue would fail in OPA tests
 			// because Date object in the test is different than the Date object in the application (due to the iframe).
-			// We can use jQuery.type or this method:
-			// function isValidDate (date) {
-			//	return date && Object.prototype.toString.call(date) === "[object Date]" && !isNaN(date);
-			//}
-			if (jQuery.type(oDate) !== "date") {
+			if (!oDate || Object.prototype.toString.call(oDate) !== "[object Date]" || isNaN(oDate)) {
 				throw new Error("Date must be a JavaScript date object.");
 			}
 		};
@@ -378,7 +374,7 @@ sap.ui.define([
 		 * @private
 		 */
 		CalendarUtils._checkYearInValidRange = function(iYear) {
-			if (!jQuery.isNumeric(iYear) || (iYear < 1 || iYear > 9999)) {
+			if (typeof iYear !== "number" || iYear < 1 || iYear > 9999) {
 				throw new Error("Year must be in valid range (between year 0001 and year 9999).");
 			}
 		};
@@ -480,6 +476,16 @@ sap.ui.define([
 			oNewSecondDate.setUTCFullYear(oSecondDate.getUTCFullYear());
 
 			return Math.abs((oNewFirstDate.getTime() - oNewSecondDate.getTime()) / (1000 * 60 * 60));
+		};
+
+		/**
+		 * Evaluates whether a given date time part indicates midniht.
+		 *
+		 * @param {Object} oDate - JavaScript date
+		 * @returns {boolean}
+		 */
+		CalendarUtils._isMidnight = function(oDate) {
+			return oDate.getHours() === 0 && oDate.getMinutes() === 0 && oDate.getSeconds() === 0 && oDate.getMilliseconds() === 0;
 		};
 
 		 // Utilities for working with sap.ui.unified.calendar.CalendarDate

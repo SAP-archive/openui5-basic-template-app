@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,7 +18,7 @@
  * sap.ui.lazyRequire("sap.ui.core.Control");
  * sap.ui.lazyRequire("sap.ui.commons.Button");
  *
- * @version 1.79.0
+ * @version 1.84.11
  * @author  SAP SE
  * @public
  */
@@ -48,7 +48,7 @@ sap.ui.define([
 	 * The <code>sap</code> namespace is automatically registered with the
 	 * OpenAjax hub if it exists.
 	 *
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @namespace
 	 * @public
 	 * @name sap
@@ -61,7 +61,7 @@ sap.ui.define([
 	 * The <code>sap.ui</code> namespace is the central OpenAjax compliant entry
 	 * point for UI related JavaScript functionality provided by SAP.
 	 *
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @namespace
 	 * @name sap.ui
 	 * @public
@@ -75,7 +75,7 @@ sap.ui.define([
 		 * The version of the SAP UI Library
 		 * @type string
 		 */
-		version: "1.79.0",
+		version: "1.84.11",
 		buildinfo : { lastchange : "${lastchange}", buildtime : "${buildtime}" }
 	});
 
@@ -104,7 +104,7 @@ sap.ui.define([
 	 * @return {object|undefined|Promise} the full version info, the library specific one,
 	 *                                    undefined (if library is not listed or there was an error and "failOnError" is set to "false")
 	 *                                    or a Promise which resolves with one of them
-	 * @deprecated since 1.56: Use {@link sap.ui.VersionInfo.load} instead
+	 * @deprecated since 1.56: Use {@link module:sap/ui/VersionInfo.load} instead
 	 * @public
 	 * @static
 	 */

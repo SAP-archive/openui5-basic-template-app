@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.define([
 	"sap/ui/core/util/ResponsivePaddingsEnablement",
 	"sap/ui/Device",
 	"./WizardRenderer",
+	"sap/ui/core/CustomData",
 	"sap/ui/dom/containsOrEquals",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
@@ -26,6 +27,7 @@ sap.ui.define([
 	ResponsivePaddingsEnablement,
 	Device,
 	WizardRenderer,
+	CustomData,
 	containsOrEquals,
 	Log,
 	jQuery
@@ -34,6 +36,7 @@ sap.ui.define([
 
 		// shortcut for sap.m.PageBackgroundDesign
 		var WizardBackgroundDesign = library.PageBackgroundDesign;
+		var WizardRenderMode = library.WizardRenderMode;
 
 		/**
 		 * Constructor for a new Wizard.
@@ -80,7 +83,7 @@ sap.ui.define([
 		 *
 		 * @extends sap.ui.core.Control
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @constructor
 		 * @public
@@ -134,6 +137,15 @@ sap.ui.define([
 						type: "sap.m.PageBackgroundDesign",
 						group: "Appearance",
 						defaultValue: WizardBackgroundDesign.Standard
+					},
+					/**
+					 * Defines how the steps of the Wizard would be visualized.
+					 * @experimental since 1.84
+					 */
+					renderMode: {
+						type: "sap.m.WizardRenderMode",
+						group: "Appearance",
+						defaultValue: WizardRenderMode.Scroll
 					}
 				},
 				defaultAggregation: "steps",
@@ -204,7 +216,6 @@ sap.ui.define([
 			this._bScrollLocked = false;
 			this._oScroller = this._initScrollEnablement();
 			this._oResourceBundle = Core.getLibraryResourceBundle("sap.m");
-			this._fnHandleNextButtonPressListener = this._handleNextButtonPress.bind(this);
 			this._initProgressNavigator();
 			this._initResponsivePaddingsEnablement();
 		};
@@ -236,6 +247,58 @@ sap.ui.define([
 			}
 
 			this._attachScrollHandler();
+			this._renderPageMode();
+		};
+
+		/**
+		 * Renders Wizard in Page mode. The rendering is manual.
+		 *
+		 * @param {sap.m.WizardStep} oStep [optional] The step to be rendered.
+		 * @private
+		 */
+		Wizard.prototype._renderPageMode = function (oStep) {
+			var iCurrentStepIndex, oCurrentStep, oRenderManager;
+
+			if (this.getRenderMode() !== WizardRenderMode.Page) {
+				return;
+			}
+
+			if (oStep) {
+				iCurrentStepIndex = this._aStepPath.indexOf(oStep) + 1;
+				oCurrentStep = oStep;
+			} else {
+				iCurrentStepIndex = this._getProgressNavigator().getCurrentStep();
+				oCurrentStep = this._aStepPath[iCurrentStepIndex - 1];
+			}
+
+			oRenderManager = Core.createRenderManager();
+			oRenderManager.renderControl(
+				this._updateStepTitleNumber(oCurrentStep, iCurrentStepIndex));
+			oRenderManager.flush(this.getDomRef("step-container"));
+			oRenderManager.destroy();
+		};
+
+		/**
+		 * Adds custom data with the current order of the step.
+		 *
+		 * @param oStep
+		 * @param iStepIndex
+		 * @returns {*}
+		 * @private
+		 */
+		Wizard.prototype._updateStepTitleNumber = function (oStep, iStepIndex) {
+			var oData = oStep.getCustomData()
+				.filter(function (oCustomData) {
+					return oCustomData.getKey() === "stepIndex";
+				})[0];
+
+			if (oData) {
+				oData.setValue(iStepIndex);
+			} else {
+				oStep.addCustomData(new CustomData({key: "stepIndex", value: iStepIndex}));
+			}
+
+			return oStep;
 		};
 
 		/**
@@ -253,7 +316,6 @@ sap.ui.define([
 			this._iStepCount = null;
 			this._bScrollLocked = null;
 			this._oResourceBundle = null;
-			this._fnHandleNextButtonPressListener = null;
 		};
 
 		/**************************************** PUBLIC METHODS ***************************************/
@@ -347,7 +409,17 @@ sap.ui.define([
 		 * @public
 		 */
 		Wizard.prototype.goToStep = function (oStep, bFocusFirstStepElement) {
+			var fnUpdateProgressNavigator = function () {
+				var oProgressNavigator = this._getProgressNavigator();
+				oProgressNavigator && oProgressNavigator._updateCurrentStep(this._aStepPath.indexOf(oStep) + 1);
+			};
+
 			if (!this.getVisible() || this._aStepPath.indexOf(oStep) < 0) {
+				return this;
+			} else if (this.getRenderMode() === WizardRenderMode.Page) {
+				fnUpdateProgressNavigator.call(this);
+				this._renderPageMode(oStep);
+
 				return this;
 			}
 
@@ -364,13 +436,8 @@ sap.ui.define([
 					},
 					complete: function () {
 						that._bScrollLocked = false;
-						var oProgressNavigator = that._getProgressNavigator();
+						fnUpdateProgressNavigator.call(that);
 
-						if (!oProgressNavigator) {
-							return;
-						}
-
-						oProgressNavigator._updateCurrentStep(that._aStepPath.indexOf(oStep) + 1);
 						if (bFocusFirstStepElement || bFocusFirstStepElement === undefined) {
 							that._focusFirstStepElement(oStep);
 						}
@@ -499,7 +566,6 @@ sap.ui.define([
 			}
 
 			oWizardStep.setWizardContext({bParentAllowsButtonShow: this.getShowNextButton()});
-			oWizardStep.attachComplete(this._fnHandleNextButtonPressListener);
 			this._incrementStepCount();
 
 			return this.addAggregation("steps", oWizardStep);
@@ -549,7 +615,6 @@ sap.ui.define([
 			this._resetStepCount();
 			return this.removeAllAggregation("steps")
 				.map(function (oStep) {
-					oStep.detachComplete(this._fnHandleNextButtonPressListener);
 					return oStep;
 				}, this);
 		};
@@ -1056,7 +1121,8 @@ sap.ui.define([
 
 			var iScrollTop = oEvent.target.scrollTop,
 				oProgressNavigator = this._getProgressNavigator(),
-				oCurrentStepDOM = this._aStepPath[oProgressNavigator.getCurrentStep() - 1].getDomRef();
+				oCurrentStep = this._aStepPath[oProgressNavigator.getCurrentStep() - 1],
+				oCurrentStepDOM = oCurrentStep && oCurrentStep.getDomRef();
 
 			if (!oCurrentStepDOM) {
 				return;
@@ -1077,7 +1143,8 @@ sap.ui.define([
 					oProgressNavigator.previousStep();
 
 					// update the currentStep reference
-					oCurrentStepDOM = this._aStepPath[oProgressNavigator.getCurrentStep() - 1].getDomRef();
+					oCurrentStep = this._aStepPath[oProgressNavigator.getCurrentStep() - 1];
+					oCurrentStepDOM = oCurrentStep && oCurrentStep.getDomRef();
 
 					if (!oCurrentStepDOM) {
 						break;

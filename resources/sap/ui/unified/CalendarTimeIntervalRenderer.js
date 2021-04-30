@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([],function(){"use strict";var e={apiVersion:2};e.render=function(e,t){t._iMode=0;var a=t.getId();var i=t.getTooltip_AsString();var n=t.getAggregation("timesRow");e.openStart("div",t);e.class("sapUiCal");e.class("sapUiCalInt");e.class("sapUiCalTimeInt");if(t._getShowItemHeader()){e.class("sapUiCalIntHead")}if(t.getPickerPopup()){e.class("sapUiCalIntLarge")}var o=sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");var s={labelledby:{value:"",append:false}};if(t._bPoupupMode){s["role"]="dialog"}e.accessibilityState(t,s);if(i){e.attr("title",i)}var l=t.getWidth();if(l&&l!=""){e.style("width",l)}e.openEnd();var r=t.getAggregation("header");e.renderControl(r);e.openStart("div",a+"-content");e.class("sapUiCalContent");e.openEnd();e.renderControl(n);e.close("div");e.openStart("button",a+"-cancel");e.class("sapUiCalCancel");e.attr("tabindex","-1");e.openEnd();e.text(o.getText("CALENDAR_CANCEL"));e.close("button");e.openStart("div",a+"-end");e.style("width","0");e.style("height","0");e.style("position","absolute");e.style("right","0");e.style("bottom","0");e.attr("tabindex","0");e.openEnd();e.close("div");if(t.getPickerPopup()){e.openStart("div",a+"-contentOver");e.class("sapUiCalContentOver");if(!t._oPopup||!t._oPopup.isOpen()){e.style("display","none")}e.openEnd();e.close("div")}e.close("div")};return e},true);

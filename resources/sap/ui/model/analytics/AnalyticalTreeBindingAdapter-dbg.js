@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -58,7 +58,8 @@ sap.ui.define([
 
 		//set the default auto expand mode
 		this.setAutoExpandMode(this.mParameters.autoExpandMode || TreeAutoExpandMode.Bundled);
-	};
+	},
+	sClassName = "sap.ui.model.analytics.AnalyticalTreeBindingAdapter";
 
 	/*
 	 * Returns the Root context of our tree, which is actually the context for the Grand Total
@@ -161,6 +162,9 @@ sap.ui.define([
 	 * @param {int} iThreshold the number of additional entries, which will be loaded after (iStartIndex + iLength) as a buffer
 	 */
 	AnalyticalTreeBindingAdapter.prototype.getContexts = function(iStartIndex, iLength, iThreshold, bReturnNodes) {
+		if (!this.isResolved()) {
+			return [];
+		}
 		if (!iLength) {
 			iLength = this.oModel.iSizeLimit;
 		}
@@ -810,10 +814,20 @@ sap.ui.define([
 	 */
 	// @see sap.ui.table.AnalyticalTable#_getGroupHeaderMenu
 	AnalyticalTreeBindingAdapter.prototype.setNumberOfExpandedLevels = function(iLevels, bSupressResetData) {
+		var iNumberOfAggregationLevels;
+
 		iLevels = iLevels || 0;
 		if (iLevels < 0) {
-			Log.warning("AnalyticalTreeBindingAdapter: numberOfExpanded levels was set to 0. Negative values are prohibited.");
+			Log.warning("Number of expanded levels was set to 0. Negative values are prohibited",
+				this, sClassName);
 			iLevels = 0;
+		}
+		iNumberOfAggregationLevels = this.aAggregationLevel.length;
+		if (iLevels > iNumberOfAggregationLevels) {
+			Log.warning("Number of expanded levels was reduced from " + iLevels + " to "
+					+ iNumberOfAggregationLevels + " which is the number of grouped dimensions",
+				this, sClassName);
+			iLevels = iNumberOfAggregationLevels;
 		}
 
 		if (!bSupressResetData) {

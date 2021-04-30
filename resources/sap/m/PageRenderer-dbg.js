@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/m/library"],
-	function(library) {
+sap.ui.define(["sap/m/library", "sap/ui/Device"],
+	function(library, Device) {
 	"use strict";
 
 
@@ -151,7 +151,7 @@ sap.ui.define(["sap/m/library"],
 
 		// ensure that the content is not included in the tab chain in FF
 		// when a scroll is present, as it causes loss of the visual focus outline
-		if (sap.ui.Device.browser.firefox) {
+		if (Device.browser.firefox) {
 			oRm.attr("tabindex", "-1");
 		}
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -290,18 +290,12 @@ sap.ui.define([
 				}
 			}
 
-			// 1. collect the defaults
+			// collect the defaults
 			for ( var n in M_SETTINGS ) {
 				config[n] = M_SETTINGS[n].defaultValue;
 			}
 
-			// 2. read server wide sapui5 configuration
-			/* TODO: RETHINK server wide sapui5 configuration to make it optional
-					 currently it is forcing a request which is annoying customers :
-					   - Think about an option which enables loading of server wide config!
-			 */
-
-			// 3.-5. apply settings from global config object (already merged with script tag attributes)
+			// apply settings from global config object (already merged with script tag attributes)
 			var oCfg = window["sap-ui-config"] || {};
 			oCfg.oninit = oCfg.oninit || oCfg["evt-oninit"];
 			for (var n in M_SETTINGS) {
@@ -337,7 +331,7 @@ sap.ui.define([
 				this._compatversion[n] = _getCVers(n);
 			}
 
-			// 6. apply the settings from the url (only if not blocked by app configuration)
+			// apply the settings from the url (only if not blocked by app configuration)
 			if ( !config.ignoreUrlParams ) {
 				var sUrlPrefix = "sap-ui-";
 				var oUriParams = UriParameters.fromQuery(window.location.search);
@@ -347,7 +341,7 @@ sap.ui.define([
 					// always remember as SAP Logon language
 					var sValue = config.sapLogonLanguage = oUriParams.get('sap-language');
 					// try to interpret it as a BCP47 language tag, taking some well known  SAP language codes into account
-					var oLocale = sValue && convertToLocaleOrNull(M_ABAP_LANGUAGE_TO_LOCALE[sValue.toUpperCase()] || sValue);
+					var oLocale = Locale.fromSAPLogonLanguage(sValue);
 					if ( oLocale ) {
 						config.language = oLocale;
 					} else if ( sValue && !oUriParams.get('sap-locale') && !oUriParams.get('sap-ui-language')) {
@@ -659,13 +653,18 @@ sap.ui.define([
 		/**
 		 * Returns a BCP47-compliant language tag for the current language.
 		 *
-		 * The return value of this method is especially useful for an HTTP <code>Accept</code> header.
+		 * The return value of this method is especially useful for an HTTP <code>Accept-Language</code> header.
 		 *
-		 * @return {string} The language tag for the current language, conforming to BCP47
+		 * Retrieves the modern locale,
+		 * e.g. he (Hebrew), yi (Yiddish)
+		 *
+		 * For backward compatibility "sh" is returned for Serbian Latin.
+		 *
+		 * @returns {string} The language tag for the current language, conforming to BCP47
 		 * @public
 		 */
 		getLanguageTag : function () {
-			return this.language.toString();
+			return this.language.toLanguageTag();
 		},
 
 		/**
@@ -1620,12 +1619,6 @@ sap.ui.define([
 		return oLocale ? oLocale.toString() : null;
 	}
 
-	var M_ABAP_LANGUAGE_TO_LOCALE = {
-		"ZH" : "zh-Hans",
-		"ZF" : "zh-Hant",
-		"1Q" : "en-US-x-saptrc",
-		"2Q" : "en-US-x-sappsd"
-	};
 
 	var M_ABAP_DATE_FORMAT_PATTERN = {
 		"" : {pattern: null},

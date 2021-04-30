@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -420,7 +420,7 @@ sap.ui.define([
 	/**
 	 * Root Namespace for the jQuery plug-in provided by SAP SE.
 	 *
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @namespace
 	 * @public
 	 * @static
@@ -2187,10 +2187,10 @@ sap.ui.define([
 
 	// -----------------------------------------------------------------------
 
-	if ( oJQVersion.compareTo("2.2.3") != 0 ) {
+	if ( oJQVersion.compareTo("3.5.1") != 0 ) {
 		// if the loaded jQuery version isn't SAPUI5's default version -> notify
 		// the application
-		Log.warning("SAPUI5's default jQuery version is 2.2.3; current version is " + jQuery.fn.jquery + ". Please note that we only support version 2.2.3.");
+		Log.warning("SAPUI5's default jQuery version is 3.5.1; current version is " + jQuery.fn.jquery + ". Please note that we only support version 3.5.1.");
 	}
 
 	// --------------------- frame protection -------------------------------------------------------

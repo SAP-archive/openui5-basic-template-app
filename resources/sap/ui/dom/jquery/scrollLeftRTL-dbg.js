@@ -1,11 +1,32 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/Device", "sap/ui/dom/denormalizeScrollLeftRTL", "sap/ui/thirdparty/jquery"
-], function(Device, denormalizeScrollLeftRTL, jQuery) {
+sap.ui.define(["sap/ui/Device", "sap/ui/dom/denormalizeScrollLeftRTL", "sap/ui/util/_FeatureDetection", "sap/ui/thirdparty/jquery"
+], function(Device, denormalizeScrollLeftRTL, _FeatureDetection, jQuery) {
 	"use strict";
+
+	var fnScroll;
+
+	if (_FeatureDetection.initialScrollPositionIsZero()) {
+		// actual chrome/safari
+		if (_FeatureDetection.canScrollToNegative()) {
+			fnScroll = function(oDomRef) {
+				return oDomRef.scrollWidth + oDomRef.scrollLeft - oDomRef.clientWidth;
+			};
+		} else {
+			//IE
+			fnScroll = function(oDomRef) {
+				return oDomRef.scrollWidth - oDomRef.scrollLeft - oDomRef.clientWidth;
+			};
+		}
+	} else {
+		//legacy chromium
+		fnScroll = function(oDomRef) {
+			return oDomRef.scrollLeft;
+		};
+	}
 
 	/**
 	 * This module provides the {@link jQuery#scrollLeftRTL} API.
@@ -38,24 +59,8 @@ sap.ui.define(["sap/ui/Device", "sap/ui/dom/denormalizeScrollLeftRTL", "sap/ui/t
 	var fnScrollLeftRTL = function(iPos) {
 		var oDomRef = this.get(0);
 		if (oDomRef) {
-
 			if (iPos === undefined) { // GETTER code
-				if (Device.browser.msie || Device.browser.edge) {
-					return oDomRef.scrollWidth - oDomRef.scrollLeft - oDomRef.clientWidth;
-
-				} else if (Device.browser.firefox || (Device.browser.safari && Device.browser.version >= 10)) {
-					// Firefox and Safari 10+ behave the same although Safari is a WebKit browser
-					return oDomRef.scrollWidth + oDomRef.scrollLeft - oDomRef.clientWidth;
-
-				} else if (Device.browser.webkit) {
-					// WebKit browsers (except Safari 10+, as it's handled above)
-					return oDomRef.scrollLeft;
-
-				} else {
-					// unrecognized browser; it is hard to return a best guess, as browser strategies are very different, so return the actual value
-					return oDomRef.scrollLeft;
-				}
-
+				return fnScroll(oDomRef);
 			} else { // SETTER code
 				oDomRef.scrollLeft = denormalizeScrollLeftRTL(iPos, oDomRef);
 				return this;

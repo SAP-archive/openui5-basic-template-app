@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -39,7 +39,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -81,7 +81,7 @@ sap.ui.define([
 			this._rows = [];
 
 			this._bIsRegistered = false;
-			this._proxyComputeWidths = jQuery.proxy(computeWidths, this);
+			this._proxyComputeWidths = computeWidths.bind(this);
 
 			this._iRowCounter = 0;
 		};
@@ -505,7 +505,7 @@ sap.ui.define([
 			}
 		};
 
-		var computeWidths = function(bInitial) {
+		var computeWidths = function() {
 			this._iRowCounter = 0;
 
 			this._oDomRef = this.getDomRef();
@@ -532,9 +532,6 @@ sap.ui.define([
 						if (oRowRect && oPrevRect) {
 							bRender = bRender || (oRowRect.width !== oPrevRect.width) && (oRowRect.height !== oPrevRect.height);
 						}
-
-						// if this should be the initial rendering -> do it
-						bRender = bRender || (typeof (bInitial) === "boolean" && bInitial);
 
 						if (this._bLayoutDataChanged || bRender) {
 
@@ -590,16 +587,17 @@ sap.ui.define([
 		 * If the layout should be responsive, it is necessary to fix the width of the content
 		 * items to correspond to the width of the layout.
 		 */
-		ResponsiveFlowLayout.prototype.onAfterRendering = function(oEvent) {
+		ResponsiveFlowLayout.prototype.onAfterRendering = function() {
 			this._oDomRef = this.getDomRef();
 			this._$DomRef = jQuery(this._oDomRef);
 
-			// Initial Width Adaptation
-			this._proxyComputeWidths(true);
+			this._proxyComputeWidths();
 
 			if (this.getResponsive()) {
 				if (!this._resizeHandlerComputeWidthsID) {
-					this._resizeHandlerComputeWidthsID = ResizeHandler.register(this, this._proxyComputeWidths);
+					// Trigger rerendering when the control is resized so width recalculations
+					// are handled in the on after rendering hook the same way as the initial width calculations.
+					this._resizeHandlerComputeWidthsID = ResizeHandler.register(this, ResponsiveFlowLayout.prototype.rerender.bind(this));
 				}
 			} else {
 				if (this._resizeHandlerComputeWidthsID) {
@@ -614,7 +612,9 @@ sap.ui.define([
 				this._bLayoutDataChanged = true;
 			}
 			if (!this._resizeHandlerComputeWidthsID) {
-				this._resizeHandlerComputeWidthsID = ResizeHandler.register(this, this._proxyComputeWidths);
+				// Trigger rerendering when the control is resized so width recalculations
+				// are handled in the on after rendering hook the same way as the initial width calculations.
+				this._resizeHandlerComputeWidthsID = ResizeHandler.register(this, ResponsiveFlowLayout.prototype.rerender.bind(this));
 			}
 
 			updateRows(this);

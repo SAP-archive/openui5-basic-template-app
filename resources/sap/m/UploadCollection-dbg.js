@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -93,7 +93,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -639,13 +639,15 @@ sap.ui.define([
 		UploadCollection.prototype._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 		this._headerParamConst = {
 			requestIdName: "requestId" + jQuery.now(),
-			fileNameRequestIdName: "fileNameRequestId" + jQuery.now()
+			fileNameRequestIdName: "fileNameRequestId" + jQuery.now(),
+			acceptLanguage: "accept-language"
 		};
 		this._requestIdValue = 0;
 		this._iFUCounter = 0; // it is necessary to count FileUploader instances in case of 'instantUpload' = false
 
 		this._oList = new List(this.getId() + "-list", {
-			selectionChange: [this._handleSelectionChange, this]
+			selectionChange: [this._handleSelectionChange, this],
+			noDataText:this.getNoDataText()
 		});
 		this.setAggregation("_list", this._oList, true);
 		this._oList.addStyleClass("sapMUCList");
@@ -804,6 +806,14 @@ sap.ui.define([
 		return sNoDataDescription;
 	};
 
+	UploadCollection.prototype.setNoDataText = function(sNoDataText) {
+		this.setProperty("noDataText", sNoDataText, true);
+		this.$().find("#" + this.getId() + "-no-data-text").text(sNoDataText);
+		this._oList.setNoDataText(sNoDataText);
+		return this;
+	};
+
+
 	UploadCollection.prototype.setUploadButtonInvisible = function(uploadButtonInvisible) {
 		if (this.getUploadButtonInvisible() === uploadButtonInvisible) {
 			return this;
@@ -892,7 +902,7 @@ sap.ui.define([
 	/**
 	 * Sets an UploadCollectionItem to be selected by ID. In single selection mode, the method removes the previous selection.
 	 * @param {string} id The ID of the item whose selection is to be changed.
-	 * @param {boolean} select The selection state of the item. Default value is true.
+	 * @param {boolean} [select=true] The selection state of the item.
 	 * @returns {sap.m.UploadCollection} this to allow method chaining
 	 * @since 1.34.0
 	 * @public
@@ -906,7 +916,7 @@ sap.ui.define([
 	/**
 	 * Selects or deselects the given list item.
 	 * @param {sap.m.UploadCollectionItem} uploadCollectionItem The item whose selection is to be changed. This parameter is mandatory.
-	 * @param {boolean} select The selection state of the item. Default value is true.
+	 * @param {boolean} [select=true] The selection state of the item.
 	 * @returns {sap.m.UploadCollection} this to allow method chaining
 	 * @since 1.34.0
 	 * @public
@@ -984,7 +994,7 @@ sap.ui.define([
 				if (iIndexOfFile !== -1) {
 					this._aFilesFromDragAndDropForPendingUpload.splice(iIndexOfFile, 1);
 				}
-			} else if (jQuery.isNumeric(vObject)) {
+			} else if (typeof vObject === "number") {
 				aItems = this.getItems();
 				this._aDeletedItemForPendingUpload.push(aItems[vObject]);
 			} else {
@@ -1622,48 +1632,65 @@ sap.ui.define([
 		sStatus = item._status;
 
 		oRm = this._RenderManager;
-		oRm.write("<div class=\"sapMUCTextContainer "); // text container for fileName, attributes and statuses
+		oRm.openStart("div"); // text container for fileName, attributes and statuses
+		oRm.class("sapMUCTextContainer");
 		if (sStatus === "Edit") {
-			oRm.write("sapMUCEditMode ");
+			oRm.class("sapMUCEditMode");
 		}
-		oRm.write("\" >");
+		oRm.openEnd();
 		oRm.renderControl(this._getFileNameControl(item));
 		// if status is uploading only the progress label is displayed under the Filename
 		if (sStatus === UploadCollection._uploadingStatus) {
 			oRm.renderControl(this._createProgressLabel(item, sPercentUploaded));
 		} else {
 			if (iMarkersCounter > 0) {
-				oRm.write("<div class=\"sapMUCObjectMarkerContainer\">");// begin of markers container
+				oRm.openStart("div"); // begin of markers container
+				oRm.class("sapMUCObjectMarkerContainer");
+				oRm.openEnd();
 				for (i = 0; i < iMarkersCounter; i++) {
 					oRm.renderControl(aMarkers[i].addStyleClass("sapMUCObjectMarker"));
 				}
-				oRm.write("</div>");// end of markers container
+				oRm.close("div");// end of markers container
 			}
 			if (iAttrCounter > 0) {
-				oRm.write("<div class=\"sapMUCAttrContainer\" tabindex=\"0\">"); // begin of attributes container
+				oRm.openStart("div"); // begin of attributes container
+				oRm.class("sapMUCAttrContainer");
+				oRm.attr("tabindex", "-1");
+				oRm.openEnd();
 				for (i = 0; i < iAttrCounter; i++) {
 					aAttributes[i].addStyleClass("sapMUCAttr");
 					oRm.renderControl(aAttributes[i]);
 					if ((i + 1) < iAttrCounter) {
-						oRm.write("<div class=\"sapMUCSeparator\">&nbsp&#x00B7&#160</div>"); // separator between attributes
+						oRm.openStart("div");  // separator between attributes
+						oRm.class("sapMUCSeparator");
+						oRm.openEnd();
+						oRm.unsafeHtml("&nbsp&#x00B7&#160");
+						oRm.close("div");
 					}
 				}
-				oRm.write("</div>"); // end of attributes container
+				oRm.close("div"); // end of attributes container
 			}
 			if (iStatusesCounter > 0) {
-				oRm.write("<div class=\"sapMUCStatusContainer\" tabindex=\"0\">"); // begin of statuses container
+				oRm.openStart("div"); // begin of statuses container
+				oRm.class("sapMUCStatusContainer");
+				oRm.attr("tabindex", "-1");
+				oRm.openEnd();
 				for (i = 0; i < iStatusesCounter; i++) {
 					aStatuses[i].detachBrowserEvent("hover");
 					aStatuses[i].setTooltip(aStatuses[i].getTitle() +  ":" + aStatuses[i].getText());
 					oRm.renderControl(aStatuses[i]);
 					if ((i + 1) < iStatusesCounter) {
-						oRm.write("<div class=\"sapMUCSeparator\">&nbsp&#x00B7&#160</div>"); // separator between statuses
+						oRm.openStart("div"); // separator between statuses
+						oRm.class("sapMUCSeparator");
+						oRm.openEnd();
+						oRm.unsafeHtml("&nbsp&#x00B7&#160");
+						oRm.close("div");
 					}
 				}
-				oRm.write("</div>"); // end of statuses container
+				oRm.close("div"); // end of statuses container
 			}
 		}
-		oRm.write("</div>"); // end of container for Filename, attributes and statuses
+		oRm.close("div"); // end of container for Filename, attributes and statuses
 		this._renderButtons(oRm, item, sStatus, sItemId);
 		oRm.flush(jQuery(document.getElementById(containerId))[0], true); // after removal to UploadCollectionItemRenderer delete this line
 		this._truncateFileName(item);
@@ -1688,14 +1715,16 @@ sap.ui.define([
 		}
 		// render div container only if there is at least one button
 		if (iButtonCounter > 0) {
-			oRm.write("<div class=\"sapMUCButtonContainer\">"); //begin of div for buttons
+			oRm.openStart("div"); //begin of div for buttons
+			oRm.class("sapMUCButtonContainer");
+			oRm.openEnd();
 			for (var i = 0; i < iButtonCounter; i++) {
 				if ((i + 1) < iButtonCounter) { // if both buttons are displayed
 					aButtons[i].addStyleClass("sapMUCFirstButton");
 				}
 				oRm.renderControl(aButtons[i]);
 			}
-			oRm.write("</div>"); // end of div for buttons
+			oRm.close("div"); // end of div for buttons
 		}
 	};
 
@@ -1791,7 +1820,7 @@ sap.ui.define([
 	UploadCollection.prototype._onItemPressed = function(event, item) {
 		if (item.hasListeners("press")) {
 			item.firePress();
-		} else if (this.sErrorState !== "Error" && jQuery.trim(item.getProperty("url"))) {
+		} else if (this.sErrorState !== "Error" && item._hasUrl()) {
 			this._triggerLink(event, item);
 		}
 	};
@@ -1843,13 +1872,13 @@ sap.ui.define([
 			});
 			oItemIcon.setAlt(this._getAriaLabelForPicture(item)); //Set the alt property directly to avoid some additional logic in the icon's constructor
 			//Sets the right style class depending on the icon/placeholder status (clickable or not)
-			if (this.sErrorState !== "Error" && jQuery.trim(item.getProperty("url"))) {
+			if (this.sErrorState !== "Error" && item._hasUrl()) {
 				sStyleClass = "sapMUCItemIcon";
 			} else {
 				sStyleClass = "sapMUCItemIconInactive";
 			}
 			if (sThumbnail === UploadCollection._placeholderCamera) {
-				if (this.sErrorState !== "Error" && jQuery.trim(item.getProperty("url"))) {
+				if (this.sErrorState !== "Error" && item._hasUrl()) {
 					sStyleClass = sStyleClass + " sapMUCItemPlaceholder";
 				} else {
 					sStyleClass = sStyleClass + " sapMUCItemPlaceholderInactive";
@@ -1964,7 +1993,7 @@ sap.ui.define([
 
 		oDeleteButton = fnGetter ? fnGetter() : item._getControl("sap.m.Button", {
 			id: itemId + "-" + buttonType,
-			icon: "sap-icon://sys-cancel",
+			icon: "sap-icon://decline",
 			type: Library.ButtonType.Standard,
 			press: fnPressHandler
 		}, sGetterName).addStyleClass("sapMUCDeleteBtn");
@@ -2874,7 +2903,7 @@ sap.ui.define([
 	 * @private
 	 */
 	UploadCollection.prototype._onUploadStart = function(event) {
-		var oRequestHeaders, i, sRequestIdValue, iParamCounter, sFileName, oGetHeaderParameterResult;
+		var oRequestHeaders, i, sRequestIdValue, oLangRequestHeader, iParamCounter, sFileName, oGetHeaderParameterResult;
 		this._iUploadStartCallCounter++;
 		iParamCounter = event.getParameter("requestHeaders").length;
 		for (i = 0; i < iParamCounter; i++) {
@@ -2889,6 +2918,13 @@ sap.ui.define([
 			value: this._encodeToAscii(sFileName) + sRequestIdValue
 		};
 		event.getParameter("requestHeaders").push(oRequestHeaders);
+
+		// set application language to request headers
+		oLangRequestHeader = {
+			name: this._headerParamConst.acceptLanguage,
+			value: sap.ui.getCore().getConfiguration().getLanguage()
+		};
+		event.getParameter("requestHeaders").push(oLangRequestHeader);
 
 		for (i = 0; i < this._aDeletedItemForPendingUpload.length; i++) {
 			if (this._aDeletedItemForPendingUpload[i].getAssociation("fileUploader") === event.oSource.sId &&
@@ -2942,7 +2978,7 @@ sap.ui.define([
 	 */
 	UploadCollection.prototype._getIconFromFilename = function(sFilename) {
 		var sFileExtension = UploadCollection._splitFilename(sFilename).extension;
-		if (jQuery.type(sFileExtension) === "string") {
+		if (typeof sFileExtension === "string") {
 			sFileExtension = sFileExtension.toLowerCase();
 		}
 

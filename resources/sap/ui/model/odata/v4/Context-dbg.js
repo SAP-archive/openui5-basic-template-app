@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,7 +24,7 @@ sap.ui.define([
 	 * Fetches and formats the primitive value at the given path.
 	 *
 	 * @param {sap.ui.model.odata.v4.Context} oContext The context
-	 * @param {string} sPath The requested path relative to this context
+	 * @param {string} sPath The requested path, absolute or relative to this context
 	 * @param {boolean} [bExternalFormat=false]
 	 *   If <code>true</code>, the value is returned in external format using a UI5 type for the
 	 *   given property path that formats corresponding to the property's EDM type and constraints.
@@ -35,7 +35,7 @@ sap.ui.define([
 	function fetchPrimitiveValue(oContext, sPath, bExternalFormat, bCached) {
 		var oError,
 			aPromises = [oContext.fetchValue(sPath, null, bCached)],
-			sResolvedPath = _Helper.buildPath(oContext.getPath(), sPath);
+			sResolvedPath = sPath[0] === "/" ? sPath : _Helper.buildPath(oContext.getPath(), sPath);
 
 		if (bExternalFormat) {
 			aPromises.push(
@@ -67,8 +67,10 @@ sap.ui.define([
 	 * @param {number} [iIndex]
 	 *   Index of item (within the collection addressed by <code>sPath</code>) represented
 	 *   by this context; used by list bindings, not context bindings
-	 * @param {Promise} [oCreatePromise]
-	 *   Promise returned by {@link #created}
+	 * @param {sap.ui.base.SyncPromise} [oCreatePromise]
+	 *   A promise which is resolved with the created entity when the POST request has been
+	 *   successfully sent and the entity has been marked as non-transient; used as base for
+	 *   {@link #created}
 	 * @param {number} [iReturnValueContextId]
 	 *   The unique ID for this context if it is a return value context. The ID can be retrieved via
 	 *   {@link #getReturnValueContextId}.
@@ -96,7 +98,7 @@ sap.ui.define([
 	 * @hideconstructor
 	 * @public
 	 * @since 1.39.0
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 */
 	var Context = BaseContext.extend("sap.ui.model.odata.v4.Context", {
 			constructor : function (oModel, oBinding, sPath, iIndex, oCreatePromise,
@@ -109,11 +111,13 @@ sap.ui.define([
 				}
 				BaseContext.call(this, oModel, sPath);
 				this.oBinding = oBinding;
-				this.oCreatePromise = oCreatePromise
+				this.oCreatedPromise = oCreatePromise
 					// ensure to return a promise that is resolved w/o data
 					&& Promise.resolve(oCreatePromise).then(function () {});
-				this.oSyncCreatePromise = oCreatePromise && SyncPromise.resolve(oCreatePromise);
+				this.oSyncCreatePromise = oCreatePromise;
 				this.iIndex = iIndex;
+				this.bKeepAlive = false;
+				this.fnOnBeforeDestroy = undefined;
 				this.iReturnValueContextId = iReturnValueContextId;
 			}
 		});
@@ -194,6 +198,29 @@ sap.ui.define([
 	};
 
 	/**
+	 * Collapses the group node that this context points to.
+	 *
+	 * @throws {Error}
+	 *   If the context points to a node that is not expandable or already collapsed
+	 *
+	 * @public
+	 * @see #expand
+	 * @see #isExpanded
+	 * @since 1.83.0
+	 */
+	Context.prototype.collapse = function () {
+		switch (this.isExpanded()) {
+			case true:
+				this.oBinding.collapse(this);
+				break;
+			case false:
+				throw new Error("Already collapsed: " + this);
+			default:
+				throw new Error("Not expandable: " + this);
+		}
+	};
+
+	/**
 	 * Returns a promise that is resolved without data when the entity represented by this context
 	 * has been created in the backend and all selected properties of this entity are available.
 	 * Expanded navigation properties are only available if the context's binding is refreshable.
@@ -220,7 +247,7 @@ sap.ui.define([
 	 * @since 1.43.0
 	 */
 	Context.prototype.created = function () {
-		return this.oCreatePromise;
+		return this.oCreatedPromise;
 	};
 
 	/**
@@ -230,9 +257,9 @@ sap.ui.define([
 	 *
 	 * @param {string} [sGroupId]
 	 *   The group ID to be used for the DELETE request; if not specified, the update group ID for
-	 *   the context's binding is used, see {@link sap.ui.model.odata.v4.ODataModel#bindContext}
-	 *   and {@link sap.ui.model.odata.v4.ODataModel#bindList}; the resulting group ID must not have
-	 *   {@link sap.ui.model.odata.v4.SubmitMode.API}.
+	 *   the context's binding is used, see {@link #getUpdateGroupId}; the resulting group ID must
+	 *   not have {@link sap.ui.model.odata.v4.SubmitMode.API}. Since 1.81, if this context is
+	 *   transient (see {@link #isTransient}), no group ID needs to be specified.
 	 * @returns {Promise}
 	 *   A promise which is resolved without a result in case of success, or rejected with an
 	 *   instance of <code>Error</code> in case of failure, e.g. if the given context does not point
@@ -260,10 +287,11 @@ sap.ui.define([
 
 		oModel.checkGroupId(sGroupId);
 		this.oBinding.checkSuspended();
-		if (!this.isTransient() && this.hasPendingChanges()) {
+		if (this.isTransient()) {
+			sGroupId = sGroupId || "$direct";
+		} else if (this.hasPendingChanges()) {
 			throw new Error("Cannot delete due to pending changes");
 		}
-
 		oGroupLock = this.oBinding.lockGroup(sGroupId, true, true);
 
 		return this._delete(oGroupLock).then(function () {
@@ -287,11 +315,18 @@ sap.ui.define([
 	 * and index for debugging purposes.
 	 *
 	 * @public
-	 * @see sap.ui.model.Context#destroy
+	 * @see sap.ui.base.Object#destroy
 	 * @since 1.41.0
 	 */
-	// @override
+	// @override sap.ui.base.Object#destroy
 	Context.prototype.destroy = function () {
+		var fnOnBeforeDestroy = this.fnOnBeforeDestroy;
+
+		if (fnOnBeforeDestroy) {
+			// avoid second call through a destroy inside the callback
+			this.fnOnBeforeDestroy = undefined;
+			fnOnBeforeDestroy();
+		}
 		this.oModel.getDependentBindings(this).forEach(function (oDependentBinding) {
 			oDependentBinding.setContext(undefined);
 		});
@@ -316,7 +351,8 @@ sap.ui.define([
 	 *   fire "patchSent" and "patchCompleted" events
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise which is resolved without a result in case of success, or rejected with an
-	 *   instance of <code>Error</code> in case of failure
+	 *   instance of <code>Error</code> in case of failure, for example if the annotation belongs to
+	 *   the read-only namespace "@$ui5.*"
 	 *
 	 * @private
 	 */
@@ -400,6 +436,7 @@ sap.ui.define([
 	 *   If the context points to a node that is not expandable or already expanded
 	 *
 	 * @public
+	 * @see #collapse
 	 * @see #isExpanded
 	 * @since 1.77.0
 	 */
@@ -502,12 +539,15 @@ sap.ui.define([
 	Context.prototype.getCanonicalPath = _Helper.createGetMethod("fetchCanonicalPath", true);
 
 	/**
-	 * Returns the group ID of the context's binding that is used for read requests.
+	 * Returns the group ID of the context's binding that is used for read requests. See
+	 * {@link sap.ui.model.odata.v4.ODataListBinding#getGroupId} and
+	 * {@link sap.ui.model.odata.v4.ODataContextBinding#getGroupId}.
 	 *
 	 * @returns {string}
 	 *   The group ID
 	 *
-	 * @private
+	 * @public
+	 * @since 1.81.0
 	 */
 	Context.prototype.getGroupId = function () {
 		return this.oBinding.getGroupId();
@@ -519,8 +559,11 @@ sap.ui.define([
 	 * <code>bAtEnd</code>, and when a context representing a created entity is deleted again.
 	 *
 	 * @returns {number}
-	 *   The context's index within the binding's collection or <code>undefined</code> if the
-	 *   context does not belong to a list binding.
+	 *   The context's index within the binding's collection. It is <code>undefined</code> if
+	 *   <ul>
+	 *     <li> it does not belong to a list binding,
+	 *     <li> it is kept alive (see {@link #isKeepAlive}), but not in the collection currently.
+	 *   </ul>
 	 *
 	 * @public
 	 * @since 1.39.0
@@ -542,13 +585,16 @@ sap.ui.define([
 	 * or deleted again.
 	 *
 	 * @returns {number}
-	 *   The context's model index within the binding's collection or <code>undefined</code> if the
-	 *   context does not belong to a list binding.
+	 *   The context's index within the binding's collection. It is <code>undefined</code> if
+	 *   <ul>
+	 *     <li> it does not belong to a list binding,
+	 *     <li> it is kept alive (see {@link #isKeepAlive}), but not in the collection currently.
+	 *   </ul>
 	 *
 	 * @private
 	 */
 	Context.prototype.getModelIndex = function () {
-		if (this.oBinding.iCreatedContexts) {
+		if (this.iIndex !== undefined && this.oBinding.iCreatedContexts) {
 			return this.iIndex + this.oBinding.iCreatedContexts;
 		}
 		return this.iIndex;
@@ -578,7 +624,7 @@ sap.ui.define([
 	 * @see sap.ui.model.Context#getObject
 	 * @since 1.39.0
 	 */
-	// @override
+	// @override sap.ui.model.Context#getObject
 	Context.prototype.getObject = function (sPath) {
 		return _Helper.publicClone(this.getValue(sPath));
 	};
@@ -605,7 +651,7 @@ sap.ui.define([
 	 * @see sap.ui.model.odata.v4.ODataMetaModel#requestUI5Type
 	 * @since 1.39.0
 	 */
-	// @override
+	// @override sap.ui.model.Context#getProperty
 	Context.prototype.getProperty = function (sPath, bExternalFormat) {
 		var oError, oSyncPromise;
 
@@ -662,12 +708,15 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the group ID of the context's binding that is used for update requests.
+	 * Returns the group ID of the context's binding that is used for update requests. See
+	 * {@link sap.ui.model.odata.v4.ODataListBinding#getUpdateGroupId} and
+	 * {@link sap.ui.model.odata.v4.ODataContextBinding#getUpdateGroupId}.
 	 *
 	 * @returns {string}
-	 *   The group ID
+	 *   The update group ID
 	 *
-	 * @private
+	 * @public
+	 * @since 1.81.0
 	 */
 	Context.prototype.getUpdateGroupId = function () {
 		return this.oBinding.getUpdateGroupId();
@@ -738,11 +787,25 @@ sap.ui.define([
 	 *   if the node is not expandable
 	 *
 	 * @public
+	 * @see #collapse
 	 * @see #expand
 	 * @since 1.77.0
 	 */
 	Context.prototype.isExpanded = function () {
 		return this.getProperty("@$ui5.node.isExpanded");
+	};
+
+	/**
+	 * Returns whether this context is kept alive.
+	 *
+	 * @returns {boolean} <code>true</code> if this context is kept alive
+	 *
+	 * @public
+	 * @see #setKeepAlive
+	 * @since 1.81.0
+	 */
+	Context.prototype.isKeepAlive = function () {
+		return this.bKeepAlive;
 	};
 
 	/**
@@ -785,8 +848,7 @@ sap.ui.define([
 	 *
 	 * @param {string} [sGroupId]
 	 *   The group ID to be used for the refresh; if not specified, the group ID for the context's
-	 *   binding is used, see {@link sap.ui.model.odata.v4.ODataModel#bindList} and
-	 *   {@link sap.ui.model.odata.v4.ODataModel#bindContext}.
+	 *   binding is used, see {@link #getGroupId}.
 	 * @param {boolean} [bAllowRemoval=false]
 	 *   If the context belongs to a list binding, the parameter allows the list binding to remove
 	 *   the context from the list binding's collection because the entity does not match the
@@ -794,6 +856,10 @@ sap.ui.define([
 	 *   a removed context is destroyed, see {@link #destroy}. If the context belongs to a context
 	 *   binding, the parameter must not be used.
 	 *   Supported since 1.55.0
+	 *
+	 *   Since 1.84.0, if this context is kept alive (see {@link #isKeepAlive}), it is only
+	 *   destroyed if the corresponding entity does no longer exist in the back end. In this case,
+	 *   the <code>fnOnBeforeDestroy</code> callback passed with {@link #setKeepAlive}) is called.
 	 * @throws {Error}
 	 *   If the group ID is not valid, if this context has pending changes or does not represent a
 	 *   single entity (see {@link sap.ui.model.odata.v4.ODataListBinding#getHeaderContext}), if the
@@ -880,14 +946,17 @@ sap.ui.define([
 	/**
 	 * Returns a promise on the property value for the given path relative to this context. The path
 	 * is expected to point to a structural property with primitive type.
+	 * Since 1.81.1 it is possible to request more than one property. Property values that are not
+	 * cached yet are requested from the back end.
 	 *
-	 * @param {string} [sPath]
-	 *   A path relative to this context
+	 * @param {string|string[]} [vPath]
+	 *   One or multiple paths relative to this context
 	 * @param {boolean} [bExternalFormat=false]
-	 *   If <code>true</code>, the value is returned in external format using a UI5 type for the
-	 *   given property path that formats corresponding to the property's EDM type and constraints.
+	 *   If <code>true</code>, the values are returned in external format using UI5 types for the
+	 *   given property paths that format corresponding to the properties' EDM types and
+	 *   constraints
 	 * @returns {Promise}
-	 *   A promise on the requested value; it is rejected if the value is not primitive
+	 *   A promise on the requested value or values; it is rejected if a value is not primitive
 	 * @throws {Error}
 	 *   If the context's root binding is suspended
 	 *
@@ -895,10 +964,25 @@ sap.ui.define([
 	 * @see sap.ui.model.odata.v4.ODataMetaModel#requestUI5Type
 	 * @since 1.39.0
 	 */
-	Context.prototype.requestProperty = function (sPath, bExternalFormat) {
+	Context.prototype.requestProperty = function (vPath, bExternalFormat) {
+		var aPaths = Array.isArray(vPath) ? vPath : [vPath],
+			that = this;
+
 		this.oBinding.checkSuspended();
 
-		return Promise.resolve(fetchPrimitiveValue(this, sPath, bExternalFormat));
+		return Promise.all(aPaths.map(function (sPath) {
+			return that.oBinding.fetchIfChildCanUseCache(that, sPath, SyncPromise.resolve({}))
+				.then(function(sReducedPath) {
+					if (sReducedPath) {
+						return fetchPrimitiveValue(that, sReducedPath, bExternalFormat);
+					}
+
+					Log.error("Not a valid property path: " + sPath, undefined, sClassName);
+					// return undefined;
+				});
+		})).then(function (aValues) {
+			return Array.isArray(vPath) ? aValues : aValues[0];
+		});
 	};
 
 	/**
@@ -908,11 +992,11 @@ sap.ui.define([
 	 * off via the binding-specific parameter <code>$$patchWithoutSideEffects</code>. The method
 	 * can be called on
 	 * <ul>
-	 * <li> the bound context of a context binding,
-	 * <li> the return value context of an operation binding,
-	 * <li> a context of a list binding representing a single entity,
-	 * <li> the header context of a list binding; side effects are loaded for the whole binding in
-	 *   this case.
+	 *   <li> the bound context of a context binding,
+	 *   <li> the return value context of an operation binding,
+	 *   <li> a context of a list binding representing a single entity,
+	 *   <li> the header context of a list binding; side effects are loaded for the whole binding in
+	 *     this case.
 	 * </ul>
 	 * Key predicates must be available in this context's path. Avoid
 	 * navigation properties as part of a binding's $select system query option as they may trigger
@@ -938,10 +1022,10 @@ sap.ui.define([
 	 * The events 'dataRequested' and 'dataReceived' are not fired. Whatever should happen in the
 	 * event handler attached to...
 	 * <ul>
-	 * <li>'dataRequested', can instead be done before calling {@link #requestSideEffects}.</li>
-	 * <li>'dataReceived', can instead be done once the <code>oPromise</code> returned by
-	 * {@link #requestSideEffects} fulfills or rejects (using
-	 * <code>oPromise.then(function () {...}, function () {...})</code>).</li>
+	 *   <li> 'dataRequested', can instead be done before calling {@link #requestSideEffects}.
+	 *   <li> 'dataReceived', can instead be done once the <code>oPromise</code> returned by
+	 *     {@link #requestSideEffects} fulfills or rejects (using
+	 *     <code>oPromise.then(function () {...}, function () {...})</code>).
 	 * </ul>
 	 *
 	 * @param {object[]} aPathExpressions
@@ -955,14 +1039,17 @@ sap.ui.define([
 	 *   may have changed, but no navigation properties (unless listed explicitly), for example
 	 *   <code>[{$PropertyPath : "*"}, {$NavigationPropertyPath : "EMPLOYEE_2_MANAGER"}]</code> or
 	 *   <code>[{$PropertyPath : "EMPLOYEE_2_MANAGER/*"}]</code>.
+	 *
+	 *   Since 1.82.0 absolute paths are supported. Absolute paths must start with the entity
+	 *   container (example "/com.sap.gateway.default.iwbep.tea_busi.v0001.Container/TEAMS") of the
+	 *   service. All (navigation) properties in the complete model matching such an absolute path
+	 *   are updated.
 	 * @param {string} [sGroupId]
 	 *   The group ID to be used (since 1.69.0); if not specified, the update group ID for the
-	 *   context's binding is used, see "$$updateGroupId" at
-	 *   {@link sap.ui.model.odata.v4.ODataModel#bindList} and
-	 *   {@link sap.ui.model.odata.v4.ODataModel#bindContext}. If a different group ID is specified,
-	 *   make sure that {@link #requestSideEffects} is called after the corresponding updates have
-	 *   been successfully processed by the server and that there are no pending changes for the
-	 *   affected properties.
+	 *   context's binding is used, see {@link #getUpdateGroupId}. If a different group ID is
+	 *   specified, make sure that {@link #requestSideEffects} is called after the corresponding
+	 *   updates have been successfully processed by the server and that there are no pending
+	 *   changes for the affected properties.
 	 * @returns {Promise}
 	 *   Promise resolved with <code>undefined</code>, or rejected with an error if loading of side
 	 *   effects fails. Use it to set fields affected by side effects to read-only before
@@ -970,20 +1057,25 @@ sap.ui.define([
 	 *   error handler, you can repeat the loading of side effects.
 	 * @throws {Error} If
 	 *   <ul>
-	 *    <li> <code>aPathExpressions</code> contains objects other than
-	 *     "14.5.11 Expression edm:NavigationPropertyPath" or "14.5.13 Expression edm:PropertyPath"
-	 *    <li> this context is not supported
-	 *    <li> the root binding of this context's binding is suspended (see {@link #getBinding} and
-	 *    {@link sap.ui.model.odata.v4.ODataContextBinding#getRootBinding},
-	 *    {@link sap.ui.model.odata.v4.ODataListBinding#getRootBinding}, or
-	 *    {@link sap.ui.model.odata.v4.ODataPropertyBinding#getRootBinding}, and
-	 *    {@link sap.ui.model.Binding#isSuspended})
-	 *    <li> this context is transient (see {@link #isTransient})
-	 *    <li> the binding of this context is unresolved (see
-	 *    {@link sap.ui.model.Binding#isResolved})
-	 *    <li> the group ID is invalid
-	 *    <li> a <code>$PropertyPath</code> has been requested which contains a navigation
-	 *    property that was changed on the server and now targets a different entity (since 1.79.0)
+	 *     <li> <code>aPathExpressions</code> contains objects other than
+	 *       "14.5.11 Expression edm:NavigationPropertyPath" or
+	 *       "14.5.13 Expression edm:PropertyPath"
+	 *     <li> this context is not supported
+	 *     <li> the root binding of this context's binding is suspended (see {@link #getBinding} and
+	 *       {@link sap.ui.model.odata.v4.ODataContextBinding#getRootBinding},
+	 *       {@link sap.ui.model.odata.v4.ODataListBinding#getRootBinding}, or
+	 *       {@link sap.ui.model.odata.v4.ODataPropertyBinding#getRootBinding}, and
+	 *       {@link sap.ui.model.Binding#isSuspended})
+	 *     <li> this context is transient (see {@link #isTransient})
+	 *     <li> the binding of this context is unresolved (see
+	 *       {@link sap.ui.model.Binding#isResolved})
+	 *     <li> the group ID is invalid
+	 *     <li> a <code>$PropertyPath</code> has been requested which contains a navigation
+	 *       property that was changed on the server and now targets a different entity
+	 *       (since 1.79.0)
+	 *     <li> the binding of this context has "$$aggregation" (see
+	 *       {@link sap.ui.model.odata.v4.ODataModel#bindList}) and the context is not the header
+	 *       context
 	 *   </ul>
 	 * @public
 	 * @see sap.ui.model.odata.v4.ODataContextBinding#execute
@@ -994,7 +1086,8 @@ sap.ui.define([
 	 */
 	Context.prototype.requestSideEffects = function (aPathExpressions, sGroupId) {
 		var oMetaModel = this.oModel.getMetaModel(),
-			aPaths,
+			aPathsForBinding = [],
+			aPathsForModel = [],
 			oRootBinding,
 			sRootPath,
 			that = this;
@@ -1031,9 +1124,7 @@ sap.ui.define([
 			throw new Error("Cannot request side effects of unresolved binding's context: " + this);
 		}
 
-		oRootBinding = this.oBinding.getRootBinding();
-		sRootPath = this.oModel.resolve(oRootBinding.getPath(), oRootBinding.getContext());
-		aPaths = aPathExpressions.map(function (oPath) {
+		aPathExpressions.map(function (oPath) {
 			if (oPath && typeof oPath === "object") {
 				if (isPropertyPath(oPath.$PropertyPath)) {
 					return oPath.$PropertyPath;
@@ -1045,7 +1136,17 @@ sap.ui.define([
 			}
 			throw new Error("Not an edm:(Navigation)PropertyPath expression: "
 				+ JSON.stringify(oPath));
-		}).reduce(function (aPaths0, sPath) {
+		}).forEach(function (sPath) {
+			if (sPath[0] === "/") {
+				aPathsForModel.push(sPath);
+			} else {
+				aPathsForBinding.push(sPath);
+			}
+		});
+
+		oRootBinding = this.oBinding.getRootBinding();
+		sRootPath = this.oModel.resolve(oRootBinding.getPath(), oRootBinding.getContext());
+		aPathsForBinding = aPathsForBinding.reduce(function (aPaths0, sPath) {
 			return aPaths0.concat(oMetaModel.getAllPathReductions(
 				_Helper.buildPath(that.getPath(), sPath), sRootPath));
 		}, []);
@@ -1060,9 +1161,12 @@ sap.ui.define([
 							that.oModel.oRequestor.relocateAll("$parked." + sGroupId, sGroupId);
 						})
 			).then(function () {
-				// ensure that this is called synchronously when there are no running change
-				// requests (otherwise bubbling up might fail due to temporarily missing caches)
-				return that.requestSideEffectsInternal(aPaths, sGroupId);
+				return SyncPromise.all([
+					that.oModel.requestSideEffects(sGroupId, aPathsForModel),
+					// ensure that this is called synchronously when there are no running change
+					// requests (otherwise bubbling up might fail due to temporarily missing caches)
+					that.requestSideEffectsInternal(aPathsForBinding, sGroupId)
+				]);
 			})
 		).then(function () {
 			// return undefined;
@@ -1079,8 +1183,8 @@ sap.ui.define([
 	 * @param {string} sGroupId
 	 *   The effective group ID
 	 * @returns {sap.ui.base.SyncPromise}
-	 *   A promise resolving without a defined result when the side effects have been determined and
-	 *   rejecting with an error if loading of side effects fails
+	 *   A promise resolving without a defined result, or rejecting with an error if loading of side
+	 *   effects fails
 	 *
 	 * @private
 	 */
@@ -1140,8 +1244,60 @@ sap.ui.define([
 	};
 
 	/**
+	 * Sets the <code>bKeepAlive</code> flag of this content to <code>false</code> without
+	 * touching the callback function <code>fnOnBeforeDestroy</code>.
+	 *
+	 * @private
+	 */
+	Context.prototype.resetKeepAlive = function () {
+		this.bKeepAlive = false;
+	};
+
+	/**
+	 * Sets this context's <code>keepAlive</code> attribute. If <code>true</code> the context is
+	 * kept alive even when it is removed from its binding's collection, for example if a filter is
+	 * applied and the entity represented by this context does not match the filter criteria.
+	 *
+	 * Note that {@link #refresh}, {@link #requestSideEffects} and
+	 * {@link sap.ui.model.odata.v4.ODataListBinding#refresh} are currently not supported for
+	 * kept-alive contexts.
+	 *
+	 * @param {boolean} bKeepAlive
+	 *   Whether to keep the context alive
+	 * @param {function} [fnOnBeforeDestroy]
+	 *  Callback function that is executed once for a kept-alive context just before it is
+	 *  destroyed, see {@link #destroy}. Supported since 1.84.0
+	 * @throws {Error} If
+	 *   <ul>
+	 *     <li> this context is not a list binding's context,
+	 *     <li> it is the header context,
+	 *     <li> it is transient,
+	 *     <li> it does not point to an entity,
+	 *     <li> a key property of the entity has not been requested,
+	 *     <li> the list binding is relative and does not use the <code>$$ownRequest</code>
+	 *       parameter (see {@link sap.ui.model.odata.v4.ODataModel#bindList}).
+	 *   </ul>
+	 *
+	 * @public
+	 * @see #isKeepAlive
+	 * @since 1.81.0
+	 */
+	Context.prototype.setKeepAlive = function (bKeepAlive, fnOnBeforeDestroy) {
+		if (this.isTransient()) {
+			throw new Error("Unsupported transient context " + this);
+		}
+		if (!_Helper.getPrivateAnnotation(this.getValue(), "predicate")) {
+			throw new Error("No key predicate known at " + this);
+		}
+		this.oBinding.checkKeepAlive(this);
+		this.bKeepAlive = bKeepAlive;
+		this.fnOnBeforeDestroy = bKeepAlive ? fnOnBeforeDestroy : undefined;
+	};
+
+	/**
 	 * Sets a new value for the property identified by the given path. The path is relative to this
-	 * context and is expected to point to a structural property with primitive type.
+	 * context and is expected to point to a structural property with primitive type or, since
+	 * 1.85.0, to an instance annotation.
 	 *
 	 * @param {string} sPath
 	 *   A path relative to this context
@@ -1149,21 +1305,48 @@ sap.ui.define([
 	 *   The new value which must be primitive
 	 * @param {string} [sGroupId]
 	 *   The group ID to be used for the PATCH request; if not specified, the update group ID for
-	 *   the context's binding is used, see {@link sap.ui.model.odata.v4.ODataModel#bindList} and
-	 *   {@link sap.ui.model.odata.v4.ODataModel#bindContext}. Since 1.74, you can use
+	 *   the context's binding is used, see {@link #getUpdateGroupId}. Since 1.74.0, you can use
 	 *   <code>null</code> to prevent the PATCH request.
+	 * @param {boolean} [bRetry]
+	 *   Since 1.85.0, if <code>true</code> the property is not reset if the PATCH request failed.
+	 *   It contributes to the pending changes instead (see
+	 *   {@link sap.ui.model.odata.v4.ODataModel#hasPendingChanges},
+	 *   {@link sap.ui.model.odata.v4.ODataContextBinding#hasPendingChanges} and
+	 *   {@link sap.ui.model.odata.v4.ODataListBinding#hasPendingChanges}) and can be reset via the
+	 *   corresponding <code>resetChanges</code> methods.
+	 *
+	 *   The PATCH is automatically repeated with the next call of
+	 *   {@link sap.ui.model.odata.v4.ODataModel#submitBatch} if the group ID has
+	 *   {@link sap.ui.model.odata.v4.SubmitMode.API}. Otherwise it is repeated when the property is
+	 *   modified again.
+	 *
+	 *   Each time the PATCH request is sent to the server, a 'patchSent' event is fired on the
+	 *   binding sending the request. When the response for this request is received, a
+	 *   'patchCompleted' with a boolean parameter 'success' is fired.
 	 * @returns {Promise}
 	 *   A promise which is resolved without a result in case of success, or rejected with an
-	 *   instance of <code>Error</code> in case of failure
+	 *   instance of <code>Error</code> in case of failure, for example if the annotation belongs to
+	 *   the read-only namespace "@$ui5.*". With <code>bRetry</code> it is only
+	 *   rejected with an <code>Error</code> instance where <code>oError.canceled === true</code>
+	 *   when the property has been reset via the methods
+	 *   <ul>
+	 *     <li> {@link sap.ui.model.odata.v4.ODataModel#resetChanges}
+	 *     <li> {@link sap.ui.model.odata.v4.ODataContextBinding#resetChanges} or
+	 *     <li> {@link sap.ui.model.odata.v4.ODataListBinding#resetChanges}.
+	 *   </ul>
 	 * @throws {Error}
 	 *   If the binding's root binding is suspended, for invalid group IDs, or if the new value is
 	 *   not primitive
 	 *
 	 * @public
 	 * @see #getProperty
+	 * @see sap.ui.model.odata.v4.ODataContextBinding#event:patchSent
+	 * @see sap.ui.model.odata.v4.ODataContextBinding#event:patchCompleted
+	 * @see sap.ui.model.odata.v4.ODataListBinding#event:patchSent
+	 * @see sap.ui.model.odata.v4.ODataListBinding#event:patchCompleted
 	 * @since 1.67.0
 	 */
-	Context.prototype.setProperty = function (sPath, vValue, sGroupId) {
+	Context.prototype.setProperty = function (sPath, vValue, sGroupId, bRetry) {
 		var oGroupLock = null;
 
 		this.oBinding.checkSuspended();
@@ -1172,11 +1355,10 @@ sap.ui.define([
 		}
 		if (sGroupId !== null) {
 			this.oModel.checkGroupId(sGroupId);
-			oGroupLock
-				= this.oModel.lockGroup(sGroupId || this.getUpdateGroupId(), this, true, true);
+			oGroupLock = this.oBinding.lockGroup(sGroupId, true, true);
 		}
 
-		return Promise.resolve(this.doSetProperty(sPath, vValue, oGroupLock, true))
+		return Promise.resolve(this.doSetProperty(sPath, vValue, oGroupLock, !bRetry))
 			.catch(function (oError) {
 				if (oGroupLock) {
 					oGroupLock.unlock(true);
@@ -1238,8 +1420,10 @@ sap.ui.define([
 		 *   An absolute path without trailing slash
 		 * @param {number} [iIndex]
 		 *   Index of item represented by this context, used by list bindings, not context bindings
-		 * @param {Promise} [oCreatePromise]
-		 *   Promise returned by {@link #created}
+		 * @param {sap.ui.base.SyncPromise} [oCreatePromise]
+		 *   A promise which is resolved with the created entity when the POST request has been
+		 *   successfully sent and the entity has been marked as non-transient; used as base for
+		 *   {@link #created}
 		 * @returns {sap.ui.model.odata.v4.Context}
 		 *   A context for an OData V4 model
 		 * @throws {Error}

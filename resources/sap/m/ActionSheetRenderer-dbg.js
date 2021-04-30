@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/Device"],
@@ -59,7 +59,7 @@ sap.ui.define(["sap/ui/Device"],
 		// This is needed in order to prevent JAWS from announcing the ActionSheet content multiple times
 		bAccessibilityOn && oRm.attr("role", "presentation");
 
-		oRm.openEnd("div");
+		oRm.openEnd();
 
 		for (i = 0; i < iButtonsCount; i++) {
 			oButton = aActionButtons[i];

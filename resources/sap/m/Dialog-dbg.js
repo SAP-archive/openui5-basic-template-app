@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,6 @@ sap.ui.define([
 	"./ToolbarSpacer",
 	"./Title",
 	"./library",
-	"./TitleAlignmentMixin",
 	"sap/m/Image",
 	"sap/ui/core/Control",
 	"sap/ui/core/IconPool",
@@ -23,7 +22,6 @@ sap.ui.define([
 	"sap/ui/core/ResizeHandler",
 	"sap/ui/core/util/ResponsivePaddingsEnablement",
 	"sap/ui/Device",
-	"sap/ui/base/ManagedObject",
 	"sap/ui/core/library",
 	"sap/ui/events/KeyCodes",
 	"./TitlePropagationSupport",
@@ -44,7 +42,6 @@ function(
 	ToolbarSpacer,
 	Title,
 	library,
-	TitleAlignmentMixin,
 	Image,
 	Control,
 	IconPool,
@@ -55,7 +52,6 @@ function(
 	ResizeHandler,
 	ResponsivePaddingsEnablement,
 	Device,
-	ManagedObject,
 	coreLibrary,
 	KeyCodes,
 	TitlePropagationSupport,
@@ -146,7 +142,7 @@ function(
 		*
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.79.0
+		* @version 1.84.11
 		*
 		* @constructor
 		* @public
@@ -350,7 +346,7 @@ function(
 					rightButton: {type: "sap.m.Button", multiple: false, deprecated: true},
 
 					/**
-					 * In the Dialog focus is set first on the <code>leftButton</code> and then on <code>rightButton</code>, when available. If another control needs to get the focus, set the <code>initialFocus</code> with the control which should be focused on. Setting <code>initialFocus</code> to input controls doesn't open the On-Screen keyboard on mobile device as, due to browser limitation, the On-Screen keyboard can't be opened with JavaScript code. The opening of On-Screen keyboard must be triggered by real user action.
+					 * In the Dialog focus is set first on the <code>beginButton</code> and then on <code>endButton</code>, when available. If another control needs to get the focus, set the <code>initialFocus</code> with the control which should be focused on. Setting <code>initialFocus</code> to input controls doesn't open the On-Screen keyboard on mobile device as, due to browser limitation, the On-Screen keyboard can't be opened with JavaScript code. The opening of On-Screen keyboard must be triggered by real user action.
 					 * @since 1.15.0
 					 */
 					initialFocus: {type: "sap.ui.core.Control", multiple: false},
@@ -384,7 +380,7 @@ function(
 						parameters: {
 
 							/**
-							 * This indicates the trigger of closing the Dialog. If the Dialog is closed by either the <code>leftButton</code> or the <code>rightButton</code>, the button that closes the Dialog is set to this parameter. Otherwise, the parameter is set to <code>null</code>.
+							 * This indicates the trigger of closing the Dialog. If the Dialog is closed by either the <code>beginButton</code> or the <code>endButton</code>, the button that closes the Dialog is set to this parameter. Otherwise, the parameter is set to <code>null</code>.
 							 * @since 1.9.2
 							 */
 							origin: {type: "sap.m.Button"}
@@ -398,7 +394,7 @@ function(
 						parameters: {
 
 							/**
-							 * This indicates the trigger of closing the Dialog. If the Dialog is closed by either the <code>leftButton</code> or the <code>rightButton</code>, the button that closes the Dialog is set to this parameter. Otherwise, the parameter is set to <code>null</code>.
+							 * This indicates the trigger of closing the Dialog. If the Dialog is closed by either the <code>beginButton</code> or the <code>endButton</code>, the button that closes the Dialog is set to this parameter. Otherwise, the parameter is set to <code>null</code>.
 							 * @since 1.9.2
 							 */
 							origin: {type: "sap.m.Button"}
@@ -421,7 +417,7 @@ function(
 			return this._headerTitle ? this._headerTitle.getId() : false;
 		});
 
-		Dialog._bPaddingByDefault = (sap.ui.getCore().getConfiguration().getCompatibilityVersion("sapMDialogWithPadding").compareTo("1.16") < 0);
+		Dialog._bPaddingByDefault = (Core.getConfiguration().getCompatibilityVersion("sapMDialogWithPadding").compareTo("1.16") < 0);
 
 		Dialog._mIcons = {};
 		Dialog._mIcons[ValueState.Success] = IconPool.getIconURI("message-success");
@@ -436,7 +432,7 @@ function(
 			var that = this;
 			this._oManuallySetSize = null;
 			this._oManuallySetPosition = null;
-			this._bRTL = sap.ui.getCore().getConfiguration().getRTL();
+			this._bRTL = Core.getConfiguration().getRTL();
 
 			// used to judge if enableScrolling needs to be disabled
 			this._scrollContentList = ["sap.m.NavContainer", "sap.m.Page", "sap.m.ScrollContainer", "sap.m.SplitContainer", "sap.m.MultiInput", "sap.m.SimpleFixFlex"];
@@ -485,6 +481,7 @@ function(
 		};
 
 		Dialog.prototype.onBeforeRendering = function () {
+			var oHeader = this.getCustomHeader() || this._header;
 			//if content has scrolling, disable scrolling automatically
 			if (this._hasSingleScrollableContent()) {
 				this.setVerticalScrolling(false);
@@ -506,11 +503,16 @@ function(
 
 			this._createToolbarButtons();
 
-			if (sap.ui.getCore().getConfiguration().getAccessibility() && this.getState() != ValueState.None) {
+			if (Core.getConfiguration().getAccessibility() && this.getState() != ValueState.None) {
 				var oValueState = new InvisibleText({text: this.getValueStateString(this.getState())});
 
 				this.setAggregation("_valueState", oValueState);
 				this.addAriaLabelledBy(oValueState.getId());
+			}
+
+			// title alignment
+			if (oHeader && oHeader.setTitleAlignment) {
+				oHeader.setProperty("titleAlignment", this.getTitleAlignment(), true);
 			}
 		};
 
@@ -649,18 +651,21 @@ function(
 		};
 
 		/**
-		 * The method checks if the Dialog is open. It returns <code>true</code> when the Dialog is currently open (this includes opening and closing animations), otherwise it returns <code>false</code>.
+		 * The method checks if the Dialog is open.
 		 *
-		 * @returns boolean
+		 * It returns <code>true</code> when the Dialog is currently open (this includes opening and closing animations),
+		 * otherwise it returns <code>false</code>.
+		 *
+		 * @returns {boolean} Whether the dialog is open.
 		 * @public
 		 * @since 1.9.1
 		 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		Dialog.prototype.isOpen = function () {
-			return this.oPopup && this.oPopup.isOpen();
+			return !!this.oPopup && this.oPopup.isOpen();
 		};
 
-		/**
+		/*
 		 * @inheritdoc
 		 */
 		Dialog.prototype.setIcon = function (sIcon) {
@@ -668,7 +673,7 @@ function(
 			return this.setProperty("icon", sIcon);
 		};
 
-		/**
+		/*
 		 * @inheritdoc
 		 */
 		Dialog.prototype.setState = function (sState) {
@@ -809,7 +814,7 @@ function(
 			if (typeof oEscapeHandler === 'function') {
 				// create a Promise to allow app developers to hook to the 'escape' event
 				// and prevent the closing of the dialog by executing the escape handler function they defined
-				new window.Promise(function (resolve, reject) {
+				new Promise(function (resolve, reject) {
 					oPromiseArgument.resolve = resolve;
 					oPromiseArgument.reject = reject;
 
@@ -870,7 +875,6 @@ function(
 
 			return iKeyCode == KeyCodes.SPACE || iKeyCode == KeyCodes.ENTER;
 		};
-
 
 		/* =========================================================== */
 		/*                      end: event handlers                  */
@@ -1114,12 +1118,12 @@ function(
 		Dialog.prototype._createHeader = function () {
 			if (!this._header) {
 				// set parent of header to detect changes on title
-				this._header = new Bar(this.getId() + "-header");
+				this._header = new Bar(this.getId() + "-header", {
+					titleAlignment: this.getTitleAlignment()
+				});
 				this._header._setRootAccessibilityRole("heading");
 				this._header._setRootAriaLevel("2");
 
-				// call the method that registers this Bar for alignment
-				this._setupBarTitleAlignment(this._header, this.getId() + "_header");
 				this.setAggregation("_header", this._header);
 			}
 		};
@@ -1168,14 +1172,19 @@ function(
 		 *
 		 * @private
 		 */
-		Dialog.prototype._getFocusId = function () {
+		Dialog.prototype._getFocusDomRef = function () {
 			// Left or Right button can be visible false and therefore not rendered.
 			// In such a case, focus should be set somewhere else.
-			return this.getInitialFocus()
-				|| this._getFirstFocusableContentSubHeader()
-				|| this._getFirstFocusableContentElementId()
-				|| this._getFirstVisibleButtonId()
-				|| this.getId();
+			var sInitialFocusId = this.getInitialFocus();
+
+			if (sInitialFocusId) {
+				return document.getElementById(sInitialFocusId);
+			}
+
+			return this._getFirstFocusableContentSubHeader()
+				|| this._getFirstFocusableContentElement()
+				|| this._getFirstVisibleButtonDomRef()
+				|| this.getDomRef();
 		};
 
 		/**
@@ -1183,26 +1192,26 @@ function(
 		 * @returns {string}
 		 * @private
 		 */
-		Dialog.prototype._getFirstVisibleButtonId = function () {
+		Dialog.prototype._getFirstVisibleButtonDomRef = function () {
 			var oBeginButton = this.getBeginButton(),
 				oEndButton = this.getEndButton(),
 				aButtons = this.getButtons(),
-				sButtonId = "";
+				oButtonDomRef;
 
 			if (oBeginButton && oBeginButton.getVisible()) {
-				sButtonId = oBeginButton.getId();
+				oButtonDomRef = oBeginButton.getDomRef();
 			} else if (oEndButton && oEndButton.getVisible()) {
-				sButtonId = oEndButton.getId();
+				oButtonDomRef = oEndButton.getDomRef();
 			} else if (aButtons && aButtons.length > 0) {
 				for (var i = 0; i < aButtons.length; i++) {
 					if (aButtons[i].getVisible()) {
-						sButtonId = aButtons[i].getId();
+						oButtonDomRef = aButtons[i].getDomRef();
 						break;
 					}
 				}
 			}
 
-			return sButtonId;
+			return oButtonDomRef;
 		};
 
 		/**
@@ -1212,14 +1221,8 @@ function(
 		 */
 		Dialog.prototype._getFirstFocusableContentSubHeader = function () {
 			var $subHeader = this.$().find('.sapMDialogSubHeader');
-			var sResult;
 
-			var oFirstFocusableDomRef = $subHeader.firstFocusableDomRef();
-
-			if (oFirstFocusableDomRef) {
-				sResult = oFirstFocusableDomRef.id;
-			}
-			return sResult;
+			return $subHeader.firstFocusableDomRef();
 		};
 
 		/**
@@ -1227,15 +1230,10 @@ function(
 		 * @returns {string}
 		 * @private
 		 */
-		Dialog.prototype._getFirstFocusableContentElementId = function () {
-			var sResult = "";
+		Dialog.prototype._getFirstFocusableContentElement = function () {
 			var $dialogContent = this.$("cont");
-			var oFirstFocusableDomRef = $dialogContent.firstFocusableDomRef();
 
-			if (oFirstFocusableDomRef) {
-				sResult = oFirstFocusableDomRef.id;
-			}
-			return sResult;
+			return $dialogContent.firstFocusableDomRef();
 		};
 
 		// The control that needs to be focused after the Dialog is open is calculated in the following sequence:
@@ -1248,9 +1246,12 @@ function(
 		 * @private
 		 */
 		Dialog.prototype._setInitialFocus = function () {
-			var sFocusId = this._getFocusId();
-			var oControl = sap.ui.getCore().byId(sFocusId);
-			var oFocusDomRef;
+			var oFocusDomRef = this._getFocusDomRef(),
+				oControl;
+
+			if (oFocusDomRef && oFocusDomRef.id) {
+				oControl = Core.byId(oFocusDomRef.id);
+			}
 
 			if (oControl) {
 				//if someone tries to focus on an existing but not visible control, focus the Dialog itself.
@@ -1262,12 +1263,10 @@ function(
 				oFocusDomRef = oControl.getFocusDomRef();
 			}
 
-			oFocusDomRef = oFocusDomRef || ((sFocusId ? window.document.getElementById(sFocusId) : null));
-
 			// if focus dom ref is not found
 			if (!oFocusDomRef) {
 				this.setInitialFocus(""); // clear the saved initial focus
-				oFocusDomRef = sap.ui.getCore().byId(this._getFocusId()); // recalculate the element on focus
+				oFocusDomRef = this._getFocusDomRef(); // recalculate the element on focus
 			}
 
 			//if there is no set initial focus, set the default one to the initialFocus association
@@ -1557,7 +1556,7 @@ function(
 		 * @private
 		 */
 		Dialog.prototype.getValueStateString = function (sValueState) {
-			var rb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			var rb = Core.getLibraryResourceBundle("sap.m");
 
 			switch (sValueState) {
 				case (ValueState.Success):
@@ -1598,7 +1597,7 @@ function(
 
 		Dialog.prototype.setLeftButton = function (vButton) {
 			if (typeof vButton === "string") {
-				vButton = sap.ui.getCore().byId(vButton);
+				vButton = Core.byId(vButton);
 			}
 
 			//setting leftButton will also set the beginButton with the same button instance.
@@ -1609,7 +1608,7 @@ function(
 
 		Dialog.prototype.setRightButton = function (vButton) {
 			if (typeof vButton === "string") {
-				vButton = sap.ui.getCore().byId(vButton);
+				vButton = Core.byId(vButton);
 			}
 
 			//setting rightButton will also set the endButton with the same button instance.
@@ -1838,11 +1837,9 @@ function(
 					if (bResize) {
 						that._$dialog.removeClass('sapMDialogResizing');
 
-						// Take the height from the styles attribute of the DOM element not from the calculated height.
-						// max-height is taken into account if we use calculated height and a wrong value is set for the dialog content's height.
-						// If no value is set for the height style fall back to calculated height.
-						// * Calculated height is the value taken by $dialog.height().
-						dialogHeight = parseInt($dialog[0].style.height) || parseInt($dialog.height());
+						// Take the calculated height of the dialog, so that the max-height is also applied.
+						// Else the content area will be bigger than the dialog and therefore will overflow.
+						dialogHeight = parseInt($dialog.height());
 						dialogBordersHeight = parseInt($dialog.css("border-top-width")) + parseInt($dialog.css("border-bottom-width"));
 						$dialogContent.height(dialogHeight + dialogBordersHeight);
 					}
@@ -1878,14 +1875,14 @@ function(
 							that._bDisableRepositioning = true;
 
 							that._oManuallySetPosition = {
-								x: event.pageX - e.pageX + initial.position.x, // deltaX + initial dialog position
-								y: event.pageY - e.pageY + initial.position.y // deltaY + initial dialog position
+								x: Math.max(0, Math.min(event.pageX - e.pageX + initial.position.x, windowWidth - initial.width)), // deltaX + initial dialog position
+								y: Math.max(0, Math.min(event.pageY - e.pageY + initial.position.y, windowHeight - initial.outerHeight)) // deltaY + initial dialog position
 							};
 
 							//move the dialog
 							that._$dialog.css({
-								left: Math.min(Math.max(0, that._oManuallySetPosition.x), windowWidth - initial.width),
-								top: Math.min(Math.max(0, that._oManuallySetPosition.y), windowHeight - initial.outerHeight)
+								left: that._oManuallySetPosition.x,
+								top: that._oManuallySetPosition.y
 							});
 						});
 					};
@@ -1950,11 +1947,8 @@ function(
 		 * @private
 		 */
 		Dialog.prototype._applyContextualSettings = function () {
-			ManagedObject.prototype._applyContextualSettings.call(this, ManagedObject._defaultContextualSettings);
+			Control.prototype._applyContextualSettings.call(this);
 		};
-
-		// enrich the control functionality with TitleAlignmentMixin
-		TitleAlignmentMixin.mixInto(Dialog.prototype);
 
 		return Dialog;
 	});

@@ -1,17 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
- sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library'],
-	function(Renderer, coreLibrary) {
+ sap.ui.define([
+	 "sap/ui/core/Renderer",
+	 "sap/ui/core/library",
+	 "sap/ui/util/defaultLinkTypes"
+	],
+	function(Renderer, coreLibrary, defaultLinkTypes) {
 	"use strict";
-
 
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
 
+	// shortcut for sap.ui.core.aria.HasPopup
+	var AriaHasPopup = coreLibrary.aria.HasPopup;
 
 	/**
 	 * Link renderer
@@ -32,9 +37,12 @@
 		var sTextDir = oControl.getTextDirection(),
 			sTextAlign = Renderer.getTextAlign(oControl.getTextAlign(), sTextDir),
 			bShouldHaveOwnLabelledBy = oControl._determineSelfReferencePresence(),
+			sHasPopupType = oControl.getAriaHasPopup(),
 			sHref = oControl.getHref(),
+			sRel = defaultLinkTypes(oControl.getRel(), oControl.getTarget()),
 			oAccAttributes =  {
-				labelledby: bShouldHaveOwnLabelledBy ? {value: oControl.getId(), append: true } : undefined
+				labelledby: bShouldHaveOwnLabelledBy ? {value: oControl.getId(), append: true } : undefined,
+				haspopup: (sHasPopupType === AriaHasPopup.None) ? null : sHasPopupType.toLowerCase()
 			},
 			bIsValid = sHref && oControl._isHrefValid(sHref),
 			bEnabled = oControl.getEnabled(),
@@ -80,6 +88,10 @@
 
 		if (oControl.getTarget()) {
 			oRm.attr("target", oControl.getTarget());
+		}
+
+		if (sRel) {
+			oRm.attr("rel", sRel);
 		}
 
 		if (oControl.getWidth()) {

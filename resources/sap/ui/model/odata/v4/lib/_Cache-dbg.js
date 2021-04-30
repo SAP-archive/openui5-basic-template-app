@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,7 +15,8 @@ sap.ui.define([
 ], function (_GroupLock, _Helper, _Requestor, Log, isEmptyObject, SyncPromise) {
 	"use strict";
 
-	var // Matches if ending with a transient key predicate:
+	var sClassName = "sap.ui.model.odata.v4.lib._Cache",
+		// Matches if ending with a transient key predicate:
 		//   EMPLOYEE($uid=id-1550828854217-16) -> aMatches[0] === "($uid=id-1550828854217-16)"
 		//   @see sap.base.util.uid
 		rEndsWithTransientPredicate = /\(\$uid=[-\w]+\)$/,
@@ -48,7 +49,7 @@ sap.ui.define([
 	 * @returns {boolean} <code>true</code> if it is a sub-path
 	 */
 	function isSubPath(sRequestPath, sPath) {
-		return sPath === "" || sRequestPath === sPath || sRequestPath.indexOf(sPath + "/") === 0;
+		return sPath === "" || sRequestPath === sPath || sRequestPath.startsWith(sPath + "/");
 	}
 
 	/**
@@ -92,14 +93,22 @@ sap.ui.define([
 	 *   A function that returns the cache's original resource path to be used to build the target
 	 *   path for bound messages; if it is not given or returns nothing, <code>sResourcePath</code>
 	 *   is used instead. See {@link #getOriginalResourcePath}.
+	 * @param {boolean} [bSharedRequest=false]
+	 *   If this parameter is set, the cache is read-only and modifying calls lead to an error.
 	 *
+	 * @alias sap.ui.model.odata.v4.lib._Cache
 	 * @private
 	 */
 	function Cache(oRequestor, sResourcePath, mQueryOptions, bSortExpandSelect,
-			fnGetOriginalResourcePath) {
-		this.bActive = true;
+			fnGetOriginalResourcePath, bSharedRequest) {
+		// the number of active usages of this cache (initially 1 because the first usage that
+		// creates the cache does not call #setActive)
+		this.iActiveUsages = 1;
 		this.mChangeListeners = {}; // map from path to an array of change listeners
 		this.fnGetOriginalResourcePath = fnGetOriginalResourcePath;
+		// the point in time when the cache became inactive; active caches have Infinity so that
+		// they are always "newer"
+		this.iInactiveSince = Infinity;
 		this.mPatchRequests = {}; // map from path to an array of (PATCH) promises
 		// a promise with attached properties $count, $resolve existing while DELETEs or POSTs are
 		// being sent
@@ -111,6 +120,7 @@ sap.ui.define([
 		this.bSortExpandSelect = bSortExpandSelect;
 		this.setResourcePath(sResourcePath);
 		this.setQueryOptions(mQueryOptions);
+		this.bSharedRequest = bSharedRequest; // must be set after the functions!
 	}
 
 	/**
@@ -132,20 +142,24 @@ sap.ui.define([
 	 *   entity and the entity list are passed as parameter
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise for the DELETE request
+	 * @throws {Error} If the cache is shared
 	 *
 	 * @public
 	 */
 	Cache.prototype._delete = function (oGroupLock, sEditUrl, sPath, oETagEntity, fnCallback) {
 		var aSegments = sPath.split("/"),
 			vDeleteProperty = aSegments.pop(),
+			iIndex = rNumber.test(vDeleteProperty) ? Number(vDeleteProperty) : undefined,
 			sParentPath = aSegments.join("/"),
 			that = this;
 
+		this.checkSharedRequest();
 		this.addPendingRequest();
 
 		return this.fetchValue(_GroupLock.$cached, sParentPath).then(function (vCacheData) {
-			var oEntity = vDeleteProperty
-					? vCacheData[Cache.from$skip(vDeleteProperty, vCacheData)]
+			var vCachePath = Cache.from$skip(vDeleteProperty, vCacheData),
+				oEntity = vDeleteProperty
+					? vCacheData[vCachePath] || vCacheData.$byPredicate[vCachePath]
 					: vCacheData, // deleting at root level
 				mHeaders,
 				sKeyPredicate = _Helper.getPrivateAnnotation(oEntity, "predicate"),
@@ -167,34 +181,38 @@ sap.ui.define([
 			oEntity["$ui5.deleting"] = true;
 			mHeaders = {"If-Match" : oETagEntity || oEntity};
 			sEditUrl += that.oRequestor.buildQueryString(that.sMetaPath, that.mQueryOptions, true);
-			return that.oRequestor.request("DELETE", sEditUrl, oGroupLock, mHeaders, undefined,
-					undefined, undefined, undefined,
-					_Helper.buildPath(that.getOriginalResourcePath(oEntity), sEntityPath))
-				.catch(function (oError) {
-					if (oError.status !== 404) {
-						delete oEntity["$ui5.deleting"];
-						throw oError;
-					} // else: map 404 to 200
-				})
-				.then(function () {
-					if (Array.isArray(vCacheData)) {
-						fnCallback(
-							that.removeElement(vCacheData, Number(vDeleteProperty), sKeyPredicate,
-								sParentPath),
-							vCacheData);
-					} else {
-						if (vDeleteProperty) {
-							// set to null and notify listeners
-							_Helper.updateExisting(that.mChangeListeners, sParentPath, vCacheData,
-								Cache.makeUpdateData([vDeleteProperty], null));
-						} else { // deleting at root level
-							oEntity["$ui5.deleted"] = true;
+			return SyncPromise.all([
+				that.oRequestor.request("DELETE", sEditUrl, oGroupLock.getUnlockedCopy(), mHeaders,
+						undefined, undefined, undefined, undefined,
+						_Helper.buildPath(that.getOriginalResourcePath(oEntity), sEntityPath))
+					.catch(function (oError) {
+						if (oError.status !== 404) {
+							delete oEntity["$ui5.deleting"];
+							throw oError;
+						} // else: map 404 to 200
+					})
+					.then(function () {
+						if (Array.isArray(vCacheData)) {
+							fnCallback(
+								that.removeElement(vCacheData, iIndex, sKeyPredicate, sParentPath),
+								vCacheData);
+						} else {
+							if (vDeleteProperty) {
+								// set to null and notify listeners
+								_Helper.updateExisting(that.mChangeListeners, sParentPath,
+									vCacheData, Cache.makeUpdateData([vDeleteProperty], null));
+							} else { // deleting at root level
+								oEntity["$ui5.deleted"] = true;
+							}
+							fnCallback();
 						}
-						fnCallback();
-					}
-					that.oRequestor.getModelInterface().reportBoundMessages(that.sResourcePath, [],
-						[sEntityPath]);
-				});
+						that.oRequestor.getModelInterface().reportBoundMessages(that.sResourcePath,
+							[], [sEntityPath]);
+					}),
+				iIndex === undefined // single element or kept-alive not in list
+					&& that.requestCount(oGroupLock.getUnlockedCopy()),
+				oGroupLock.unlock() // unlock when all requests have been queued
+			]);
 		}).finally(function () {
 			that.removePendingRequest();
 		});
@@ -248,19 +266,15 @@ sap.ui.define([
 	};
 
 	/**
-	 * Throws an error if the cache is not active.
+	 * Throws an error if the cache shares requests.
 	 *
-	 * @throws {Error} If the cache is not active
+	 * @throws {Error} If the cache has bSharedRequest
 	 *
 	 * @private
 	 */
-	Cache.prototype.checkActive = function () {
-		var oError;
-
-		if (!this.bActive) {
-			oError = new Error("Response discarded: cache is inactive");
-			oError.canceled = true;
-			throw oError;
+	Cache.prototype.checkSharedRequest = function () {
+		if (this.bSharedRequest) {
+			throw new Error(this + " is read-only");
 		}
 	};
 
@@ -289,6 +303,7 @@ sap.ui.define([
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise which is resolved with the created entity when the POST request has been
 	 *   successfully sent and the entity has been marked as non-transient
+	 * @throws {Error} If the cache is shared
 	 *
 	 * @public
 	 */
@@ -376,6 +391,7 @@ sap.ui.define([
 			});
 		}
 
+		this.checkSharedRequest();
 		// clone data to avoid modifications outside the cache
 		oEntityData = _Helper.merge({}, oEntityData);
 		// remove any property starting with "@$ui5."
@@ -409,7 +425,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Deregisters the given change listener.
+	 * Deregisters the given change listener. Note: shared caches have no listeners anyway.
 	 *
 	 * @param {string} sPath
 	 *   The path
@@ -419,7 +435,9 @@ sap.ui.define([
 	 * @public
 	 */
 	Cache.prototype.deregisterChange = function (sPath, oListener) {
-		_Helper.removeByPath(this.mChangeListeners, sPath, oListener);
+		if (!this.bSharedRequest) {
+			_Helper.removeByPath(this.mChangeListeners, sPath, oListener);
+		}
 	};
 
 	/**
@@ -452,7 +470,7 @@ sap.ui.define([
 
 		function invalidSegment(sSegment) {
 			Log.error("Failed to drill-down into " + sPath + ", invalid segment: " + sSegment,
-				that.toString(), "sap.ui.model.odata.v4.lib._Cache");
+				that.toString(), sClassName);
 			return undefined;
 		}
 
@@ -480,7 +498,8 @@ sap.ui.define([
 						return invalidSegment(sSegment);
 					}
 					if (oProperty.$Type === "Edm.Stream") {
-						sReadLink = oValue[sSegment + "@odata.mediaReadLink"];
+						sReadLink = oValue[sSegment + "@odata.mediaReadLink"]
+							|| oValue[sSegment + "@mediaReadLink"];
 						sServiceUrl = that.oRequestor.getServiceUrl();
 						return sReadLink
 							|| _Helper.buildPath(sServiceUrl + that.sResourcePath, sPropertyPath);
@@ -550,7 +569,8 @@ sap.ui.define([
 						vValue = vValue[aMatches[1]]; // there is a navigation property, follow it
 					}
 					if (vValue) { // ensure that we do not fail on a missing navigation property
-						vValue = vValue.$byPredicate[aMatches[2]]; // search the key predicate
+						vValue = vValue.$byPredicate // not available on empty collections!
+							&& vValue.$byPredicate[aMatches[2]]; // search the key predicate
 					}
 				} else {
 					vIndex = Cache.from$skip(sSegment, vValue);
@@ -797,6 +817,42 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns a URL by which the complete content of the list with the given path can be downloaded
+	 * in JSON format.
+	 *
+	 * @param {string} sPath The list's path relative to the cache
+	 * @param {object} mCustomQueryOptions The custom query options
+	 * @returns {string} The download URL
+	 *
+	 * @public
+	 */
+	Cache.prototype.getDownloadUrl = function (sPath, mCustomQueryOptions) {
+		var mQueryOptions = this.mQueryOptions;
+
+		if (sPath) {
+			// reduce the query options to the child path
+			mQueryOptions = _Helper.getQueryOptionsForPath(mQueryOptions, sPath);
+			// add the custom query options again
+			mQueryOptions = _Helper.merge({}, mCustomQueryOptions, mQueryOptions);
+		}
+		return this.oRequestor.getServiceUrl()
+			+ _Helper.buildPath(this.sResourcePath, sPath)
+			+ this.oRequestor.buildQueryString(
+				_Helper.buildPath(this.sMetaPath, _Helper.getMetaPath(sPath)), mQueryOptions);
+	};
+
+	/**
+	 * Returns the query options for late properties.
+	 *
+	 * @returns {object} The late query options
+	 *
+	 * @public
+	 */
+	Cache.prototype.getLateQueryOptions = function () {
+		return this.mLateQueryOptions;
+	};
+
+	/**
 	 * Gets the <code>Promise</code> which resolves with a map of minimum and maximum values.
 	 *
 	 * @returns {Promise}
@@ -840,6 +896,17 @@ sap.ui.define([
 	};
 
 	/**
+	 * Gets the cache's resource path.
+	 *
+	 * @returns {string} The resource path
+	 *
+	 * @public
+	 */
+	Cache.prototype.getResourcePath = function () {
+		return this.sResourcePath;
+	};
+
+	/**
 	 * Tells whether there are any registered change listeners.
 	 *
 	 * @returns {boolean}
@@ -872,18 +939,31 @@ sap.ui.define([
 	};
 
 	/**
+	 * Tells whether the cache has already sent a request.
+	 *
+	 * @returns {boolean} <code>true</code> if the cache has sent a request
+	 *
+	 * @public
+	 */
+	Cache.prototype.hasSentRequest = function () {
+		return this.bSentRequest;
+	};
+
+		/**
 	 * Patches the cache at the given path with the given data.
 	 *
 	 * @param {string} sPath The path (as used by change listeners)
 	 * @param {object} oData The data to patch with
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise to be resolved with the patched data
+	 * @throws {Error} If the cache is shared
 	 *
 	 * @private
 	 */
 	Cache.prototype.patch = function (sPath, oData) {
 		var that = this;
 
+		this.checkSharedRequest();
 		return this.fetchValue(_GroupLock.$cached, sPath).then(function (oCacheValue) {
 			_Helper.updateExisting(that.mChangeListeners, sPath, oCacheValue, oData);
 
@@ -893,30 +973,46 @@ sap.ui.define([
 
 	/**
 	 * Refreshes a single entity within a cache.
+	 * Since 1.84.0, for a kept-alive entity late properties are also taken into account.
 	 *
 	 * @param {sap.ui.model.odata.v4.lib._GroupLock} oGroupLock
 	 *   A lock for the group ID
 	 * @param {string} sPath
 	 *   The entity collection's path within this cache, may be <code>""</code>
-	 * @param {number} iIndex
+	 * @param {number} [iIndex]
 	 *   The array index of the entity to be refreshed
+	 * @param {string} [sPredicate]
+	 *   The key predicate of the entity; only evaluated if <code>iIndex === undefined</code>
+	 * @param {boolean} [bKeepAlive]
+	 *   Whether the entity is kept-alive
 	 * @param {function} [fnDataRequested]
 	 *   The function is called just before the back-end request is sent.
 	 *   If no back-end request is needed, the function is not called.
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise which resolves with the new entity when it is updated in the cache.
+	 * @throws {Error} If the cache is shared
 	 *
 	 * @public
 	 */
-	Cache.prototype.refreshSingle = function (oGroupLock, sPath, iIndex, fnDataRequested) {
+	Cache.prototype.refreshSingle = function (oGroupLock, sPath, iIndex, sPredicate, bKeepAlive,
+			fnDataRequested) {
 		var that = this;
 
+		this.checkSharedRequest();
 		return this.fetchValue(_GroupLock.$cached, sPath).then(function (aElements) {
-			var sPredicate = _Helper.getPrivateAnnotation(aElements[iIndex], "predicate"),
-				sReadUrl = _Helper.buildPath(that.sResourcePath, sPath, sPredicate),
-				mQueryOptions
-					= Object.assign({}, _Helper.getQueryOptionsForPath(that.mQueryOptions, sPath));
+			var mQueryOptions
+					= Object.assign({}, _Helper.getQueryOptionsForPath(that.mQueryOptions, sPath)),
+				sReadUrl;
 
+			if (iIndex !== undefined) {
+				sPredicate = _Helper.getPrivateAnnotation(aElements[iIndex], "predicate");
+			}
+			sReadUrl = _Helper.buildPath(that.sResourcePath, sPath, sPredicate);
+			if (bKeepAlive && that.mLateQueryOptions) {
+				// bKeepAlive === true -> own cache of the list binding -> sPath === ''
+				// -> no need to apply _Helper.getQueryOptionsForPath
+				_Helper.aggregateQueryOptions(mQueryOptions, that.mLateQueryOptions);
+			}
 			// drop collection related system query options
 			delete mQueryOptions.$apply;
 			delete mQueryOptions.$count;
@@ -944,82 +1040,153 @@ sap.ui.define([
 	/**
 	 * Refreshes a single entity within a collection cache and removes it from the cache if the
 	 * filter does not match anymore.
+	 * Since 1.84.0, only removes entities that do not match the filter from the cache in case they
+	 * are not kept-alive. If the entity is kept-alive, checks also the existence and removes it
+	 * from the cache if it is no longer exists. For a kept-alive entity late properties are taken
+	 * into account.
 	 *
 	 * @param {sap.ui.model.odata.v4.lib._GroupLock} oGroupLock
 	 *   A lock for the group ID
 	 * @param {string} sPath
 	 *   The entity collection's path within this cache, may be <code>""</code>
-	 * @param {number} iIndex
+	 * @param {number} [iIndex]
 	 *   The array index of the entity to be refreshed
+	 * @param {string} [sPredicate]
+	 *   The key predicate of the entity; only evaluated if the <code>iIndex === undefined</code>
+	 * @param {boolean} [bKeepAlive]
+	 *   Whether the entity is kept-alive
 	 * @param {function} [fnDataRequested]
 	 *   The function is called just before the back-end request is sent.
 	 *   If no back-end request is needed, the function is not called.
 	 * @param {function} [fnOnRemove]
 	 *   A function which is called after the entity does not match the binding's filter anymore,
-	 *   see {@link sap.ui.model.odata.v4.ODataListBinding#filter}
+	 *   see {@link sap.ui.model.odata.v4.ODataListBinding#filter}. Since 1.84.0, if the entity is
+	 *   kept-alive and still exists, the function is called with <code>true</code>, otherwise with
+	 *   <code>false</code>
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise which resolves with <code>undefined</code> when the entity is updated in
 	 *   the cache.
+	 * @throws {Error} If the cache is shared
 	 *
 	 * @private
 	 */
-	Cache.prototype.refreshSingleWithRemove = function (oGroupLock, sPath, iIndex, fnDataRequested,
-			fnOnRemove) {
+	Cache.prototype.refreshSingleWithRemove = function (oGroupLock, sPath, iIndex, sPredicate,
+			bKeepAlive, fnDataRequested, fnOnRemove) {
 		var that = this;
 
+		this.checkSharedRequest();
 		return SyncPromise.all([
 			this.fetchValue(_GroupLock.$cached, sPath),
 			this.fetchTypes()
 		]).then(function (aResults) {
 			var aElements = aResults[0],
-				oEntity = aElements[iIndex],
-				sPredicate = _Helper.getPrivateAnnotation(oEntity, "predicate"),
+				oEntity,
+				sInCollectionFilter,
+				mInCollectionQueryOptions = {},
+				sInCollectionUrl,
+				sKeyFilter,
 				mQueryOptions
 					= Object.assign({}, _Helper.getQueryOptionsForPath(that.mQueryOptions, sPath)),
-				sFilterOptions = mQueryOptions.$filter,
-				sReadUrl = _Helper.buildPath(that.sResourcePath, sPath),
+				sReadUrl,
+				sReadUrlPrefix = _Helper.buildPath(that.sResourcePath, sPath),
+				aRequests = [],
 				mTypeForMetaPath = aResults[1];
 
+			if (iIndex !== undefined) {
+				oEntity = aElements[iIndex];
+				sPredicate = _Helper.getPrivateAnnotation(oEntity, "predicate");
+			} else {
+				oEntity = aElements.$byPredicate[sPredicate];
+			}
+			sKeyFilter = _Helper.getKeyFilter(oEntity, that.sMetaPath, mTypeForMetaPath);
+			sInCollectionFilter =
+				(mQueryOptions.$filter ? "(" + mQueryOptions.$filter + ") and " : "")
+				+ sKeyFilter;
 			delete mQueryOptions.$count;
 			delete mQueryOptions.$orderby;
-			mQueryOptions.$filter = (sFilterOptions ? "(" + sFilterOptions + ") and " : "")
-				+ _Helper.getKeyFilter(oEntity, that.sMetaPath, mTypeForMetaPath);
-
-			sReadUrl += that.oRequestor.buildQueryString(that.sMetaPath, mQueryOptions, false,
-				that.bSortExpandSelect);
 
 			that.bSentRequest = true;
-			return that.oRequestor
-				.request("GET", sReadUrl, oGroupLock, undefined, undefined, fnDataRequested)
-				.then(function (oResult) {
-					if (oResult.value.length > 1) {
-						throw new Error(
-							"Unexpected server response, more than one entity returned.");
-					} else if (oResult.value.length === 0) {
-						that.removeElement(aElements, iIndex, sPredicate, sPath);
-						that.oRequestor.getModelInterface()
-							.reportBoundMessages(that.sResourcePath, [], [sPath + sPredicate]);
-						fnOnRemove();
-					} else {
-						that.replaceElement(aElements, iIndex, sPredicate, oResult.value[0],
-							mTypeForMetaPath, sPath);
-					}
-				});
+			if (bKeepAlive) {
+				if (that.mLateQueryOptions) {
+					// bKeepAlive === true -> own cache of the list binding -> sPath === ''
+					// -> no need to apply _Helper.getQueryOptionsForPath
+					_Helper.aggregateQueryOptions(mQueryOptions, that.mLateQueryOptions);
+				}
+				// clone query options for possible second request to check if entity is in
+				// the collection
+				mInCollectionQueryOptions = Object.assign({}, mQueryOptions);
+				mInCollectionQueryOptions.$filter = sInCollectionFilter;
+
+				mQueryOptions.$filter = sKeyFilter; // load data if the entity exists
+				delete mQueryOptions.$search;
+
+				sReadUrl = sReadUrlPrefix + that.oRequestor.buildQueryString(that.sMetaPath,
+					mQueryOptions, false, that.bSortExpandSelect);
+				aRequests.push(that.oRequestor.request("GET", sReadUrl, oGroupLock, undefined,
+					undefined, fnDataRequested));
+
+				if (iIndex !== undefined
+						&& (sKeyFilter !== sInCollectionFilter
+							|| mInCollectionQueryOptions.$search)) {
+					// request no data
+					delete mInCollectionQueryOptions.$select;
+					delete mInCollectionQueryOptions.$expand;
+					mInCollectionQueryOptions.$count = true;
+					mInCollectionQueryOptions.$top = 0;
+
+					sInCollectionUrl = sReadUrlPrefix + that.oRequestor.buildQueryString(
+						that.sMetaPath, mInCollectionQueryOptions);
+
+					aRequests.push(that.oRequestor.request("GET", sInCollectionUrl,
+						oGroupLock.getUnlockedCopy()));
+				}
+			} else {
+				mQueryOptions.$filter = sInCollectionFilter;
+				sReadUrl = sReadUrlPrefix + that.oRequestor.buildQueryString(that.sMetaPath,
+					mQueryOptions, false, that.bSortExpandSelect);
+				aRequests.push(that.oRequestor.request("GET", sReadUrl, oGroupLock, undefined,
+					undefined, fnDataRequested));
+			}
+
+			return SyncPromise.all(aRequests).then(function (aResults) {
+				var aReadResult = aResults[0].value,
+					bRemoveFromCollection = aResults[1] && aResults[1]["@odata.count"] === "0";
+
+				if (aReadResult.length > 1) {
+					throw new Error(
+						"Unexpected server response, more than one entity returned.");
+				} else if (aReadResult.length === 0) {
+					that.removeElement(aElements, iIndex, sPredicate, sPath);
+					that.oRequestor.getModelInterface()
+						.reportBoundMessages(that.sResourcePath, [], [sPath + sPredicate]);
+					fnOnRemove(false);
+				} else if (bRemoveFromCollection) {
+					that.removeElement(aElements, iIndex, sPredicate, sPath);
+					// element no longer in cache -> re-insert via replaceElement
+					that.replaceElement(aElements, undefined, sPredicate, aReadResult[0],
+						mTypeForMetaPath, sPath);
+					fnOnRemove(true);
+				} else {
+					that.replaceElement(aElements, iIndex, sPredicate, aReadResult[0],
+						mTypeForMetaPath, sPath);
+				}
+			});
 		});
 	};
 
 	/**
-	 * Registers the listener for the path.
+	 * Registers the listener for the path. Shared caches do not register listeners because they are
+	 * read-only.
 	 *
 	 * @param {string} sPath The path
 	 * @param {object} [oListener] The listener
-	 * @throws {Error} If the cache is not active
 	 *
 	 * @private
 	 */
 	Cache.prototype.registerChange = function (sPath, oListener) {
-		this.checkActive();
-		_Helper.addByPath(this.mChangeListeners, sPath, oListener);
+		if (!this.bSharedRequest) {
+			_Helper.addByPath(this.mChangeListeners, sPath, oListener);
+		}
 	};
 
 	/**
@@ -1030,7 +1197,8 @@ sap.ui.define([
 	 * @param {object[]} aElements
 	 *   The array of elements
 	 * @param {number} iIndex
-	 *   The array index of the old element to be removed
+	 *   The array index of the old element to be removed or <code>undefined</code> in case the
+	 *   element is a kept-alive element without an index
 	 * @param {string} sPredicate
 	 *   The key predicate of the old element to be removed
 	 * @param {string} sPath
@@ -1038,14 +1206,20 @@ sap.ui.define([
 	 *   <code>""</code>
 	 * @returns {number} The index at which the element actually was (it might have moved due to
 	 *   parallel insert/delete)
+	 *
+	 * @private
 	 */
 	Cache.prototype.removeElement = function (aElements, iIndex, sPredicate, sPath) {
-		var oElement, sTransientPredicate;
+		var oElement,
+			sTransientPredicate;
 
-		// the element might have moved due to parallel insert/delete
-		iIndex = Cache.getElementIndex(aElements, sPredicate, iIndex);
-		oElement = aElements[iIndex];
-		aElements.splice(iIndex, 1);
+		oElement = aElements.$byPredicate[sPredicate];
+		if (iIndex !== undefined) {
+			// the element might have moved due to parallel insert/delete
+			iIndex = Cache.getElementIndex(aElements, sPredicate, iIndex);
+			aElements.splice(iIndex, 1);
+			addToCount(this.mChangeListeners, sPath, aElements, -1);
+		}
 		delete aElements.$byPredicate[sPredicate];
 		sTransientPredicate = _Helper.getPrivateAnnotation(oElement, "transientPredicate");
 		if (sTransientPredicate) {
@@ -1054,10 +1228,11 @@ sap.ui.define([
 		} else if (!sPath) {
 			// Note: sPath is empty only in a CollectionCache, so we may use iLmit and
 			// adjustReadRequests
-			this.iLimit -= 1;
-			this.adjustReadRequests(iIndex, -1);
+			if (iIndex !== undefined) {
+				this.iLimit -= 1; // this doesn't change Infinity
+				this.adjustReadRequests(iIndex, -1);
+			}
 		}
-		addToCount(this.mChangeListeners, sPath, aElements, -1);
 		return iIndex;
 	};
 
@@ -1081,10 +1256,12 @@ sap.ui.define([
 	 * Replaces the old element at the given index by the given new element and calls
 	 * <code>visitResponse</code> for the new element. Updates also the reference in
 	 * <code>$byPredicate</code> for the transient predicate of the old element.
+	 * Since 1.84.0, if <code>iIndex === undefined</code> replaces the element in the
+	 * <code>aElements.$byPredicate</code> map of the cache's element list.
 	 *
 	 * @param {object[]} aElements
 	 *   The array of elements
-	 * @param {number} iIndex
+	 * @param {number} [iIndex]
 	 *   The array index of the old element to be replaced
 	 * @param {string} sPredicate
 	 *   The key predicate of the old element to be replaced
@@ -1101,20 +1278,62 @@ sap.ui.define([
 			mTypeForMetaPath, sPath) {
 		var oOldElement, sTransientPredicate;
 
-		// the element might have moved due to parallel insert/delete
-		iIndex = Cache.getElementIndex(aElements, sPredicate, iIndex);
-		oOldElement = aElements[iIndex];
-		// _Helper.updateExisting cannot be used because navigation properties cannot be handled
-		aElements[iIndex] = aElements.$byPredicate[sPredicate] = oElement;
-		sTransientPredicate = _Helper.getPrivateAnnotation(oOldElement, "transientPredicate");
-		if (sTransientPredicate) {
-			oElement["@$ui5.context.isTransient"] = false;
-			aElements.$byPredicate[sTransientPredicate] = oElement;
-			_Helper.setPrivateAnnotation(oElement, "transientPredicate", sTransientPredicate);
+		if (iIndex === undefined) {// kept-alive element not in the list
+			aElements.$byPredicate[sPredicate] = oElement;
+		} else {
+			// the element might have moved due to parallel insert/delete
+			iIndex = Cache.getElementIndex(aElements, sPredicate, iIndex);
+			oOldElement = aElements[iIndex];
+			// _Helper.updateExisting cannot be used because navigation properties cannot be handled
+			aElements[iIndex] = aElements.$byPredicate[sPredicate] = oElement;
+			sTransientPredicate = _Helper.getPrivateAnnotation(oOldElement, "transientPredicate");
+			if (sTransientPredicate) {
+				oElement["@$ui5.context.isTransient"] = false;
+				aElements.$byPredicate[sTransientPredicate] = oElement;
+				_Helper.setPrivateAnnotation(oElement, "transientPredicate", sTransientPredicate);
+			}
 		}
 		// Note: iStart is not needed here because we know we have key predicates
 		this.visitResponse(oElement, mTypeForMetaPath,
 			_Helper.getMetaPath(_Helper.buildPath(this.sMetaPath, sPath)), sPath + sPredicate);
+	};
+
+	/**
+	 * Requests $count after deletion of a kept-alive element that was not in the collection.
+	 *
+	 * @param {sap.ui.model.odata.v4.lib._GroupLock} oGroupLock
+	 *   A lock for the group ID
+	 * @returns {Promise}
+	 *   A promise that resolves if the count has been determined or undefined if no request needed
+	 *
+	 * @private
+	 */
+	Cache.prototype.requestCount = function (oGroupLock) {
+		var sExclusiveFilter, mQueryOptions, sReadUrl, that = this;
+
+		if (this.mQueryOptions && this.mQueryOptions.$count) {
+			// now we are definitely in a CollectionCache
+			mQueryOptions = Object.assign({}, this.mQueryOptions);
+			delete mQueryOptions.$expand;
+			delete mQueryOptions.$orderby;
+			delete mQueryOptions.$select;
+			sExclusiveFilter = this.getFilterExcludingCreated();
+			if (sExclusiveFilter) {
+				mQueryOptions.$filter = mQueryOptions.$filter
+					? "(" + mQueryOptions.$filter + ") and " + sExclusiveFilter
+					: sExclusiveFilter;
+			}
+			mQueryOptions.$top = 0;
+			sReadUrl = this.sResourcePath
+				+ this.oRequestor.buildQueryString(this.sMetaPath, mQueryOptions);
+
+			return this.oRequestor.request("GET", sReadUrl, oGroupLock).then(function (oResult) {
+				var iCount = parseInt(oResult["@odata.count"]) + that.aElements.$created;
+
+				setCount(that.mChangeListeners, "", that.aElements, iCount);
+				that.iLimit = iCount;
+			});
+		}
 	};
 
 	/**
@@ -1158,19 +1377,25 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets the active state of the cache. If the cache becomes inactive, all change listeners are
-	 * deregistered. If it is inactive, all read requests will be rejected, even if they have been
-	 * started while the cache still was active.
+	 * Adds or removes a usage of this cache. A cache with active usages must not be destroyed.
+	 * If a usage is removed, all change listeners are removed too. Note: shared caches have no
+	 * listeners.
 	 *
 	 * @param {boolean} bActive
-	 *   Whether the cache shell be active
+	 *   Whether a usage is added or removed
 	 *
 	 * @public
 	 */
 	Cache.prototype.setActive = function (bActive) {
-		this.bActive = bActive;
-		if (!bActive) {
-			this.mChangeListeners = {};
+		if (bActive) {
+			this.iActiveUsages += 1;
+			this.iInactiveSince = Infinity;
+		} else {
+			this.iActiveUsages -= 1;
+			if (!this.iActiveUsages) {
+				this.iInactiveSince = Date.now();
+			}
+			this.mChangeListeners = {}; // Note: shared caches have no listeners anyway
 		}
 	};
 
@@ -1179,16 +1404,20 @@ sap.ui.define([
 	 * Accepts only $expand and $select.
 	 *
 	 * @param {object} mQueryOptions
-	 *   The new late query options
+	 *   The new late query options or <code>null</code> to reset
 	 *
 	 * @public
 	 */
 	Cache.prototype.setLateQueryOptions = function (mQueryOptions) {
-		this.mLateQueryOptions = {
-			// ensure that $select precedes $expand in the resulting query
-			$select : mQueryOptions.$select,
-			$expand : mQueryOptions.$expand
-		};
+		if (mQueryOptions) {
+			this.mLateQueryOptions = {
+				// ensure that $select precedes $expand in the resulting query
+				$select : mQueryOptions.$select,
+				$expand : mQueryOptions.$expand
+			};
+		} else {
+			this.mLateQueryOptions = null;
+		}
 	};
 
 	/**
@@ -1204,12 +1433,14 @@ sap.ui.define([
 	 * @returns {Promise}
 	 *   A promise which resolves with <code>undefined</code> once the value has been set, or is
 	 *   rejected with an error if setting fails somehow
+	 * @throws {Error} If the cache is shared
 	 *
 	 * @public
 	 */
 	Cache.prototype.setProperty = function (sPropertyPath, vValue, sEntityPath) {
 		var that = this;
 
+		this.checkSharedRequest();
 		return this.fetchValue(_GroupLock.$cached, sEntityPath, null, null, true)
 			.then(function (oEntity) {
 				_Helper.updateSelected(that.mChangeListeners, sEntityPath, oEntity,
@@ -1223,11 +1454,12 @@ sap.ui.define([
 	 *
 	 * @param {object} [mQueryOptions]
 	 *   The new query options
-	 * @throws {Error} If the cache has already sent a read request
+	 * @throws {Error} If the cache has already sent a read request or if the cache is shared
 	 *
 	 * @public
 	 */
 	Cache.prototype.setQueryOptions = function (mQueryOptions) {
+		this.checkSharedRequest();
 		if (this.bSentRequest) {
 			throw new Error("Cannot set query options: Cache has already sent a request");
 		}
@@ -1245,10 +1477,13 @@ sap.ui.define([
 	 * collection).
 	 *
 	 * @param {string} sResourcePath The new resource path
+	 * @throws {Error} If the cache is shared
 	 *
 	 * @public
 	 */
 	Cache.prototype.setResourcePath = function (sResourcePath) {
+		this.checkSharedRequest();
+
 		this.sResourcePath = sResourcePath;
 		this.sMetaPath = _Helper.getMetaPath("/" + sResourcePath);
 
@@ -1299,6 +1534,7 @@ sap.ui.define([
 	 * @returns {Promise}
 	 *   A promise for the PATCH request (resolves with <code>undefined</code>); rejected in case of
 	 *   cancellation or if no <code>fnErrorCallback</code> is given
+	 * @throws {Error} If the cache is shared
 	 *
 	 * @public
 	 */
@@ -1308,6 +1544,8 @@ sap.ui.define([
 			aPropertyPath = sPropertyPath.split("/"),
 			aUnitOrCurrencyPath,
 			that = this;
+
+		this.checkSharedRequest();
 
 		try {
 			oPromise = this.fetchValue(_GroupLock.$cached, sEntityPath);
@@ -1426,7 +1664,7 @@ sap.ui.define([
 				if (sTransientGroup === true) {
 					throw new Error("No 'update' allowed while waiting for server response");
 				}
-				if (sTransientGroup.indexOf("$parked.") === 0) {
+				if (sTransientGroup.startsWith("$parked.")) {
 					sParkedGroup = sTransientGroup;
 					sTransientGroup = sTransientGroup.slice(8);
 				}
@@ -1450,8 +1688,7 @@ sap.ui.define([
 				sUnitOrCurrencyValue = that.getValue(sUnitOrCurrencyPath);
 				if (sUnitOrCurrencyValue === undefined) {
 					Log.debug("Missing value for unit of measure " + sUnitOrCurrencyPath
-							+ " when updating " + sFullPath,
-						that.toString(), "sap.ui.model.odata.v4.lib._Cache");
+							+ " when updating " + sFullPath, that.toString(), sClassName);
 				} else {
 					// some servers need unit and currency information
 					_Helper.merge(sTransientGroup ? oPostBody : oUpdateData,
@@ -1614,7 +1851,8 @@ sap.ui.define([
 					vPropertyValue = oInstance[sProperty],
 					sPropertyPath = _Helper.buildPath(sInstancePath, sProperty);
 
-				if (sProperty.endsWith("@odata.mediaReadLink")) {
+				if (sProperty.endsWith("@odata.mediaReadLink")
+						|| sProperty.endsWith("@mediaReadLink")) {
 					oInstance[sProperty] = _Helper.makeAbsolute(vPropertyValue, sContextUrl);
 				}
 				if (sProperty.includes("@")) { // ignore other annotations
@@ -1672,12 +1910,16 @@ sap.ui.define([
 	 *   Whether the paths in $expand and $select shall be sorted in the cache's query string
 	 * @param {string} [sDeepResourcePath=sResourcePath]
 	 *   The deep resource path to be used to build the target path for bound messages
+	 * @param {boolean} [bSharedRequest=false]
+	 *   If this parameter is set, the cache is read-only and modifying calls lead to an error.
+	 *
+	 * @alias sap.ui.model.odata.v4.lib._CollectionCache
 	 */
 	function CollectionCache(oRequestor, sResourcePath, mQueryOptions, bSortExpandSelect,
-			sDeepResourcePath) {
+			sDeepResourcePath, bSharedRequest) {
 		Cache.call(this, oRequestor, sResourcePath, mQueryOptions, bSortExpandSelect, function () {
 				return sDeepResourcePath;
-			});
+			}, bSharedRequest);
 
 		this.sContext = undefined; // the "@odata.context" from the responses
 		this.aElements = []; // the available elements
@@ -1699,6 +1941,17 @@ sap.ui.define([
 
 	// make CollectionCache a Cache
 	CollectionCache.prototype = Object.create(Cache.prototype);
+
+	/**
+	 * Adds the element to $byPredicate of the cache's element list.
+	 *
+	 * @param {object} oElement - The element
+	 *
+	 * @public
+	 */
+	CollectionCache.prototype.addKeptElement = function (oElement) {
+		this.aElements.$byPredicate[_Helper.getPrivateAnnotation(oElement, "predicate")] = oElement;
+	};
 
 	/**
 	 * Adjusts the indices for read requests.
@@ -1737,9 +1990,6 @@ sap.ui.define([
 	 *   Whether to create missing objects on demand, in order to avoid drill-down errors
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise to be resolved with the requested data.
-	 *
-	 *   The promise is rejected if the cache is inactive (see {@link #setActive}) when the response
-	 *   arrives.
 	 *
 	 * @public
 	 */
@@ -1810,24 +2060,15 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the query string with $filter adjusted as needed to exclude non-transient created
-	 * elements (which have all key properties available).
+	 * Returns a filter that excludes all created entities in this cache's collection.
 	 *
 	 * @returns {string}
-	 *   The query string; it is empty if there are no options; it starts with "?" otherwise
+	 *   The filter or <code>undefined</code> if there is no created entity.
 	 *
 	 * @private
 	 */
-	CollectionCache.prototype.getQueryString = function () {
-		var mQueryOptions = Object.assign({}, this.mQueryOptions),
-			oElement,
-			sExclusiveFilter,
-			sFilterOptions = mQueryOptions.$filter,
-			i,
-			sKeyFilter,
-			aKeyFilters = [],
-			sQueryString = this.sQueryString,
-			mTypeForMetaPath;
+	CollectionCache.prototype.getFilterExcludingCreated = function () {
+		var oElement, i, sKeyFilter, aKeyFilters = [], mTypeForMetaPath;
 
 		for (i = 0; i < this.aElements.$created; i += 1) {
 			oElement = this.aElements[i];
@@ -1841,8 +2082,25 @@ sap.ui.define([
 			}
 		}
 
-		if (aKeyFilters.length) {
-			sExclusiveFilter = "not (" + aKeyFilters.join(" or ") + ")";
+		return aKeyFilters.length ? "not (" + aKeyFilters.join(" or ") + ")" : undefined;
+	};
+
+	/**
+	 * Returns the query string with $filter adjusted as needed to exclude non-transient created
+	 * elements (which have all key properties available).
+	 *
+	 * @returns {string}
+	 *   The query string; it is empty if there are no options; it starts with "?" otherwise
+	 *
+	 * @private
+	 */
+	CollectionCache.prototype.getQueryString = function () {
+		var sExclusiveFilter = this.getFilterExcludingCreated(),
+			mQueryOptions = Object.assign({}, this.mQueryOptions),
+			sFilterOptions = mQueryOptions.$filter,
+			sQueryString = this.sQueryString;
+
+		if (sExclusiveFilter) {
 			if (sFilterOptions) {
 				mQueryOptions.$filter = "(" + sFilterOptions + ") and " + sExclusiveFilter;
 				sQueryString = this.oRequestor.buildQueryString(this.sMetaPath, mQueryOptions,
@@ -1919,7 +2177,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	CollectionCache.prototype.getResourcePath = function (iStart, iEnd) {
+	CollectionCache.prototype.getResourcePathWithQuery = function (iStart, iEnd) {
 		var iCreated = this.aElements.$created,
 			sQueryString = this.getQueryString(),
 			sDelimiter = sQueryString ? "&" : "?",
@@ -1971,6 +2229,7 @@ sap.ui.define([
 			iCreated = this.aElements.$created,
 			oElement,
 			i,
+			oKeptElement,
 			iOld$count = this.aElements.$count,
 			sPredicate,
 			iResultLength = oResult.value.length;
@@ -1979,11 +2238,20 @@ sap.ui.define([
 		this.visitResponse(oResult, mTypeForMetaPath, undefined, undefined, undefined, iStart);
 		for (i = 0; i < iResultLength; i += 1) {
 			oElement = oResult.value[i];
-			this.aElements[iStart + i] = oElement;
 			sPredicate = _Helper.getPrivateAnnotation(oElement, "predicate");
 			if (sPredicate) {
+				oKeptElement = this.aElements.$byPredicate[sPredicate];
+				if (oKeptElement) {
+					if (oElement["@odata.etag"] === oKeptElement["@odata.etag"]) {
+						oElement = oKeptElement;
+					} else if (this.hasPendingChangesForPath(sPredicate)) {
+						throw new Error("Modified on client and on server: "
+							+ this.sResourcePath + sPredicate);
+					}
+				}
 				this.aElements.$byPredicate[sPredicate] = oElement;
 			}
+			this.aElements[iStart + i] = oElement;
 		}
 		sCount = oResult["@odata.count"];
 		if (sCount) {
@@ -2047,9 +2315,6 @@ sap.ui.define([
 	 *   <code>$count</code> may be <code>undefined</code>, but not <code>Infinity</code>). If an
 	 *   HTTP request fails, the error from the _Requestor is returned and the requested range is
 	 *   reset to <code>undefined</code>.
-	 *
-	 *   The promise is rejected if the cache is inactive (see {@link #setActive}) when the response
-	 *   arrives.
 	 * @throws {Error} If given index or length is less than 0
 	 *
 	 * @public
@@ -2105,16 +2370,14 @@ sap.ui.define([
 			aElementsRange.push(this.aElements.$tail);
 		}
 		return SyncPromise.all(aElementsRange).then(function () {
-			var oResult;
+			var aElements = that.aElements.slice(iIndex, iEnd);
 
-			that.checkActive();
-			oResult = {
+			aElements.$count = that.aElements.$count;
+
+			return {
 				"@odata.context" : that.sContext,
-				value : that.aElements.slice(iIndex, iEnd)
+				value : aElements
 			};
-			oResult.value.$count = that.aElements.$count;
-
-			return oResult;
 		});
 	};
 
@@ -2148,7 +2411,7 @@ sap.ui.define([
 		this.aReadRequests.push(oReadRequest);
 		this.bSentRequest = true;
 		oPromise = SyncPromise.all([
-			this.oRequestor.request("GET", this.getResourcePath(iStart, iEnd), oGroupLock,
+			this.oRequestor.request("GET", this.getResourcePathWithQuery(iStart, iEnd), oGroupLock,
 				undefined, undefined, fnDataRequested),
 			this.fetchTypes()
 		]).then(function (aResult) {
@@ -2191,7 +2454,8 @@ sap.ui.define([
 	 *   A promise resolving without a defined result, or rejecting with an error if loading of side
 	 *   effects fails, or <code>null</code> if a key property is missing.
 	 * @throws {Error}
-	 *   If group ID is '$cached'. The error has a property <code>$cached = true</code>
+	 *   If group ID is '$cached' (the error has a property <code>$cached = true</code> then) or if
+	 *   the cache is shared
 	 *
 	 * @public
 	 */
@@ -2199,6 +2463,7 @@ sap.ui.define([
 			mNavigationPropertyPaths, iStart, iLength) {
 		var oElement,
 			aFilters = [],
+			mMergeableQueryOptions,
 			mQueryOptions,
 			sResourcePath,
 			mTypeForMetaPath = this.fetchTypes().getResult(),
@@ -2218,6 +2483,8 @@ sap.ui.define([
 			aFilters.push(sFilter);
 			return sFilter;
 		}
+
+		this.checkSharedRequest();
 
 		if (this.oPendingRequestsPromise) {
 			return this.oPendingRequestsPromise.then(function () {
@@ -2265,19 +2532,28 @@ sap.ui.define([
 		}
 
 		mQueryOptions.$filter = aFilters.join(" or ");
+		if (aFilters.length > 1) { // avoid small default page size for server-driven paging
+			mQueryOptions.$top = aFilters.length;
+		}
 		_Helper.selectKeyProperties(mQueryOptions, mTypeForMetaPath[this.sMetaPath]);
 		delete mQueryOptions.$count;
 		delete mQueryOptions.$orderby;
 		delete mQueryOptions.$search;
+		mMergeableQueryOptions = _Helper.extractMergeableQueryOptions(mQueryOptions);
 		sResourcePath = this.sResourcePath
 			+ this.oRequestor.buildQueryString(this.sMetaPath, mQueryOptions, false, true);
 
-		return this.oRequestor.request("GET", sResourcePath, oGroupLock).then(function (oResult) {
+		return this.oRequestor.request("GET", sResourcePath, oGroupLock, undefined, undefined,
+				undefined, undefined, this.sMetaPath, undefined, false, mMergeableQueryOptions
+			).then(function (oResult) {
 				var oElement, sPredicate, i, n;
 
 				function preventKeyPredicateChange(sPath) {
 					sPath = sPath.slice(sPredicate.length + 1); // strip sPredicate
-					return aPaths.indexOf(sPath) < 0; // not a $NavigationPropertyPath
+					// not (below) a $NavigationPropertyPath?
+					return !aPaths.some(function (sSideEffectPath) {
+						return _Helper.getRelativePath(sPath, sSideEffectPath) !== undefined;
+					});
 				}
 
 				if (oResult.value.length !== aFilters.length) {
@@ -2310,6 +2586,8 @@ sap.ui.define([
 	 *   A resource path relative to the service URL
 	 * @param {object} [mQueryOptions]
 	 *   A map of key-value pairs representing the query string
+	 *
+	 * @alias sap.ui.model.odata.v4.lib._PropertyCache
 	 */
 	function PropertyCache(oRequestor, sResourcePath, mQueryOptions) {
 		Cache.call(this, oRequestor, sResourcePath, mQueryOptions);
@@ -2363,8 +2641,6 @@ sap.ui.define([
 	 *   Unsupported
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise to be resolved with the element.
-	 *   The promise is rejected if the cache is inactive (see {@link #setActive}) when the response
-	 *   arrives.
 	 * @throws {Error}
 	 *   If <code>bCreateOnDemand</code> is set or if group ID is '$cached' (the error
 	 *   has a property <code>$cached = true</code> then)
@@ -2387,6 +2663,9 @@ sap.ui.define([
 				fnDataRequested, undefined, this.sMetaPath));
 		}
 		return this.oPromise.then(function (oResult) {
+			// for a null value, null is returned due to "204 No Content". But it is expected in the
+			// value property of an object
+			oResult = oResult || {value : null};
 			that.registerChange("", oListener);
 			return oResult.value;
 		});
@@ -2401,6 +2680,7 @@ sap.ui.define([
 	 * @public
 	 */
 	PropertyCache.prototype.update = function () {
+		// Note: keep bSharedRequest in mind before implementing this method!
 		throw new Error("Unsupported");
 	};
 
@@ -2419,6 +2699,8 @@ sap.ui.define([
 	 *   A map of key-value pairs representing the query string
 	 * @param {boolean} [bSortExpandSelect=false]
 	 *   Whether the paths in $expand and $select shall be sorted in the cache's query string
+	 * @param {boolean} [bSharedRequest=false]
+	 *   If this parameter is set, the cache is read-only and modifying calls lead to an error.
 	 * @param {function} [fnGetOriginalResourcePath]
 	 *   A function that returns the cache's original resource path to be used to build the target
 	 *   path for bound messages; if it is not given or returns nothing, <code>sResourcePath</code>
@@ -2430,11 +2712,13 @@ sap.ui.define([
 	 * @param {string} [sMetaPath]
 	 *   Optional meta path in case it cannot be derived from the given resource path
 	 *
+	 * @alias sap.ui.model.odata.v4.lib._SingleCache
 	 * @private
 	 */
 	function SingleCache(oRequestor, sResourcePath, mQueryOptions, bSortExpandSelect,
-			fnGetOriginalResourcePath, bPost, sMetaPath) {
-		Cache.apply(this, arguments);
+			bSharedRequest, fnGetOriginalResourcePath, bPost, sMetaPath) {
+		Cache.call(this, oRequestor, sResourcePath, mQueryOptions, bSortExpandSelect,
+			fnGetOriginalResourcePath, bSharedRequest);
 
 		this.sMetaPath = sMetaPath || this.sMetaPath; // overrides Cache c'tor
 		this.bPost = bPost;
@@ -2465,9 +2749,6 @@ sap.ui.define([
 	 *   Whether to create missing objects on demand, in order to avoid drill-down errors
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise to be resolved with the element.
-	 *
-	 *   The promise is rejected if the cache is inactive (see {@link #setActive}) when the response
-	 *   arrives.
 	 * @throws {Error}
 	 *   If the cache is using POST but no POST request has been sent yet, or if group ID is
 	 *   '$cached' (the error has a property <code>$cached = true</code> then)
@@ -2496,7 +2777,7 @@ sap.ui.define([
 			});
 		}
 		return this.oPromise.then(function (oResult) {
-			if (oResult["$ui5.deleted"]) {
+			if (oResult && oResult["$ui5.deleted"]) {
 				throw new Error("Cannot read a deleted entity");
 			}
 			that.registerChange(sPath, oListener);
@@ -2534,7 +2815,8 @@ sap.ui.define([
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise to be resolved with the result of the request.
 	 * @throws {Error}
-	 *   If the cache does not allow POST or another POST is still being processed.
+	 *   If the cache does not allow POST, another POST is still being processed, or the cache is
+	 *   shared
 	 *
 	 * @public
 	 */
@@ -2543,6 +2825,7 @@ sap.ui.define([
 			sHttpMethod = "POST",
 			that = this;
 
+		this.checkSharedRequest();
 		if (!this.bPost) {
 			throw new Error("POST request not allowed");
 		}
@@ -2606,46 +2889,53 @@ sap.ui.define([
 	 * @returns {Promise|sap.ui.base.SyncPromise}
 	 *   A promise resolving without a defined result, or rejecting with an error if loading of side
 	 *   effects fails.
-	 * @throws {Error} If the side effects require a $expand, or if group ID is '$cached' (the error
-	 *   has a property <code>$cached = true</code> then)
+	 * @throws {Error} If the side effects require a $expand, if group ID is '$cached' (the error
+	 *   has a property <code>$cached = true</code> then), or if the cache is shared
 	 *
 	 * @public
 	 */
 	SingleCache.prototype.requestSideEffects = function (oGroupLock, aPaths,
 			mNavigationPropertyPaths, sResourcePath) {
-		var oOldValuePromise = this.oPromise,
-			mQueryOptions = oOldValuePromise && _Helper.intersectQueryOptions(
-				this.mLateQueryOptions || this.mQueryOptions, aPaths,
-				this.oRequestor.getModelInterface().fetchMetadata,
-				this.sMetaPath, mNavigationPropertyPaths),
+		var mMergeableQueryOptions,
+			oOldValuePromise = this.oPromise,
+			mQueryOptions,
 			oResult,
 			that = this;
 
+		this.checkSharedRequest();
+
+		mQueryOptions = oOldValuePromise && _Helper.intersectQueryOptions(
+			this.mLateQueryOptions || this.mQueryOptions, aPaths,
+			this.oRequestor.getModelInterface().fetchMetadata,
+			this.sMetaPath, mNavigationPropertyPaths);
 		if (!mQueryOptions) {
 			return SyncPromise.resolve();
 		}
 
+		mMergeableQueryOptions = _Helper.extractMergeableQueryOptions(mQueryOptions);
 		sResourcePath = (sResourcePath || this.sResourcePath)
 			+ this.oRequestor.buildQueryString(this.sMetaPath, mQueryOptions, false, true);
 		oResult = SyncPromise.all([
-			this.oRequestor.request("GET", sResourcePath, oGroupLock),
+			this.oRequestor.request("GET", sResourcePath, oGroupLock, undefined, undefined,
+				undefined, undefined, this.sMetaPath, undefined, false, mMergeableQueryOptions),
 			this.fetchTypes(),
 			this.fetchValue(_GroupLock.$cached, "") // Note: includes some additional checks
 		]).then(function (aResult) {
+			// Delay by a microtask so that it does not overtake a POST.
+			// This will be resolved by JIRA: CPOUI5ODATAV4-288
+			return aResult;
+		}).then(function (aResult) {
 			var oNewValue = aResult[0],
 				oOldValue = aResult[2];
 
 			// visit response to report the messages
 			that.visitResponse(oNewValue, aResult[1]);
 			_Helper.updateAll(that.mChangeListeners, "", oOldValue, oNewValue, function (sPath) {
-				return aPaths.indexOf(sPath) < 0; // not a $NavigationPropertyPath
+				// not (below) a $NavigationPropertyPath?
+				return !aPaths.some(function (sSideEffectPath) {
+					return _Helper.getRelativePath(sPath, sSideEffectPath) !== undefined;
+				});
 			});
-
-			return oOldValue;
-		});
-		this.oPromise = oResult.catch(function () {
-			// if side effects cannot be requested, keep the old value!
-			return oOldValuePromise;
 		});
 
 		return oResult;
@@ -2675,13 +2965,55 @@ sap.ui.define([
 	 *   Whether the paths in $expand and $select shall be sorted in the cache's query string
 	 * @param {string} [sDeepResourcePath=sResourcePath]
 	 *   The deep resource path to be used to build the target path for bound messages
+	 * @param {boolean} [bSharedRequest=false]
+	 *   If this parameter is set, multiple requests for a cache using the same resource path will
+	 *   always return the same, shared cache. This cache is read-only, modifying calls lead to an
+	 *   error.
 	 * @returns {sap.ui.model.odata.v4.lib._Cache}
 	 *   The cache
 	 *
 	 * @public
 	 */
 	Cache.create = function (oRequestor, sResourcePath, mQueryOptions, bSortExpandSelect,
-			sDeepResourcePath) {
+			sDeepResourcePath, bSharedRequest) {
+		var iCount, aKeys, sPath, oSharedCollectionCache, mSharedCollectionCacheByPath;
+
+		if (bSharedRequest) {
+			sPath = sResourcePath
+				+ oRequestor.buildQueryString(_Helper.getMetaPath("/" + sResourcePath),
+					mQueryOptions, false, bSortExpandSelect);
+			mSharedCollectionCacheByPath = oRequestor.$mSharedCollectionCacheByPath;
+			if (!mSharedCollectionCacheByPath) {
+				mSharedCollectionCacheByPath = oRequestor.$mSharedCollectionCacheByPath = {};
+			}
+			oSharedCollectionCache = mSharedCollectionCacheByPath[sPath];
+			if (oSharedCollectionCache) {
+				oSharedCollectionCache.setActive(true);
+			} else {
+				// remove inactive caches when there are already more than 100 caches in the map
+				aKeys = Object.keys(mSharedCollectionCacheByPath);
+				iCount = aKeys.length;
+				if (iCount > 100) {
+					aKeys.filter(function (sKey) {
+						return !mSharedCollectionCacheByPath[sKey].iActiveUsages;
+					}).sort(function (sKey1, sKey2) {
+						return mSharedCollectionCacheByPath[sKey1].iInactiveSince
+							- mSharedCollectionCacheByPath[sKey2].iInactiveSince;
+					}).every(function (sKey) {
+						delete mSharedCollectionCacheByPath[sKey];
+						iCount -= 1;
+						return iCount > 100;
+					});
+				}
+
+				oSharedCollectionCache = mSharedCollectionCacheByPath[sPath]
+					= new CollectionCache(oRequestor, sResourcePath, mQueryOptions,
+						bSortExpandSelect, sDeepResourcePath, bSharedRequest);
+			}
+
+			return oSharedCollectionCache;
+		}
+
 		return new CollectionCache(oRequestor, sResourcePath, mQueryOptions, bSortExpandSelect,
 				sDeepResourcePath);
 	};
@@ -2727,6 +3059,10 @@ sap.ui.define([
 	 *   {foo : ["bar", "baz"]} results in the query string "foo=bar&foo=baz"
 	 * @param {boolean} [bSortExpandSelect=false]
 	 *   Whether the paths in $expand and $select shall be sorted in the cache's query string
+	 * @param {boolean} [bSharedRequest=false]
+	 *   If this parameter is set, multiple requests for a cache using the same resource path might
+	 *   always return the same, shared cache. This cache is read-only, modifying calls lead to an
+	 *   error.
 	 * @param {function} [fnGetOriginalResourcePath]
 	 *   A function that returns the cache's original resource path to be used to build the target
 	 *   path for bound messages; if it is not given or returns nothing, <code>sResourcePath</code>
@@ -2743,9 +3079,9 @@ sap.ui.define([
 	 * @public
 	 */
 	Cache.createSingle = function (oRequestor, sResourcePath, mQueryOptions, bSortExpandSelect,
-			fnGetOriginalResourcePath, bPost, sMetaPath) {
+			bSharedRequest, fnGetOriginalResourcePath, bPost, sMetaPath) {
 		return new SingleCache(oRequestor, sResourcePath, mQueryOptions, bSortExpandSelect,
-			fnGetOriginalResourcePath, bPost, sMetaPath);
+			bSharedRequest, fnGetOriginalResourcePath, bPost, sMetaPath);
 	};
 
 	/**
@@ -2790,8 +3126,8 @@ sap.ui.define([
 	 *
 	 * Examples:
 	 * <ul>
-	 * <li>["Age"], 42 -> {Age: 42}
-	 * <li>["Address", "City"], "Walldorf" -> {Address: {City: "Walldorf"}}
+	 *   <li> ["Age"], 42 -> {Age: 42}
+	 *   <li> ["Address", "City"], "Walldorf" -> {Address: {City: "Walldorf"}}
 	 * </ul>
 	 *
 	 * @param {string[]} aPropertyPath

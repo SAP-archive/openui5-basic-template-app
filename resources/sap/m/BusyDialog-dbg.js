@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,6 +8,9 @@
 sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIndicator', 'sap/m/Label', 'sap/m/Button', "sap/base/Log", 'sap/ui/core/Core'],
 	function (library, Control, Dialog, BusyIndicator, Label, Button, Log, Core) {
 		"use strict";
+
+		// shortcut for sap.m.TitleAlignment
+		var TitleAlignment = library.TitleAlignment;
 
 		/**
 		 * Constructor for a new BusyDialog.
@@ -43,7 +46,7 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @public
 		 * @alias sap.m.BusyDialog
@@ -101,7 +104,15 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 					/**
 					 * Indicates if the cancel button will be rendered inside the busy dialog. The default value is set to <code>false</code>.
 					 */
-					showCancelButton: {type: "boolean", group: "Appearance", defaultValue: false}
+					showCancelButton: {type: "boolean", group: "Appearance", defaultValue: false},
+					/**
+					 * Specifies the Title alignment (theme specific).
+					 * If set to <code>TitleAlignment.Auto</code>, the Title will be aligned as it is set in the theme (if not set, the default value is <code>center</code>);
+					 * Other possible values are <code>TitleAlignment.Start</code> (left or right depending on LTR/RTL), and <code>TitleAlignment.Center</code> (centered)
+					 * @since 1.72
+					 * @public
+					 */
+					titleAlignment : {type : "sap.m.TitleAlignment", group : "Misc", defaultValue : TitleAlignment.Auto}
 				},
 				associations: {
 					/**
@@ -155,6 +166,7 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 			 */
 			this._oDialog = new Dialog(this.getId() + '-Dialog', {
 				content: this._busyIndicator,
+				titleAlignment: this.getTitleAlignment(),
 				showHeader: false,
 				afterClose: this._fnCloseHandler.bind(this),
 				initialFocus: this._busyIndicator.getId() + '-busyIndicator'
@@ -295,6 +307,14 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 			return this;
 		};
 
+		BusyDialog.prototype.setTitleAlignment = function (sAlignment) {
+			this.setProperty("titleAlignment", sAlignment, true);
+			if (this._oDialog) {
+				this._oDialog.setTitleAlignment(sAlignment);
+			}
+			return this;
+		};
+
 		/**
 		 * Sets the tooltip for the BusyDialog.
 		 *
@@ -309,7 +329,10 @@ sap.ui.define(['./library', 'sap/ui/core/Control', 'sap/m/Dialog', 'sap/m/BusyIn
 		};
 
 		/**
-		 * Gets the tooltip of the internal dialog.
+		 * Gets the tooltip of the BusyDialog.
+		 *
+		 * @public
+		 * @return {string|sap.ui.core.TooltipBase} The tooltip of the BusyDialog.
 		 * @override
 		 */
 		BusyDialog.prototype.getTooltip = function () {

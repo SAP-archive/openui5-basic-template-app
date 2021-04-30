@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,16 +21,16 @@ sap.ui.define([
 	'sap/m/GroupHeaderListItem',
 	'sap/ui/core/SeparatorItem',
 	'sap/m/Dialog',
-	'sap/m/DisplayListItem',
 	'sap/m/List',
 	'sap/m/Popover',
 	'sap/m/StandardListItem',
 	'sap/m/Table',
 	'sap/m/Title',
 	'sap/ui/core/IconPool',
-	"sap/base/security/encodeXML",
 	"sap/ui/events/KeyCodes",
-	"sap/m/ValueStateHeader"
+	"sap/m/ValueStateHeader",
+	"sap/m/inputUtils/highlightDOMElements",
+	"sap/m/inputUtils/scrollToItem"
 ], function (
 	Device,
 	EventProvider,
@@ -48,16 +48,16 @@ sap.ui.define([
 	GroupHeaderListItem,
 	SeparatorItem,
 	Dialog,
-	DisplayListItem,
 	List,
 	Popover,
 	StandardListItem,
 	Table,
 	Title,
 	IconPool,
-	encodeXML,
 	KeyCodes,
-	ValueStateHeader
+	ValueStateHeader,
+	highlightDOMElements,
+	scrollToItem
 ) {
 	"use strict";
 
@@ -90,7 +90,7 @@ sap.ui.define([
 	 * @alias sap.m.SuggestionsPopover
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 */
 	var SuggestionsPopover = EventProvider.extend("sap.m.SuggestionsPopover", /** @lends sap.m.SuggestionsPopover.prototype */ {
 
@@ -128,10 +128,14 @@ sap.ui.define([
 			// adds event delegate for the arrow keys
 			this._oInput.addEventDelegate({
 				onsapup: function(oEvent) {
-					this._onsaparrowkey(oEvent, "up", 1);
+					if (!this._oInput.isComposingCharacter()){
+						this._onsaparrowkey(oEvent, "up", 1);
+					}
 				},
 				onsapdown: function(oEvent) {
-					this._onsaparrowkey(oEvent, "down", 1);
+					if (!this._oInput.isComposingCharacter()){
+						this._onsaparrowkey(oEvent, "down", 1);
+					}
 				},
 				onsappageup: function(oEvent) {
 					this._onsaparrowkey(oEvent, "up", 5);
@@ -191,55 +195,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns true if some word from the text starts with specific value.
-	 *
-	 * @private
-	 * @param {string} sText The text of the word.
-	 * @param {string} sValue The value which must be compared to the word.
-	 * @returns {boolean} Indication if the word starts with the passed value.
-	 */
-	SuggestionsPopover._wordStartsWithValue = function (sText, sValue) {
-		var index;
-
-		if (!sText || !sValue ||
-			typeof sText !== "string" || typeof sValue !== "string") {
-			return false;
-		}
-
-		while (sText) {
-			if (typeof sValue === "string" && sValue !== "" && sText.toLowerCase().indexOf(sValue.toLowerCase()) === 0 /* startsWith */) {
-				return true;
-			}
-
-			index = sText.indexOf(' ');
-			if (index === -1) {
-				break;
-			}
-
-			sText = sText.substring(index + 1);
-		}
-
-		return false;
-	};
-
-	/**
-	 * The default filter function for one and two-value. It checks whether the item text begins with the typed value.
-	 *
-	 * @private
-	 * @param {string} sValue the current filter string.
-	 * @param {sap.ui.core.Item} oItem the filtered list item.
-	 * @returns {boolean} true for items that start with the parameter sValue, false for non matching items.
-	 */
-	SuggestionsPopover._DEFAULTFILTER = function(sValue, oItem) {
-
-		if (oItem instanceof ListItem && SuggestionsPopover._wordStartsWithValue(oItem.getAdditionalText(), sValue)) {
-			return true;
-		}
-
-		return SuggestionsPopover._wordStartsWithValue(oItem.getText(), sValue);
-	};
-
-	/**
 	 * Checks if the suggestions popover is currently opened.
 	 *
 	 * @return {boolean} whether the suggestions popover is currently opened
@@ -266,16 +221,6 @@ sap.ui.define([
 	 */
 	SuggestionsPopover.prototype._getInputLabels = function () {
 		return this._fnInputLabels();
-	};
-
-	/**
-	 * Gets the scrollable content of the SimpleFixFlex
-	 *
-	 * @return {Element} The DOM element of the scrollable content
-	 * @private
-	 */
-	SuggestionsPopover.prototype._getScrollableContent = function () {
-		return this._oPopover && this._oPopover.getDomRef("scroll");
 	};
 
 	/**
@@ -394,7 +339,7 @@ sap.ui.define([
 					// If the popover is closed while the pseudo focus is on value state header containing links
 					if (that.bMessageValueStateActive) {
 						that._getValueStateHeader().removeStyleClass("sapMPseudoFocus");
-						this.bMessageValueStateActive = false;
+						that.bMessageValueStateActive = false;
 					}
 				}
 			}))
@@ -477,10 +422,10 @@ sap.ui.define([
 						return;
 					}
 
-					aListItemsDomRef = this._oList.$().find('.sapMDLILabel, .sapMSLITitleOnly, .sapMDLIValue');
+					aListItemsDomRef = this._oList.$().find('.sapMSLIInfo, .sapMSLITitleOnly');
 					sInputValue = (this._sTypedInValue || this._oInput.getValue()).toLowerCase();
 
-					this.highlightSuggestionItems(aListItemsDomRef, sInputValue);
+					highlightDOMElements(aListItemsDomRef, sInputValue);
 				}.bind(this)
 			});
 
@@ -623,57 +568,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Close the control when tab is pressed while the focus is on the last link
-	 *
-	 * @private
-	 */
-	SuggestionsPopover.prototype._closePopoverDelegate = {
-		onsaptabnext: function(oEvent) {
-			this.bMessageValueStateActive = false;
-			this._oInput.onsapfocusleave(oEvent);
-			this._oPopover.close();
-
-			/* By default the value state message popup is opened when the suggestion popover
-			is closed. We don't want that in this case because the focus will move on to the next object.
-			The popup must be closed with setTimeout() because it is opened with one. */
-			setTimeout(function() {
-				this._oInput.closeValueStateMessage();
-			}.bind(this), 0);
-		}
-	};
-
-	/**
-	 * Moves the real focus to the input and the visual focus to the value state header
-	 * when saptabprevious is fired on the first link in a value state message
-	 * @private
-	 */
-	SuggestionsPopover.prototype._focusValueStateHeader = {
-		onsaptabprevious: function(oEvent) {
-			oEvent.preventDefault();
-			this._oInput.getFocusDomRef().focus();
-			this._getValueStateHeader().addStyleClass("sapMPseudoFocus");
-			this._oInput.removeStyleClass("sapMFocus");
-		}
-	};
-
-	/**
-	 * Event delegate that handles the arrow navigation of the links in the <code>sap.m.ValueStateHeader</code>.
-	 * Moves the real focus to the input and the visual focus to the first suggested item
-	 *
-	 * @private
-	 */
-	SuggestionsPopover.prototype._valueStateLinkArrowNav = {
-		onsapup: function(oEvent) {
-			this._oInput.getFocusDomRef().focus();
-			this._onsaparrowkey(oEvent, "up", 1);
-		},
-		onsapdown: function(oEvent) {
-			this._oInput.getFocusDomRef().focus();
-			this._onsaparrowkey(oEvent, "down", 1);
-		}
-	};
-
-	/**
 	 * Handles value state link navigation
 	 *
 	 * @param {jQuery.Event} oEvent The event object
@@ -701,13 +595,42 @@ sap.ui.define([
 		this._getValueStateHeader().removeStyleClass("sapMPseudoFocus");
 
 		aValueStateLinks.forEach(function(oLink) {
-			oLink.addDelegate(this._valueStateLinkArrowNav, this);
+			oLink.addDelegate({
+				onsapup: function(oEvent) {
+					this._oInput.getFocusDomRef().focus();
+					this._onsaparrowkey(oEvent, "up", 1);
+				},
+				onsapdown: function(oEvent) {
+					this._oInput.getFocusDomRef().focus();
+					this._onsaparrowkey(oEvent, "down", 1);
+				}
+			}, this);
 		}, this);
 
 		// If saptabnext is fired on the last link of the value state - close the control
-		oLastValueStateLink.addDelegate(this._closePopoverDelegate	, this);
+		oLastValueStateLink.addDelegate({
+			onsaptabnext: function(oEvent) {
+				this.bMessageValueStateActive = false;
+				this._oInput.onsapfocusleave(oEvent);
+				this._oPopover.close();
+
+				/* By default the value state message popup is opened when the suggestion popover
+				is closed. We don't want that in this case because the focus will move on to the next object.
+				The popup must be closed with setTimeout() because it is opened with one. */
+				setTimeout(function() {
+					this._oInput.closeValueStateMessage();
+				}.bind(this), 0);
+			}
+		}, this);
 		// If saptabprevious is fired on the first link move real focus on the input and the visual one back to the value state header
-		aValueStateLinks[0].addDelegate(this._focusValueStateHeader, this);
+		aValueStateLinks[0].addDelegate({
+			onsaptabprevious: function(oEvent) {
+				oEvent.preventDefault();
+				this._oInput.getFocusDomRef().focus();
+				this._getValueStateHeader().addStyleClass("sapMPseudoFocus");
+				this._oInput.removeStyleClass("sapMFocus");
+			}
+		}, this);
 	};
 
 	/**
@@ -843,7 +766,7 @@ sap.ui.define([
 			oInnerRef.attr("aria-activedescendant", oFormattedText.getId());
 			this.bMessageValueStateActive = true;
 			this._iPopupListSelectedIndex = -1;
-			this._scrollToItem(0);
+			scrollToItem(aListItems[0], this._oPopover);
 			return;
 		}
 
@@ -867,15 +790,11 @@ sap.ui.define([
 			oListItem.setSelected(true).updateAccessibilityState();
 			oListItem.addStyleClass("sapMLIBFocused");
 
-			if (oListItem.isA("sap.m.GroupHeaderListItem")) {
-				oInnerRef.removeAttr("aria-activedescendant");
-			} else {
-				oInnerRef.attr("aria-activedescendant", aListItems[iSelectedIndex].getId());
-			}
+			oInnerRef.attr("aria-activedescendant", aListItems[iSelectedIndex].getId());
 		}
 
 		if (Device.system.desktop) {
-			this._scrollToItem(iSelectedIndex);
+			scrollToItem(aListItems[iSelectedIndex], this._oPopover);
 		}
 
 		// make sure the value doesn't exceed the maxLength
@@ -889,9 +808,6 @@ sap.ui.define([
 				aListItems[iSelectedIndex].addStyleClass("sapMInputFocusedHeaderGroup");
 				oSelectedItem && oSelectedItem.setSelected(false);
 				this._oLastSelectedHeader = aListItems[iSelectedIndex];
-			} else if (aListItems[iSelectedIndex] instanceof DisplayListItem) {
-				// for two value suggestions we use the item label
-				sNewValue = oInput._getInputValue(aListItems[iSelectedIndex].getLabel());
 			} else {
 				// otherwise we use the item title
 				sNewValue = oInput._getInputValue(aListItems[iSelectedIndex].getTitle());
@@ -954,135 +870,6 @@ sap.ui.define([
 		oFilterSelectedButton && oFilterSelectedButton.attachPress(fnHandler);
 
 		return oFilterSelectedButton;
-	};
-
-	/**
-	 * Scrolls to item.
-	 *
-	 * @private
-	 * @param {int} iIndex Index of the item to scroll to.
-	 */
-	SuggestionsPopover.prototype._scrollToItem = function(iIndex) {
-		var oPopup = this._oPopover,
-			oList = this._oList,
-			oScrollDelegate,
-			oPopupRect,
-			oItemRect,
-			iTop,
-			iBottom;
-
-		if (!(oPopup instanceof Popover) || !oList) {
-			return;
-		}
-		oScrollDelegate = oPopup.getScrollDelegate();
-		if (!oScrollDelegate) {
-			return;
-		}
-		var oListItem = oList.getItems()[iIndex],
-			oListItemDom = oListItem && oListItem.getDomRef();
-		if (!oListItemDom) {
-			return;
-		}
-		oPopupRect = oPopup.getDomRef("cont").getBoundingClientRect();
-		oItemRect = oListItemDom.getBoundingClientRect();
-
-		iTop = oPopupRect.top - oItemRect.top;
-		iBottom = oItemRect.bottom - oPopupRect.bottom;
-		if (iTop > 0) {
-			oScrollDelegate.scrollTo(oScrollDelegate._scrollX, Math.max(oScrollDelegate._scrollY - iTop, 0));
-		} else if (iBottom > 0) {
-			oScrollDelegate.scrollTo(oScrollDelegate._scrollX, oScrollDelegate._scrollY + iBottom);
-		}
-	};
-
-	/**
-	 * Creates highlighted text.
-	 *
-	 * @private
-	 * @param {sap.m.Label} oItemDomRef Label within the input.
-	 * @param {string} sInputValue Text to highlight
-	 * @param {boolean} bWordMode Whether to highlight single string or to highlight each string that starts with space + sInputValue
-	 * @returns {string} newText Created text.
-	 */
-	SuggestionsPopover.prototype._createHighlightedText = function (oItemDomRef, sInputValue, bWordMode) {
-		var sDomRefLowerText, iStartHighlightingIndex, iInputLength, iNextSpaceIndex, sChunk,
-			sText = oItemDomRef ? oItemDomRef.textContent : "",
-			sFormattedText = "";
-
-		if (!SuggestionsPopover._wordStartsWithValue(sText, sInputValue)) {
-			return encodeXML(sText);
-		}
-
-		sInputValue = sInputValue.toLowerCase();
-		iInputLength = sInputValue.length;
-
-		while (SuggestionsPopover._wordStartsWithValue(sText, sInputValue)) {
-			sDomRefLowerText = sText.toLowerCase();
-			iStartHighlightingIndex = sDomRefLowerText.indexOf(sInputValue);
-			// search for the first word which starts with these characters
-			iStartHighlightingIndex = (iStartHighlightingIndex > 0) ?
-				sDomRefLowerText.indexOf(' ' + sInputValue) + 1 : iStartHighlightingIndex;
-
-
-			// Chunk before highlighting
-			sChunk = sText.substring(0, iStartHighlightingIndex);
-			sText = sText.substring(iStartHighlightingIndex);
-			sFormattedText += encodeXML(sChunk);
-
-			// Highlighting chunk
-			sChunk = sText.substring(0, iInputLength);
-			sText = sText.substring(iInputLength);
-			sFormattedText += '<span class="sapMInputHighlight">' + encodeXML(sChunk) + '</span>';
-
-
-			// Check for repetitive patterns. For example: "prodProdProd prod" should highlight only
-			// the starting of every word, but not the whole string when tested with "prod" input.
-			iNextSpaceIndex = sText.indexOf(" ");
-			iNextSpaceIndex = iNextSpaceIndex === -1 ? sText.length : iNextSpaceIndex;
-
-			// The rest
-			sChunk = sText.substring(0, iNextSpaceIndex);
-			sText = sText.substring(iNextSpaceIndex);
-			sFormattedText += encodeXML(sChunk);
-
-			// Run only for the first occurrence when highlighting for the Input for example
-			if (!bWordMode) {
-				break;
-			}
-		}
-
-		if (sText) {
-			sFormattedText += encodeXML(sText);
-		}
-
-		return sFormattedText;
-	};
-
-	/**
-	 * Highlights text in DOM items.
-	 *
-	 * @param {Array<HTMLElement>} aItemsDomRef DOM elements on which formatting would be applied
-	 * @param {string} sInputValue Text to highlight
-	 * @param {boolean} bWordMode Whether to highlight single string or to highlight each string that starts with space + sInputValue
-	 * @ui5-restricted
-	 * @protected
-	 */
-	SuggestionsPopover.prototype.highlightSuggestionItems = function (aItemsDomRef, sInputValue, bWordMode) {
-		var i;
-
-		if (!this._bEnableHighlighting || (!aItemsDomRef && !aItemsDomRef.length)) {
-			return;
-		}
-
-		var highlightedTexts = [];
-
-		for (i = 0; i < aItemsDomRef.length; i++) {
-			highlightedTexts.push(this._createHighlightedText(aItemsDomRef[i], sInputValue, bWordMode));
-		}
-
-		for (i = 0; i < aItemsDomRef.length; i++) {
-			aItemsDomRef[i].innerHTML = highlightedTexts[i];
-		}
 	};
 
 	/**
@@ -1157,7 +944,7 @@ sap.ui.define([
 			i;
 
 		aItems = aItems.filter(function(oItem){
-			return !(oItem.isA("sap.ui.core.SeparatorItem") || oItem.isA("sap.m.GroupHeaderListItem"));
+			return !(oItem.isA("sap.ui.core.SeparatorItem") || oItem.isA("sap.m.GroupHeaderListItem") || oItem.isA("sap.m.ColumnListItem") && !oItem.getVisible());
 		});
 
 		iLength = aItems.length;
@@ -1311,6 +1098,7 @@ sap.ui.define([
 	 * @param {string} sValueState Value state of the control
 	 * @param {(string|object)} vValueStateText Value state message text of the control.
 	 * @param {boolean} bShowValueStateMessage Whether or not a value state message should be displayed.
+	 * @returns {sap.m.SuggestionsPopover} <code>this</code> to allow method chaining
 	 *
 	 * @private
 	 */
@@ -1326,35 +1114,22 @@ sap.ui.define([
 		}
 
 		this._getValueStateHeader().setValueState(sValueState);
-		this._setValueStateHeaderText(vValueStateText);
-		this._showValueStateHeader(bShow);
-		this._alignValueStateStyles(sValueState);
 
-		return this;
-	};
+		// Set the value state text
+		if (this._oValueStateHeader && typeof vValueStateText === "string") {
+			this._oValueStateHeader.setText(vValueStateText);
+		} else if (this._oValueStateHeader && typeof vValueStateText === "object") {
+			this._oValueStateHeader.setFormattedText(vValueStateText);
+		}
 
-	/**
-	 * Shows/hides the value state text
-	 *
-	 * @private
-	 */
-	SuggestionsPopover.prototype._showValueStateHeader = function(bShow) {
+		// adjust ValueStateHeader visibility
 		if (this._oValueStateHeader) {
 			this._oValueStateHeader.setVisible(bShow);
 		}
-	};
 
-	/**
-	 * Sets the value state text
-	 *
-	 * @private
-	 */
-	SuggestionsPopover.prototype._setValueStateHeaderText = function(vText) {
-		if (this._oValueStateHeader && typeof vText === "string") {
-			this._oValueStateHeader.setText(vText);
-		} else if (this._oValueStateHeader && typeof vText === "object") {
-			this._oValueStateHeader.setFormattedText(vText);
-		}
+		this._alignValueStateStyles(sValueState);
+
+		return this;
 	};
 
 	/**

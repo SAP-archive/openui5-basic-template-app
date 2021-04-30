@@ -1,6 +1,6 @@
 /*
  * ! OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -93,7 +93,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Control
 	*
 	* @author SAP SE
-	* @version 1.79.0
+	* @version 1.84.11
 	*
 	* @constructor
 	* @public
@@ -438,7 +438,7 @@ sap.ui.define([
 		} else {
 			oTitle = new Title({
 				text	: sTitle,
-				level	: CoreTitleLevel.H1
+				level	: CoreTitleLevel.H3
 			});
 		}
 
@@ -488,7 +488,7 @@ sap.ui.define([
 		if (oGroup.getHeading()) {
 			oForm.addContent(new CoreTitle({
 				text : oGroup.getHeading(),
-				level : CoreTitleLevel.H2
+				level : CoreTitleLevel.H4
 			}));
 		}
 
@@ -580,7 +580,7 @@ sap.ui.define([
 					URLHelper.redirect(href);
 				}
 			} else  if (that.getTitleUrl()) {
-				window.open(that.getTitleUrl(), "_blank");
+				URLHelper.redirect(that.getTitleUrl(), true);
 			}
 		};
 	};

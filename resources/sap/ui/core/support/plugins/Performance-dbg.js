@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -55,7 +55,7 @@ sap.ui.define([
 		 * With this plugIn the performance measurements are displayed
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 * @private
 		 * @alias sap.ui.core.support.plugins.Performance
 		 */
@@ -291,7 +291,7 @@ sap.ui.define([
 								'<option value="duration">By Duration</option>' +
 							'</select>' +
 							'<label class="sapUiSupportLabel">Min. Duration:</label>' +
-							'<input id="sapUiSupportPerfHeaderFilterMinDuration" type="number" min="0" value="0" />' +
+							'<input id="sapUiSupportPerfHeaderFilterMinDuration" type="number" min="0" value="0">' +
 							'<label class="sapUiSupportLabel"> ms.</label>' +
 							'<div class="flex-spacer"></div>' +
 							'<div id="categories"></div>' +
@@ -814,7 +814,7 @@ sap.ui.define([
 
 			allCategories.forEach(function (category) {
 				category = encodeXML(category);
-				categoriesHTML += '<label title="' + category + '"><input class="' + _getBarClassType(category) + '" checked type="checkbox" name="' + category + '" />' + category + '</label>';
+				categoriesHTML += '<label title="' + category + '"><input class="' + _getBarClassType(category) + '" checked type="checkbox" name="' + category + '">' + category + '</label>';
 			});
 
 			var categoriesDom = document.querySelector('#categories');

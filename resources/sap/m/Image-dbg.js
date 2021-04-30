@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -55,7 +55,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @public
 	 * @alias sap.m.Image
@@ -716,10 +716,8 @@ sap.ui.define([
 	 * @returns {boolean} the check result
 	 */
 	Image.prototype._isValidBackgroundSizeValue = function (sValue) {
-		var whitespaceRegEx = /\s+/g;
-
 		// compress whitespace
-		sValue = jQuery.trim(sValue).replace(whitespaceRegEx, " ");
+		sValue = normWS(sValue);
 
 		return isSubSet(sValue.split(" "), ["auto", "cover", "contain", "initial"])
 			|| DataType.getType("sap.ui.core.CSSSizeShortHand").isValid(sValue);
@@ -734,10 +732,8 @@ sap.ui.define([
 	 * @returns {boolean} the check result
 	 */
 	Image.prototype._isValidBackgroundPositionValue = function (sValue) {
-		var whitespaceRegEx = /\s+/g;
-
 		// compress whitespace
-		sValue = jQuery.trim(sValue).replace(whitespaceRegEx, " ");
+		sValue = normWS(sValue);
 
 		return isSubSet(sValue.split(" "), ["left", "right", "top", "center", "bottom", "initial"])
 			|| DataType.getType("sap.ui.core.CSSSizeShortHand").isValid(sValue);
@@ -791,6 +787,16 @@ sap.ui.define([
 		return aTestArray && aRefArray && !aTestArray.some(isOutsideSet);
 	}
 
+	/**
+	 * Utility function to normalize whitespace in a CSS value.
+	 * @param {string} sValue String value to normalize
+	 * @returns {string} Normalized value
+	 */
+	function normWS(sValue) {
+		var whitespaceRegEx = /\s+/g;
+		// compress whitespace
+		return sValue == null ? "" : String(sValue).trim().replace(whitespaceRegEx, " ");
+	}
 
 	return Image;
 

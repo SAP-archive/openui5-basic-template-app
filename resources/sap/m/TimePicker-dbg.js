@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -129,7 +129,7 @@ function(
 		 * @extends sap.m.DateTimeField
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @constructor
 		 * @public
@@ -304,11 +304,11 @@ function(
 			this._bValid = false;
 
 			/*  stores the type of the used locale (e.g. 'medium', 'long') for the display
-			 see @https://openui5.hana.ondemand.com/docs/api/symbols/sap.ui.core.LocaleData.html#getTimePattern */
+			 see https://openui5.hana.ondemand.com/api/sap.ui.core.LocaleData#methods/getTimePattern */
 			this._sUsedDisplayPattern = null;
 
 			/*  stores the type of the used locale (e.g. 'medium', 'long') for inputting
-				 see @https://openui5.hana.ondemand.com/docs/api/symbols/sap.ui.core.LocaleData.html#getTimePattern */
+				 see https://openui5.hana.ondemand.com/api/sap.ui.core.LocaleData#methods/getTimePattern */
 			this._sUsedValuePattern = null;
 
 			this._oDisplayFormat = null;
@@ -384,7 +384,9 @@ function(
 		};
 
 		TimePicker.prototype.toggleOpen = function (bOpened) {
-			this[bOpened ? "_closePicker" : "_openPicker"]();
+			if (this.getEditable() && this.getEnabled()) {
+				this[bOpened ? "_closePicker" : "_openPicker"]();
+			}
 		};
 
 		/**
@@ -483,6 +485,7 @@ function(
 			var oDate,
 				sThatValue,
 				bThatValue2400,
+				bEnabled2400,
 				sFormat = this.getValueFormat(),
 				iIndexOfHH = sFormat.indexOf("HH"),
 				iIndexOfH = sFormat.indexOf("H");
@@ -490,26 +493,38 @@ function(
 			sValue = sValue || this._$input.val();
 			sThatValue = sValue;
 			bThatValue2400 = TimePickerSliders._isHoursValue24(sThatValue, iIndexOfHH, iIndexOfH);
+			bEnabled2400 = this.getSupport2400() && bThatValue2400;
 			this._bValid = true;
 			if (sValue !== "") {
 				//keep the oDate not changed by the 24 hrs
-				oDate = this._parseValue(
-					TimePickerSliders._isHoursValue24(sValue, iIndexOfHH, iIndexOfH) ?
-						TimePickerSliders._replace24HoursWithZero(sValue, iIndexOfHH, iIndexOfH) : sValue, true);
+				oDate = this._parseValue(bThatValue2400 ? TimePickerSliders._replace24HoursWithZero(sValue, iIndexOfHH, iIndexOfH) : sValue, true);
+				if (bEnabled2400) {
+					// ih the hour is 24, the control "zeroes" the minutes and seconds, but not in this date object
+					oDate.setMinutes(0, 0);
+				}
 				if (!oDate) {
 					this._bValid = false;
 				} else {
 					// check if Formatter changed the value (it corrects some wrong inputs or known patterns)
 					sValue = this._formatValue(oDate);
+					// reset the mask as the value might be changed without firing focus out event,
+					// which is unexpected behavior in regards to the MaskEnabler temporary value storage
+					if (this.getMaskMode() && this.getMask()) {
+						this._setupMaskVariables();
+					}
 				}
 			}
-			sThatValue = this.getSupport2400() && bThatValue2400 ? "24:" + sValue.replace(/[0-9]/g, "0").slice(0, -3) : sValue;
+			sThatValue = bEnabled2400 ? "24:" + sValue.replace(/[0-9]/g, "0").slice(0, -3) : sValue;
 			//instead on key stroke zeroes could be added after entering '24'
 			this.updateDomValue(sThatValue);
 
 			if (oDate) {
 				// get the value in valueFormat
 				sThatValue = sValue = this._formatValue(oDate, true);
+				if (bEnabled2400 && oDate && oDate.getHours() === 0) {
+					// put back 24 as hour if needed
+					sThatValue = sValue = TimePickerSliders._replaceZeroHoursWith24(sValue, iIndexOfHH, iIndexOfH);
+				}
 			}
 
 			this.setProperty("value", sThatValue, true); // no rerendering
@@ -686,9 +701,19 @@ function(
 
 			this._initMask();
 
+			// set last change value only if the new value is different than current one
+			if (this.getValue() !== sValue) {
+				this._sLastChangeValue = sValue;
+			}
+
 			MaskEnabler.setValue.call(this, sValue);
 
-			this._sLastChangeValue = sValue;
+			// We need to reset the mask temporary value when using a setter
+			// as the given value might not formatted according to mask value format
+			if (this.getMask()) {
+				this._setupMaskVariables();
+			}
+
 			this._bValid = true;
 
 			// convert to date object
@@ -1036,7 +1061,10 @@ function(
 				sCancelButtonText,
 				sTitle,
 				oIcon = this.getAggregation("_endIcon")[0],
-				sLocaleId  = this._getLocale().getLanguage();
+				sLocaleId  = this._getLocale().getLanguage(),
+				sArialabelledby,
+				sLabelId,
+				sLabel;
 
 			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 			sOKButtonText = oResourceBundle.getText("TIMEPICKER_SET");
@@ -1049,8 +1077,11 @@ function(
 				horizontalScrolling: false,
 				verticalScrolling: false,
 				placement: PlacementType.VerticalPreferedBottom,
-				beginButton: new Button({ text: sOKButtonText, type: ButtonType.Emphasized, press: jQuery.proxy(this._handleOkPress, this) }),
-				endButton: new Button({ text: sCancelButtonText, press: jQuery.proxy(this._handleCancelPress, this) }),
+				beginButton: new Button({
+					text: sOKButtonText,
+					type: ButtonType.Emphasized,
+					press: this._handleOkPress.bind(this)
+				}),
 				content: [
 					new TimePickerSliders(this.getId() + "-sliders", {
 						support2400: this.getSupport2400(),
@@ -1063,7 +1094,10 @@ function(
 					})._setShouldOpenSliderAfterRendering(true)
 				],
 				contentHeight: TimePicker._PICKER_CONTENT_HEIGHT,
-				ariaLabelledBy: InvisibleText.getStaticId("sap.m", "TIMEPICKER_SET_TIME")
+				ariaLabelledBy: InvisibleText.getStaticId("sap.m", "TIMEPICKER_SET_TIME"),
+				beforeOpen: this.onBeforeOpen.bind(this),
+				afterOpen: this.onAfterOpen.bind(this),
+				afterClose: this.onAfterClose.bind(this)
 			});
 
 			oPopover = oPicker.getAggregation("_popup");
@@ -1074,16 +1108,20 @@ function(
 
 			oPopover.oPopup.setAutoCloseAreas([oIcon]);
 
-			oPicker.addStyleClass(this.getRenderer().CSS_CLASS + "DropDown")
-				.attachBeforeOpen(this.onBeforeOpen, this)
-				.attachAfterOpen(this.onAfterOpen, this)
-				.attachAfterClose(this.onAfterClose, this);
+			if (Device.system.phone) {
+				sArialabelledby = this.$("inner").attr("aria-labelledby");
+				sLabelId = sArialabelledby && sArialabelledby.split(" ")[0];
+				sLabel = sLabelId ? document.getElementById(sLabelId).getAttribute("aria-label") : "";
 
-			oPicker.open = function() {
-				return this.openBy(that);
-			};
+				oPicker.setTitle(sLabel);
+				oPicker.setShowHeader(true);
+				oPicker.setShowCloseButton(true);
+			} else {
+				oPicker.setEndButton(new Button(this.getId() + "-Cancel", {
+					text: sCancelButtonText,
+					press: this._handleCancelPress.bind(this)
+				}));
 
-			if (Device.system.desktop) {
 				this._oPopoverKeydownEventDelegate = {
 					onkeydown: function(oEvent) {
 						var oKC = KeyCodes,
@@ -1106,6 +1144,11 @@ function(
 					that._getSliders()._onOrientationChanged();
 				};
 			}
+
+			oPicker.addStyleClass(this.getRenderer().CSS_CLASS + "DropDown");
+			oPicker.open = function() {
+				return this.openBy(that);
+			};
 
 			// define a parent-child relationship between the control's and the _picker pop-up
 			this.setAggregation("_picker", oPicker, true);
@@ -1136,10 +1179,6 @@ function(
 			var oDate = this._getSliders().getTimeValues(),
 				sValue = this._formatValue(oDate);
 
-			//if 24 is selected for hours, it should also go to the input after pressing the OK button
-			if (this.getSupport2400()) {
-				sValue = this._getSliders().getValue();
-			}
 			this.updateDomValue(sValue);
 			this._handleInputChange();
 
@@ -1214,9 +1253,8 @@ function(
 
 			//2400 scenario - be sure that the correct value will be set in all cases - when binding,
 			//setting the value by sliders or only via setValue
-			if (this.getSupport2400() && TimePickerSliders._isHoursValue24(this.getValue(), iIndexOfHH, iIndexOfH)
-				&& TimePickerSliders._replaceZeroHoursWith24(sValue, iIndexOfHH, iIndexOfH) === this.getValue()) {
-				sValue = this.getValue();
+			if (oDate && oDate.getHours() === 0 && this.getSupport2400() && this._getSliders() && this._getSliders()._getHoursSlider().getSelectedValue() === "24") {
+				sValue = TimePickerSliders._replaceZeroHoursWith24(sValue, iIndexOfHH, iIndexOfH);
 			}
 
 			return sValue;
@@ -1498,6 +1536,11 @@ function(
 					&& !this._oTimePicker._isCharAllowed(sChar, iPlacePosition)
 					&& this.aAllowedHours.indexOf(this.sLeadingChar + sChar) !== -1) {
 				return this.sLeadingChar + sChar;
+			} else if (iPlacePosition === this.iHourNumber2Index && sCurrentInputValue[this.iHourNumber1Index] === PLACEHOLDER_SYMBOL) {
+				// fill the first hour number with the leading character,
+				// in order to enable setting the second hour number directly
+				this._oTimePicker._oTempValue.setCharAt(this.sLeadingChar, this.iHourNumber1Index);
+				return sChar;
 			} else if (iPlacePosition === this.iHourNumber2Index //the second hour number
 					&& this.aAllowedHours.indexOf(sCurrentInputValue[this.iHourNumber1Index] + sChar) === -1) { //allow it only if the whole hour string is a valid hour
 				return ""; //which is invalid and won't pass the test
@@ -1702,6 +1745,41 @@ function(
 			return oLocaleData.getTimePattern(TimeFormatStyles.Medium);
 		}
 
+		TimePicker.prototype._revertKey = function(oKey, oSelection) {
+			oSelection = oSelection || this._getTextSelection();
+
+			var iBegin = oSelection.iFrom,
+				iEnd = oSelection.iTo,
+				iStart = iBegin,
+				sPlaceholder,
+				iLen;
+
+			if (!oSelection.bHasSelection) {
+				if (oKey.bBackspace) {
+					iStart = iBegin = this._oRules.previousTo(iBegin);
+				} else if (oKey.bDelete) {
+					sPlaceholder = this.getPlaceholderSymbol();
+					iLen = this._oTempValue._aContent.length;
+
+					// find first character that is not a placeholder or separator character
+					while ((this._oTempValue._aContent[iBegin] === sPlaceholder ||
+							this._oTempValue._aInitial[iBegin] !== sPlaceholder) &&
+							iBegin < iLen) {
+						iBegin++;
+					}
+					iEnd = iBegin;
+				}
+			}
+
+			if (oKey.bBackspace || (oKey.bDelete && oSelection.bHasSelection)) {
+				iEnd = iEnd - 1;
+			}
+
+			this._resetTempValue(iBegin, iEnd);
+			this.updateDomValue(this._oTempValue.toString());
+			this._setCursorPosition(Math.max(this._iUserInputStartPosition, iStart));
+		};
+
 		/**
 		 * Fires when the input operation has finished and the value has changed.
 		 *
@@ -1711,6 +1789,7 @@ function(
 		 * @param {sap.ui.base.EventProvider} oControlEvent.getSource
 		 * @param {object} oControlEvent.getParameters
 		 * @param {string} oControlEvent.getParameters.value The new value of the input
+		 * <b>Note:</b> If there is no data binding, the value is expected and updated in Gregorian calendar type. (Otherwise, the type of the binding is used.)
 		 * @param {boolean} oControlEvent.getParameters.valid Indicator for a valid time
 		 * @public
 		 */

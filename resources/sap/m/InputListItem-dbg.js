@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -66,12 +66,11 @@ sap.ui.define([
 	}});
 
 	InputListItem.prototype.getContentAnnouncement = function() {
-		var sAnnouncement = this.getLabel();
+		var sAnnouncement = this.getLabel() + " . ";
 		this.getContent().forEach(function(oContent) {
 			sAnnouncement += ListItemBase.getAccessibilityText(oContent) + " ";
 		});
-
-		return sAnnouncement;
+		return sAnnouncement.trim();
 	};
 
 	return InputListItem;

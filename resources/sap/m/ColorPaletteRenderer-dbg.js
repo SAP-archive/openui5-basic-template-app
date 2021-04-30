@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -72,8 +72,7 @@ sap.ui.define(['sap/ui/Device'],
 		ColorPaletteRenderer.renderSwatches = function (oRm, oColorPalette) {
 			var sColors = oColorPalette.getColors();
 
-			oRm.openStart("div");
-			oRm.attr("id", oColorPalette.getId() + "-swatchCont-paletteColor");
+			oRm.openStart("div", oColorPalette.getId() + "-swatchCont-paletteColor");
 			oRm.class("sapMColorPaletteContent");
 			oRm.accessibilityState(oColorPalette, {
 				"role": "region",
@@ -157,9 +156,8 @@ sap.ui.define(['sap/ui/Device'],
 				iCountOfBoxes = 5,
 				sContainer = oLibraryResourceBundle.getText("COLOR_PALETTE_SWATCH_RECENT_COLOR_CONTAINER_TITLE");
 
-			oRm.openStart("div");
+			oRm.openStart("div", oColorPalette.getId() + "-swatchCont-recentColors");
 			oRm.class("sapMColorPaletteContent");
-			oRm.attr("id", oColorPalette.getId() + "-swatchCont-recentColors");
 			oRm.attr("role","region");
 			oRm.attr("aria-label",sContainer); // Change with translation variable
 			oRm.openEnd();

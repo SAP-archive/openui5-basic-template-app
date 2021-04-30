@@ -1,15 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the Design Time Metadata for the sap.ui.layout.form.SimpleForm control
 sap.ui.define([
-	"sap/ui/fl/changeHandler/ChangeHandlerMediator",
 	"sap/ui/fl/Utils"
 ], function(
-	ChangeHandlerMediator,
 	FlexUtils
 ) {
 	"use strict";
@@ -136,12 +134,12 @@ sap.ui.define([
 					singular: "FIELD_CONTROL_NAME",
 					plural: "FIELD_CONTROL_NAME_PLURAL"
 				},
-				beforeMove: function (oSimpleForm) { //TODO has to be relevant container/selector, TODO extract as function
+				beforeMove: function (oSimpleForm) { //TODO extract as function
 					if (oSimpleForm){
 						oSimpleForm._bChangedByMe = true;
 					}
 				},
-				afterMove: function (oSimpleForm) { //TODO has to be relevant container/selector, TODO extract as function
+				afterMove: function (oSimpleForm) { //TODO extract as function
 					if (oSimpleForm){
 						oSimpleForm._bChangedByMe = false;
 					}
@@ -154,15 +152,11 @@ sap.ui.define([
 							};
 						}
 					},
-					addODataProperty: function (oFormContainer) {
-						var mChangeHandlerSettings = ChangeHandlerMediator.getAddODataFieldWithLabelSettings(oFormContainer);
-
-						if (mChangeHandlerSettings){
-							return {
-								changeType: "addSimpleFormField",
-								changeOnRelevantContainer: true,
-								changeHandlerSettings: mChangeHandlerSettings
-							};
+					add: {
+						delegate: {
+							changeType: "addSimpleFormField",
+							changeOnRelevantContainer: true,
+							supportsDefaultDelegate: true
 						}
 					}
 				}

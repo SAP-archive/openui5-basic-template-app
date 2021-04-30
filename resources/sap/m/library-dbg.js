@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -55,7 +55,7 @@ sap.ui.define([
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.m",
-		version: "1.79.0",
+		version: "1.84.11",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/m/designtime/library.designtime",
 		types: [
@@ -65,6 +65,7 @@ sap.ui.define([
 			"sap.m.AvatarType",
 			"sap.m.AvatarColor",
 			"sap.m.BackgroundDesign",
+			"sap.m.BadgeState",
 			"sap.m.BarDesign",
 			"sap.m.BreadcrumbsSeparatorStyle",
 			"sap.m.ButtonType",
@@ -139,6 +140,7 @@ sap.ui.define([
 			"sap.m.TileSizeBehavior",
 			"sap.m.TimePickerMaskMode",
 			"sap.m.TitleAlignment",
+			"sap.m.TokenizerRenderMode",
 			"sap.m.ToolbarDesign",
 			"sap.m.ToolbarStyle",
 			"sap.m.UploadState",
@@ -146,10 +148,12 @@ sap.ui.define([
 			"sap.m.ValueCSSColor",
 			"sap.m.VerticalPlacementType",
 			"sap.m.WrappingType",
+			"sap.m.WizardRenderMode",
 			"sap.m.semantic.SemanticRuleSetType"
 		],
 		interfaces: [
 			"sap.m.IBar",
+			"sap.m.IBadge",
 			"sap.m.IBreadcrumbs",
 			"sap.m.IconTab",
 			"sap.m.IScale",
@@ -208,6 +212,7 @@ sap.ui.define([
 			"sap.m.HeaderContainer",
 			"sap.m.IconTabBar",
 			"sap.m.IconTabBarSelectList",
+			"sap.m.IconTabFilterExpandButtonBadge",
 			"sap.m.IconTabHeader",
 			"sap.m.Image",
 			"sap.m.ImageContent",
@@ -334,6 +339,7 @@ sap.ui.define([
 			"sap.m.semantic.MasterPage"
 		],
 		elements: [
+			"sap.m.BadgeCustomData",
 			"sap.m.Column",
 			"sap.m.ColumnPopoverActionItem",
 			"sap.m.ColumnPopoverCustomItem",
@@ -541,7 +547,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.m
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @public
 	 */
 	var thisLib = sap.m;
@@ -577,6 +583,59 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Types of state of {@link sap.m.BadgeEnabler} to expose its current state.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.81
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.BadgeState = {
+
+		/**
+		 * Informing interested parties that the badge has been updated.
+		 * @public
+		 */
+		Updated : "Updated",
+
+		/**
+		 * Informing interested parties that the badge has appeared.
+		 * @public
+		 */
+		Appear : "Appear",
+
+		/**
+		 * Informing interested parties that the badge has disappeared.
+		 * @public
+		 */
+		Disappear : "Disappear"
+
+	};
+
+
+	/**
+	 * Types of badge rendering style.
+	 *
+	 * @enum {string}
+	 * @private
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.BadgeStyle = {
+		/**
+		 * Default style. Use for badges which contain text or numbers.
+		 *
+		 * @private
+		 */
+		Default: "Default",
+
+		/**
+		 * Attention style. This badge is rendered as a single dot meant to grab attention.
+		 *
+		 * @private
+		 */
+		Attention: "Attention"
+	};
 
 	/**
 	 * Types of the Bar design.
@@ -786,6 +845,43 @@ sap.ui.define([
 		 * @since 1.77
 		 */
 		Attention : "Attention"
+	};
+
+	/**
+	 * Different predefined accessibility types for the {@link sap.m.Button}.
+	 *
+	 * @enum {string}
+	 * @private
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.ButtonAccessibilityType = {
+		/**
+		 * Default type
+		 *
+		 * @private
+		 */
+		Default: "Default",
+
+		/**
+		 * Labelled type
+		 *
+		 * @private
+		 */
+		Labelled: "Labelled",
+
+		/**
+		 * Described type
+		 *
+		 * @private
+		 */
+		Described: "Described",
+
+		/**
+		 * Combined type
+		 *
+		 * @private
+		 */
+		Combined: "Combined"
 	};
 
 	/**
@@ -1406,13 +1502,13 @@ sap.ui.define([
 	thisLib.FrameType = {
 
 		/**
-		 * The 1x1 frame type.
+		 * The 2x2 frame type.
 		 * @public
 		 */
 		OneByOne : "OneByOne",
 
 		/**
-		 * The 2x1 frame type.
+		 * The 4x2 frame type.
 		 * @public
 		 */
 		TwoByOne : "TwoByOne",
@@ -1429,7 +1525,21 @@ sap.ui.define([
 		 * Support for this type in sap.m.GenericTile is deprecated since 1.48.0.
 		 * @protected
 		 */
-		Auto : "Auto"
+		Auto : "Auto",
+
+		/**
+		 * The 4x1 frame type.
+		 * @public
+		 * @since 1.83
+		 */
+		TwoByHalf: "TwoByHalf",
+
+		/**
+		 * The 2x1 frame type.
+		 * @public
+		 * @since 1.83
+		 */
+		OneByHalf: "OneByHalf"
 
 	};
 
@@ -1686,6 +1796,16 @@ sap.ui.define([
 	 *
 	 * @since 1.22
 	 * @name sap.m.IBar
+	 * @interface
+	 * @public
+	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
+	 */
+
+	/**
+	 * Interface for controls which implement the notification badge concept.
+	 *
+	 * @since 1.80
+	 * @name sap.m.IBadge
 	 * @interface
 	 * @public
 	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
@@ -2148,7 +2268,18 @@ sap.ui.define([
 		 * Error value color.
 		 * @public
 		 */
-		Error : "Error"
+		Error : "Error",
+
+		/**
+		 * None value color.
+		 *
+		 * <b>Note:</b> The None value color is set to prevent the display of tooltip
+		 * 'Neutral' for numeric content.
+		 *
+		 * @public
+		 * @since 1.84
+		 */
+		None : "None"
 
 	};
 
@@ -2749,6 +2880,18 @@ sap.ui.define([
 		GE: "GE",
 		Initial: "Initial",
 		Empty: "Empty",
+
+		// filter exclude operations
+		NotBT: "NotBT",
+		NotEQ: "NotEQ",
+		NotContains: "NotContains",
+		NotStartsWith: "NotStartsWith",
+		NotEndsWith: "NotEndsWith",
+		NotLT: "NotLT",
+		NotLE: "NotLE",
+		NotGT: "NotGT",
+		NotGE: "NotGE",
+		NotInitial: "NotInitial",
 		NotEmpty: "NotEmpty",
 
 		// sort operations
@@ -2764,6 +2907,11 @@ sap.ui.define([
 		Average: "Average",
 		Minimum: "Minimum",
 		Maximum: "Maximum"
+	};
+
+	thisLib.P13nConditionOperationType = {
+		Include: "Incl",
+		Exclude: "Excl"
 	};
 
 	/**
@@ -3591,6 +3739,29 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Types of the <code>sap.m.Tokenizer</code> responsive modes.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.80
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.TokenizerRenderMode = {
+
+		/**
+		 * In <code>Loose</code> mode, the <code>sap.m.Tokenizer</code> will show all its tokens, even if this means that scrolling needs to be used.
+		 * @public
+		 */
+		Loose : "Loose",
+
+		/**
+		 * In  <code>Narrow</code> mode, the <code>sap.m.Tokenizer</code> will show as many tokens as its width allows, as well as an n-More indicator with the count of the hidden tokens. The rest tokens will be hidden.
+		 * @public
+		 */
+		Narrow : "Narrow"
+	};
+
 
 	/**
 	 * Types of the Toolbar Design.
@@ -3924,6 +4095,13 @@ sap.ui.define([
 	thisLib.TitleAlignment = {
 
 		/**
+		 * Disables an automatic title alignment depending on theme
+		 * Mostly used in sap.m.Bar
+		 * @public
+		 */
+		None : "None",
+
+		/**
 		 * The default type (if specified in the theme)
 		 * @public
 		 */
@@ -3948,6 +4126,29 @@ sap.ui.define([
 	thisLib.AvatarType = AvatarType;
 	thisLib.AvatarColor = AvatarColor;
 	thisLib.AvatarImageFitType = AvatarImageFitType;
+
+		/**
+		 * Wizard rendering mode.
+		 *
+		 * @enum {string}
+		 * @public
+		 * @experimental since 1.83
+		 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+		 */
+		thisLib.WizardRenderMode = {
+
+			/**
+			 * Display all steps into a scroll section.
+			 * @public
+			 */
+			Scroll: "Scroll",
+
+			/**
+			 * Display steps as separate, single pages.
+			 * @public
+			 */
+			Page: "Page"
+		};
 
 		//lazy imports for MessageToast
 	sap.ui.lazyRequire("sap.m.MessageToast", "show");
@@ -4326,11 +4527,11 @@ sap.ui.define([
 					encode = encodeURIComponent;
 
 				// Within mailto URLs, the characters "?", "=", "&" are reserved
-				isValidString(sEmail) && (sURL += encode(jQuery.trim(sEmail)));
+				isValidString(sEmail) && (sURL += encode(sEmail.trim()));
 				isValidString(sSubject) && aParams.push("subject=" + encode(sSubject));
 				isValidString(sBody) && aParams.push("body=" + formatMessage(sBody));
-				isValidString(sBCC) && aParams.push("bcc=" + encode(jQuery.trim(sBCC)));
-				isValidString(sCC) && aParams.push("cc=" + encode(jQuery.trim(sCC)));
+				isValidString(sBCC) && aParams.push("bcc=" + encode(sBCC.trim()));
+				isValidString(sCC) && aParams.push("cc=" + encode(sCC.trim()));
 
 				if (aParams.length) {
 					sURL += "?" + aParams.join("&");
@@ -4350,13 +4551,16 @@ sap.ui.define([
 			 * @public
 			 */
 			redirect: function (sURL, bNewWindow) {
+				var oWindow;
 				assert(isValidString(sURL), this + "#redirect: URL must be a string" );
 				this.fireEvent("redirect", sURL);
 				if (!bNewWindow) {
 					window.location.href = sURL;
 				} else {
-					var oWindow = window.open(sURL, "_blank");
-					if (!oWindow) {
+					oWindow = window.open(sURL, "_blank");
+					if (oWindow) {
+						oWindow.opener = null;
+					} else {
 						Log.error(this + "#redirect: Could not open " + sURL);
 						if (Device.os.windows_phone || (Device.browser.edge && Device.browser.mobile)) {
 							Log.warning("URL will be enforced to open in the same window as a fallback from a known Windows Phone system restriction. Check the documentation for more information.");
@@ -4937,6 +5141,19 @@ sap.ui.define([
 				oToolbar.setDesign(sap.m.ToolbarDesign.Transparent, true);
 			}
 			return oToolbar;
+		},
+		getToolbarTitle: function(oToolbar) {
+			// determine Title to point aria-label on this. As Fallback use the whole Toolbar
+			if (oToolbar) {
+				var aContent = oToolbar.getContent();
+				for (var i = 0; i < aContent.length; i++) {
+					var oContent = aContent[i];
+					if (oContent.isA("sap.m.Title")) {
+						return oContent.getId();
+					}
+				}
+				return oToolbar.getId(); // fallback
+			}
 		},
 		bArrowKeySupport: false, /* disables the keyboard support for arrow keys */
 		bFinal: true

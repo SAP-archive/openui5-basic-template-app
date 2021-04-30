@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,7 +27,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @constructor
 		 * @private
@@ -1148,13 +1148,15 @@ sap.ui.define([
 		};
 
 		TimePickerSlider.prototype._initArrows = function() {
-			var that = this, oArrowUp, oArrowDown;
+			var that = this, oArrowUp, oArrowDown,
+				oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 
 			oArrowUp = new Button({
 				icon: IconPool.getIconURI("slim-arrow-up"),
 				press: function (oEvent) {
 					that._offsetValue(-1);
 				},
+				tooltip: oRB.getText("TIMEPICKER_TOOLTIP_UP"),
 				type: 'Transparent'
 			});
 			oArrowUp.addEventDelegate({
@@ -1170,6 +1172,7 @@ sap.ui.define([
 				press: function (oEvent) {
 					that._offsetValue(1);
 				},
+				tooltip: oRB.getText("TIMEPICKER_TOOLTIP_DOWN"),
 				type: 'Transparent'
 			});
 

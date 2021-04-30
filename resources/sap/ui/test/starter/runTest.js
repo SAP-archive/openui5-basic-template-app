@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 (function(){"use strict";var e,t,r;e=document.querySelector("[src$='runTest.js']");if(e){t=/^([^?#]*\/)?runTest.js/.exec(e.getAttribute("src"));if(t){r=t[1]+"../../../../"}}if(r==null){throw new Error("runTest.js: could not identify script tag!")}function i(e,t){var i=e.length,s=0;if(i===0){t();return}function n(e){i--;if(e.type==="error"){s++}e.target.removeEventListener("load",n);e.target.removeEventListener("error",n);if(i===0&&s===0&&t){t()}}for(var o=0;o<e.length;o++){var a=document.createElement("script");a.addEventListener("load",n);a.addEventListener("error",n);a.src=r+e[o];document.head.appendChild(a)}}window["sap-ui-optimized"]=window["sap-ui-optimized"]||/\.head/.test(i)&&!/pending/.test(i);window["sap-ui-debug-no-reboot"]=true;var s=[];if(/(trident)\/[\w.]+;.*rv:([\w.]+)/i.test(window.navigator.userAgent)){s.push("sap/ui/thirdparty/baseuri.js");s.push("sap/ui/thirdparty/es6-promise.js");s.push("sap/ui/thirdparty/es6-shim-nopromise.js")}else if(/(edge)[ \/]([\w.]+)/i.test(window.navigator.userAgent)||/Version\/(11\.0).*Safari/.test(window.navigator.userAgent)){s.push("sap/ui/thirdparty/es6-promise.js")}i(s,function(){i(["ui5loader.js"],function(){i(["sap/ui/test/starter/_configureLoader.js"],function(){i(["ui5loader-autoconfig.js"],function(){sap.ui.require(["sap/ui/test/starter/_setupAndStart"])})})})})})();

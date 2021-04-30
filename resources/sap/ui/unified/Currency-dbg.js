@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,9 +8,8 @@
 sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/core/format/NumberFormat',
-	"./CurrencyRenderer",
-	"sap/ui/thirdparty/jquery"
-], function(Control, NumberFormat, CurrencyRenderer, jQuery) {
+	"./CurrencyRenderer"
+], function(Control, NumberFormat, CurrencyRenderer) {
 		"use strict";
 
 		/**
@@ -54,7 +53,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @constructor
 		 * @public
@@ -147,7 +146,7 @@ sap.ui.define([
 			}
 		};
 
-		/*
+		/**
 		 * Value property setter.
 		 *
 		 * @override
@@ -183,7 +182,7 @@ sap.ui.define([
 			}
 		};
 
-		/*
+		/**
 		 * Currency property setter.
 		 * @param {string} sValue The ISO 4217 currency code
 		 * @return {sap.ui.unified.Currency} <code>this</code> pointer for chaining
@@ -198,7 +197,9 @@ sap.ui.define([
 			// Take into account currencies that do not have decimal values or the decimal value differs. Example: JPY.
 			// If we switch from a currency which differs we should update the value too.
 			iCurrencyDigits = this._oFormat.oLocaleData.getCurrencyDigits(sValue);
-			if (jQuery.isNumeric(this._iLastCurrencyDigits) && this._iLastCurrencyDigits !== iCurrencyDigits) {
+			if (this._iLastCurrencyDigits != null && this._iLastCurrencyDigits !== iCurrencyDigits) {
+				bRenderValue = true;
+			} else if (this._oFormat.oLocaleData.getCurrencyDigits() !== iCurrencyDigits) {
 				bRenderValue = true;
 			}
 			this._iLastCurrencyDigits = iCurrencyDigits;
@@ -222,7 +223,7 @@ sap.ui.define([
 			return this;
 		};
 
-		/*
+		/**
 		 * UseSymbol property setter.
 		 * @param {boolean} bValue Whether the control must show the currency symbol instead of the ISO currency code
 		 * @return {sap.ui.unified.Currency} <code>this</code> pointer for chaining
@@ -233,7 +234,7 @@ sap.ui.define([
 			return this;
 		};
 
-		/*
+		/**
 		 * MaxPrecision property setter.
 		 * @param {int} iValue The maximum precision value
 		 * @return {sap.ui.unified.Currency} <code>this</code> pointer for chaining

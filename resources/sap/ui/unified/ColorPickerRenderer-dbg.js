@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -29,6 +29,12 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 			bResponsive = oControl.bResponsive;
 
 		oRm.openStart("div", oControl);
+
+		oRm.accessibilityState(oControl, {
+			role: "group",
+			roledescription: sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified").getText("COLOR_PICKER_TITLE")
+		});
+
 		if (bResponsive) {
 			oRm.class("sapUiColorPicker-ColorPickerMatrix");
 			oRm.class("sapUiColorPicker-" + sDisplayMode);
@@ -145,11 +151,10 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 		oRm.renderControl(oControl.getAggregation("_oSlider"));
 		oRm.renderControl(oControl.getAggregation("_oAlphaSlider"));
 		this.renderDesktopSwatchesAndHexFields(oRm, oControl);
-
+		oRm.renderControl(oControl.oRGBorHSLRBUnifiedGroup);
 		oRm.openStart("div");
 		oRm.class("sapUiCPRGBA");
 		oRm.openEnd();
-		oRm.renderControl(oControl.oRbRGB);
 		oRm.renderControl(oControl.getAggregation("_oRedField"));
 		this.renderEmptyDiv(oRm);
 		oRm.renderControl(oControl.getAggregation("_oGreenField"));
@@ -162,7 +167,6 @@ sap.ui.define(['./ColorPickerDisplayMode', "sap/ui/Device"],
 		oRm.openStart("div");
 		oRm.class("sapUiCPHSLV");
 		oRm.openEnd();
-		oRm.renderControl(oControl.oRbHSLV);
 		oRm.renderControl(oControl.getAggregation("_oHueField"));
 		this.renderEmptyDiv(oRm);
 		oRm.renderControl(oControl.getAggregation("_oSatField"));

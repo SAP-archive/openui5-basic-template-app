@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,13 +23,10 @@ sap.ui.define([
 	 * A control will be filtered out by this matcher when:
 	 * <ul>
 	 *     <li>
-	 *         The control is invisible (using the visible matcher)
+	 *         The control is invisible
 	 *     </li>
 	 *     <li>
 	 *         The control or its parents are busy
-	 *     </li>
-	 *     <li>
-	 *         The control or its parents are not enabled
 	 *     </li>
 	 *     <li>
 	 *         The control is hidden behind a dialog
@@ -38,9 +35,23 @@ sap.ui.define([
 	 *         The UIArea of the control needs new rendering
 	 *     </li>
 	 * </ul>
-	 * Since 1.53, Interactable no longer uses internal autoWait functionality.
-	 * Interactable matcher might be made private in the near future.
-	 * It is recommended to enable autoWait OPA option instead of using the Interactable matcher directly.
+	 * <ul>
+	 *      <li>
+	 *         As of version 1.53, the Interactable matcher no longer uses internal autoWait functionality.
+	 *      </li>
+	 *      <li>
+	 *         Interactable matcher might be made private in the near future.
+	 *      </li>
+	 *      <li>
+	 *         It is recommended to enable autoWait OPA option instead of using the Interactable matcher directly.
+	 *      </li>
+	 *      <li>
+	 *         The Interactable matcher doesn't check if a control is enabled or editable.
+	 *         One way to check for these properties is with matchers such as the {@link sap.ui.test.matchers.PropertyStrictEquals} and {@link sap.ui.test.matchers.Properties} matchers.
+	 *         Another way is to use the `enabled` and `editable` properties of {@link sap.ui.test.Opa5#waitFor}.
+	 *         Note that `enabled` is available as of version 1.66, and `editable` is available as of version 1.80.
+	 *      </li>
+	 * </ul>
 	 * @public
 	 * @extends sap.ui.test.matchers.Matcher
 	 * @name sap.ui.test.matchers.Interactable
@@ -69,7 +80,8 @@ sap.ui.define([
 			}
 
 			var oAppWindowJQuery = this._getApplicationWindow().jQuery;
-			var bControlIsInStaticArea = oControl.$().closest("#sap-ui-static").length;
+			var oStaticArea = this._getApplicationWindow().sap.ui.getCore().getStaticAreaRef();
+			var bControlIsInStaticArea = oAppWindowJQuery.contains(oStaticArea, oControl.getDomRef());
 			var bOpenStaticBlockingLayer = oAppWindowJQuery("#sap-ui-blocklayer-popup").is(":visible");
 
 			if (!bControlIsInStaticArea && bOpenStaticBlockingLayer) {

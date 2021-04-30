@@ -1,20 +1,21 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides TablePersoDialog
 sap.ui.define([
 	'./Text',
+	'./Title',
 	'./Label',
-	'./ToolbarSpacer',
 	'./Column',
 	'./Button',
 	'./Dialog',
 	'./ColumnListItem',
 	'./Table',
 	'./Toolbar',
+	'./Bar',
 	'sap/ui/base/ManagedObject',
 	'sap/ui/base/ManagedObjectRegistry',
 	'sap/base/Log',
@@ -31,14 +32,15 @@ sap.ui.define([
 ],
 	function(
 		Text,
+		Title,
 		Label,
-		ToolbarSpacer,
 		Column,
 		Button,
 		Dialog,
 		ColumnListItem,
 		Table,
 		Toolbar,
+		Bar,
 		ManagedObject,
 		ManagedObjectRegistry,
 		Log,
@@ -84,7 +86,7 @@ sap.ui.define([
 	 * @class Table Personalization Dialog
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @alias sap.m.TablePersoDialog
 	 */
 	var TablePersoDialog = ManagedObject.extend("sap.m.TablePersoDialog", /** @lends sap.m.TablePersoDialog */
@@ -284,14 +286,12 @@ sap.ui.define([
 			}.bind(this)
 		}).addStyleClass("sapMPersoDialogResetBtn");
 
-		var oHeader = new Toolbar({
-			content: [
-				new Text(this.getId() + "-Dialog-title",{
+		var oHeader = new Bar({
+			contentLeft:
+				new Title(this.getId() + "-Dialog-title",{
 					text: this._oRb.getText("PERSODIALOG_COLUMNS_TITLE")
 				}),
-				new ToolbarSpacer(),
-				this._resetAllButton
-			]
+			contentRight: this._resetAllButton
 		});
 
 		var oSubHeader = new Toolbar(this.getId() + "-toolbar", {
@@ -301,6 +301,7 @@ sap.ui.define([
 		});
 
 		this._oDialog = new Dialog(this.getId() + "-Dialog", {
+			title: this._oRb.getText("PERSODIALOG_COLUMNS_TITLE"),
 			customHeader: oHeader,
 			draggable: true,
 			resizable: true,
@@ -331,6 +332,11 @@ sap.ui.define([
 			}),
 			afterOpen: this._fnAfterDialogOpen
 		}).addStyleClass("sapMPersoDialog");
+
+		this._oDialog.setTitle = function(sTitle) {
+			this.setProperty("title", sTitle);
+			this.getCustomHeader().getContentLeft()[0].setText(sTitle);
+		};
 	};
 
 	TablePersoDialog.prototype._updateMarkedItem = function(){
@@ -410,12 +416,14 @@ sap.ui.define([
 
 
 	TablePersoDialog.prototype.setContentHeight = function(sHeight) {
+		sHeight = sHeight ? sHeight : "28rem";
 		this.setProperty("contentHeight", sHeight, true);
 		this._oDialog.setContentHeight(sHeight);
 		return this;
 	};
 
 	TablePersoDialog.prototype.setContentWidth = function(sWidth) {
+		sWidth = sWidth ? sWidth : "25rem";
 		this.setProperty("contentWidth", sWidth, true);
 		this._oDialog.setContentWidth(sWidth);
 		return this;
@@ -628,8 +636,8 @@ sap.ui.define([
 			if (oBar.getContent().length === 1) {
 				// Only search field is displayed, add up- and down
 				// buttons
-				oBar.insertContent(this._oButtonDown, 0);
-				oBar.insertContent(this._oButtonUp, 0);
+				oBar.addContent(this._oButtonDown);
+				oBar.addContent(this._oButtonUp);
 			}
 		} else {
 			oBar.removeContent(this._oButtonUp);

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -80,7 +80,7 @@ sap.ui.define([
 	 * <code>sapUiResponsivePadding--header</code>.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -793,9 +793,9 @@ sap.ui.define([
 	 */
 	ObjectHeader.prototype.getFocusDomRef = function() {
 		if (this.getResponsive()) {
-			return this.$("txt");
+			return this.$("txt")[0];
 		} else {
-			return this.$("title");
+			return this.$("title")[0];
 		}
 	};
 
@@ -1045,7 +1045,8 @@ sap.ui.define([
 				// If there isn't an alt, then just add a default 'Icon' just in case
 				alt: this.getIconAlt() || ObjectHeader._getResourceBundle().getText("OH_ARIA_ICON"),
 				useIconTooltip : false,
-				densityAware : this.getIconDensityAware()
+				densityAware : this.getIconDensityAware(),
+				decorative : false
 			},
 				IconPool.isIconURI(this.getIcon()) ? { size : sSize } : {}
 		);
@@ -1060,7 +1061,6 @@ sap.ui.define([
 			}.bind(this);
 			mProperties.decorative = false;
 		}
-
 
 		this._oImageControl = ImageHelper.getImageControl(sImgId, this._oImageControl, this, mProperties);
 

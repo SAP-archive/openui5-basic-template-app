@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -63,7 +63,7 @@ sap.ui.define([
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -342,11 +342,12 @@ sap.ui.define([
 	Table.prototype.onBeforeRendering = function() {
 		ListBase.prototype.onBeforeRendering.call(this);
 
+		if (this.getFixedLayout()) {
+			this._bHasDynamicWidthCol = this._hasDynamicWidthColumn();
+		}
+
 		if (this.getAutoPopinMode()) {
 			this._configureAutoPopin();
-			this._bAutoPopinMode = true;
-		} else {
-			this._bAutoPopinMode = false;
 		}
 
 		// for initial contextualWidth setting
@@ -354,6 +355,23 @@ sap.ui.define([
 
 		this._ensureColumnsMedia();
 		this._notifyColumns("ItemsRemoved");
+	};
+
+	/*
+	 * Returns whether a visible column has dynamic width or not
+	 * @protected
+	 */
+	Table.prototype._hasDynamicWidthColumn = function(oColumn, sColumnWidth) {
+		if (!this.bRenderDummyColumn || !this.getFixedLayout()) {
+			return true;
+		}
+
+		return this.getColumns().some(function(oCurrentColumn) {
+			if (oCurrentColumn.getVisible()) {
+				var sWidth = oColumn && oColumn.getId() === oCurrentColumn.getId() ? sColumnWidth : oCurrentColumn.getWidth();
+				return !sWidth || sWidth === "auto";
+			}
+		});
 	};
 
 	Table.prototype._ensureColumnsMedia = function() {
@@ -372,11 +390,22 @@ sap.ui.define([
 			this._forceStyleChange();
 		}
 		this._renderOverlay();
-		if (this._bPopinChanged) {
-			setTimeout(function() {
-				this._firePopinChangedEvent();
-			}.bind(this), 0);
-			this._bPopinChanged = false;
+
+		if (this._bFirePopinChanged) {
+			this._firePopinChangedEvent();
+			this._bFirePopinChanged = false;
+		} else {
+			var aHiddenInPopin = this._getHiddenInPopin();
+			if (this._aHiddenInPopin && this.getVisibleItems().length) {
+				if (aHiddenInPopin.length !== this._aHiddenInPopin.length || !aHiddenInPopin.every(function(oPopinCol) {
+					return this._aHiddenInPopin.indexOf(oPopinCol) > -1;
+				}, this)) {
+					this._aHiddenInPopin = aHiddenInPopin;
+					this._firePopinChangedEvent();
+				}
+			} else if (this._aHiddenInPopin == null) {
+				this._aHiddenInPopin = aHiddenInPopin;
+			}
 		}
 	};
 
@@ -466,6 +495,19 @@ sap.ui.define([
 		return this.getColumns().some(function(oColumn) {
 			return oColumn.getVisible();
 		});
+	};
+
+	/*
+	 * This hook method is called from GrowingEnablement to determine whether
+	 * growing should suppress Table invalidation
+	 * @overwrite
+	 */
+	Table.prototype.shouldGrowingSuppressInvalidation = function() {
+		if (this.getAutoPopinMode()) {
+			return false;
+		}
+
+		return ListBase.prototype.shouldGrowingSuppressInvalidation.call(this);
 	};
 
 	// this gets called when item type column requirement is changed
@@ -567,15 +609,7 @@ sap.ui.define([
 
 			if (!hasPopin) {
 				oColumn.setDisplay(this.getTableDomRef(), !oColumn.isHidden());
-				setTimeout(function() {
-					var aHiddenInPopin = this.getHiddenInPopin() || [];
-					var bHideColumn = aHiddenInPopin.some(function(sImportance) {
-						return !!sImportance;
-					});
-					if (bHideColumn) {
-						this._firePopinChangedEvent();
-					}
-				}.bind(this), 100);
+				this._firePopinChangedEvent();
 				return;
 			}
 		}
@@ -584,6 +618,7 @@ sap.ui.define([
 		if (!this._mutex) {
 			var clean = this._getMediaContainerWidth() || window.innerWidth;
 			this._mutex = true;
+			this._bFirePopinChanged = true;
 			this.rerender();
 
 			// do not re-render if resize event comes so frequently
@@ -591,6 +626,7 @@ sap.ui.define([
 				// but check if any event come during the wait-time
 				if (this._dirty != clean) {
 					this._dirty = 0;
+					this._bFirePopinChanged = true;
 					this.rerender();
 				}
 				this._mutex = false;
@@ -634,6 +670,10 @@ sap.ui.define([
 		this._colCount = aVisibleColumns.length + 3 + !!ListBaseRenderer.ModeOrder[this.getMode()];
 		this.$("tblBody").find(".sapMGHLICell").attr("colspan", this.getColSpan());
 		this.$("nodata-text").attr("colspan", this.getColCount());
+
+		if (this.hasPopin()) {
+			this.$("tblBody").find(".sapMListTblSubRowCell").attr("colspan", this.getColSpan());
+		}
 
 		// force IE to repaint in fixed layout mode
 		if (this.getFixedLayout()) {
@@ -683,16 +723,25 @@ sap.ui.define([
 			return;
 		}
 
-		return this._selectAllCheckBox || (this._selectAllCheckBox = new CheckBox({
-			id: this.getId("sa"),
-			activeHandling: false
-		}).addStyleClass("sapMLIBSelectM").setParent(this, null, true).attachSelect(function () {
-			if (this._selectAllCheckBox.getSelected()) {
-				this.selectAll(true);
-			} else {
-				this.removeSelections(false, true);
-			}
-		}, this).setTabIndex(-1));
+		if (!this._selectAllCheckBox) {
+			this._selectAllCheckBox = new CheckBox({
+				id: this.getId("sa"),
+				activeHandling: false
+			}).addStyleClass("sapMLIBSelectM").setParent(this, null, true).attachSelect(function () {
+				if (this._selectAllCheckBox.getSelected()) {
+					this.selectAll(true);
+				} else {
+					this.removeSelections(false, true);
+				}
+			}, this).setTabIndex(-1);
+		}
+
+		// prevent disabling of internal controls by the sap.ui.core.EnabledPropagator
+		this._selectAllCheckBox.getEnabled = function() {
+			return this._selectAllCheckBox.getProperty("enabled");
+		}.bind(this);
+
+		return this._selectAllCheckBox;
 	};
 
 	/*
@@ -738,7 +787,8 @@ sap.ui.define([
 	 * @protected
 	 */
 	Table.prototype.getColSpan = function() {
-		return (this._colCount || 1 ) - 2;
+		var iInternalTDs = this.shouldRenderDummyColumn() ? 3 : 2;
+		return (this._colCount || 1 ) - iInternalTDs;
 	};
 
 	/*
@@ -747,6 +797,14 @@ sap.ui.define([
 	 */
 	Table.prototype.getColCount = function() {
 		return (this._colCount || 0);
+	};
+
+	/*
+	 * Returns whether the dummy column should be rendered.
+	 * @protected
+	 */
+	Table.prototype.shouldRenderDummyColumn = function() {
+		return this.bRenderDummyColumn && this.getFixedLayout() && !this._bHasDynamicWidthCol;
 	};
 
 	/*
@@ -965,49 +1023,17 @@ sap.ui.define([
 		});
 	};
 
-	Table.prototype.onColumnRecalculateAutoPopin = function(oColumn, bRecalculate) {
-		if (this.getAutoPopinMode()) {
-			this._configureAutoPopin(bRecalculate);
-		}
-	};
-
-	/**
-	 * Returns a boolean indicating whether recalcultation is necessary for the auto pop-in mode.
-	 *
-	 * @param {Array} aVisibleColumns visible columns
-	 * @returns {boolean} returns true if recalculation if necessary else false
-	 * @private
-	 */
-	Table.prototype._requireAutoPopinRecalculation = function(aVisibleColumns) {
-		var bAutoPopinMode = this.getAutoPopinMode();
-
-		if (this._bAutoPopinMode !== bAutoPopinMode) {
-			this._bAutoPopinMode = bAutoPopinMode;
-			return true;
-		}
-
-		if (aVisibleColumns.length !== this._aVisibleColumns.length) {
-			return true;
-		}
-
-		for (var i = 0; i < aVisibleColumns.length; i++) {
-			if (aVisibleColumns[i] !== this._aVisibleColumns[i]) {
-				return true;
-			}
-		}
-
-		return false;
-	};
-
 	/**
 	 * Function for configuring the autoPopinMode of the table control.
 	 *
-	 * @param {boolean} bRecalculate Recalculation for the auto pop-in mode
-	 * @function
-	 * @name _configureAutoPopin
 	 * @private
 	 */
-	Table.prototype._configureAutoPopin = function(bRecalculate) {
+	Table.prototype._configureAutoPopin = function() {
+		// prevent recalculation when rerendering is caused when column is moved to the popin-area
+		if (this._mutex) {
+			return;
+		}
+
 		var aVisibleColumns = this.getColumns(true).filter(function(oColumn) {
 			return oColumn.getVisible();
 		});
@@ -1016,117 +1042,90 @@ sap.ui.define([
 			return;
 		}
 
-		if (!this._aVisibleColumns || !bRecalculate && this._requireAutoPopinRecalculation(aVisibleColumns)) {
-			this._aVisibleColumns = aVisibleColumns;
-			if (!bRecalculate) {
-				bRecalculate = true;
-			}
-		}
+		var aItems = this.getItems();
+		var mPrioColumns = {
+			High: [],
+			Medium: [],
+			Low: []
+		};
 
-		if (bRecalculate) {
-			var aItems = this.getItems();
-			var aHighCols = [];
-			var aMedCols = [];
-			var aLowCols = [];
-
-			// divide table columns by importance
-			for (var i = 0; i < aVisibleColumns.length; i++) {
-				var sImportance = aVisibleColumns[i].getImportance();
-				if (sImportance === "Medium" || sImportance === "None") {
-					aMedCols.push(aVisibleColumns[i]);
-				} else if (sImportance === "High") {
-					aHighCols.push(aVisibleColumns[i]);
-				} else {
-					aLowCols.push(aVisibleColumns[i]);
+		aVisibleColumns.forEach(function(oColumn) {
+				var sImportance = oColumn.getImportance();
+				if (sImportance === "None") {
+					sImportance = "Medium";
 				}
-			}
+				mPrioColumns[sImportance].push(oColumn);
+			});
 
-			// 6.5 is a fallback in case items are not found initially
-			// selectionControl + navCol + HighlightCol + NavigatedIndicatorCol = ~6.5rem
-			var fAccumulatedWidth = this._getInitialAccumulatedWidth(aItems) || 6.5;
-			fAccumulatedWidth = Table._updateAccumulatedWidth(aHighCols, aHighCols.length > 0, fAccumulatedWidth);
-			fAccumulatedWidth = Table._updateAccumulatedWidth(aMedCols, aHighCols.length === 0 && aMedCols.length > 0, fAccumulatedWidth);
-			Table._updateAccumulatedWidth(aLowCols, aHighCols.length === 0 && aMedCols.length === 0 && aLowCols.length > 0, fAccumulatedWidth);
-		}
+		var aPrioColumns = Object.keys(mPrioColumns).map(function(sPriority) {
+			return mPrioColumns[sPriority];
+		});
+		var oMostImportantColumn = aPrioColumns.find(String)[0];
+
+		aPrioColumns.reduce(function(fTotalWidth, aColumns) {
+			return Table._updateAccumulatedWidth(aColumns, oMostImportantColumn, fTotalWidth);
+		}, this._getInitialAccumulatedWidth(aItems));
 	};
 
 	/**
-	 * By side of the autoPopinWidth property of the column also the technical columns like highlights, selection, navigation
-	 * and navigated should be taken into consideration for the minScreenWidth calculation to get better results.
-	 * This function checks, based on the table and its items settings, which of the above columns will be visible and
-	 * calculates the initial accumulated width.
+	 * Returns the sum of internal columns that are created by the table like "Mode" & "Type" as a float value.
+	 * This is required for accurately calculating the <code>minScreenWidth</code> property of the columns when the <code>autoPopinMode=true</code>.
 	 *
-	 * @function
-	 * @name _getInitialAccumulatedWidth
-	 * @param {array} aItems - sap.m.ListItemBase[]
+	 * @param {sap.m.ColumnListItem[]} aItems - table items
 	 * @returns {float} initial accumulated width
 	 * @private
 	 */
 	Table.prototype._getInitialAccumulatedWidth = function(aItems) {
-		// check if highlight is available
-		var oItemWithHighlight = aItems.find(function(oItem) {
-			return oItem.getHighlight() !== "None";
-		});
-		var iHighlightWidth = oItemWithHighlight ? 0.375 : 0;
+		// check if table has inset
+		var iInset = this.getInset() ? 4 : 0;
+
+		var iThemeDensityWidth = this.$().closest(".sapUiSizeCompact").length ? 2 : 3;
 
 		// check if selection control is available
-		var iSelectionWidth = this.getMode() === "MultiSelect" || this.getMode() === "Delete" ? 3 : 0;
+		var iSelectionWidth = ListBaseRenderer.ModeOrder[this.getMode()] ? iThemeDensityWidth : 0;
 
 		// check if actions are available on the item
-		var oItemIsActionable = aItems.find(function(oItem) {
+		var iActionWidth = aItems.some(function(oItem) {
 			var sType = oItem.getType();
-			return sType === "Detail" || sType === "DetailAndActive" || oItem.getType() === "Navigation";
-		});
-		var iActionWidth = oItemIsActionable ? 3 : 0;
+			return sType === "Detail" || sType === "DetailAndActive" || sType === "Navigation";
+		}) ? iThemeDensityWidth : 0;
 
-		// check for naivgated state
-		var oItemIsNavigated = aItems.find(function(oItem) {
-			return oItem.getNavigated();
-		});
-		var iNavigatedWidth = oItemIsNavigated ? 0.1875 : 0;
-
-		return iHighlightWidth + iSelectionWidth + iActionWidth + iNavigatedWidth;
+		// Inset + HighlightCol + NavigatedIndicatorCol + borders = ~0.65rem
+		return iInset + iSelectionWidth + iActionWidth + 0.65;
 	};
 
 	/**
-	 * Recalculate and returns import parameter fAccumulatedWidth.
-	 * Overwrites column property minScreenWidth based on import parameter bSkipPopinForFirst
-	 * and the column width property.
+	 * Updates the <code>demandPopin</code> and <code>minScreenWidth</code> on the columns
 	 *
-	 * @function
-	 * @name _updateAccumulatedWidth
-	 * @param {array} aCols - Array of sap.m.Column[] all with the same importance
-	 * @param {boolean} bSkipPopinForFirst - skip demandPopin for first aCols[]
+	 * @param {array} aColumns - Array of sap.m.Column[] all with the same importance
+	 * @param {sap.m.Column} oMostImportantColumn - skip demandPopin and minScreenWidth for the most importance column
 	 * @param {float} fAccumulatedWidth - start point for the new  calculated fAccumulatedWidth
 	 * @returns {float} new calculated fAccumulatedWidth
 	 * @private
 	 */
-	Table._updateAccumulatedWidth = function(aCols, bSkipPopinForFirst, fAccumulatedWidth) {
-		var fAutoPopinWidth = fAccumulatedWidth;
-		for (var i = 0; i < aCols.length; i++) {
-			aCols[i].setDemandPopin(!(bSkipPopinForFirst && i === 0));
-			var sWidth = aCols[i].getWidth();
+	Table._updateAccumulatedWidth = function(aColumns, oMostImportantColumn, fAccumulatedWidth) {
+		aColumns.forEach(function(oColumn) {
+			var sWidth = oColumn.getWidth();
 			var sUnit = sWidth.replace(/[^a-z]/ig, "");
 			var sBaseFontSize = parseFloat(library.BaseFontSize) || 16;
 
 			// check for column width unit
-			if (sUnit === "" || sUnit === "auto") {
-				// column has a flexible width, such as % or auto, so we use autoPopinWidth property for the calculation
-				fAutoPopinWidth = fAutoPopinWidth + aCols[i].getAutoPopinWidth();
-			} else if (sUnit === "px") {
+			if (sUnit === "px") {
 				// column has a fixed width -> convert column width from px into float rem value
-				fAutoPopinWidth = fAutoPopinWidth + parseFloat((parseFloat(sWidth).toFixed(2) / sBaseFontSize).toFixed(2));
+				fAccumulatedWidth += parseFloat((parseFloat(sWidth).toFixed(2) / sBaseFontSize).toFixed(2));
 			} else if (sUnit === "em" || sUnit === "rem") {
 				// column has a fixed width -> convert to float in any case to get only the column width value
-				fAutoPopinWidth = fAutoPopinWidth + parseFloat(sWidth);
+				fAccumulatedWidth += parseFloat(sWidth);
+			} else {
+				// column has a flexible width, such as % or auto, so we use autoPopinWidth property for the calculation
+				fAccumulatedWidth += oColumn.getAutoPopinWidth();
 			}
 
-			// overwrite column minScreenWidth property only if demandPopin is set to true
-			if (aCols[i].getDemandPopin()) {
-				aCols[i].setMinScreenWidth(fAutoPopinWidth + "rem");
-			}
-		}
-		return fAutoPopinWidth;
+			oColumn.setDemandPopin(oColumn !== oMostImportantColumn);
+			oColumn.setMinScreenWidth(oColumn !== oMostImportantColumn ? fAccumulatedWidth + "rem" : "");
+		});
+
+		return fAccumulatedWidth;
 	};
 
 	Table.prototype._getHiddenInPopin = function() {
@@ -1138,7 +1137,6 @@ sap.ui.define([
 			return oVisibleColumn._media && !oVisibleColumn._media.matches && !oVisibleColumn.isPopin();
 		});
 
-		this._iHiddenPopinColumns = aHiddenPopinColumns.length;
 		return aHiddenPopinColumns;
 	};
 
@@ -1147,6 +1145,21 @@ sap.ui.define([
 			hasPopin: this.hasPopin(),
 			hiddenInPopin: this._getHiddenInPopin()
 		});
+	};
+
+	Table.prototype._fireUpdateFinished = function(oInfo) {
+		ListBase.prototype._fireUpdateFinished.apply(this, arguments);
+
+		// fire popinChanged when visible items length become 0 from greater than 0 as a result of binding changes
+		// fire popinChanged when visible items length become greater than 0 from 0 as a result of binding changes
+		var iVisibleItemsLength = this.getVisibleItems().length;
+		if (!this._iVisibleItemsLength && iVisibleItemsLength > 0) {
+			this._iVisibleItemsLength = iVisibleItemsLength;
+			this._firePopinChangedEvent();
+		} else if (this._iVisibleItemsLength > 0 && !iVisibleItemsLength) {
+			this._iVisibleItemsLength = iVisibleItemsLength;
+			this._firePopinChangedEvent();
+		}
 	};
 
 	return Table;

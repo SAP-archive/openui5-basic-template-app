@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,18 +43,18 @@ sap.ui.define([
 	 */
 	return /** @lends sap.ui.core.util.reflection.BaseTreeModifier */{
 
-		/** Function determining the control targeted by the change.
-		* The function distinguishes between local IDs generated starting with 1.40 and the global IDs generated in previous versions.
-		*
-		* @param {object} oSelector - Target of a flexibility change
-		* @param {string} [oSelector.id] - ID of the control targeted by the change. (name or id property is mandatory for selector)
-		* @param {boolean} [oSelector.isLocalId] - <code>true</code> if the ID within the selector is a local ID or a global ID
-		* @param {string} [oSelector.name] - Name of the extension point targeted by the change. (name or id property is mandatory for selector)
-		* @param {sap.ui.core.UIComponent} oAppComponent - Application component
-		* @param {Element} oView - For XML processing only: XML node of the view
-		* @returns {sap.ui.base.ManagedObject|Element} Control representation targeted within the selector
-		* @throws {Error} In case no control could be determined, an error is thrown
-		* @public
+		/**
+		 * Function determining the control targeted by the change.
+		 *
+		 * @param {object} oSelector - Target of a flexibility change
+		 * @param {string} [oSelector.id] - ID of the control targeted by the change. (name or id property is mandatory for selector)
+		 * @param {boolean} [oSelector.isLocalId] - <code>true</code> if the ID within the selector is a local ID or a global ID
+		 * @param {string} [oSelector.name] - Name of the extension point targeted by the change. (name or id property is mandatory for selector)
+		 * @param {sap.ui.core.UIComponent} oAppComponent - Application component
+		 * @param {Element} oView - For XML processing only: XML node of the view
+		 * @returns {sap.ui.base.ManagedObject|Element} Control representation targeted within the selector
+		 * @throws {Error} In case no control could be determined, an error is thrown
+		 * @public
 		*/
 		bySelector: function (oSelector, oAppComponent, oView) {
 			var sControlId;
@@ -67,15 +67,16 @@ sap.ui.define([
 			return this._byId(sControlId, oView);
 		},
 
-		/** Function determining the control ID from the selector.
-		* The function distinguishes between local IDs generated starting with 1.40 and the global IDs generated in previous versions.
-		* @param {object} oSelector - Target of a flexiblity change
-		* @param {string} oSelector.id - ID of the control targeted by the change
-		* @param {boolean} oSelector.isLocalId - <code>true</code> if the ID within the selector is a local ID or a global ID
-		* @param {sap.ui.core.UIComponent} oAppComponent - Application component
-		* @returns {string} ID of the control
-		* @throws {Error} In case no control could be determined, an error is thrown
-		* @protected
+		/**
+		 * Function determining the control ID from the selector.
+		 *
+		 * @param {object} oSelector - Target of a flexiblity change
+		 * @param {string} oSelector.id - ID of the control targeted by the change
+		 * @param {boolean} oSelector.isLocalId - <code>true</code> if the ID within the selector is a local ID or a global ID
+		 * @param {sap.ui.core.UIComponent} oAppComponent - Application component
+		 * @returns {string} ID of the control
+		 * @throws {Error} In case no control could be determined, an error is thrown
+		 * @protected
 		*/
 		getControlIdBySelector: function (oSelector, oAppComponent) {
 			if (!oSelector){
@@ -96,26 +97,13 @@ sap.ui.define([
 				} else {
 					throw new Error("App Component instance needed to get a control's ID from selector");
 				}
-			} else {
-				// does nothing except in the case of a FLP prefix
-				var pattern = /^application-[^-]*-[^-]*-component---/igm;
-				var bHasFlpPrefix = !!pattern.exec(oSelector.id);
-				if (bHasFlpPrefix) {
-					sControlId = sControlId.replace(/^application-[^-]*-[^-]*-component---/g, "");
-					if (oAppComponent) {
-					sControlId = oAppComponent.createId(sControlId);
-					} else {
-					throw new Error("App Component instance needed to get a control's ID from selector");
-					}
-				}
 			}
 
 			return sControlId;
 		},
 
-
-		/** Function for determining the selector that is used later to apply a change for a given control.
-		 * The function distinguishes between local IDs generated starting with 1.40 and the global IDs generated in previous versions.
+		/**
+		 * Function for determining the selector that is used later to apply a change for a given control.
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element|string} vControl - Control or ID string for which the selector should be determined
 		 * @param {sap.ui.core.Component} oAppComponent - Application component, needed only if <code>vControl</code> is a string or XML node
@@ -261,43 +249,17 @@ sap.ui.define([
 		},
 
 		/**
-		 * Checks if the element is an instance of the type.
-		 *
-		 * @param {object} oElement - Element to be checked
-		 * @param {string} sType - Type that the element should be checked against
-		 * @returns {boolean} <code>true</code> if the element is an instance of the type
-		 */
-		_isInstanceOf: function(oElement, sType) {
-			var oInstance = ObjectPath.get(sType);
-			if (typeof oInstance === "function") {
-				return oElement instanceof oInstance;
-			} else {
-				return false;
-			}
-		},
-
-		/**
-		 * Checks if the element has the interface.
-		 *
-		 * @param {object} oElement - Element
-		 * @param {string} sInterface - Interface that should be in the element
-		 * @returns {boolean} <code>true</code> if the element has the interface
-		 */
-		_hasInterface: function(oElement, sInterface) {
-			var aInterfaces = oElement.getMetadata().getInterfaces();
-			return aInterfaces.indexOf(sInterface) !== -1;
-		},
-
-		/**
 		 * Gets the metadata of an XML control.
 		 *
 		 * @param {Element} oControl - Control in XML
 		 * @returns {sap.ui.base.Metadata} Metadata of the control
 		 */
 		_getControlMetadataInXml: function(oControl) {
-			var sControlType = this._getControlTypeInXml(oControl);
-			jQuery.sap.require(sControlType);
-			var ControlType = ObjectPath.get(sControlType);
+			var sControlType = this._getControlTypeInXml(oControl).replace(/\./g, "/");
+			var ControlType = sap.ui.require(sControlType);
+			if (!ControlType) {
+				ControlType = sap.ui.requireSync(sControlType);
+			}
 			return ControlType.getMetadata();
 		},
 
@@ -440,16 +402,16 @@ sap.ui.define([
 		getVisible: function (vControl) {},
 
 		/**
-		 * See {@link sap.ui.core.StashedControlSupport#setVisible} method.
+		 * Sets the new value for stashed and visible.
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
-		 * @param {boolean} bVisible - New value for <code>stashed</code> property
+		 * @param {boolean} bStashed - New value for <code>stashed</code> property
 		 * @public
 		 */
 		setStashed: function (vControl, bStashed) {},
 
 		/**
-		 * See {@link sap.ui.core.StashedControlSupport#getVisible} method.
+		 * Retrieves the current value of the stashed property.
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
 		 * @returns {boolean} <code>true</code> if the control is stashed
@@ -544,6 +506,17 @@ sap.ui.define([
 		 * @public
 		 */
 		getPropertyBinding: function (vControl, sPropertyName) {},
+
+
+		/**
+		 * Creates and add a Custom Data object to the control.
+		 *
+		 * @param {sap.ui.base.ManagedObject} oControl - Control representation
+		 * @param {string} sCustomDataKey - Key for the Custom Data
+		 * @param {string} sValue - Value for the Custom Data
+		 * @param {sap.ui.core.Component} oAppComponent - App Component Instance
+		 */
+		createAndAddCustomData: function(oControl, sCustomDataKey, sValue, oAppComponent) {},
 
 		/**
 		 * Creates the control in the corresponding representation.
@@ -786,8 +759,10 @@ sap.ui.define([
 		/**
 		 * Gets the "sap.ui.fl" namespaced special settings in the custom data.
 		 *
+		 * The method is not to be used directly, but to be implemented by modifiers
+		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
-		 * @protected The method is not to be used directly, but to be implemented by modifiers
+		 * @protected
 		 * @abstract
 		 */
 		_getFlexCustomData : function(vControl) {},
@@ -801,6 +776,8 @@ sap.ui.define([
 		 * @property {string} [payload.path] Relative/absolute path to a node in a UI5 model, optional if it can be derived by the delegate, e.g. from binding context
 		 * @property {string} [payload.modelName] Runtime model name, optional if default model is used (allows to support named models)
 		 * @property {any} [payload.something] Payload can contain additional delegate-specific keys and values (not just "something" as a key, the key can be defined as well as the values)
+		 * @private
+		 * @ui5-restricted sap.ui.fl, sap.ui.rta, sap.ui.model.meta, implementations of sap.ui.fl.interfaces.Delegate, control change handler and provider
 		 */
 
 		/**

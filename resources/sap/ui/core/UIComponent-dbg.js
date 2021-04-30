@@ -1,6 +1,6 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,6 +9,7 @@ sap.ui.define([
 	'../base/ManagedObject',
 	'./Component',
 	'./library',
+	'sap/ui/core/mvc/XMLProcessingMode',
 	'./UIComponentMetadata',
 	'./mvc/Controller',
 	'./mvc/View',
@@ -19,6 +20,7 @@ sap.ui.define([
 		ManagedObject,
 		Component,
 		library,
+		XMLProcessingMode,
 		UIComponentMetadata,
 		Controller,
 		View,
@@ -55,7 +57,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Component
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @alias sap.ui.core.UIComponent
 	 * @since 1.9.2
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
@@ -438,6 +440,7 @@ sap.ui.define([
 	/**
 	 * Returns the reference to the router instance which has been created by
 	 * the UIComponent once the routes in the routing metadata has been defined.
+	 *
 	 * @since 1.16.1
 	 * @return {sap.ui.core.routing.Router} the router instance
 	 * @public
@@ -446,6 +449,19 @@ sap.ui.define([
 		return this._oRouter;
 	};
 
+	/**
+	 * Determines if the router instance is created by the component and not overriden by overridding the
+	 * <code>{@link sap.ui.core.UIComponent#getRouter}</code> method.
+	 *
+	 * @since 1.84.0
+	 * @return {boolean} If <code>{@link sap.ui.core.UIComponent#getRouter}</code> is overriden returns
+	 *  <code>false</code>, otherwise <code>true</code>
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 */
+	UIComponent.prototype.hasNativeRouter = function() {
+		return this._oRouter === this.getRouter();
+	};
 
 	/**
 	 * Returns the reference to the Targets instance which has been created by
@@ -543,7 +559,7 @@ sap.ui.define([
 	 * Subclasses are not limited to views as return type but may return any control, but only a single control
 	 * (can be the root of a larger control tree, however).
 	 *
-	 * @returns {sap.ui.core.mvc.View|sap.ui.core.Control} Root control of the UI tree or <code>null</code> if none is configured
+	 * @returns {sap.ui.core.Control|null} Root control of the UI tree or <code>null</code> if none is configured
 	 * @throws {Error} When the root view configuration could not be interpreted; subclasses might throw errors also for other reasons
 	 * @public
 	 */
@@ -563,9 +579,9 @@ sap.ui.define([
 			if (oRootView.id) {
 				oRootView.id = this.createId(oRootView.id);
 			}
-			// for now the processing mode is always set to "sequential" for XMLViews
+			// for now the processing mode is always set to <code>XMLProcessingMode.Sequential</code> for XMLViews
 			if (oRootView.async && oRootView.type === ViewType.XML) {
-				oRootView.processingMode = "sequential";
+				oRootView.processingMode = XMLProcessingMode.Sequential;
 			}
 			return View._legacyCreate(oRootView);
 		} else if (oRootView) {

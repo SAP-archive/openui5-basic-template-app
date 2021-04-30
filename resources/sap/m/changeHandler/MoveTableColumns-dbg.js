@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/thirdparty/jquery"], function(Log, jQuery
 	 *
 	 * @alias sap.m.changeHandler.MoveTableColumns
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @experimental Since 1.48
 	 */
 	var MoveTableColumns = {};
@@ -91,7 +91,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/thirdparty/jquery"], function(Log, jQuery
 
 			iCurrentIndexInAggregation = aColumns.indexOf(oMovedElement);
 			iStoredSourceIndexInChange = mMovedElement.sourceIndex;
-			iTargetIndex = jQuery.isFunction(fnIterator) && fnIterator(iCurrentIndexInAggregation);
+			iTargetIndex = typeof fnIterator === "function" && fnIterator(iCurrentIndexInAggregation);
 			iTargetIndex = jQuery.isNumeric(iTargetIndex) ? iTargetIndex : mMovedElement.targetIndex;
 
 			if (iCurrentIndexInAggregation !== iTargetIndex) {

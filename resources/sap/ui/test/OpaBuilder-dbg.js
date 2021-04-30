@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -73,8 +73,16 @@ sap.ui.define(
             }, false);
         }
 
+        function _isArguments(vValue) {
+            return Object.prototype.toString.call(vValue) === "[object Arguments]";
+        }
+
         function _parseArguments(aExpectedTypes) {
             var aArguments = Array.prototype.slice.call(arguments, 1);
+
+            if (aArguments.length === 1 && _isArguments(aArguments[0])) {
+                aArguments = Array.prototype.slice.call(aArguments[0], 0);
+            }
 
             return aExpectedTypes.reduce(function (aActualArguments, vExpectedType) {
                 if (_isOfType(aArguments[0], vExpectedType, true)) {
@@ -185,6 +193,13 @@ sap.ui.define(
                 sModel = iModelSplitIndex === -1 ? undefined : sFullPath.substring(0, iModelSplitIndex),
                 sPath = iModelSplitIndex === -1 ? sFullPath : sFullPath.substring(iModelSplitIndex + 1);
             return {model: sModel, path: sPath};
+        }
+
+        function _createConditionsMatcher(vConditions) {
+            if (_isOfType(vConditions, Boolean)) {
+                return vConditions ? OpaBuilder.Matchers.TRUE : OpaBuilder.Matchers.FALSE;
+            }
+            return OpaBuilder.Matchers.match(vConditions);
         }
 
         var _oDefaultOptions = {
@@ -483,9 +498,22 @@ sap.ui.define(
         };
 
         /**
+         * Adds a matcher that checks whether at least one child fulfilling given matcher(s).
+         *
+         * @param {sap.ui.test.matchers.Matcher | function | Array | Object | sap.ui.test.OpaBuilder}
+         *                [vBuilderOrMatcher] the matchers to filter child items
+         * @param {boolean} [bDirect] specifies if the ancestor should be a direct ancestor (parent)
+         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @public
+         */
+        OpaBuilder.prototype.hasChildren = function (vBuilderOrMatcher, bDirect) {
+            return this.has(OpaBuilder.Matchers.childrenMatcher(vBuilderOrMatcher, bDirect));
+        };
+
+        /**
          * Adds a matcher that checks states for given conditions. It is internally using {@link OpaBuilder.Matchers.conditional}.
          *
-         * @param {sap.ui.test.matchers.Matcher | function | Array | Object} vConditions conditions to pre-check
+         * @param {sap.ui.test.matchers.Matcher | function | Array | Object | boolean} vConditions conditions to pre-check
          * @param {sap.ui.test.matchers.Matcher | function | Array | Object} vSuccessMatcher actual matcher that is executed if conditions are met
          * @param {sap.ui.test.matchers.Matcher | function | Array | Object} [vElseMatcher] actual matcher that is executed if conditions are not met
          * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
@@ -601,7 +629,7 @@ sap.ui.define(
         /**
          * Add an action that is only performed if target control fulfills the conditions. It is internally using {@link sap.ui.test.OpaBuilder.Actions.conditional}.
          *
-         * @param {sap.ui.test.matchers.Matcher | function | Array | Object}
+         * @param {sap.ui.test.matchers.Matcher | function | Array | Object | boolean}
          *            vConditions target control is checked against these given conditions
          * @param {sap.ui.test.actions.Action | function | Array}
          *            vSuccessActions the actions to be performed when conditions are fulfilled
@@ -632,16 +660,16 @@ sap.ui.define(
         /**
          * Performs a {@link sap.ui.test.actions.EnterText} on target control(s).
          *
-         * @param {string} sText the text to be entered
-         * @param {boolean} [bClearFirst] true to clear already existing text, false to keep it (default)
-         * @param {boolean} [bKeepFocus] true to keep focus on target control, false to focus out (default)
-         * @param {string} [sIdSuffix] the id suffix of the DOM Element the action will be executed on
+         * @param {string} sText defines the {@link sap.ui.test.actions.EnterText#setText} setting
+         * @param {boolean} [bClearTextFirst] defines the {@link sap.ui.test.actions.EnterText#setClearTextFirst} setting
+         * @param {boolean} [bKeepFocus] defines the {@link sap.ui.test.actions.EnterText#setKeepFocus} setting
+         * @param {boolean} [bPressEnterKey] defines the {@link sap.ui.test.actions.EnterText#setPressEnterKey} setting
+         * @param {string} [sIdSuffix] defines the {@link sap.ui.test.actions.Action#setIdSuffix} setting
          * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
          * @public
          */
-        OpaBuilder.prototype.doEnterText = function (sText, bClearFirst, bKeepFocus, sIdSuffix) {
-            var aArguments = _parseArguments([String, Boolean, Boolean, String], sText, bClearFirst, bKeepFocus, sIdSuffix);
-            return this.do(OpaBuilder.Actions.enterText(aArguments[0], aArguments[1], aArguments[2], aArguments[3]));
+        OpaBuilder.prototype.doEnterText = function (sText, bClearFirst, bKeepFocus, bPressEnterKey, sIdSuffix) {
+            return this.do(OpaBuilder.Actions.enterText(sText, bClearFirst, bKeepFocus, bPressEnterKey, sIdSuffix));
         };
 
         /**
@@ -684,7 +712,7 @@ sap.ui.define(
             vActions = aArguments[1];
             bDirect = aArguments[2];
             if (!_isOfType(vChildBuilderOrMatcher, OpaBuilder)) {
-                vChildBuilderOrMatcher = new OpaBuilder(this._getOpaInstance()).has(aArguments[0]);
+                vChildBuilderOrMatcher = new OpaBuilder(this.getOpaInstance()).has(aArguments[0]);
             }
             if (vActions) {
                 vChildBuilderOrMatcher.do(vActions);
@@ -759,22 +787,36 @@ sap.ui.define(
          */
         OpaBuilder.prototype.execute = function (oOpaInstance) {
             if (_isOfType(oOpaInstance, Opa5)) {
-                this._setOpaInstance(oOpaInstance);
+                this.setOpaInstance(oOpaInstance);
             }
 
-            return this._getOpaInstance().waitFor(this.build());
+            return this.getOpaInstance().waitFor(this.build());
         };
 
-        OpaBuilder.prototype._setOpaInstance = function (oOpaInstance) {
-            if (!_isOfType(oOpaInstance, Opa5)) {
+        /**
+         * Set the Opa5 instance to be used for {@link sap.ui.test.OpaBuilder#execute}.
+         * Please note that this function does not return the OpaBuilder instance and can therefore not be chained.
+         * Use the <code>oOpaInstance</code> argument of {@link sap.ui.test.OpaBuilder#create}, {@link sap.ui.test.OpaBuilder#constructor}
+         * or {@link sap.ui.test.OpaBuilder#execute} to provide the Opa5 instance within the builder chain.
+         * @param {sap.ui.test.Opa5} [oOpaInstance] the Opa5 instance to operate on
+         * @public
+         */
+        OpaBuilder.prototype.setOpaInstance = function (oOpaInstance) {
+            if (!_isOfType(oOpaInstance, Opa5, true)) {
                 throw new Error("Opa5 instance expected");
             }
             this._oOpaInstance = oOpaInstance;
         };
 
-        OpaBuilder.prototype._getOpaInstance = function () {
+        /**
+         * Get the Opa5 instance that will be used for {@link sap.ui.test.OpaBuilder#execute}.
+         * If no {sap.ui.test.Opa5} instance was set before, this function creates a new one lazily.
+         * @returns {sap.ui.test.Opa5} the Opa5 instance
+         * @public
+         */
+        OpaBuilder.prototype.getOpaInstance = function () {
             if (!_isOfType(this._oOpaInstance, Opa5)) {
-                this._setOpaInstance(new Opa5());
+                this.setOpaInstance(new Opa5());
             }
             return this._oOpaInstance;
         };
@@ -901,7 +943,7 @@ sap.ui.define(
                 }
 
                 return {
-                    I18NText: {
+                    i18NText: {
                         propertyName: sPropertyName,
                         modelName: sModelName,
                         key: sToken,
@@ -984,7 +1026,7 @@ sap.ui.define(
              * The result will always be an array, even if only one child was found.
              *
              * @param {sap.ui.test.matchers.Matcher | function | Array | Object | sap.ui.test.OpaBuilder}
-             *                [vBuilderOrMatcher] the matchers to filter aggregation items
+             *                [vBuilderOrMatcher] the matchers to filter child items
              * @param {boolean} [bDirect] specifies if the ancestor should be a direct ancestor (parent)
              * @returns {function} matcher function returning all matching children
              * @public
@@ -1011,7 +1053,7 @@ sap.ui.define(
              * Creates a matcher function that checks whether one children fulfilling given matcher(s).
              *
              * @param {sap.ui.test.matchers.Matcher | function | Array | Object | sap.ui.test.OpaBuilder}
-             *                [vBuilderOrMatcher] the matchers to filter aggregation items
+             *                [vBuilderOrMatcher] the matchers to filter child items
              * @param {boolean} [bDirect] specifies if the ancestor should be a direct ancestor (parent)
              * @returns {function} matcher function
              * @public
@@ -1092,20 +1134,31 @@ sap.ui.define(
             },
 
             /**
-             * Creates a matcher that checks whether the bound context has the given properties.
-             * @param {string} sModelName the name of the model to get the binding context for
+             * Creates a matcher that checks whether the bound context or model has the given properties.
+             * @param {string} [sModelName] the name of the model to get the binding context for
              * @param {object} oProperties the property-path map with expected values
              * @returns {function} the matcher function checks all path in the properties object against the binding context
              * @public
              * @static
              */
             bindingProperties: function (sModelName, oProperties) {
+                if (!oProperties) {
+                    oProperties = sModelName;
+                    sModelName = undefined;
+                }
                 return function (oControl) {
-                    var oContext = oControl.getBindingContext(sModelName),
+                    var oContext = oControl.getBindingContext(sModelName) || oControl.getModel(sModelName),
                         sKey,
-                        vValue;
+                        vValue,
+                        bUseAbsolutePath = false;
+                    if (!oContext) {
+                        return false;
+                    }
+                    if (oContext.isA("sap.ui.model.Model")) {
+                        bUseAbsolutePath = true;
+                    }
                     for (sKey in oProperties) {
-                        vValue = oContext.getProperty(sKey);
+                        vValue = oContext.getProperty(bUseAbsolutePath ? "/" + sKey : sKey);
                         if (vValue !== oProperties[sKey]) {
                             return false;
                         }
@@ -1158,7 +1211,7 @@ sap.ui.define(
             /**
              * Creates a matcher that checks states for given conditions.
              *
-             * @param {sap.ui.test.matchers.Matcher | function | Array | Object} vConditions conditions to pre-check
+             * @param {sap.ui.test.matchers.Matcher | function | Array | Object | boolean} vConditions conditions to pre-check
              * @param {sap.ui.test.matchers.Matcher | function | Array | Object} vSuccessMatcher actual matcher that is executed if conditions are met
              * @param {sap.ui.test.matchers.Matcher | function | Array | Object} [vElseMatcher] actual matcher that is executed if conditions are not met
              * @returns {function} a matcher function
@@ -1166,8 +1219,9 @@ sap.ui.define(
              * @static
              */
             conditional: function (vConditions, vSuccessMatcher, vElseMatcher) {
+                var fnConditionsMatcher = _createConditionsMatcher(vConditions);
                 return function (oControl) {
-                    if (_executeMatchers(vConditions, oControl)) {
+                    if (fnConditionsMatcher(oControl)) {
                         return _executeMatchers(vSuccessMatcher, oControl);
                     }
                     return vElseMatcher ? _executeMatchers(vElseMatcher, oControl) : true;
@@ -1229,6 +1283,9 @@ sap.ui.define(
              */
             filter: function (vMatchers) {
                 return function (aItems) {
+                    if (aItems === null || aItems === undefined) {
+                        return [];
+                    }
                     // ensure that we only operate on arrays
                     if (!_isOfType(aItems, Array)) {
                         aItems = [aItems];
@@ -1247,6 +1304,9 @@ sap.ui.define(
              */
             match: function (vMatchers) {
                 return function (vItem) {
+                    if (vItem === null || vItem === undefined) {
+                        return false;
+                    }
                     // ensure that arrays are treated as a single element!
                     var vResult = _executeMatchers(vMatchers, [vItem]);
                     return vResult.length ? vResult[0] : false;
@@ -1273,27 +1333,30 @@ sap.ui.define(
 
             /**
              * Creates a {@link sap.ui.test.actions.EnterText} action.
-             * @param {string} sText defines the {@link sap.ui.test.actions.EnterText#text} setting
-             * @param {boolean} [bClearTextFirst] defines the {@link sap.ui.test.actions.EnterText#clearTextFirst} setting
-             * @param {boolean} [bKeepFocus] defines the {@link sap.ui.test.actions.EnterText#keepFocus} setting
-             * @param {string} [sIdSuffix] the id suffix of the DOM Element the action will be executed on
+             * @param {string} sText defines the {@link sap.ui.test.actions.EnterText#setText} setting
+             * @param {boolean} [bClearTextFirst] defines the {@link sap.ui.test.actions.EnterText#setClearTextFirst} setting
+             * @param {boolean} [bKeepFocus] defines the {@link sap.ui.test.actions.EnterText#setKeepFocus} setting
+             * @param {boolean} [bPressEnterKey] defines the {@link sap.ui.test.actions.EnterText#setPressEnterKey} setting
+             * @param {string} [sIdSuffix] defines the {@link sap.ui.test.actions.Action#setIdSuffix} setting
              * @returns {sap.ui.test.actions.EnterText} an instance of the {@link sap.ui.test.actions.EnterText} action
              * @public
              * @static
              */
-            enterText: function (sText, bClearTextFirst, bKeepFocus, sIdSuffix) {
+            enterText: function (sText, bClearTextFirst, bKeepFocus, bPressEnterKey, sIdSuffix) {
+                var aArguments = _parseArguments([String, Boolean, Boolean, Boolean, String], arguments);
                 return new EnterText({
-                    text: sText,
-                    clearTextFirst: bClearTextFirst,
-                    keepFocus: bKeepFocus,
-                    idSuffix: sIdSuffix
+                    text: aArguments[0],
+                    clearTextFirst: aArguments[1],
+                    keepFocus: aArguments[2],
+                    pressEnterKey: aArguments[3],
+                    idSuffix: aArguments[4]
                 });
             },
 
             /**
              * Creates an action that is only performed if target control fulfills the conditions.
              *
-             * @param {sap.ui.test.matchers.Matcher | function | Array | Object}
+             * @param {sap.ui.test.matchers.Matcher | function | Array | Object | boolean}
              *            vConditions target control is checked against these given conditions
              * @param {sap.ui.test.actions.Action | function | Array | sap.ui.test.OpaBuilder}
              *            vSuccessBuilderOrOptions the actions to be performed when conditions are fulfilled
@@ -1304,7 +1367,7 @@ sap.ui.define(
              * @static
              */
             conditional: function (vConditions, vSuccessBuilderOrOptions, vElseBuilderOptions) {
-                var fnMatcher = OpaBuilder.Matchers.match(vConditions),
+                var fnMatcher = _createConditionsMatcher(vConditions),
                     fnSuccess = vSuccessBuilderOrOptions,
                     fnElse = vElseBuilderOptions;
                 if (_isOfType(vSuccessBuilderOrOptions, OpaBuilder)) {

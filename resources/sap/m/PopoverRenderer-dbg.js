@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -130,8 +130,7 @@ sap.ui.define([
 			}
 
 			// content container
-			oRm.openStart("div");
-			oRm.attr("id", sId + "-cont");
+			oRm.openStart("div", sId + "-cont");
 			if (sContentWidth) {
 				oRm.style("width", sContentWidth);
 			}
@@ -156,9 +155,8 @@ sap.ui.define([
 			oRm.openEnd();
 
 			// scroll area
-			oRm.openStart("div")
-				.class("sapMPopoverScroll")
-				.attr("id", oControl.getId() + "-scroll");
+			oRm.openStart("div", oControl.getId() + "-scroll")
+				.class("sapMPopoverScroll");
 
 			if (!oControl.getHorizontalScrolling()) {
 				oRm.style(sap.ui.getCore().getConfiguration().getRTL() ? "margin-left" : "margin-right", getScrollbarSize().width + "px");

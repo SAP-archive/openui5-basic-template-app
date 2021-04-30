@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -15,6 +15,10 @@ sap.ui.define([
 
 	// shortcut for enum(s)
 	var HistoryDirection = library.routing.HistoryDirection;
+
+	// when HashChanger fires a hashChange event without a real browser "hashchange" event, the _getDirectionWithState
+	// function can detect this case and keep the previous history direction unchanged
+	var DIRECTION_UNCHANGED = "Direction_Unchanged";
 
 	/**
 	 * Used to determine the {@link sap.ui.core.routing.HistoryDirection} of the current or a future navigation,
@@ -33,18 +37,21 @@ sap.ui.define([
 		this.aHistory = [];
 		this._bIsInitial = true;
 
-		if (History._bUsePushState) {
-			var oState = window.history.state === null ? {} : window.history.state,
-				sHash = window.location.hash;
-
-			// remove the leading '#'
-			sHash = sHash.replace(/^#/, "");
+		if (History._bUsePushState && !History.getInstance()) {
+			var oState = window.history.state === null ? {} : window.history.state;
 
 			if (typeof oState === "object") {
-				History._aStateHistory.push(sHash);
-				oState.sap = {};
-				oState.sap.history = History._aStateHistory;
-				window.history.replaceState(oState, window.document.title);
+				// remove the leading '#'
+				var sHash = window.location.hash.replace(/^#/, "");
+				oState.sap = oState.sap ? oState.sap : {};
+
+				if (oState.sap.history && Array.isArray(oState.sap.history) && oState.sap.history[oState.sap.history.length - 1] === sHash) {
+					History._aStateHistory = oState.sap.history;
+				} else {
+					History._aStateHistory.push(sHash);
+					oState.sap.history = History._aStateHistory;
+					window.history.replaceState(oState, window.document.title);
+				}
 			} else {
 				Log.debug("Unable to determine HistoryDirection as history.state is already set: " + window.history.state, "sap.ui.core.routing.History");
 			}
@@ -293,9 +300,9 @@ sap.ui.define([
 				// If the state history is identical with the history trace, it means
 				// that a hashChanged event is fired without a real brower hash change.
 				// In this case, the _getDirectionWithState can't be used to determine
-				// the history direction and should fallback to the legacy function
+				// the history direction and should keep the direction unchanged
 				if (bBackward && oState.sap.history.length === History._aStateHistory.length) {
-					sDirection = undefined;
+					sDirection = DIRECTION_UNCHANGED;
 				} else {
 					sDirection = bBackward ? HistoryDirection.Backwards : HistoryDirection.Forwards;
 					History._aStateHistory = oState.sap.history;
@@ -368,6 +375,11 @@ sap.ui.define([
 		// direction which is the case if additional History instance is created
 		if (sFullHash !== undefined && History._bUsePushState && this === History.getInstance()) {
 			sDirection = this._getDirectionWithState(sFullHash);
+		}
+
+		// if the hashChange event is fired without a real browser hashchange event, the direction isn't updated
+		if (sDirection === DIRECTION_UNCHANGED) {
+			return;
 		}
 
 		// if the direction can't be decided by using the state method, the fallback to the legacy method is taken
@@ -443,16 +455,18 @@ sap.ui.define([
 		this._oNextHash = { sHash : sNewHash, bWasReplaced : bWasReplaced };
 	};
 
+	var instance;
+	History.getInstance = function() {
+		return instance;
+	};
 
-	var instance = new History(HashChanger.getInstance());
+	instance = new History(HashChanger.getInstance());
 
 	/**
 	 * @public
 	 * @returns { sap.ui.core.routing.History } a global singleton that gets created as soon as the sap.ui.core.routing.History is required
 	 */
-	History.getInstance = function() {
-		return instance;
-	};
+
 
 	return History;
 

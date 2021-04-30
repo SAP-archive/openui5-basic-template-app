@@ -1,13 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the Select control of sap.m library.
  */
-sap.ui.define(["sap/ui/support/library"],
-	function(SupportLib) {
+sap.ui.define(["sap/ui/support/library", "sap/ui/model/BindingMode"],
+	function(SupportLib, BindingMode) {
 	"use strict";
 
 	// shortcuts
@@ -98,7 +98,7 @@ sap.ui.define(["sap/ui/support/library"],
 							oSelectedKeyModel && // We have a model for the selectedKey
 							oItemsModel && // We have a model for the items
 							oSelectedKeyModel.getId() === oItemsModel.getId() && // Both entries are bound to the same model
-							oSelectedKeyModel.getDefaultBindingMode() === sap.ui.model.BindingMode.TwoWay // Model is in TwoWay binding mode
+							oSelectedKeyModel.getDefaultBindingMode() === BindingMode.TwoWay // Model is in TwoWay binding mode
 						) {
 
 							sSelectedKeyBindingPath = oElement.getBindingPath("selectedKey");

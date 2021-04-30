@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -69,7 +69,7 @@ sap.ui.define([
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/message-page/ Message Page}
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @constructor
 		 * @public
@@ -191,6 +191,14 @@ sap.ui.define([
 			designtime: "sap/m/designtime/MessagePage.designtime"
 		}});
 
+		/**
+		 * STATIC MEMBERS
+		 */
+		MessagePage.ARIA_ROLE_DESCRIPTION = "MESSAGE_PAGE_ROLE_DESCRIPTION";
+
+		/**
+		 * LIFECYCLE METHODS
+		 */
 		MessagePage.prototype.init = function() {
 			var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 
@@ -208,6 +216,8 @@ sap.ui.define([
 
 			this.setProperty("text", oBundle.getText("MESSAGE_PAGE_TEXT"), true);
 			this.setProperty("description", oBundle.getText("MESSAGE_PAGE_DESCRIPTION"), true);
+
+			this._sAriaRoleDescription = oBundle.getText(MessagePage.ARIA_ROLE_DESCRIPTION);
 		};
 
 		MessagePage.prototype.exit = function() {

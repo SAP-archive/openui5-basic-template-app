@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -91,15 +91,6 @@ sap.ui.define([
 	"use strict";
 
 	/*global Map, Promise */
-
-	/**
-	 * Executes an 'eval' for its arguments in the global context (without closure variables).
-	 */
-	function globalEval() {
-		/*eslint-disable no-eval */
-		eval(arguments[0]);
-		/*eslint-enable no-eval */
-	}
 
 	// when the Core module has been executed before, don't execute it again
 	if (sap.ui.getCore && sap.ui.getCore()) {
@@ -221,7 +212,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 * @final
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @alias sap.ui.core.Core
 	 * @public
 	 * @hideconstructor
@@ -471,6 +462,7 @@ sap.ui.define([
 			 * @returns {sap.ui.core.Core} the API of the current SAPUI5 Core instance.
 			 * @public
 			 * @function
+			 * @ui5-global-only
 			 */
 			sap.ui.getCore = function() {
 				return that.getInterface();
@@ -1289,7 +1281,7 @@ sap.ui.define([
 				vOnInit();
 			} else if (typeof vOnInit === "string") {
 				// determine onInit being a module name prefixed via module or a global name
-				var aResult = /^module\:((?:(?:[_$.\-a-zA-Z][_$.\-a-zA-Z0-9]*)\/?)*)$/.exec(vOnInit);
+				var aResult = /^module\:((?:[_$.\-a-zA-Z0-9]+\/)*[_$.\-a-zA-Z0-9]+)$/.exec(vOnInit);
 				if (aResult && aResult[1]) {
 					// ensure that the require is done async and the Core is finally booted!
 					setTimeout(sap.ui.require.bind(sap.ui, [aResult[1]]), 0);
@@ -1299,9 +1291,14 @@ sap.ui.define([
 					if (typeof fn === "function") {
 						fn();
 					} else {
-						// DO NOT USE jQuery.globalEval as it executes async in FF!
-						//Remove this eval call
-						globalEval(vOnInit);
+						Log.warning("[Deprecated] Do not use inline JavaScript code with the oninit attribute."
+							+ " Use the module:... syntax or the name of a global function");
+						/*
+						 * In contrast to eval(), window.eval() executes the given string
+						 * in the global context, without closure variables.
+						 * See http://www.ecma-international.org/ecma-262/5.1/#sec-10.4.2
+						 */
+						window.eval(vOnInit);  // csp-ignore-legacy-api
 					}
 				}
 			}
@@ -1325,7 +1322,7 @@ sap.ui.define([
 
 			var sRootNode = oConfig["xx-rootComponentNode"];
 			if (sRootNode && oComponent.isA('sap.ui.core.UIComponent')) {
-				var oRootNode = (sRootNode ? document.getElementById(sRootNode) : null);
+				var oRootNode = document.getElementById(sRootNode);
 				if (oRootNode) {
 					Log.info("Creating ComponentContainer for Root Component: " + sRootComponent,null,METHOD);
 					var ComponentContainer = sap.ui.requireSync('sap/ui/core/ComponentContainer'),
@@ -2125,7 +2122,7 @@ sap.ui.define([
 	 * @param {string} [vComponent.url] URL to load the component from
 	 * @param {string} [vComponent.id] ID for the component instance
 	 * @param {object} [vComponent.settings] settings object for the component
-	 * @param {string} [vComponent.componentData] user specific data which is available during the whole lifecycle of the component
+	 * @param {any} [vComponent.componentData] user specific data which is available during the whole lifecycle of the component
 	 * @param {string} [sUrl] the URL to load the component from
 	 * @param {string} [sId] the ID for the component instance
 	 * @param {object} [mSettings] the settings object for the component
@@ -2679,7 +2676,7 @@ sap.ui.define([
 			if (id == STATIC_UIAREA_ID) {
 				oDomRef = this.getStaticAreaRef();
 			} else {
-				oDomRef = (oDomRef ? document.getElementById(oDomRef) : null);
+				oDomRef = document.getElementById(oDomRef);
 				if (!oDomRef) {
 					throw new Error("DOM element with ID '" + id + "' not found in page, but application tries to insert content.");
 				}
@@ -3242,13 +3239,14 @@ sap.ui.define([
 	 * Returns the registered element with the given ID, if any.
 	 *
 	 * The ID must be the globally unique ID of an element, the same as returned by <code>oElement.getId()</code>.
+	 *
 	 * When the element has been created from a declarative source (e.g. XMLView), that source might have used
 	 * a shorter, non-unique local ID. A search for such a local ID cannot be executed with this method.
 	 * It can only be executed on the corresponding scope (e.g. on an XMLView instance), by using the
 	 * {@link sap.ui.core.mvc.View#byId View#byId} method of that scope.
 	 *
-	 * @param {string} sId ID of the element to search for
-	 * @return {sap.ui.core.Element} Element with the given ID or <code>undefined</code>
+	 * @param {sap.ui.core.ID|null|undefined} sId ID of the element to search for
+	 * @returns {sap.ui.core.Element|undefined} Element with the given ID or <code>undefined</code>
 	 * @public
 	 * @function
 	 */
@@ -3256,8 +3254,9 @@ sap.ui.define([
 
 	/**
 	 * Returns the registered element for the given ID, if any.
-	 * @param {string} sId
-	 * @return {sap.ui.core.Element} the element for the given id
+	 *
+	 * @param {sap.ui.core.ID|null|undefined} sId ID of the control to retrieve
+	 * @returns {sap.ui.core.Element|undefined} Element for the given ID or <code>undefined</code>
 	 * @deprecated As of version 1.1, use <code>sap.ui.core.Core.byId</code> instead!
 	 * @function
 	 * @public
@@ -3266,8 +3265,9 @@ sap.ui.define([
 
 	/**
 	 * Returns the registered element for the given ID, if any.
-	 * @param {string} sId
-	 * @return {sap.ui.core.Element} the element for the given id
+	 *
+	 * @param {sap.ui.core.ID|null|undefined} sId ID of the element to retrieve
+	 * @returns {sap.ui.core.Element|undefined} Element for the given ID or <code>undefined</code>
 	 * @deprecated As of version 1.1, use <code>sap.ui.core.Core.byId</code> instead!
 	 * @function
 	 * @public
@@ -3276,9 +3276,10 @@ sap.ui.define([
 
 	/**
 	 * Returns the registered object for the given id, if any.
-	 * @param {string} sType
-	 * @param {string} sId
-	 * @return {sap.ui.core.Component} the component for the given id
+	 *
+	 * @param {string} sType Stereotype of the object to retrieve
+	 * @param {sap.ui.core.ID|null|undefined} sId Id of the object to retrieve
+	 * @returns {sap.ui.base.ManagedObject|undefined} Object of the given type and with the given id or undefined
 	 * @private
 	 */
 	Core.prototype.getObject = function(sType, sId) {
@@ -3327,7 +3328,7 @@ sap.ui.define([
 	 * @public
 	 */
 	Core.prototype.getStaticAreaRef = function() {
-		var oStaticArea = (STATIC_UIAREA_ID ? document.getElementById(STATIC_UIAREA_ID) : null),
+		var oStaticArea = document.getElementById(STATIC_UIAREA_ID),
 			oConfig, oFirstFocusElement;
 
 		if (!oStaticArea) {
@@ -4108,8 +4109,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Adds a task that is guaranteed to run once, just before the next rendering. Triggers a
-	 * rendering request, so that this happens as soon as possible.
+	 * Adds a task that is guaranteed to run once, just before the next rendering. A rendering
+	 * request is not triggered.
 	 *
 	 * @param {function} fnPrerenderingTask
 	 *   A function that is called before the rendering
@@ -4123,7 +4124,6 @@ sap.ui.define([
 		} else {
 			this.aPrerenderingTasks.push(fnPrerenderingTask);
 		}
-		this.addInvalidatedUIArea(); // to trigger rendering
 	};
 
 	/**
@@ -4203,6 +4203,7 @@ sap.ui.define([
 	 *            oControl the Control that should be added to the <code>UIArea</code>.
 	 * @public
 	 * @deprecated As of version 1.1, use {@link sap.ui.core.Control#placeAt Control#placeAt} instead.
+	 * @ui5-global-only
 	 */
 	sap.ui.setRoot = function(oDomRef, oControl) {
 		assert(typeof oDomRef === "string" || typeof oDomRef === "object", "oDomRef must be a string or object");

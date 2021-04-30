@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -60,6 +60,12 @@ sap.ui.define([
 	 * <li>&lt;strong&gt;</li>
 	 * <li>&lt;u&gt;</li>
 	 * </ul>
+	 *
+	 * <h3>Dynamically generated Message Strip</h3>
+	 * To meet the accessibility requirements when using dynamically generated Message Strip you must implement it alongside <code>sap.ui.core.InvisibleMessage</code>.
+	 * This will allow screen readers to announce it in real time. We suggest such dynamically generated message strips to be announced as Information Bar,
+	 * as shown in our “Dynamic Message Strip Generator sample.”
+	 *
 	 * <h3>Usage</h3>
 	 * <h4>When to use</h4>
 	 * <ul>
@@ -72,7 +78,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -128,6 +134,8 @@ sap.ui.define([
 				 *	<li><code>strong</code></li>
 				 *	<li><code>u</code></li>
 				 * </ul>
+				 *
+				 * @since 1.50
 				 */
 				enableFormattedText: { type: "boolean", group: "Appearance", defaultValue: false }
 			},
@@ -249,7 +257,7 @@ sap.ui.define([
 
 	MessageStrip.prototype.setAggregation = function (sName, oControl, bSupressInvalidate) {
 		if (sName === "link" && oControl instanceof Link) {
-			oControl.addAriaLabelledBy(this.getId());
+			oControl.addAriaDescribedBy(this.getId());
 		}
 
 		Control.prototype.setAggregation.call(this, sName, oControl, bSupressInvalidate);

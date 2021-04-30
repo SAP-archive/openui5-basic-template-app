@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ sap.ui.define(['./Element', './library', "sap/base/Log"],
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @public
 	 * @alias sap.ui.core.Message
@@ -69,13 +69,7 @@ sap.ui.define(['./Element', './library', "sap/base/Log"],
 	/**
 	 * Returns the icon's default URI depending on given size.
 	 *
-	 * There are default icons for messages available that can be used this way. If no
-	 * parameter is given, the size will be 16x16 per default. If larger icons are needed,
-	 * the parameter "32x32" might be given.
-	 *
-	 * @param {string} sSize
-	 *         If parameter is not set the default icon's size will be 16x16. If parameter
-	 *         is set to "32x32" the icon size will be 32x32.
+	 * @param {string} [sSize="16x16"] Only the values "16x16" or "32x32" are allowed. Otherwise the default value is used.
 	 * @return {sap.ui.core.URI} URI of the default icon.
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel

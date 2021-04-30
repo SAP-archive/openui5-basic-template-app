@@ -1,9 +1,14 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquery.sap.sjax"], function(MockServer/*, jQuerySapSjax*/, jQuery) {
+sap.ui.define([
+	"sap/ui/core/util/MockServer",
+	"sap/ui/thirdparty/jquery",
+	"sap/base/util/isEmptyObject",
+	"jquery.sap.sjax"
+], function(MockServer, jQuery, isEmptyObject /*, jQuerySapSjax*/) {
 	"use strict";
 	return {
 
@@ -188,7 +193,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 				if (aData.results) {
 					aData = aData.results;
 				} else {
-					if (jQuery.isEmptyObject(aData)) {
+					if (isEmptyObject(aData)) {
 						aData = null;
 						return;
 					}
@@ -449,7 +454,7 @@ sap.ui.define(["sap/ui/core/util/MockServer", "sap/ui/thirdparty/jquery", "jquer
 					response: function(oXhr, sUrlParams) {
 						var aFilter = [];
 						var oRequestBody = JSON.parse(oXhr.requestBody);
-						if (oRequestBody && !jQuery.isEmptyObject(oRequestBody)) {
+						if (oRequestBody && !isEmptyObject(oRequestBody)) {
 							for (var property in oRequestBody) {
 								aFilter.push(property + " eq " + oRequestBody[property]);
 							}

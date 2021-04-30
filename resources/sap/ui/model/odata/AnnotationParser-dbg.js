@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,15 +8,16 @@
 sap.ui.define([
 	"sap/base/assert",
 	"sap/base/Log",
+	"sap/base/util/isEmptyObject",
 	"sap/ui/Device",
 	"sap/ui/thirdparty/jquery"
-], function (assert, Log, Device, jQuery) {
+], function (assert, Log, isEmptyObject, Device, jQuery) {
 "use strict";
 
 /*
- * Whitelist of property node names whose values should be put through alias replacement
+ * Include list of property node names whose values should be put through alias replacement
  */
-var mAliasNodeWhitelist = {
+var mAliasNodeIncludeList = {
 	EnumMember: true,
 	Path: true,
 	PropertyPath: true,
@@ -24,7 +25,7 @@ var mAliasNodeWhitelist = {
 	AnnotationPath: true
 };
 
-var mTextNodeWhitelist = {
+var mTextNodeIncludeList = {
 	Binary: true,
 	Bool: true,
 	Date: true,
@@ -308,7 +309,7 @@ var AnnotationParser =  {
 					if (propertyAnnotationNode.hasChildNodes() === false) {
 						var o = {};
 						AnnotationParser.enrichFromPropertyValueAttributes(o, propertyAnnotationNode);
-						if (jQuery.isEmptyObject(o)) {
+						if (isEmptyObject(o)) {
 							// assume DefaultValue="true" for annotation term w/o reading vocabulary
 							o.Bool = "true";
 						}
@@ -910,7 +911,7 @@ var AnnotationParser =  {
 		var xPath = AnnotationParser._oXPath;
 
 		var sValue = "";
-		if (oNode.nodeName in mAliasNodeWhitelist) {
+		if (oNode.nodeName in mAliasNodeIncludeList) {
 			sValue = AnnotationParser.replaceWithAlias(xPath.getNodeText(oNode));
 		} else {
 			sValue = xPath.getNodeText(oNode);
@@ -1007,7 +1008,7 @@ var AnnotationParser =  {
 						}
 
 						AnnotationParser.enrichFromPropertyValueAttributes(vPropertyValue, oDocumentNode);
-					} else if (oDocumentNode.nodeName in mTextNodeWhitelist) {
+					} else if (oDocumentNode.nodeName in mTextNodeIncludeList) {
 						vPropertyValue = AnnotationParser._getTextValue(oDocumentNode); // string
 					} else { // e.g. <Term Name="..." Type="...">
 						AnnotationParser.enrichFromPropertyValueAttributes(vPropertyValue, oDocumentNode);
@@ -1024,7 +1025,7 @@ var AnnotationParser =  {
 
 			}
 
-		} else if (oDocumentNode.nodeName in mTextNodeWhitelist) {
+		} else if (oDocumentNode.nodeName in mTextNodeIncludeList) {
 			vPropertyValue = AnnotationParser._getTextValue(oDocumentNode);
 		} else if (oDocumentNode.nodeName.toLowerCase() === "null") {
 			vPropertyValue = null;

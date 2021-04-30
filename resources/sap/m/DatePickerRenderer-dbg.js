@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer'],
-	function(Renderer, InputBaseRenderer) {
+sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer', 'sap/ui/core/library'],
+	function(Renderer, InputBaseRenderer, coreLibrary) {
 	"use strict";
 
 
@@ -48,19 +48,13 @@ sap.ui.define(['sap/ui/core/Renderer', './InputBaseRenderer'],
 		return "combobox";
 	};
 
-	DatePickerRenderer.getDescribedByAnnouncement = function(oDP) {
-
-		var sBaseAnnouncement = InputBaseRenderer.getDescribedByAnnouncement.apply(this, arguments);
-		return sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("DATEPICKER_DATE_TYPE") + " " + sBaseAnnouncement;
-
-	};
-
 	DatePickerRenderer.getAccessibilityState = function(oDP) {
 
 		var mAccessibilityState = InputBaseRenderer.getAccessibilityState.apply(this, arguments);
 
+		mAccessibilityState["roledescription"] = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_DATEINPUT");
 		mAccessibilityState["autocomplete"] = "none";
-		mAccessibilityState["haspopup"] = true;
+		mAccessibilityState["haspopup"] = coreLibrary.aria.HasPopup.Grid.toLowerCase();
 		mAccessibilityState["expanded"] = false;
 		// aria-disabled is not necessary if we already have a native 'disabled' attribute
 		mAccessibilityState["disabled"] = null;

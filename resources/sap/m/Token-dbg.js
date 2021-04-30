@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,7 +8,6 @@
 sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
-	'./Tokenizer',
 	'sap/ui/core/library',
 	'sap/ui/core/Icon',
 	'./TokenRenderer',
@@ -20,7 +19,6 @@ sap.ui.define([
 	function(
 		library,
 		Control,
-		Tokenizer,
 		coreLibrary,
 		Icon,
 		TokenRenderer,
@@ -56,7 +54,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -103,7 +101,19 @@ sap.ui.define([
 			/**
 			 * Indicates if the token's text should be truncated.
 			 */
-			truncated : {type : "boolean", group : "Appearance", defaultValue : false, visibility: "hidden"}
+			truncated : {type : "boolean", group : "Appearance", defaultValue : false, visibility: "hidden"},
+
+			/**
+			 * Indicates the position of a token. Used for aria attributes.
+			 * @private
+			 */
+			posinset : { type: "int", visibility: "hidden" },
+
+			/**
+			 * Indicates the count of the token. Used for aria attributes.
+			 * @private
+			 */
+			setsize : { type: "int", visibility: "hidden" }
 		},
 		aggregations : {
 
@@ -129,7 +139,9 @@ sap.ui.define([
 			/**
 			 * This event is fired if the user clicks the token's delete icon.
 			 */
-			"delete" : {},
+			"delete" : {
+				enableEventBubbling: true
+			},
 
 			/**
 			 * This event is fired when the user clicks on the token.
@@ -148,15 +160,10 @@ sap.ui.define([
 		}
 	}});
 
-	/**
-	 * This file defines behavior for the control,
-	 */
 	Token.prototype.init = function() {
-		var bSysCancelIconUsed = Parameters.get("_sap_m_Token_Sys_Cancel_Icon") === "true",
-			sSrcIcon = bSysCancelIconUsed ? "sap-icon://sys-cancel" : "sap-icon://decline",
-			oDeleteIcon = new Icon({
+		var oDeleteIcon = new Icon({
 				id : this.getId() + "-icon",
-				src : sSrcIcon,
+				src : "sap-icon://decline",
 				noTabStop: true,
 				press : this._fireDeleteToken.bind(this)
 			});
@@ -211,9 +218,7 @@ sap.ui.define([
 			bNewSelectedValue = !bSelected;
 		}
 
-		if (!this.getTruncated()) {
-			this.setSelected(bNewSelectedValue);
-		 }
+		this.setSelected(bNewSelectedValue);
 
 		this.firePress();
 
@@ -249,29 +254,13 @@ sap.ui.define([
 		this._onTokenPress(oEvent);
 	};
 
-	/**
-	 * Function is called on keyboard backspace, deletes token
-	 *
-	 * @private
-	 * @param {jQuery.Event} oEvent The event object
-	 */
-	Token.prototype.onsapbackspace = function(oEvent) {
-		this._fireDeleteToken(oEvent);
-	};
-
-	/**
-	 * Function is called on keyboard delete, deletes token
-	 *
-	 * @private
-	 * @param {jQuery.Event} oEvent The event object
-	 */
-	Token.prototype.onsapdelete = function(oEvent) {
-		this._fireDeleteToken(oEvent);
-	};
-
-	Token.prototype._fireDeleteToken = function (oEvent) {
+	Token.prototype._fireDeleteToken = function (oEvent, bKey, bBackspace) {
 		if (this.getEditable() && this.getProperty("editableParent")) {
-			this.fireDelete({token: this});
+			this.fireDelete({
+				token: this,
+				byKeyboard: bKey,
+				backspace: bBackspace
+			});
 		}
 
 		oEvent.preventDefault();
@@ -307,16 +296,6 @@ sap.ui.define([
 		}
 	};
 
-	Token.prototype.onThemeChanged = function () {
-		var oDeleteIcon = this.getAggregation("deleteIcon"),
-			bSysCancelIconUsed = Parameters.get("_sap_m_Token_Sys_Cancel_Icon") === "true",
-			sSrcIcon = bSysCancelIconUsed ? "sap-icon://sys-cancel" : "sap-icon://decline";
-
-		if (oDeleteIcon && oDeleteIcon.getSrc() !== sSrcIcon) {
-			oDeleteIcon.setSrc(sSrcIcon);
-		}
-	};
-
 	/**
 	 * Returns the value of Token's <code>truncated</code> property.
 	 *
@@ -337,12 +316,8 @@ sap.ui.define([
 	 * @private
 	 * @ui5-restricted sap.m.Tokenizer
 	 */
-	Token.prototype.setTruncated = function (bValue, bSkipInvalidation) {
-		if (this.getTruncated() === bValue) {
-			return this;
-		}
-
-		return this.setProperty("truncated", bValue, bSkipInvalidation);
+	Token.prototype.setTruncated = function (bValue) {
+		return this.setProperty("truncated", bValue);
 	};
 
 	return Token;

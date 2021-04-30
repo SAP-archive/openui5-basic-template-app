@@ -1,6 +1,6 @@
 /**
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,12 +12,21 @@ sap.ui.define([
 
 	/**
 	 * Add empty rows at bottom of the virtual grid.
+	 * @param {int} iEmptyColumnsToConsider the column count for the item, from which it is determined if this vertical expansion is needed
+	 * @private
 	 */
-	function expandVertically() {
+	function expandVertically(iEmptyColumnsToConsider) {
 		var growWith = 0;
 		for (var i = 0; i < this.virtualGridMatrix.length; i++) {
-			if (this.virtualGridMatrix[i][0] !== 0) {
-				growWith++;
+			for (var j = iEmptyColumnsToConsider; j >= 0; j--) {
+
+				// check if the current row has all the columns needed for the next item we're trying to fit, counting backwards
+				if (this.virtualGridMatrix[i][j] !== 0) {
+					// there is already a fitted item where actual empty space is needed, then make a new row
+					growWith++;
+					break;
+				}
+
 			}
 		}
 		if (growWith > 0) {
@@ -44,7 +53,7 @@ sap.ui.define([
 	 * @private
 	 * @constructor
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @alias sap.f.VirtualGrid
 	 * @extends sap.ui.base.Object
 	 */
@@ -266,7 +275,7 @@ sap.ui.define([
 
 		//Check if there is enough free cells
 		if (growVertically) {
-			expandVertically.call(this);
+			expandVertically.call(this, columnsToFit);
 		}
 
 		this.virtualGridMatrix.forEach(function (element, row, array) {

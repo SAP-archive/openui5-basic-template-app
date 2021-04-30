@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -373,7 +373,9 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 				describedby: ""
 			},
 			bBeforeFirstYear = oDay._bBeforeFirstYear,
-			sAriaType = "";
+			sAriaType = "",
+			oLegend = oHelper.oLegend,
+			sNonWorkingDayText;
 
 		var sYyyymmdd = oMonth._oFormatYyyymmdd.format(oDay.toUTCJSDate(), true);
 		var iWeekDay = oDay.getDay();
@@ -430,6 +432,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 			if (oDayType.type !== CalendarDayType.None) {
 				if (oDayType.type === CalendarDayType.NonWorking) {
 					oRm.class("sapUiCalItemWeekEnd");
+					sNonWorkingDayText = this._addNonWorkingDayText(mAccProps);
 					return;
 				}
 				oRm.class("sapUiCalItem" + oDayType.type);
@@ -438,7 +441,19 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 					oRm.attr('title', oDayType.tooltip);
 				}
 			}
-		});
+		}.bind(this));
+
+		if (!sNonWorkingDayText) { // if sNonWorkingDayText exists, it is already included above as specialDate of type NonWorking
+			if (oHelper.aNonWorkingDays) { // check if there are nonWorkingDays passed and add text to them
+				oHelper.aNonWorkingDays.forEach(function (iNonWorkingDay) {
+					if (oDay.getDay() === iNonWorkingDay) {
+						this._addNonWorkingDayText(mAccProps);
+					}
+				}.bind(this));
+			} else if (oDay.getDay() === oHelper.iWeekendStart || oDay.getDay() === oHelper.iWeekendEnd) { // otherwise add the text to the NonWorkigDays from the locale
+				this._addNonWorkingDayText(mAccProps);
+			}
+		}
 
 
 		//oMonth.getDate() is a public date object, so it is always considered local timezones.
@@ -473,7 +488,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 		mAccProps["label"] = mAccProps["label"] + oHelper.oFormatLong.format(oDay.toUTCJSDate(), true);
 
 		if (sAriaType !== "") {
-			CalendarLegendRenderer.addCalendarTypeAccInfo(mAccProps, sAriaType, oHelper.oLegend);
+			CalendarLegendRenderer.addCalendarTypeAccInfo(mAccProps, sAriaType, oLegend);
 		}
 
 		if (oHelper.sSecondaryCalendarType) {
@@ -525,6 +540,18 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 
 		oRm.close("div");
 
+	};
+
+	/**
+	 * Includes additional text to the DOM indicating that the day is non-working
+	 *
+	 * @param {Object} mAccProps The accessibility properties for the day to be rendered.
+	 * @returns {string} sText The text for the non-working day from the bundle
+	 */
+	MonthRenderer._addNonWorkingDayText = function (mAccProps) {
+		var sText = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified").getText("LEGEND_NON_WORKING_DAY") + " ";
+		mAccProps["label"] += sText;
+		return sText;
 	};
 
 	MonthRenderer._renderWeekNumber = function(oRm, oDay, oHelper) {

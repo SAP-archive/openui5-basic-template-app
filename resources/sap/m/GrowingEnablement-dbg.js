@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -366,8 +366,7 @@ sap.ui.define([
 		// creates list item from the factory
 		createListItem : function(oContext, oBindingInfo) {
 			this._iRenderedDataItems++;
-			var oItem = oBindingInfo.factory(ManagedObjectMetadata.uid("clone"), oContext);
-			return oItem.setBindingContext(oContext, oBindingInfo.model);
+			return GrowingEnablement.createItem(oContext, oBindingInfo);
 		},
 
 		// update context on all items except group headers
@@ -395,6 +394,17 @@ sap.ui.define([
 			var iLength = this._aChunk.length;
 			if (!iLength) {
 				return;
+			}
+
+			// prevent DOM updates when there are no visible columns in the table and items are being inserted (see BCP: 2080250160)
+			if (this._oControl.isA("sap.m.Table")) {
+				var bHasVisibleColumn = this._oControl.getColumns().some(function(oColumn) {
+					return oColumn.getVisible();
+				});
+
+				if (!bHasVisibleColumn) {
+					return;
+				}
 			}
 
 			if (this._oControl.getGrowingDirection() == ListGrowingDirection.Upwards) {
@@ -523,7 +533,7 @@ sap.ui.define([
 			} else if (!aDiff || !aItems.length && aDiff.length) {
 				// new records need to be applied from scratch
 				if (oControl.shouldRenderItems()) {
-					this.rebuildListItems(aContexts, oBindingInfo, true);
+					this.rebuildListItems(aContexts, oBindingInfo, oControl.shouldGrowingSuppressInvalidation());
 				}
 			} else if (oBinding.isGrouped() || oControl.checkGrowingFromScratch()) {
 
@@ -618,10 +628,11 @@ sap.ui.define([
 		// updates the trigger state
 		_updateTrigger : function(bLoading) {
 			var oTrigger = this._oTrigger,
-				oControl = this._oControl;
+				oControl = this._oControl,
+				bVisibleItems = oControl && oControl.getVisibleItems().length > 0;
 
-			// If there are no visible columns then also hide the trigger.
-			if (!oTrigger || !oControl || !oControl.shouldRenderItems() || !oControl.getDomRef()) {
+			// If there are no visible columns or items then also hide the trigger.
+			if (!oTrigger || !oControl || !bVisibleItems || !oControl.shouldRenderItems() || !oControl.getDomRef()) {
 				return;
 			}
 
@@ -651,7 +662,7 @@ sap.ui.define([
 				}
 
 				// show, update or hide the growing button
-				if (!iItemsLength || !this._iLimit ||
+				if (!iItemsLength || !this._iLimit || !iBindingLength ||
 					(bLengthFinal && this._iLimit >= iBindingLength) ||
 					(bHasScrollToLoad && this._getHasScrollbars())) {
 					oControl.$("triggerList").css("display", "none");
@@ -662,6 +673,14 @@ sap.ui.define([
 
 					oTrigger.$().removeClass("sapMGrowingListBusyIndicatorVisible");
 					oControl.$("triggerList").css("display", "");
+
+					// adapt trigger button width if dummy col is rendered
+					if (oControl.isA("sap.m.Table") && !oControl.hasPopin() && oControl.shouldRenderDummyColumn()) {
+						var oDummyColDomRef = oControl.getDomRef("tblHeadDummyCol");
+						var iWidth = oControl.getDomRef().clientWidth - oDummyColDomRef.clientWidth;
+						oTriggerDomRef.style.width = iWidth + "px";
+
+					}
 				}
 
 				// store the last item count to be able to focus to the newly added item when the growing button is pressed
@@ -686,6 +705,11 @@ sap.ui.define([
 			}
 		}
 	});
+
+	GrowingEnablement.createItem = function(oContext, oBindingInfo, sIdSuffix) {
+		var oItem = oBindingInfo.factory(ManagedObjectMetadata.uid(sIdSuffix ? sIdSuffix : "clone"), oContext);
+		return oItem.setBindingContext(oContext, oBindingInfo.model);
+	};
 
 	return GrowingEnablement;
 

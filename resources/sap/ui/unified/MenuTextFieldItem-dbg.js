@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.unified.MenuItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -149,7 +149,7 @@ sap.ui.define([
 				labelledby: {value: /*oMenu.getId() + "-label " + */itemId + "-lbl", append: true}
 			});
 		}
-		rm.write("/></div></div>");
+		rm.write("></div></div>");
 
 		// Right border
 		rm.write("<div class=\"sapUiMnuItmR\"></div>");
@@ -168,7 +168,7 @@ sap.ui.define([
 
 	MenuTextFieldItem.prototype.focus = function(oMenu){
 		if (this.getEnabled() && this.getVisible()) {
-			this.$("tf").trigger("focus");
+			this.$("tf").get(0).focus();
 		} else {
 			oMenu.focus();
 		}
@@ -184,20 +184,17 @@ sap.ui.define([
 
 
 	MenuTextFieldItem.prototype.onsapup = function(oEvent){
-		this.getParent().focus();
 		this.getParent().onsapprevious(oEvent);
 	};
 
 
 	MenuTextFieldItem.prototype.onsapdown = function(oEvent){
-		this.getParent().focus();
 		this.getParent().onsapnext(oEvent);
 	};
 
 
 	MenuTextFieldItem.prototype.onsaphome = function(oEvent){
 		if (this._checkCursorPosForNav(false)) {
-			this.getParent().focus();
 			this.getParent().onsaphome(oEvent);
 		}
 	};
@@ -205,20 +202,17 @@ sap.ui.define([
 
 	MenuTextFieldItem.prototype.onsapend = function(oEvent){
 		if (this._checkCursorPosForNav(true)) {
-			this.getParent().focus();
 			this.getParent().onsapend(oEvent);
 		}
 	};
 
 
 	MenuTextFieldItem.prototype.onsappageup = function(oEvent){
-		this.getParent().focus();
 		this.getParent().onsappageup(oEvent);
 	};
 
 
 	MenuTextFieldItem.prototype.onsappagedown = function(oEvent){
-		this.getParent().focus();
 		this.getParent().onsappagedown(oEvent);
 	};
 

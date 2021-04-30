@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,7 +23,7 @@ function(
 	 *
 	 * @alias sap.ui.layout.changeHandler.MoveSimpleForm
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @experimental Since 1.34.0
 	 */
 	var MoveSimpleForm = {};
@@ -417,6 +417,14 @@ function(
 		oChange.resetRevertData();
 
 		return true;
+	};
+
+	MoveSimpleForm.getChangeVisualizationInfo = function(oChange) {
+		var oMovedElement = oChange.getContent().movedElements[0];
+		return {
+			affectedControls: [oMovedElement.elementSelector],
+			dependentControls: [(oMovedElement.source.groupSelector || oChange.getContent().targetSelector)]
+		};
 	};
 
 	return MoveSimpleForm;

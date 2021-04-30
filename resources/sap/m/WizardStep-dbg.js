@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * <li>If the execution needs to branch after a given step, you should set all possible next steps in the <code>subsequentSteps</code> aggregation.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -108,8 +108,8 @@ sap.ui.define([
 				 */
 				subsequentSteps : {type : "sap.m.WizardStep", multiple : true, singularName : "subsequentStep"},
 				/**
-				 * The next step to be taken after the step is completed.
-				 * Set this association value in the complete event of the current WizardStep.
+				 * The next step to be taken.
+				 * It must be defined in order for the previous step to be completed.
 				 * @since 1.32
 				 */
 				nextStep : {type: "sap.m.WizardStep", multiple: false}
@@ -291,8 +291,13 @@ sap.ui.define([
 	};
 
 	WizardStep.prototype._complete = function () {
+		var oWizard = this._getWizardParent();
 		this.setLast(this.bReviewStep || false);
 		this.fireComplete();
+
+		if (oWizard !== null) {
+			oWizard._handleNextButtonPress();
+		}
 	};
 
 	WizardStep.prototype.exit = function () {

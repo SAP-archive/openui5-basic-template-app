@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,7 +11,7 @@ sap.ui.define([
 	"sap/ui/core/Core",
 	'sap/ui/core/delegate/ItemNavigation',
 	'./IconTabBarDragAndDropUtil',
-	'sap/ui/core/dnd/DropPosition',
+	'sap/ui/core/library',
 	'./IconTabBarSelectListRenderer',
 	"sap/ui/thirdparty/jquery"
 ], function(
@@ -20,11 +20,14 @@ sap.ui.define([
 	Core,
 	ItemNavigation,
 	IconTabBarDragAndDropUtil,
-	DropPosition,
+	coreLibrary,
 	IconTabBarSelectListRenderer,
 	jQuery
 ) {
 	"use strict";
+
+	// shortcut for sap.ui.core.dnd.DropPosition
+	var DropPosition = coreLibrary.dnd.DropPosition;
 
 	/**
 	 * Constructor for a new <code>sap.m.IconTabBarSelectList</code>.
@@ -37,7 +40,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @private
@@ -116,6 +119,13 @@ sap.ui.define([
 	 */
 	IconTabBarSelectList.prototype.onAfterRendering = function () {
 		this._initItemNavigation();
+
+		// notify items that they are rendered
+		this.getItems().forEach(function (oItem) {
+			if (oItem._onAfterParentRendering) {
+				oItem._onAfterParentRendering();
+			}
+		});
 	};
 
 	/**
@@ -191,6 +201,13 @@ sap.ui.define([
 
 	IconTabBarSelectList.prototype.getSelectedItem = function () {
 		return this._selectedItem;
+	};
+
+	/**
+	 * Returns the IconTabHeader instance which holds all the TabFilters.
+	 */
+	IconTabBarSelectList.prototype._getIconTabHeader = function () {
+		return this._oIconTabHeader;
 	};
 
 	/**
@@ -289,14 +306,22 @@ sap.ui.define([
 
 		var oTabToBeMoved = oEvent.srcControl,
 			iKeyCode = oEvent.keyCode,
-			iIndexBeforeMove = this.indexOfItem(oTabToBeMoved);
+			iIndexBeforeMove = this.indexOfItem(oTabToBeMoved),
+			oContext = this;
 
-		IconTabBarDragAndDropUtil.moveItem.call(this, oTabToBeMoved, iKeyCode, this.getItems().length - 1);
+		IconTabBarDragAndDropUtil.moveItem.call(oContext, oTabToBeMoved, iKeyCode, oContext.getItems().length - 1);
+
 		this._initItemNavigation();
 		oTabToBeMoved.$().trigger("focus");
 
-		if (iIndexBeforeMove !== this.indexOfItem(oTabToBeMoved)) {
+		if (iIndexBeforeMove === this.indexOfItem(oTabToBeMoved)) {
+			return;
+		}
+		oContext = oTabToBeMoved._getRealTab().getParent();
+		if (this._oTabFilter._bIsOverflow && oTabToBeMoved._getRealTab()._getNestedLevel() === 1) {
 			this._oIconTabHeader._moveTab(oTabToBeMoved._getRealTab(), iKeyCode, this._oIconTabHeader.getItems().length - 1);
+		} else {
+			IconTabBarDragAndDropUtil.moveItem.call(oContext, oTabToBeMoved._getRealTab(), iKeyCode, oContext.getItems().length - 1);
 		}
 	};
 

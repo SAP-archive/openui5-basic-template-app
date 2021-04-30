@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/core/Renderer', './DatePickerRenderer'],
@@ -30,6 +30,14 @@ sap.ui.define(['sap/ui/core/Renderer', './DatePickerRenderer'],
 			oRm.attr("value", oControl.getValue());
 		}
 
+	};
+
+	DateRangeSelectionRenderer.getAccessibilityState = function(oDP) {
+		var mAccessibilityState = DatePickerRenderer.getAccessibilityState.apply(this, arguments);
+
+		mAccessibilityState["roledescription"] = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_DATERANGEINPUT");
+
+		return mAccessibilityState;
 	};
 
 	return DateRangeSelectionRenderer;

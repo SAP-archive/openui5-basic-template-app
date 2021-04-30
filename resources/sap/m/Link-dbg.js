@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Link.
 sap.ui.define([
-	'./library',
-	'sap/ui/core/Control',
-	'sap/ui/core/InvisibleText',
-	'sap/ui/core/EnabledPropagator',
-	'sap/ui/core/LabelEnablement',
-	'sap/ui/core/library',
-	'sap/ui/Device',
-	'./LinkRenderer',
+	"./library",
+	"sap/ui/core/Control",
+	"sap/ui/core/InvisibleText",
+	"sap/ui/core/EnabledPropagator",
+	"sap/ui/core/LabelEnablement",
+	"sap/ui/core/library",
+	"sap/ui/Device",
+	"./LinkRenderer",
 	"sap/ui/events/KeyCodes",
 	"sap/base/Log",
 		"sap/base/security/URLWhitelist"
@@ -33,15 +33,14 @@ function(
 ) {
 	"use strict";
 
-
-
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
 
 	// shortcut for sap.ui.core.TextAlign
 	var TextAlign = coreLibrary.TextAlign;
 
-
+	// shortcut for sap.ui.core.aria.HasPopup
+	var AriaHasPopup = coreLibrary.aria.HasPopup;
 
 	/**
 	 * Constructor for a new <code>Link</code>.
@@ -79,7 +78,7 @@ function(
 	 * @implements sap.ui.core.IShrinkable, sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -115,6 +114,15 @@ function(
 			 * Alternatively, a frame name can be entered. This property is only used when the <code>href</code> property is set.
 			 */
 			target : {type : "string", group : "Behavior", defaultValue : null},
+
+			/**
+			 * Specifies the value of the HTML <code>rel</code> attribute.
+			 *
+			 * <b>Note:</b> A default value of <code>noopener noreferrer</code> is set only to links that have a cross-origin URL
+			 * and a specified <code>target</code> with value other than <code>_self</code>.
+			 * @since 1.84
+			 */
+			rel : {type : "string", group : "Behavior", defaultValue : null},
 
 			/**
 			 * Determines the width of the link (CSS-size such as % or px). When it is set, this is the exact size.
@@ -167,7 +175,15 @@ function(
 			 * Emphasized links look visually more important than regular links.
 			 * @since 1.22
 			 */
-			emphasized : {type : "boolean", group : "Behavior", defaultValue : false}
+			emphasized : {type : "boolean", group : "Behavior", defaultValue : false},
+
+			/**
+			 * Specifies the value of the <code>aria-haspopup</code> attribute
+			 *
+			 * If the value is <code>None</code>, the attribute will not be rendered. Otherwise it will be rendered according to the selected value.
+			 * @since 1.86.0
+			 */
+			ariaHasPopup : {type : "sap.ui.core.aria.HasPopup", group : "Accessibility", defaultValue : AriaHasPopup.None}
 		},
 		associations : {
 

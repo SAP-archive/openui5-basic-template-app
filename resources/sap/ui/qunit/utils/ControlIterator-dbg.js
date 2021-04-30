@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -53,7 +53,7 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 	 * @namespace
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @public
 	 * @since 1.48.0
@@ -98,9 +98,13 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 		"sap.ui.core.util.Export",
 		"sap.ui.documentation.BorrowedList",
 		"sap.ui.documentation.LightTable",
+		"sap.ui.integration.cards.AnalyticalContent", // requires an associated card instance in onAfterRendering
+		"sap.ui.integration.cards.AnalyticsCloudContent", // requires an associated card instance in onAfterRendering
+		"sap.ui.integration.cards.CalendarContent", // requires a model in onBeforeRendering
 		"sap.ui.layout.BlockLayoutRow",
 		"sap.ui.layout.form.ResponsiveGridLayoutPanel", // control not for stand alone usage. Only inside ResponsiveGridLayout
 		"sap.ui.layout.form.ResponsiveLayoutPanel", // control not for stand alone usage. Only inside ResponsiveLayout
+		"sap.ui.mdc.chart.ChartTypeButton", // requires a chart
 		"sap.ui.richtexteditor.RichTextEditor",
 		"sap.ui.richtexteditor.ToolbarWrapper",
 		"sap.ui.rta.AddElementsDialog",
@@ -262,10 +266,10 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 	 * Creates a filter function for libraries, taking the given parameters into account.
 	 *
 	 * When a list of libraries is given (<code>aLibrariesToTest</code>), the returned filter
-	 * function will match exactly the given libraries (whitelist).
+	 * function will match exactly the given libraries (allowlist).
 	 * Alternatively, a list of libraries to exclude can be given (<code>aExcludedLibraries</code>,
-	 * blacklist) which will then not be matched by the returned filter function. In the case of
-	 * the blacklist, the filter is additionally restricted to openui5 and sapui5.runtime libraries
+	 * blocklist) which will then not be matched by the returned filter function. In the case of
+	 * the blocklist, the filter is additionally restricted to openui5 and sapui5.runtime libraries
 	 * unless <code>bIncludeDistLayer</code> is set to true.
 	 *
 	 * @param {string[]} [aLibrariesToTest] List of libraries to load
@@ -342,8 +346,8 @@ sap.ui.define(['sap/ui/core/Core', "sap/base/util/ObjectPath", "sap/base/Log", "
 	 * should be included in the iterator or with a falsy value otherwise.
 	 *
 	 * @param {string} sControlName Qualified name (dot notation) of the control to test
-	 * @param {string[]} aControlsToTest List of controls to include in the tests (whitelist)
-	 * @param {string[]} aExcludedControls List of controls to exclude from the tests (blacklist)
+	 * @param {string[]} aControlsToTest List of controls to include in the tests (allowlist)
+	 * @param {string[]} aExcludedControls List of controls to exclude from the tests (blocklist)
 	 * @param {boolean} bIncludeNonRenderable Whether the iterator should include controls that can't be rendered
 	 * @param {boolean} bIncludeNonInstantiable Whether the iterator should include controls that can't be instantiated
 	 * @returns Promise<({name:string,class:function,canBeInstantiated:boolean,canBeRendered:boolean}|false)>

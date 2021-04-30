@@ -1,10 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 		'./library',
+		'./Button',
+		'./ScrollContainer',
 		'sap/ui/core/Core',
 		'sap/ui/core/Control',
 		'sap/ui/Device',
@@ -29,6 +31,8 @@ sap.ui.define([
 	],
 	function (
 		library,
+		Button,
+		ScrollContainer,
 		Core,
 		Control,
 		Device,
@@ -119,7 +123,7 @@ sap.ui.define([
 		 * @since 1.44.0
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @public
 		 * @alias sap.m.HeaderContainer
@@ -246,6 +250,14 @@ sap.ui.define([
 						multiple: true,
 						singularName: "ariaLabelledBy"
 					}
+				},
+				events: {
+					/**
+					 * This event is triggered on pressing the scroll button.
+					 */
+					scroll: {
+
+					}
 				}
 			}
 		});
@@ -258,7 +270,7 @@ sap.ui.define([
 			this._aItemEnd = [];
 			this._bRtl = sap.ui.getCore().getConfiguration().getRTL();
 			this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
-			this._oScrollCntr = new library.ScrollContainer(this.getId() + "-scrl-cntnr", {
+			this._oScrollCntr = new ScrollContainer(this.getId() + "-scrl-cntnr", {
 				width: "100%",
 				height: "100%",
 				horizontal: !Device.system.desktop
@@ -267,7 +279,7 @@ sap.ui.define([
 			this.setAggregation("_scrollContainer", this._oScrollCntr, true);
 
 			if (Device.system.desktop) {
-				this._oArrowPrev = new library.Button({
+				this._oArrowPrev = new Button({
 					id: this.getId() + "-scrl-prev-button",
 					type: library.ButtonType.Transparent,
 					tooltip: this._oRb.getText("HEADERCONTAINER_BUTTON_PREV_SECTION"),
@@ -279,7 +291,7 @@ sap.ui.define([
 				this._oArrowPrev._bExcludeFromTabChain = true;
 				this.setAggregation("_prevButton", this._oArrowPrev, true);
 
-				this._oArrowNext = new library.Button({
+				this._oArrowNext = new Button({
 					id: this.getId() + "-scrl-next-button",
 					type: library.ButtonType.Transparent,
 					tooltip: this._oRb.getText("HEADERCONTAINER_BUTTON_NEXT_SECTION"),
@@ -464,6 +476,7 @@ sap.ui.define([
 
 		HeaderContainer.prototype._scroll = function (iDelta, iDuration) {
 			this._setScrollInProcess(true);
+			this.fireScroll();
 			setTimeout(this._setScrollInProcess.bind(this, false), iDuration + 300);
 			if (this.getOrientation() === Orientation.Horizontal) {
 				this._hScroll(iDelta, iDuration);
@@ -983,11 +996,20 @@ sap.ui.define([
 					var aContent = this._oScrollCntr.getContent();
 					var aAriaLabelledBy = this.getAriaLabelledBy();
 
+					//Set the Position, Size based on visible containers
+					var iPosition = 1;
+					var iVisibleSize = aContent.filter(function (oContainer) {
+						return oContainer.getItem().getVisible();
+					}).length;
+
 					for (var i = 0; i < aContent.length; i++) {
 						var oItem = aContent[i];
-						oItem.setPosition(i + 1);
-						oItem.setSetSize(aContent.length);
-						oItem.setAriaLabelledBy(aAriaLabelledBy[i]);
+						if (oItem.getItem().getVisible()) {
+							oItem.setPosition(iPosition);
+							oItem.setSetSize(iVisibleSize);
+							oItem.setAriaLabelledBy(aAriaLabelledBy[i]);
+							iPosition++;
+						}
 					}
 				}
 

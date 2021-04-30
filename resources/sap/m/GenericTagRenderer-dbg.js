@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -83,9 +83,8 @@ sap.ui.define([
 	};
 
 	GenericTagRenderer.renderText = function (oRm, oControl) {
-		oRm.openStart("span");
+		oRm.openStart("span", oControl.getId() + "-text");
 		oRm.class("sapMGenericTagText");
-		oRm.attr("id", oControl.getId() + "-text");
 		oRm.openEnd();
 		oRm.text(oControl.getText());
 		oRm.close("span");
@@ -97,9 +96,8 @@ sap.ui.define([
 			return;
 		}
 
-		oRm.openStart("span");
+		oRm.openStart("span", oControl.getId() + "-status");
 		oRm.class("sapUiInvisibleText");
-		oRm.attr("id", oControl.getId() + "-status");
 		oRm.attr("aria-hidden", "true");
 		oRm.openEnd();
 
@@ -111,8 +109,7 @@ sap.ui.define([
 	GenericTagRenderer._getAriaLabelledBy = function(oControl) {
 		var aLabelledBy = [],
 			sId = oControl.getId(),
-			sTagValueId = this._getTagValueId(oControl),
-			sTagValueState = this._getTagValueState(oControl);
+			sTagValueId = this._getTagValueId(oControl);
 
 		if (oControl.getStatus() !== ValueState.None) {
 			aLabelledBy.push(sId + "-status");
@@ -123,10 +120,6 @@ sap.ui.define([
 		aLabelledBy.push(
 			oControl.getValueState() === GenericTagValueState.Error ? sId + "-errorIcon" : sTagValueId
 		);
-
-		if (sTagValueState && sTagValueState !== ValueState.None) {
-			aLabelledBy.push(sTagValueId + '-state');
-		}
 
 		return aLabelledBy;
 	};
@@ -159,12 +152,6 @@ sap.ui.define([
 		var oValue = oControl.getValue();
 
 		return oValue ? oValue.getId() : "";
-	};
-
-	GenericTagRenderer._getTagValueState = function(oControl) {
-		var oValue = oControl.getValue();
-
-		return oValue ? oValue.getState() : "";
 	};
 
 	return GenericTagRenderer;

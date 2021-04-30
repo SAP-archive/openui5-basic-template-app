@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -232,52 +232,6 @@ sap.ui.define([
 		return this._oExpanderControl;
 	};
 
-	/**
-	 * Updates the item by assigning the relavant expander, styles and attributes.
-	 *
-	 * @private
-	 * @since 1.46.0
-	 */
-	TreeItemBase.prototype._updateItem = function() {
-		if (this._bInvalidated) {
-			return;
-		}
-
-		var oTree = this.getTree();
-		if (oTree && oTree._bInvalidated) {
-			return;
-		}
-
-		if (this._oExpanderControl) {
-			var sSrc = this.CollapsedIconURI;
-			if (this.getExpanded()) {
-				sSrc = this.ExpandedIconURI;
-			}
-			this._oExpanderControl.setSrc(sSrc);
-
-			// make the expander visible
-			var $this = this.$();
-			// adapt the tree items styles and the expander
-			if (!this.isLeaf()) {
-				$this.removeClass("sapMTreeItemBaseLeaf");
-				$this.attr("aria-expanded", this.getExpanded());
-			} else {
-				$this.addClass("sapMTreeItemBaseLeaf");
-				$this.removeAttr("aria-expanded");
-			}
-			$this.toggleClass("sapMTreeItemBaseChildren", !this.isTopLevel());
-			// adapt aria-level (in cases like sorting of the tree items is performed)
-			$this.attr("aria-level", this.getLevel() + 1);
-
-			// update the indentation again
-			var iIndentation = this._getPadding(),
-				sStyleRule = sap.ui.getCore().getConfiguration().getRTL() ? "paddingRight" : "paddingLeft";
-			$this.css(sStyleRule, iIndentation + "rem");
-
-		}
-
-	};
-
 	TreeItemBase.prototype.invalidate = function() {
 		ListItemBase.prototype.invalidate.apply(this, arguments);
 		this._bInvalidated = true;
@@ -290,7 +244,7 @@ sap.ui.define([
 
 	TreeItemBase.prototype.setBindingContext = function() {
 		ListItemBase.prototype.setBindingContext.apply(this, arguments);
-		this._updateItem();
+		this.invalidate();
 		return this;
 	};
 

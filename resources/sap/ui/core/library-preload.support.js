@@ -50,7 +50,7 @@ sap.ui.predefine('sap/ui/core/rules/App.support', [
         resolution: 'Use asynchronous XHR calls instead',
         resolutionurls: [{
                 text: 'Documentation: Loading a Module',
-                href: 'https://sapui5.hana.ondemand.com/#docs/guide/d12024e38385472a89c1ad204e1edb48.html'
+                href: 'https://sapui5.hana.ondemand.com/#/topic/d12024e38385472a89c1ad204e1edb48'
             }],
         check: function (oIssueManager, oCoreFacade, oScope) {
             var aElements = oScope.getElementsByClassName(View);
@@ -279,6 +279,44 @@ sap.ui.predefine('sap/ui/core/rules/App.support', [
             });
         }
     };
+    var oJQueryThreeDeprecationRule = {
+        id: 'jQueryThreeDeprecation',
+        audiences: [
+            Audiences.Application,
+            Audiences.Control,
+            Audiences.Internal
+        ],
+        categories: [Categories.Usage],
+        enabled: true,
+        minversion: '1.79',
+        title: 'Usage of deprecated jQuery API',
+        description: 'With the upgrade from jQuery 2.x to jQuery 3.x, some jQuery APIs have been deprecated and might be removed in future jQuery versions. To be future-proof for jQuery 4.x, the deprecated API calls should be removed or replaced with current alternatives.',
+        resolution: 'Please see the browser console warnings containing the string \'JQMIGRATE\' to identify the code locations which cause the issue. Please also see the jQuery migration guide for further information on the deprecated APIs and their newer alternatives.',
+        resolutionurls: [
+            {
+                text: 'jQuery Migrate',
+                href: 'https://github.com/jquery/jquery-migrate'
+            },
+            {
+                text: 'jQuery 3 Upgrade Guide',
+                href: 'https://jquery.com/upgrade-guide/3.0/'
+            },
+            {
+                text: 'jQuery 3 Migrate warnings',
+                href: 'https://github.com/jquery/jquery-migrate'
+            }
+        ],
+        check: function (oIssueManager, oCoreFacade, oScope) {
+            var oLoggedObjects = oScope.getLoggedObjects('jQueryThreeDeprecation');
+            oLoggedObjects.forEach(function (oLoggedObject) {
+                oIssueManager.addIssue({
+                    severity: Severity.Medium,
+                    details: oLoggedObject.message,
+                    context: { id: 'WEBPAGE' }
+                });
+            });
+        }
+    };
     return [
         oControllerSyncCodeCheckRule,
         oGlobalAPIRule,
@@ -286,7 +324,8 @@ sap.ui.predefine('sap/ui/core/rules/App.support', [
         oSyncFactoryLoadingRule,
         oGlobalSyncXhrRule,
         oDeprecatedAPIRule,
-        oControllerExtensionRule
+        oControllerExtensionRule,
+        oJQueryThreeDeprecationRule
     ];
 }, true);
 sap.ui.predefine('sap/ui/core/rules/Config.support', [
@@ -314,11 +353,11 @@ sap.ui.predefine('sap/ui/core/rules/Config.support', [
             },
             {
                 text: 'Best Practices for Loading Modules Asynchronously',
-                href: 'https://openui5.hana.ondemand.com/#/topic/00737d6c1b864dc3ab72ef56611491c4.html#loio00737d6c1b864dc3ab72ef56611491c4'
+                href: 'https://openui5.hana.ondemand.com/#/topic/00737d6c1b864dc3ab72ef56611491c4#loio00737d6c1b864dc3ab72ef56611491c4'
             },
             {
                 text: 'Is Your Application Ready for Asynchronous Loading?',
-                href: 'https://sapui5.hana.ondemand.com/#/topic/493a15aa978d4fe9a67ea9407166eb01.html'
+                href: 'https://sapui5.hana.ondemand.com/#/topic/493a15aa978d4fe9a67ea9407166eb01'
             }
         ]
     };
@@ -360,7 +399,7 @@ sap.ui.predefine('sap/ui/core/rules/Config.support', [
         resolution: 'Change the application\n' + 'Note: Not using cache buster tokens has a negative impact on performance.\n' + 'For more information, see the SAPUI5 developer guide.',
         resolutionurls: [{
                 text: 'Documentation: Cache Buster for SAPUI5 Application Resources',
-                href: 'https://sapui5.hana.ondemand.com/#docs/guide/4cfe7eff3001447a9d4b0abeaba95166.html'
+                href: 'https://sapui5.hana.ondemand.com/#/topic/4cfe7eff3001447a9d4b0abeaba95166'
             }],
         check: function (oIssueManager, oCoreFacade, oScope) {
             var sUI5ICFNode = '/sap/bc/ui5_ui5/';
@@ -579,6 +618,47 @@ sap.ui.predefine('sap/ui/core/rules/Config.support', [
             }
         }
     };
+    var oModelPreloadAndEarlyRequests = {
+        id: 'modelPreloadAndEarlyRequests',
+        audiences: [Audiences.Application],
+        categories: [Categories.Performance],
+        enabled: true,
+        minversion: '1.53',
+        title: 'OData V4 model preloading and no earlyRequests',
+        description: 'Manifest model preload is useless if V4 ODataModel earlyRequests is false',
+        resolution: 'Set manifest parameter models[<Model Name>].settings.earlyRequests to true',
+        resolutionurls: [
+            {
+                text: 'Documentation: Manifest Model Preload',
+                href: 'https://openui5.hana.ondemand.com/#/topic/26ba6a5c1e5c417f8b21cce1411dba2c'
+            },
+            {
+                text: 'API: V4 ODataModel, parameter earlyRequests',
+                href: 'https://openui5.hana.ondemand.com/api/sap.ui.model.odata.v4.ODataModel'
+            }
+        ],
+        check: function (oIssueManager, oCoreFacade, oScope) {
+            var mComponents = oCoreFacade.getComponents();
+            Object.keys(mComponents).forEach(function (sComponentId) {
+                var oManifest = mComponents[sComponentId].getManifest(), mDataSources = oManifest['sap.app'].dataSources, mModels = oManifest['sap.ui5'].models || {};
+                Object.keys(mModels).forEach(function (sModel) {
+                    var mDataSource, mModel = mModels[sModel];
+                    if (mModel.dataSource) {
+                        mDataSource = mDataSources[mModel.dataSource];
+                    }
+                    if (mModel.type === 'sap.ui.model.odata.v4.ODataModel' || mDataSource && mDataSource.type === 'OData' && mDataSource.settings && mDataSource.settings.odataVersion === '4.0') {
+                        if (mModel.preload === true && !(mModel.settings && mModel.settings.earlyRequests === true)) {
+                            oIssueManager.addIssue({
+                                severity: Severity.High,
+                                details: 'Set sap.ui5.models[\'' + sModel + '\'].settings' + '.earlyRequests in manifest to true',
+                                context: { id: sComponentId }
+                            });
+                        }
+                    }
+                });
+            });
+        }
+    };
     var oAsynchronousXMLViews = {
         id: 'asynchronousXMLViews',
         audiences: [Audiences.Application],
@@ -599,7 +679,7 @@ sap.ui.predefine('sap/ui/core/rules/Config.support', [
             },
             {
                 text: 'Documentation: UI Adaptation at Runtime: Enable Your App',
-                href: 'https://sapui5.hana.ondemand.com/#docs/guide/f1430c0337534d469da3a56307ff76af.html'
+                href: 'https://sapui5.hana.ondemand.com/#/topic/f1430c0337534d469da3a56307ff76af'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
@@ -651,6 +731,7 @@ sap.ui.predefine('sap/ui/core/rules/Config.support', [
         oLazyComponents,
         oReuseComponents,
         oModelPreloading,
+        oModelPreloadAndEarlyRequests,
         oAsynchronousXMLViews
     ];
 }, true);
@@ -748,11 +829,11 @@ sap.ui.predefine('sap/ui/core/rules/Misc.support', [
         resolutionurls: [
             {
                 text: 'CSS Styling Issues',
-                href: 'https://openui5.hana.ondemand.com/#docs/guide/9d87f925dfbb4e99b9e2963693aa00ef.html'
+                href: 'https://openui5.hana.ondemand.com/#/topic/9d87f925dfbb4e99b9e2963693aa00ef'
             },
             {
                 text: 'General Guidelines',
-                href: 'https://openui5.hana.ondemand.com/#docs/guide/5e08ff90b7434990bcb459513d8c52c4.html'
+                href: 'https://openui5.hana.ondemand.com/#/topic/5e08ff90b7434990bcb459513d8c52c4'
             }
         ],
         check: function (issueManager, oCoreFacade, oScope) {
@@ -794,11 +875,11 @@ sap.ui.predefine('sap/ui/core/rules/Misc.support', [
         resolutionurls: [
             {
                 text: 'CSS Styling Issues',
-                href: 'https://openui5.hana.ondemand.com/#docs/guide/9d87f925dfbb4e99b9e2963693aa00ef.html'
+                href: 'https://openui5.hana.ondemand.com/#/topic/9d87f925dfbb4e99b9e2963693aa00ef'
             },
             {
                 text: 'General Guidelines',
-                href: 'https://openui5.hana.ondemand.com/#docs/guide/5e08ff90b7434990bcb459513d8c52c4.html'
+                href: 'https://openui5.hana.ondemand.com/#/topic/5e08ff90b7434990bcb459513d8c52c4'
             }
         ],
         check: function (issueManager, oCoreFacade, oScope) {
@@ -905,20 +986,20 @@ sap.ui.predefine('sap/ui/core/rules/Model.support', [
         resolution: 'Check the binding path for typos',
         resolutionurls: [
             {
-                href: 'https://sapui5.hana.ondemand.com/#docs/api/symbols/sap.ui.model.Context.html',
+                href: 'https://sapui5.hana.ondemand.com/#/api/sap.ui.model.Context',
                 text: 'API Reference: Context'
             },
             {
-                href: 'https://sapui5.hana.ondemand.com/#docs/guide/e5310932a71f42daa41f3a6143efca9c.html',
-                text: 'Documentation: Data Binding'
+                href: 'https://sapui5.hana.ondemand.com/#/topic/e5310932a71f42daa41f3a6143efca9c',
+                text: 'Documentation: Data Binding Tutorial'
             },
             {
-                href: 'https://sapui5.hana.ondemand.com/#docs/guide/97830de2d7314e93b5c1ee3878a17be9.html',
-                text: 'Data Binding Tutorial - Step 12: Aggregation Binding Using Templates'
+                href: 'https://sapui5.hana.ondemand.com/#/topic/97830de2d7314e93b5c1ee3878a17be9',
+                text: 'Documentation: Data Binding Tutorial - Step 12: Aggregation Binding Using Templates'
             },
             {
-                href: 'https://sapui5.hana.ondemand.com/#docs/guide/6c7c5c266b534e7ea9a28f861dc515f5.html',
-                text: 'Data Binding Tutorial - Step 13: Element Binding'
+                href: 'https://sapui5.hana.ondemand.com/#/topic/6c7c5c266b534e7ea9a28f861dc515f5',
+                text: 'Documentation: Data Binding Tutorial - Step 13: Element Binding'
             }
         ],
         check: function (oIssueManager, oCoreFacade, oScope) {
@@ -1039,7 +1120,7 @@ sap.ui.predefine('sap/ui/core/rules/View.support', [
         resolution: 'Define the XML view as \'<mvc:View ...>\' and configure the XML namepspace as \'xmlns:mvc="sap.ui.core.mvc"\'',
         resolutionurls: [{
                 text: 'Documentation: Namespaces in XML Views',
-                href: 'https://sapui5.hana.ondemand.com/#docs/guide/2421a2c9fa574b2e937461b5313671f0.html'
+                href: 'https://sapui5.hana.ondemand.com/#/topic/2421a2c9fa574b2e937461b5313671f0'
             }],
         check: function (oIssueManager, oCoreFacade, oScope) {
             var aXMLViews = oScope.getElements().filter(function (oControl) {
@@ -1071,7 +1152,7 @@ sap.ui.predefine('sap/ui/core/rules/View.support', [
         resolution: 'Set the namespace of the control library that holds most of the controls you use as default namespace (e.g. xmlns="sap.m")',
         resolutionurls: [{
                 text: 'Documentation: Namespaces in XML Views',
-                href: 'https://sapui5.hana.ondemand.com/#docs/guide/2421a2c9fa574b2e937461b5313671f0.html'
+                href: 'https://sapui5.hana.ondemand.com/#/topic/2421a2c9fa574b2e937461b5313671f0'
             }],
         check: function (oIssueManager, oCoreFacade, oScope) {
             var aXMLViews = oScope.getElements().filter(function (oControl) {
@@ -1152,7 +1233,7 @@ sap.ui.predefine('sap/ui/core/rules/View.support', [
         resolution: 'Remove the unused namespaces from the view definition',
         resolutionurls: [{
                 text: 'Documentation: Namespaces in XML Views',
-                href: 'https://sapui5.hana.ondemand.com/#docs/guide/2421a2c9fa574b2e937461b5313671f0.html'
+                href: 'https://sapui5.hana.ondemand.com/#/topic/2421a2c9fa574b2e937461b5313671f0'
             }],
         check: function (oIssueManager, oCoreFacade, oScope) {
             var aXMLViews = oScope.getElements().filter(function (oControl) {

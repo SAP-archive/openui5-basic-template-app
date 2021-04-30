@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -136,7 +136,7 @@ sap.ui.define([
 					}
 				}
 
-				if (jQuery.isFunction(mSettings.defaultHandler)) {
+				if (typeof mSettings.defaultHandler === "function") {
 					defaultHandler = mSettings.defaultHandler;
 				}
 
@@ -271,7 +271,7 @@ sap.ui.define([
 
 			//back is called directly after restoring the bookmark. Since there's no history stored, call the default handler.
 			if (hashHistory.length === 1) {
-				if (jQuery.isFunction(defaultHandler)) {
+				if (typeof defaultHandler === "function") {
 					defaultHandler();
 				}
 			} else {
@@ -301,7 +301,7 @@ sap.ui.define([
 
 			//back is called directly after restoring the bookmark. Since there's no history stored, call the default handler.
 			if (hashHistory.length === 1) {
-				if (jQuery.isFunction(defaultHandler)) {
+				if (typeof defaultHandler === "function") {
 					defaultHandler();
 				}
 			} else {
@@ -328,7 +328,7 @@ sap.ui.define([
 
 			//back is called directly after restoring the bookmark. Since there's no history stored, call the default handler.
 			if (hashHistory.length === 1) {
-				if (jQuery.isFunction(defaultHandler)) {
+				if (typeof defaultHandler === "function") {
 					defaultHandler(jQuery.sap.history.NavType.Back);
 				}
 			} else {
@@ -494,8 +494,8 @@ sap.ui.define([
 		 * @private
 		 */
 		function preGenHash(sIdf, oStateData){
-			var sEncodedIdf = window.encodeURIComponent(sIdf);
-			var sEncodedData = window.encodeURIComponent(window.JSON.stringify(oStateData));
+			var sEncodedIdf = encodeURIComponent(sIdf);
+			var sEncodedData = encodeURIComponent(JSON.stringify(oStateData));
 			return sEncodedIdf + sIdSeperator + sEncodedData;
 		}
 
@@ -585,7 +585,7 @@ sap.ui.define([
 				oParsedHash = parseHashToObject(sHash);
 
 				if (!oParsedHash || !oParsedHash.bBookmarkable) {
-					if (jQuery.isFunction(defaultHandler)) {
+					if (typeof defaultHandler === "function") {
 						defaultHandler(jQuery.sap.history.NavType.Bookmark);
 					}
 					return;
@@ -593,7 +593,7 @@ sap.ui.define([
 			}
 
 			if (sHash.length === 0) {
-				if (jQuery.isFunction(defaultHandler)) {
+				if (typeof defaultHandler === "function") {
 					defaultHandler(jQuery.sap.history.NavType.Back);
 				}
 			} else {
@@ -603,7 +603,7 @@ sap.ui.define([
 				if (iNewHashIndex === 0) {
 					oParsedHash = parseHashToObject(sHash);
 					if (!oParsedHash || !oParsedHash.bBookmarkable) {
-						if (jQuery.isFunction(defaultHandler)) {
+						if (typeof defaultHandler === "function") {
 							defaultHandler(jQuery.sap.history.NavType.Back);
 						}
 						return;
@@ -704,7 +704,7 @@ sap.ui.define([
 			var aParts = sHash.split(sIdSeperator), oReturn = {};
 			if (aParts.length === 4 || aParts.length === 3) {
 				oReturn.sIdentifier = window.decodeURIComponent(aParts[0]);
-				oReturn.oStateData = window.JSON.parse(window.decodeURIComponent(aParts[1]));
+				oReturn.oStateData = JSON.parse(window.decodeURIComponent(aParts[1]));
 				if (aParts.length === 4) {
 					oReturn.uid = aParts[2];
 				}

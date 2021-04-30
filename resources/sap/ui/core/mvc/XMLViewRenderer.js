@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["./ViewRenderer","../RenderManager","sap/ui/thirdparty/jquery"],function(e,t,r){"use strict";var n=t.RenderPrefixes.Dummy,i=t.RenderPrefixes.Invisible,d=t.RenderPrefixes.Temporary;var s={apiVersion:1};s.render=function(s,a){var o=a._$oldContent=t.findPreservedContent(a.getId());if(o.length===0){var l=a.isSubView();if(!l){s.openStart("div",a);s.class("sapUiView");s.class("sapUiXMLView");e.addDisplayClass(s,a);if(!a.oAsyncState||!a.oAsyncState.suppressPreserve){s.attr("data-sap-ui-preserve",a.getId())}s.style("width",a.getWidth());s.style("height",a.getHeight());s.openEnd()}if(a._aParsedContent){for(var p=0;p<a._aParsedContent.length;p++){var f=a._aParsedContent[p];if(f&&typeof f==="string"){s.write(f)}else{s.renderControl(f);if(!f.bOutput){s.openStart("div",n+f.getId());s.class("sapUiHidden");s.openEnd()}}}}if(!l){s.close("div")}}else{s.renderControl(a.oAfterRenderingNotifier);s.openStart("div",d+a.getId());s.class("sapUiHidden");s.openEnd();for(var p=0;p<a._aParsedContent.length;p++){var f=a._aParsedContent[p];if(typeof f!=="string"){s.renderControl(f);var v=f.getId(),g=r(document.getElementById(v));if(g.length==0){g=r(document.getElementById(i+v))}if(!t.isPreservedContent(g[0])){g.replaceWith('<div id="'+n+v+'" class="sapUiHidden"></div>')}}}s.close("div")}};return s},true);

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*global QUnit */
@@ -83,7 +83,7 @@ sap.ui.define([
 	 * </code></pre>
 	 *
 	 * @public
-	 * @alias sap.ui.test.opaQunit
+	 * @alias module:sap/ui/test/opaQunit
 	 * @function
 	 * @static
 	 * @param {string} testName name of the QUnit test.

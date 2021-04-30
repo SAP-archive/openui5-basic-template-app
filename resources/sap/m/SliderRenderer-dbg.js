@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -105,11 +105,7 @@ sap.ui.define(['./SliderUtilities', "sap/ui/core/InvisibleText"],
 		SliderRenderer.renderHandle = function(oRm, oSlider, mOptions) {
 			var bEnabled = oSlider.getEnabled();
 
-			oRm.openStart("span");
-
-			if (mOptions && (mOptions.id !== undefined)) {
-				oRm.attr("id", mOptions.id);
-			}
+			oRm.openStart("span", mOptions && mOptions.id);
 
 			if (oSlider.getShowHandleTooltip() && !oSlider.getShowAdvancedTooltip()) {
 				this.writeHandleTooltip(oRm, oSlider);
@@ -117,6 +113,7 @@ sap.ui.define(['./SliderUtilities', "sap/ui/core/InvisibleText"],
 
 			if (oSlider.getInputsAsTooltips()) {
 				oRm.attr("aria-describedby", InvisibleText.getStaticId("sap.m", "SLIDER_INPUT_TOOLTIP"));
+				bEnabled && oRm.attr("aria-keyshortcuts", "F2");
 			}
 
 			this.addHandleClass(oRm, oSlider);
@@ -193,7 +190,7 @@ sap.ui.define(['./SliderUtilities', "sap/ui/core/InvisibleText"],
 		};
 
 		SliderRenderer.renderTickmarks = function (oRm, oSlider) {
-			var i, iTickmarksToRender, fTickmarksDistance, iLabelsCount, fStep, fSliderSize, fSliderStep, bTickHasLabel,
+			var i, iTickmarksToRender, fTickmarksDistance, iLabelsCount, fStep, fSliderSize, fSliderStep,
 				oScale = oSlider._getUsedScale();
 
 			if (!oSlider.getEnableTickmarks() || !oScale) {
@@ -221,15 +218,13 @@ sap.ui.define(['./SliderUtilities', "sap/ui/core/InvisibleText"],
 				.close("li");
 
 			for (i = 1; i < iTickmarksToRender - 1; i++) {
-				bTickHasLabel = false;
 				if (iLabelsCount && (i % iLabelsCount === 0)) {
-					bTickHasLabel = true;
 					fStep = i * fTickmarksDistance;
 					this.renderTickmarksLabel(oRm, oSlider, oSlider._getValueOfPercent(fStep));
 				}
 
 				oRm.openStart("li").class(SliderRenderer.CSS_CLASS + "Tick")
-					.style("width", fTickmarksDistance + "%" + (bTickHasLabel ? " opacity: 0;" : ""))
+					.style("width", fTickmarksDistance + "%;")
 					.openEnd()
 					.close("li");
 			}

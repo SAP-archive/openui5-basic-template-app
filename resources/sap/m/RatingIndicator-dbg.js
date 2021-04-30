@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -51,7 +51,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -159,10 +159,6 @@ sap.ui.define([
 		designtime: "sap/m/designtime/RatingIndicator.designtime"
 	}});
 
-	///**
-	// * This file defines behavior for the control,
-	// */
-
 	/* =========================================================== */
 	/*           temporary flags for jslint syntax check           */
 	/* =========================================================== */
@@ -199,7 +195,10 @@ sap.ui.define([
 	 * @override
 	 * @public
 	 */
-	RatingIndicator.prototype.setValue = function (fValue) {
+	RatingIndicator.prototype.setValue = function (vValue) {
+		// Allow passing float values as strings to support oData v2. Edm.Double type format
+		var fValue = typeof vValue !== "string" ? vValue : Number(vValue);
+
 		// validates the property and sets null/undefined values to the default
 		fValue = this.validateProperty("value", fValue);
 
@@ -210,7 +209,7 @@ sap.ui.define([
 
 		// check for valid numbers
 		if (isNaN(fValue)) {
-			Log.warning('Ignored new rating value "' + fValue + '" because it is NAN');
+			Log.warning('Ignored new rating value "' + vValue + '" because it is NAN');
 
 		// check if the number is in the range 0-maxValue (only if control is rendered)
 		// if control is not rendered it is handled by onBeforeRendering()

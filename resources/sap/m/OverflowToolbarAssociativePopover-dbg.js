@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,7 @@ sap.ui.define(['./Popover', './PopoverRenderer', './OverflowToolbarAssociativePo
 	 * @extends sap.m.Popover
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @private
@@ -39,6 +39,7 @@ sap.ui.define(['./Popover', './PopoverRenderer', './OverflowToolbarAssociativePo
 	 */
 	var OverflowToolbarAssociativePopover = Popover.extend("sap.m._overflowToolbarHelpers.OverflowToolbarAssociativePopover", /** @lends sap.m._overflowToolbarHelpers.OverflowToolbarAssociativePopover.prototype */ {
 		metadata : {
+			library: "sap.m",
 			associations : {
 				/**
 				 * The same as content, but provided in the form of an association
@@ -60,16 +61,6 @@ sap.ui.define(['./Popover', './PopoverRenderer', './OverflowToolbarAssociativePo
 		Popover.prototype.onBeforeRendering.apply(this, arguments);
 		this.addStyleClass("sapMOTAPopover");
 		this.addStyleClass("sapMOverflowToolbarMenu-CTX");
-
-		var bHasButtonsWithIcons = this._getAllContent().some(function(oControl) {
-			return oControl.hasStyleClass("sapMOTAPButtonWithIcon");
-		});
-
-		if (bHasButtonsWithIcons) {
-			this.addStyleClass("sapMOTAPButtonsWithIcons");
-		} else {
-			this.removeStyleClass("sapMOTAPButtonsWithIcons");
-		}
 	};
 
 	/* Override API methods */

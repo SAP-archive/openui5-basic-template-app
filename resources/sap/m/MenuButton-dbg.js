@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -58,7 +58,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @constructor
 		 * @public
@@ -246,8 +246,6 @@ sap.ui.define([
 			if (this._needsWidth() && sap.ui.getCore().isThemeApplied() && this._getTextBtnContentDomRef() && this._getInitialTextBtnWidth() > 0) {
 				this._getTextBtnContentDomRef().style.width = this._getInitialTextBtnWidth() + 'px';
 			}
-
-			this._setAriaHasPopup();
 		};
 
 		MenuButton.prototype.onThemeChanged = function(oEvent) {
@@ -269,13 +267,6 @@ sap.ui.define([
 			}
 
 			return this._iInitialTextBtnContentWidth;
-		};
-
-		MenuButton.prototype._setAriaHasPopup = function() {
-			var oButtonControl = this._getButtonControl(),
-				oOpeningMenuButton = this._isSplitButton() ? oButtonControl._getArrowButton() : oButtonControl;
-
-			oOpeningMenuButton.$().attr("aria-haspopup", "menu");
 		};
 
 		/**
@@ -327,7 +318,8 @@ sap.ui.define([
 		 */
 		MenuButton.prototype._initButton = function() {
 			var oBtn = new Button(this.getId() + "-internalBtn", {
-				width: "100%"
+				width: "100%",
+				ariaHasPopup: coreLibrary.aria.HasPopup.Menu
 			});
 			oBtn.attachPress(this._handleButtonPress, this);
 			return oBtn;
@@ -481,6 +473,8 @@ sap.ui.define([
 		MenuButton.prototype._menuClosed = function() {
 			var oButtonControl = this._getButtonControl(),
 				bOpeningMenuButton = oButtonControl;
+
+			this._bPopupOpen = false;
 
 			if (this._isSplitButton()) {
 				oButtonControl.setArrowState(false);
@@ -692,18 +686,25 @@ sap.ui.define([
 
 		MenuButton.prototype.onsapup = function(oEvent) {
 			this.openMenuByKeyboard();
+			// If there is a different behavior defined in the parent container for the same event,
+			// then use only the defined behavior in the MenuButton.
+			// The same applies for 'sapdown', 'sapupmodifiers' and 'sapdownmodifiers' events as well.
+			oEvent.stopPropagation();
 		};
 
 		MenuButton.prototype.onsapdown = function(oEvent) {
 			this.openMenuByKeyboard();
+			oEvent.stopPropagation();
 		};
 
 		MenuButton.prototype.onsapupmodifiers = function(oEvent) {
 			this.openMenuByKeyboard();
+			oEvent.stopPropagation();
 		};
 
 		MenuButton.prototype.onsapdownmodifiers = function(oEvent) {
 			this.openMenuByKeyboard();
+			oEvent.stopPropagation();
 		};
 
 		//F4

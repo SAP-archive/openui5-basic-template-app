@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,7 +17,6 @@ sap.ui.define([
 	'./Toolbar',
 	'./AssociativeOverflowToolbar',
 	'./Button',
-	'./AccButton',
 	'./Title',
 	'./ToolbarSpacer',
 	'./SegmentedButton',
@@ -29,6 +28,7 @@ sap.ui.define([
 	'sap/ui/core/Popup',
 	'sap/ui/core/IconPool',
 	'sap/ui/core/InvisibleText',
+	'sap/ui/core/library',
 	"./PlanningCalendarHeaderRenderer"
 ],
 function(
@@ -38,7 +38,6 @@ function(
 	Toolbar,
 	AssociativeOverflowToolbar,
 	Button,
-	AccButton,
 	Title,
 	ToolbarSpacer,
 	SegmentedButton,
@@ -50,6 +49,7 @@ function(
 	Popup,
 	IconPool,
 	InvisibleText,
+	coreLibrary,
 	PlanningCalendarHeaderRenderer
 ) {
 	"use strict";
@@ -95,7 +95,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @private
@@ -274,7 +274,7 @@ function(
 			}.bind(this)
 		});
 		oCalendarPicker = new Calendar(sOPHId + "-Cal", {
-			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_DIALOG")
+			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "PCH_RANGE_PICKER")
 		});
 		oCalendarPicker.attachEvent("select", this._handlePickerDateSelect, this);
 		oCalendarPicker.attachEvent("cancel", this._handlePickerCancelEvent, this);
@@ -284,7 +284,7 @@ function(
 		this.setAssociation("currentPicker", oCalendarPicker);
 
 		oMonthPicker = new CustomMonthPicker(sOPHId + "-MonthCal", {
-			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_DIALOG")
+			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "PCH_RANGE_PICKER")
 		});
 		oMonthPicker.attachEvent("select", this._handlePickerDateSelect, this);
 		oMonthPicker.attachEvent("cancel", this._handlePickerCancelEvent, this);
@@ -292,16 +292,16 @@ function(
 		this.setAggregation("_monthPicker", oMonthPicker);
 
 		oYearPicker = new CustomYearPicker(sOPHId + "-YearCal", {
-			ariaLabelledBy: InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_DIALOG")
+			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "PCH_RANGE_PICKER")
 		});
 		oYearPicker.attachEvent("select", this._handlePickerDateSelect, this);
 		oYearPicker.attachEvent("cancel", this._handlePickerCancelEvent, this);
 		oYearPicker.setPopupMode(true);
 		this.setAggregation("_yearPicker", oYearPicker);
 
-		this._oPickerBtn = new AccButton(sNavToolbarId + "-PickerBtn", {
+		this._oPickerBtn = new Button(sNavToolbarId + "-PickerBtn", {
 			text: this.getPickerText(),
-			ariaHaspopup: "dialog",
+			ariaHasPopup: coreLibrary.aria.HasPopup.Grid,
 			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "PCH_SELECT_RANGE"),
 			press: function () {
 				if (this.fireEvent("_pickerButtonPress", {}, true)) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -72,7 +72,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Control
 	* @implements sap.ui.core.IFormContent
 	* @author SAP SE
-	* @version 1.79.0
+	* @version 1.84.11
 	*
 	* @constructor
 	* @public
@@ -95,9 +95,9 @@ sap.ui.define([
 			value : {type : "string", group : "Data", defaultValue : null, bindable : "bindable"},
 
 			/**
-			 * Defines the CSS width of the input. 100% by default.
+			 * Defines the CSS width of the input. If not set, width is 100%.
 			 */
-			width : {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : "100%" },
+			width : {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : null },
 
 			/**
 			 * Boolean property to enable the control (default is true).
@@ -300,6 +300,10 @@ sap.ui.define([
 			this.$("I").cursorPos(oFocusInfo.cursorPos);
 		}
 		return this;
+	};
+
+	SearchField.prototype.getWidth = function() {
+		return this.getProperty("width") || "100%";
 	};
 
 	SearchField.prototype._hasPlaceholder = (function () {
@@ -967,7 +971,8 @@ sap.ui.define([
 	/**
 	 * Toggle visibility of the suggestion list.
 	 *
-	 * @param {boolean | undefined} bShow set to <code>true</code> to display suggestions and <code>false</code> to hide them. Default value is <code>true</code>.
+	 * @param {boolean | undefined} [bShow=true] If the value is <code>true</code> the suggestions are displayed.
+	 * If the value is <code>false</code> the suggestions are hidden.
 	 * An empty suggestion list is not shown on desktop and tablet devices.<br>
 	 *
 	 * This method may be called only as a response to the <code>suggest</code> event to ensure that the suggestion list is shown

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/core/Renderer","./InputBaseRenderer","sap/ui/Device","sap/ui/core/library"],function(e,t,n,r){"use strict";var a=r.Wrapping;var i=e.extend(t);i.apiVersion=2;i.addOuterClasses=function(e,t){e.class("sapMTextArea");if(t.getShowExceededText()){e.class("sapMTextAreaWithCounter")}if(t.getHeight()){e.class("sapMTextAreaWithHeight")}};i.addOuterStyles=function(e,t){t.getHeight()&&e.style("height",t.getHeight())};i.writeDecorations=function(e,t){var n=t.getAggregation("_counter");e.renderControl(n)};i.openInputTag=function(e,t){e.openStart("textarea",t.getId()+"-"+this.getInnerSuffix())};i.endInputTag=function(e,t){e.openEnd()};i.closeInputTag=function(e,t){e.close("textarea")};i.prependInnerContent=function(e,t){if(t.getGrowing()){e.openStart("div",t.getId()+"-hidden");e.class("sapMTextAreaMirror");e.openEnd().close("div")}};i.writeInnerValue=function(){};i.writeInnerContent=function(e,t){var n=t.getValue();e.text(n)};i.addInnerClasses=function(e,t){e.class("sapMTextAreaInner");if(t.getGrowing()){e.class("sapMTextAreaGrow")}};i.getAriaRole=function(e){return""};i.writeInnerAttributes=function(e,t){if(t.getWrapping()!=a.None){e.attr("wrap",t.getWrapping())}e.attr("rows",t.getRows());e.attr("cols",t.getCols())};return i},true);

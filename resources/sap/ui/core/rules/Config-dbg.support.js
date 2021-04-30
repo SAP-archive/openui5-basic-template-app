@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -43,11 +43,11 @@ sap.ui.define([
 			},
 			{
 				text: "Best Practices for Loading Modules Asynchronously",
-				href: "https://openui5.hana.ondemand.com/#/topic/00737d6c1b864dc3ab72ef56611491c4.html#loio00737d6c1b864dc3ab72ef56611491c4"
+				href: "https://openui5.hana.ondemand.com/#/topic/00737d6c1b864dc3ab72ef56611491c4#loio00737d6c1b864dc3ab72ef56611491c4"
 			},
 			{
 				text: "Is Your Application Ready for Asynchronous Loading?",
-				href: "https://sapui5.hana.ondemand.com/#/topic/493a15aa978d4fe9a67ea9407166eb01.html"
+				href: "https://sapui5.hana.ondemand.com/#/topic/493a15aa978d4fe9a67ea9407166eb01"
 			}
 		]
 	};
@@ -115,7 +115,7 @@ sap.ui.define([
 			"For more information, see the SAPUI5 developer guide.",
 		resolutionurls: [{
 			text: "Documentation: Cache Buster for SAPUI5 Application Resources",
-			href: "https://sapui5.hana.ondemand.com/#docs/guide/4cfe7eff3001447a9d4b0abeaba95166.html"
+			href: "https://sapui5.hana.ondemand.com/#/topic/4cfe7eff3001447a9d4b0abeaba95166"
 		}],
 		check: function(oIssueManager, oCoreFacade, oScope) {
 			var sUI5ICFNode = "/sap/bc/ui5_ui5/";
@@ -386,6 +386,57 @@ sap.ui.define([
 		}
 	};
 
+	var oModelPreloadAndEarlyRequests = {
+		id: "modelPreloadAndEarlyRequests",
+		audiences: [Audiences.Application],
+		categories: [Categories.Performance],
+		enabled: true,
+		minversion: "1.53",
+		title: "OData V4 model preloading and no earlyRequests",
+		description: "Manifest model preload is useless if V4 ODataModel earlyRequests is false",
+		resolution: "Set manifest parameter models[<Model Name>].settings.earlyRequests to true",
+		resolutionurls: [{
+			text: 'Documentation: Manifest Model Preload',
+			href: 'https://openui5.hana.ondemand.com/#/topic/26ba6a5c1e5c417f8b21cce1411dba2c'
+		}, {
+			text: 'API: V4 ODataModel, parameter earlyRequests',
+			href: 'https://openui5.hana.ondemand.com/api/sap.ui.model.odata.v4.ODataModel'
+		}],
+		check: function(oIssueManager, oCoreFacade, oScope) {
+			var mComponents = oCoreFacade.getComponents();
+
+			Object.keys(mComponents).forEach(function(sComponentId) {
+				var oManifest = mComponents[sComponentId].getManifest(),
+					mDataSources = oManifest['sap.app'].dataSources,
+					mModels = oManifest['sap.ui5'].models || {};
+
+				Object.keys(mModels).forEach(function(sModel) {
+					var mDataSource,
+						mModel = mModels[sModel];
+
+					if (mModel.dataSource) {
+						mDataSource = mDataSources[mModel.dataSource];
+					}
+					if (mModel.type === "sap.ui.model.odata.v4.ODataModel"
+						|| mDataSource && mDataSource.type === "OData" && mDataSource.settings
+							 && mDataSource.settings.odataVersion === "4.0") {
+						if (mModel.preload === true
+							&& !(mModel.settings && mModel.settings.earlyRequests === true)) {
+							oIssueManager.addIssue({
+								severity: Severity.High,
+								details: "Set sap.ui5.models['" + sModel + "'].settings" +
+									".earlyRequests in manifest to true",
+								context: {
+									id: sComponentId
+								}
+							});
+						}
+					}
+				});
+			});
+		}
+	};
+
 	var oAsynchronousXMLViews = {
 		id: "asynchronousXMLViews",
 		audiences: [Audiences.Application],
@@ -403,7 +454,7 @@ sap.ui.define([
 			href: "https://openui5.hana.ondemand.com/#/topic/68d0e58857a647d49470d9f92dd859bd"
 		}, {
 			text: "Documentation: UI Adaptation at Runtime: Enable Your App",
-			href: "https://sapui5.hana.ondemand.com/#docs/guide/f1430c0337534d469da3a56307ff76af.html"
+			href: "https://sapui5.hana.ondemand.com/#/topic/f1430c0337534d469da3a56307ff76af"
 		}],
 		check: function(oIssueManager, oCoreFacade, oScope) {
 			var mComponents = oCoreFacade.getComponents();
@@ -468,6 +519,7 @@ sap.ui.define([
 		oLazyComponents,
 		oReuseComponents,
 		oModelPreloading,
+		oModelPreloadAndEarlyRequests,
 		oAsynchronousXMLViews
 	];
 }, true);

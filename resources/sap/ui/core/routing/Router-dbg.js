@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -249,12 +249,20 @@ sap.ui.define([
 
 				if (oTargetsConfig) {
 					this._oTargets = this._createTargets(this._oConfig, oTargetsConfig);
+
+					// The router instance can't be forwarded to the target through the constructor parameter because
+					// the _createTargets method is overwritten in router subclasses, for example sap.m.routing.Router,
+					// without calling the parent's constructor
+					this._oTargets._setRouter(this);
+
 					this._oTargets.attachDisplay(function(oEvent) {
+						var bIsRouteRelevant = oEvent.getParameter("routeRelevant");
+
 						if (this.isInitialized() && !this._bMatchingProcessStarted) {
 							var oHashChanger = this.getHashChanger();
 							// check the type of oHashChanger before calling the function "resetHash"
 							// which only exists on RouterHashChanger
-							if (oHashChanger instanceof RouterHashChanger) {
+							if (oHashChanger instanceof RouterHashChanger && !bIsRouteRelevant) {
 								// reset the hash to allow the match with the previous route after
 								// displaying a target without involving the router
 								oHashChanger.resetHash();
@@ -293,8 +301,7 @@ sap.ui.define([
 				}
 				this.setHashChanger(oRouterHashChanger);
 
-				var oParentComponent = this._oOwner && Component.getOwnerComponentFor(this._oOwner);
-				var oParentRouter = oParentComponent && oParentComponent.getRouter();
+				var oParentRouter = this._getParentRouter();
 
 				if (oParentRouter) {
 					// attach titleChanged event and forward event parameters to parent router
@@ -474,7 +481,7 @@ sap.ui.define([
 					this._oTargets.detachTitleChanged(this._forwardTitleChanged, this);
 
 					// remove the last saved title since the router is reset
-					delete this._oTargets._sPreviousTitle;
+					this._oTargets._oLastTitleTarget = {};
 				}
 
 				if (this._oMatchedRoute) {
@@ -718,7 +725,7 @@ sap.ui.define([
 					viewName: sViewName,
 					type: sViewType,
 					id: sViewId
-				});
+				}, true);
 
 				this.fireViewCreated({
 					view: oView,
@@ -743,6 +750,17 @@ sap.ui.define([
 			setView : function (sViewName, oView) {
 				this._oViews.setView(sViewName, oView);
 				return this;
+			},
+
+			/**
+			 * Determines the router instance of the parent component
+			 *
+			 * @private
+			 * @returns {sap.ui.core.routing.Router} The router of the parent component
+			 */
+			_getParentRouter : function(){
+				var oParentComponent = this._oOwner && Component.getOwnerComponentFor(this._oOwner);
+				return oParentComponent && oParentComponent.getRouter();
 			},
 
 			/**
@@ -1443,7 +1461,13 @@ sap.ui.define([
 				}
 
 				if (bImmediateFire) {
-					this.fireEvent(Router.M_EVENTS.TITLE_CHANGED, mParameters);
+					if (this._bMatchingProcessStarted && this._isAsync()) {
+						this.attachEventOnce("routeMatched", function(){
+							this.fireEvent(Router.M_EVENTS.TITLE_CHANGED, mParameters);
+						}, this);
+					} else {
+						this.fireEvent(Router.M_EVENTS.TITLE_CHANGED, mParameters);
+					}
 				}
 
 				return this;

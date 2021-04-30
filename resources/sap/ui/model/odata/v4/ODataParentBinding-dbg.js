@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -81,7 +81,7 @@ sap.ui.define([
 	 * @param {sap.ui.model.odata.v4.lib._GroupLock} [oGroupLock]
 	 *   A lock for the group ID to be used for the PATCH request; without a lock, no PATCH is sent
 	 * @returns {sap.ui.base.SyncPromise} <code>undefined</code> for the general case which is
-	 *   handled generically by the caller {@link sap.ui.model.odata.v4.ODataContext#doSetProperty}
+	 *   handled generically by the caller {@link sap.ui.model.odata.v4.Context#doSetProperty}
 	 *   or a <code>SyncPromise</code> for the exceptional case
 	 *
 	 * @abstract
@@ -355,7 +355,7 @@ sap.ui.define([
 		}
 
 		for (sKey in mParameters) {
-			if (sKey.indexOf("$$") === 0) {
+			if (sKey.startsWith("$$")) {
 				throw new Error("Unsupported parameter: " + sKey);
 			}
 			if (mParameters[sKey] === undefined && mBindingParameters[sKey] !== undefined) {
@@ -376,6 +376,20 @@ sap.ui.define([
 		}
 	};
 
+	/**
+	 * Checks whether the given context may be kept alive.
+	 *
+	 * @param {sap.ui.model.odata.v4.Context} oContext
+	 *   A context of this binding
+	 * @throws {Error} If <code>oContext.setKeepAlive()</code> is not allowed
+	 *
+	 * @abstract
+	 * @function
+	 * @name sap.ui.model.odata.v4.ODataListBinding#checkKeepAlive
+	 * @private
+	 * @see sap.ui.model.odata.v4.Context#setKeepAlive
+	 */
+
 	/*
 	 * Checks dependent bindings for updates or refreshes the binding if the resource path of its
 	 * parent context changed.
@@ -387,7 +401,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	// @override
+	// @override sap.ui.model.odata.v4.ODataBinding#checkUpdateInternal
 	ODataParentBinding.prototype.checkUpdateInternal = function (bForceUpdate) {
 		var that = this;
 
@@ -417,14 +431,14 @@ sap.ui.define([
 
 	/**
 	 * Creates the entity in the cache. If the binding doesn't have a cache, it forwards to the
-	 * parent binding adjusting <code>sPathInCache</code>.
+	 * parent binding.
 	 *
 	 * @param {sap.ui.model.odata.v4.lib._GroupLock} oUpdateGroupLock
 	 *   The group ID to be used for the POST request
 	 * @param {string|sap.ui.base.SyncPromise} vCreatePath
 	 *   The path for the POST request or a SyncPromise that resolves with that path
-	 * @param {string} sPathInCache
-	 *   The path within the cache where to create the entity
+	 * @param {string} sCollectionPath
+	 *   The absolute path to the collection in the cache where to create the entity
 	 * @param {string} sTransientPredicate
 	 *   A (temporary) key predicate for the transient entity: "($uid=...)"
 	 * @param {object} oInitialData
@@ -441,11 +455,15 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataParentBinding.prototype.createInCache = function (oUpdateGroupLock, vCreatePath,
-			sPathInCache, sTransientPredicate, oInitialData, fnErrorCallback, fnSubmitCallback) {
+			sCollectionPath, sTransientPredicate, oInitialData, fnErrorCallback, fnSubmitCallback) {
 		var that = this;
 
 		return this.oCachePromise.then(function (oCache) {
+			var sPathInCache;
+
 			if (oCache) {
+				sPathInCache = _Helper.getRelativePath(sCollectionPath,
+					that.oModel.resolve(that.sPath, that.oContext));
 				return oCache.create(oUpdateGroupLock, vCreatePath, sPathInCache,
 					sTransientPredicate, oInitialData, fnErrorCallback, fnSubmitCallback
 				).then(function (oCreatedEntity) {
@@ -458,8 +476,8 @@ sap.ui.define([
 				});
 			}
 			return that.oContext.getBinding().createInCache(oUpdateGroupLock, vCreatePath,
-				_Helper.buildPath(that.oContext.iIndex, that.sPath, sPathInCache),
-				sTransientPredicate, oInitialData, fnErrorCallback, fnSubmitCallback);
+				sCollectionPath, sTransientPredicate, oInitialData, fnErrorCallback,
+				fnSubmitCallback);
 		});
 	};
 
@@ -665,7 +683,7 @@ sap.ui.define([
 		// become pending again
 		bCacheImmutable = this.oCachePromise.isRejected()
 			|| this.oCache === null
-			|| this.oCache && this.oCache.bSentRequest;
+			|| this.oCache && this.oCache.hasSentRequest();
 		sBaseMetaPath = oMetaModel.getMetaPath(oContext.getPath());
 		sFullMetaPath = oMetaModel.getMetaPath(sResolvedChildPath);
 		aPromises = [
@@ -764,9 +782,15 @@ sap.ui.define([
 
 				// Note: in operation bindings mAggregatedQueryOptions misses the options from
 				// $$inheritExpandSelect
-				if (oCache && !oCache.bSentRequest && !that.oOperation) {
-					oCache.setQueryOptions(_Helper.merge({}, that.oModel.mUriParameters,
-						that.mAggregatedQueryOptions));
+				if (oCache && !oCache.hasSentRequest() && !that.oOperation) {
+					if (that.bSharedRequest) {
+						oCache.setActive(false);
+						oCache = that.createAndSetCache(that.mAggregatedQueryOptions,
+							oCache.getResourcePath(), oContext);
+					} else {
+						oCache.setQueryOptions(_Helper.merge({}, that.oModel.mUriParameters,
+							that.mAggregatedQueryOptions));
+					}
 				}
 				return oCache;
 			});
@@ -903,6 +927,7 @@ sap.ui.define([
 	 * @returns {object} The query options
 	 *
 	 * @abstract
+	 * @function
 	 * @name sap.ui.model.odata.v4.ODataParentBinding.getQueryOptionsFromParameters
 	 * @private
 	 * @see sap.ui.model.odata.v4.ODataBinding#fetchQueryOptionsForOwnCache
@@ -1004,6 +1029,26 @@ sap.ui.define([
 	};
 
 	/**
+	 * Recursively refreshes all dependent list bindings that have no own cache.
+	 *
+	 * @returns {sap.ui.base.SyncPromise}
+	 *   A promise resolving when all dependent list bindings without own cache are refreshed
+	 *
+	 * @private
+	 */
+	ODataParentBinding.prototype.refreshDependentListBindingsWithoutCache = function () {
+		return SyncPromise.all(this.getDependentBindings().map(function (oDependentBinding) {
+			if (oDependentBinding.filter && oDependentBinding.oCache === null) {
+				return oDependentBinding.refreshInternal("");
+			}
+
+			if (oDependentBinding.refreshDependentListBindingsWithoutCache) {
+				return oDependentBinding.refreshDependentListBindingsWithoutCache();
+			}
+		}));
+	};
+
+	/**
 	 * Unlocks a ReadGroupLock and removes it from the binding.
 	 *
 	 * @private
@@ -1031,6 +1076,42 @@ sap.ui.define([
 				+ sGroupId  + "' (own group ID is '" + this.getGroupId() + "')");
 		}
 		this.setResumeChangeReason(ChangeReason.Refresh);
+	};
+
+	/**
+	 * Requests side effects for the given absolute paths.
+	 *
+	 * @param {string} sGroupId
+	 *   The effective group ID
+	 * @param {string[]} aAbsolutePaths
+	 *   The absolute paths to request side effects for
+	 * @returns {sap.ui.base.SyncPromise}
+	 *   A promise resolving without a defined result, or rejecting with an error if loading of side
+	 *   effects fails, or <code>undefined</code> if there is nothing to do
+	 *
+	 * @private
+	 */
+	ODataParentBinding.prototype.requestAbsoluteSideEffects = function (sGroupId, aAbsolutePaths) {
+		var aPaths = [],
+			sMetaPath = _Helper.getMetaPath(this.oModel.resolve(this.sPath, this.oContext)),
+			bRefresh;
+
+		bRefresh = aAbsolutePaths.some(function (sAbsolutePath) {
+			var sRelativePath = _Helper.getRelativePath(sAbsolutePath, sMetaPath);
+
+			if (sRelativePath !== undefined) {
+				aPaths.push(sRelativePath);
+			}
+
+			return _Helper.hasPathPrefix(sMetaPath, sAbsolutePath);
+		});
+
+		if (bRefresh) {
+			return this.refreshInternal("", sGroupId);
+		} else if (aPaths.length) {
+			return this.requestSideEffects(sGroupId, aPaths);
+		}
+		// return undefined;
 	};
 
 	/**
@@ -1258,24 +1339,6 @@ sap.ui.define([
 		});
 		this.oResumePromise.$resolve = fnResolve;
 		this.removeReadGroupLock();
-		this.suspendInternal();
-	};
-
-	/**
-	 * @override
-	 * @see sap.ui.model.odata.v4.ODataBinding#suspendInternal
-	 */
-	ODataParentBinding.prototype.suspendInternal = function () {
-		// Only if the cache is currently being determined or has not sent a request yet, we have to
-		// fire a change event to trigger a request while resuming.
-		this.sResumeChangeReason
-			= this.oCache === undefined || this.oCache && !this.oCache.bSentRequest
-				? ChangeReason.Change
-				: undefined;
-
-		this.getDependentBindings().forEach(function (oBinding) {
-			oBinding.suspendInternal();
-		});
 	};
 
 	/**
@@ -1353,10 +1416,10 @@ sap.ui.define([
 	// #doDeregisterChangeListener is still not final, allow for "super" calls
 	asODataParentBinding.prototype.doDeregisterChangeListener
 		= ODataParentBinding.prototype.doDeregisterChangeListener;
-	// #doSetProperty is not final, allow for "super" calls
-	asODataParentBinding.prototype.doSetProperty = ODataParentBinding.prototype.doSetProperty;
 	// #destroy is still not final, allow for "super" calls
 	asODataParentBinding.prototype.destroy = ODataParentBinding.prototype.destroy;
+	// #fetchCache is still not final, allow for "super" calls
+	asODataParentBinding.prototype.fetchCache = ODataParentBinding.prototype.fetchCache;
 	// #hasPendingChangesForPath is still not final, allow for "super" calls
 	asODataParentBinding.prototype.hasPendingChangesForPath
 		= ODataParentBinding.prototype.hasPendingChangesForPath;

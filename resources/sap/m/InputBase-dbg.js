@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -62,7 +62,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -181,6 +181,14 @@ function(
 			 * @since 1.78
 			 */
 			formattedValueStateText: { type: "sap.m.FormattedText", multiple: false, defaultValue: null },
+
+			/**
+			 * Clone of the <code>formattedValueStateText</code> aggregation created for the accessibility elements used
+			 * by screen readers.
+			 * @experimental Since 1.84. This aggregation is experimental and provides only limited functionality. Also the API might be changed in future.
+			 * @since 1.84
+			 */
+			_invisibleFormattedValueStateText: { type: "sap.m.FormattedText", multiple: false, visibility: "hidden", defaultValue: null },
 
 			/**
 			 * Icons that will be placed after the input field
@@ -376,6 +384,11 @@ function(
 	};
 
 	InputBase.prototype.onBeforeRendering = function() {
+		var oFormattedVSText = this.getFormattedValueStateText();
+		var oFormattedVSTextContent = oFormattedVSText && oFormattedVSText.getHtmlText();
+		var oFormattedVSTextAcc = this.getAggregation("_invisibleFormattedValueStateText");
+		var oFormattedVSTextAccContent = oFormattedVSTextAcc && oFormattedVSTextAcc.getHtmlText();
+
 		// Ignore the input event which is raised by MS Internet Explorer when it has a non-ASCII character
 		if (Device.browser.msie && Device.browser.version > 9 && !/^[\x00-\x7F]*$/.test(this.getValue())){// TODO remove after the end of support for Internet Explorer
 			this._bIgnoreNextInputNonASCII = true;
@@ -387,6 +400,11 @@ function(
 			// remember dom value in case of invalidation during keystrokes
 			// so the following should only be used onAfterRendering
 			this._sDomValue = this._getInputValue();
+		}
+
+		if (oFormattedVSText && oFormattedVSTextContent !== oFormattedVSTextAccContent) {
+			oFormattedVSTextAcc && oFormattedVSTextAcc.destroy();
+			this.setAggregation("_invisibleFormattedValueStateText", oFormattedVSText.clone());
 		}
 
 		// mark the rendering phase
@@ -424,6 +442,12 @@ function(
 
 		if (bIsFocused) {
 			this[bClosedValueState ? "closeValueStateMessage" : "openValueStateMessage"]();
+		}
+
+		if (this.getAggregation("_invisibleFormattedValueStateText")) {
+			this.getAggregation("_invisibleFormattedValueStateText").getControls().forEach(function(oControl){
+				oControl.getDomRef() && oControl.getDomRef().setAttribute("tabindex", -1);
+			});
 		}
 	};
 
@@ -635,6 +659,13 @@ function(
 	 * @private
 	 */
 	InputBase.prototype.onsapenter = function(oEvent) {
+
+		// Ignore the change event in IE & Safari when value is selected from IME popover via Enter keypress
+		if ((Device.browser.safari || Device.browser.msie) && this.isComposingCharacter()) {
+			oEvent.setMarked("invalid");
+
+			return;
+		}
 
 		// handle change event on enter
 		this.onChange(oEvent);

@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -358,7 +358,7 @@ sap.ui.define([
 	/**
 	 * The "lang" attribute of the "html" tag determines the behavior of the native hyphenation.
 	 *
-	 * @param {string} [sLang] The language to get. If left empty - the global application language will be returned
+	 * @param {string} [sLang=sap.ui.getCore().getConfiguration().getLocale().toString()] The language to get. If left empty - the global application language will be returned
 	 * @returns {string} The language code
 	 * @private
 	 */
@@ -469,7 +469,7 @@ sap.ui.define([
 	 * @see {@link topic:6322164936f047de941ec522b95d7b70 Hyphenation for Text Controls}
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @hideconstructor
 	 * @public
 	 * @since 1.60
@@ -500,7 +500,7 @@ sap.ui.define([
 	 * Checks if native hyphenation works in the current browser for the given language.
 	 * This check is performed against the value of the "lang" HTML attribute of the page.
 	 *
-	 * @param {string} [sLang] For what language to check. The global application language is the default one
+	 * @param {string} [sLang=sap.ui.getCore().getConfiguration().getLocale().toString()] For what language to check. The global application language is the default one
 	 * @returns {(boolean|null)} True if native hyphenation works for the given language. False if native hyphenation will not work. Null if the language is not known to the Hyphenation API
 	 * @public
 	 */
@@ -547,7 +547,7 @@ sap.ui.define([
 	/**
 	 * Checks if third-party hyphenation works for the given language.
 	 *
-	 * @param {string} [sLang] For what language to check. The global application language is the default one.
+	 * @param {string} [sLang=sap.ui.getCore().getConfiguration().getLocale().toString()] For what language to check. The global application language is the default one.
 	 * @returns {boolean|null} True if third-party hyphenation works for the given language. False if third-party hyphenation doesn't work. Null if the language is not known to the <code>Hyphenation</code> API.
 	 * @public
 	 */
@@ -587,7 +587,7 @@ sap.ui.define([
 	 *
 	 * If it is a known language, the API can be used to check browser-native and third-party support.
 	 *
-	 * @param {string} [sLang] For what language to check. The global application language is the default one.
+	 * @param {string} [sLang=sap.ui.getCore().getConfiguration().getLocale().toString()] For what language to check. The global application language is the default one.
 	 * @returns {boolean} True if the language is known to the <code>Hyphenation</code> API
 	 * @public
 	 */
@@ -619,7 +619,7 @@ sap.ui.define([
 	 * Adds the soft hyphen symbol at the places where words can break.
 	 *
 	 * @param {string} sText The text to hyphenate
-	 * @param {string} [sLang] The language of the text. The global application language is the default one
+	 * @param {string} [sLang=sap.ui.getCore().getConfiguration().getLocale().toString()] The language of the text. The global application language is the default one
 	 * @returns {string} The text with the hyphens symbol added
 	 * @public
 	 */
@@ -647,7 +647,7 @@ sap.ui.define([
 	/**
 	 * Checks if the given language was initialized with {@link sap.ui.core.hyphenation.Hyphenation#initialize Hyphenation#initialize}
 	 *
-	 * @param {string} sLang The language to check for
+	 * @param {string} [sLang=sap.ui.getCore().getConfiguration().getLocale().toString()] The language to check for
 	 * @returns {boolean} True if the language was initialized
 	 * @public
 	 */
@@ -717,7 +717,7 @@ sap.ui.define([
 	 * 	console.log(Hyphenation.getInstance().hyphenate("An example text to hyphenate.", "en"));
 	 * });
 	 *
-	 * @param {string} [sLang] The language for which the third-party library should be initialized. The global application language is the default one
+	 * @param {string} [sLang=sap.ui.getCore().getConfiguration().getLocale().toString()] The language for which the third-party library should be initialized. The global application language is the default one
 	 * @returns {Promise} A promise which resolves when all language resources are loaded. Rejects if the language is not supported
 	 * @public
 	 */

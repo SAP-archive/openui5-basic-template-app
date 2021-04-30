@@ -1,24 +1,28 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Button.
 sap.ui.define([
-	'./library',
-	'sap/ui/core/Control',
-	'sap/ui/core/EnabledPropagator',
-	'sap/ui/core/IconPool',
-	'sap/ui/Device',
-	'sap/ui/core/ContextMenuSupport',
-	'sap/ui/core/library',
-	'./ButtonRenderer',
+	"./library",
+	"sap/ui/core/Control",
+	"sap/ui/core/ShortcutHintsMixin",
+	"sap/ui/core/EnabledPropagator",
+	"sap/ui/core/IconPool",
+	"sap/ui/Device",
+	"sap/ui/core/ContextMenuSupport",
+	"sap/ui/core/library",
+	"./ButtonRenderer",
 	"sap/ui/events/KeyCodes",
-	"sap/ui/core/LabelEnablement"
+	"sap/ui/core/LabelEnablement",
+	"sap/m/BadgeEnabler",
+	"sap/ui/core/InvisibleText"
 ], function(
 	library,
 	Control,
+	ShortcutHintsMixin,
 	EnabledPropagator,
 	IconPool,
 	Device,
@@ -26,7 +30,9 @@ sap.ui.define([
 	coreLibrary,
 	ButtonRenderer,
 	KeyCodes,
-	LabelEnablement
+	LabelEnablement,
+	BadgeEnabler,
+	InvisibleText
 ) {
 	"use strict";
 
@@ -35,6 +41,19 @@ sap.ui.define([
 
 	// shortcut for sap.m.ButtonType
 	var ButtonType = library.ButtonType;
+
+	// shortcut for sap.m.ButtonAccessibilityType
+	var ButtonAccessibilityType = library.ButtonAccessibilityType;
+
+	// shortcut for sap.m.BadgeState
+	var BadgeState = library.BadgeState;
+
+	// shortcut for sap.ui.core.aria.HasPopup
+	var AriaHasPopup = coreLibrary.aria.HasPopup;
+
+	// constraints for the minimum and maximum Badge value
+	var BADGE_MIN_VALUE = 1,
+		BADGE_MAX_VALUE = 9999;
 
 	/**
 	 * Constructor for a new <code>Button</code>.
@@ -68,7 +87,7 @@ sap.ui.define([
 	 * @mixes sap.ui.core.ContextMenuSupport
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -129,10 +148,19 @@ sap.ui.define([
 			iconDensityAware : {type : "boolean", group : "Misc", defaultValue : true},
 
 			/**
-			 * This property specifies the element's text directionality with enumerated options. By default, the control inherits text direction from the DOM.
+			 * Specifies the element's text directionality with enumerated options. By default, the control inherits text direction from the DOM.
 			 * @since 1.28.0
 			 */
-			textDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit}
+			textDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit},
+
+			/**
+			 * Specifies the value of the <code>aria-haspopup</code> attribute
+			 *
+			 * If the value is <code>None</code>, the attribute will not be rendered. Otherwise it will be rendered with the selected value.
+			 * @since 1.84.0
+			 */
+			ariaHasPopup : {type : "sap.ui.core.aria.HasPopup", group : "Accessibility", defaultValue : AriaHasPopup.None}
+
 		},
 		associations : {
 
@@ -145,6 +173,7 @@ sap.ui.define([
 			 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
 			 */
 			ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
+
 		},
 		events : {
 
@@ -173,10 +202,146 @@ sap.ui.define([
 
 	EnabledPropagator.call(Button.prototype);
 	ContextMenuSupport.apply(Button.prototype);
+	BadgeEnabler.call(Button.prototype);
 
 	Button.prototype.init = function() {
 		this._onmouseenter = this._onmouseenter.bind(this);
 		this._buttonPressed = false;
+
+		ShortcutHintsMixin.addConfig(this, {
+				event: "press",
+				position: "0 0",
+				addAccessibilityLabel: true
+			}, this);
+
+		this.initBadgeEnablement({
+			position: "topRight",
+			selector: {suffix: "inner"}
+		});
+		this._oBadgeData = {
+			value: "",
+			state: ""
+		};
+
+		this._badgeMinValue = BADGE_MIN_VALUE;
+		this._badgeMaxValue = BADGE_MAX_VALUE;
+	};
+
+	//Formatter callback of the badge pre-set value, before it is visualized
+
+	Button.prototype.badgeValueFormatter = function(vValue) {
+		var iValue = parseInt(vValue),
+			oBadgeCustomData = this.getBadgeCustomData(),
+			bIsBadgeVisible = oBadgeCustomData.getVisible();
+
+		if (isNaN(iValue)) {return false;}
+
+		// limit value of the badge
+		if (iValue < this._badgeMinValue) {
+			bIsBadgeVisible && oBadgeCustomData.setVisible(false);
+		} else  {
+			!bIsBadgeVisible && oBadgeCustomData.setVisible(true);
+
+			if (iValue > this._badgeMaxValue && vValue.indexOf("+") === -1) {
+				vValue = this._badgeMaxValue < 1000 ? this._badgeMaxValue + "+" : "999+";
+			}
+		}
+
+		return vValue;
+	};
+
+	/**
+	 * Badge minimum value setter - called when someone wants to change the value
+	 * below which the badge is hidden.
+	 *
+	 * @param {number} iMin minimum visible value of the badge (not less than minimum Badge value - 1)
+	 * @return {sap.m.Button} this to allow method chaining
+	 * @public
+	 */
+	Button.prototype.setBadgeMinValue = function(iMin) {
+		var iValue = this.getBadgeCustomData().getValue();
+
+		if (iMin && !isNaN(iMin) && iMin >= BADGE_MIN_VALUE && iMin != this._badgeMinValue) {
+			this._badgeMinValue = iMin;
+			this.badgeValueFormatter(iValue);
+			this.invalidate();
+		}
+		return this;
+	};
+
+	/**
+	 * Badge minimum value setter - called when someone wants to change the value
+	 * above which the badge value is displayed with + after the value (ex. 999+)
+	 *
+	 * @param {number} iMax maximum visible value of the badge (not greater than maximum Badge value - 9999)
+	 * @return {sap.m.Button} this to allow method chaining
+	 * @public
+	 */
+	Button.prototype.setBadgeMaxValue = function(iMax) {
+		if (iMax && !isNaN(iMax) && iMax <= BADGE_MAX_VALUE && iMax != this._badgeMaxValue) {
+			this._badgeMaxValue = iMax;
+			this.invalidate();
+		}
+		return this;
+	};
+
+	/**
+	 * Badge update handler - called when there is Badge value and/or state update
+	 *
+	 * @param {number | string} vValue value of the badge
+	 * @param {string} sState state of the badge
+	 * @private
+	 */
+	Button.prototype.onBadgeUpdate = function(vValue, sState) {
+
+		if (this._oBadgeData.value !== vValue || this._oBadgeData.state !== sState) {
+			if (sState === BadgeState.Disappear) {
+				vValue = "";
+			}
+			this._updateBadgeInvisibleText(vValue);
+			this._oBadgeData = {
+				value: vValue,
+				state: sState
+			};
+		}
+	};
+
+	/**
+	 * Updates invisible text values after Badge value and/or state update
+	 *
+	 * @param {number | string} vValue value of the badge
+	 * @private
+	 */
+	Button.prototype._updateBadgeInvisibleText = function(vValue) {
+		var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+			sInvisibleTextValue,
+			iPlusPos;
+
+		// set invisible text with badge value
+		vValue = vValue.toString().trim();
+
+		iPlusPos = vValue.indexOf("+");
+		if (iPlusPos !== -1) {
+			sInvisibleTextValue = oRb.getText("BUTTON_BADGE_MORE_THAN_ITEMS", vValue.substr(0, iPlusPos));
+		} else {
+			switch (vValue) {
+				case "":		sInvisibleTextValue = ""; break;
+				case "1":		sInvisibleTextValue = oRb.getText("BUTTON_BADGE_ONE_ITEM", vValue); break;
+				default:		sInvisibleTextValue = oRb.getText("BUTTON_BADGE_MANY_ITEMS", vValue);
+			}
+		}
+
+		this._getBadgeInvisibleText().setText(sInvisibleTextValue);
+	};
+
+	/**
+	 * Returns an instance of the badge invisible text
+	 *
+	 * @returns {sap.ui.core.InvisibleText}
+	 * @private
+	 */
+	Button.prototype._getBadgeInvisibleText = function() {
+		return this._oBadgeInvisibleText || (this._oBadgeInvisibleText = new InvisibleText(this.getId() + "-badge").toStatic());
 	};
 
 	/**
@@ -193,6 +358,11 @@ sap.ui.define([
 
 		if (this._iconBtn) {
 			this._iconBtn.destroy();
+		}
+
+		if (this._oBadgeInvisibleText) {
+			this._oBadgeInvisibleText.destroy();
+			this._oBadgeData = null;
 		}
 
 		this.$().off("mouseenter", this._onmouseenter);
@@ -261,18 +431,16 @@ sap.ui.define([
 
 		if (this.getEnabled() && this.getVisible()) {
 			// Safari and Firefox doesn't set the focus to the clicked button tag but to the nearest parent DOM which is focusable
-			// This behavior has to be stopped by calling prevent default when the original event is 'mousedown'
-			// and set the focus explicitly to the button.
+			// That is why we re-set the focus manually after the browser sets the focus.
 			if ((Device.browser.safari || Device.browser.firefox) && (oEvent.originalEvent && oEvent.originalEvent.type === "mousedown")) {
-				this.focus();
-				oEvent.preventDefault();
+				this._setButtonFocus();
 			}
-			if (!sap.ui.Device.browser.msie) {
+			if (!Device.browser.msie) {
 				// set the tag ID where the touch event started
 				this._sTouchStartTargetId = oEvent.target.id.replace(this.getId(), '');
 			}
 		} else {
-			if (!sap.ui.Device.browser.msie) {
+			if (!Device.browser.msie) {
 				// clear the starting tag ID in case the button is not enabled and visible
 				this._sTouchStartTargetId = '';
 			}
@@ -297,7 +465,7 @@ sap.ui.define([
 			this.ontap(oEvent, true);
 		}
 
-		if (!sap.ui.Device.browser.msie) {
+		if (!Device.browser.msie) {
 			// get the tag ID where the touch event ended
 			sEndingTagId = oEvent.target.id.replace(this.getId(), '');
 			// there are some cases when tap event won't come. Simulate it:
@@ -623,16 +791,19 @@ sap.ui.define([
 
 	// A hook to be used by controls that extend sap.m.Button and want to display the tooltip in a different way
 	Button.prototype._getTooltip = function() {
+		var sTooltip,
+			oIconInfo;
 
-		var sTooltip = this.getTooltip_AsString();
+		sTooltip = this.getTooltip_AsString();
 
 		if (!sTooltip && !this.getText()) {
 			// get icon-font info. will return null if the icon is an image
-			var oIconInfo = IconPool.getIconInfo(this._getAppliedIcon());
+			oIconInfo = IconPool.getIconInfo(this._getAppliedIcon());
 
 			// add tooltip if available
-			if (oIconInfo && oIconInfo.text) {
-				sTooltip = oIconInfo.text;
+			if (oIconInfo) {
+				// Fall back to the icon's name if there's no semantic text
+				sTooltip = oIconInfo.text ? oIconInfo.text : oIconInfo.name;
 			}
 		}
 
@@ -672,6 +843,15 @@ sap.ui.define([
 	};
 
 	/*
+	* Helper function which sets the focus on the button manually.
+	*
+	* @private
+	*/
+	Button.prototype._setButtonFocus = function() {
+		setTimeout(function() { this.focus(); }.bind(this), 0);
+	};
+
+	/*
 	* Determines whether self-reference should be added.
 	*
 	* @returns {boolean}
@@ -686,6 +866,40 @@ sap.ui.define([
 
 		return !bAlreadyHasSelfReference && this._getText() &&
 			(aAriaLabelledBy.length > 0 || bHasReferencingLabels || bAllowEnhancingByParent);
+	};
+
+	/*
+	 * Determines what combination of labels/descriptions does the Button have.
+	 *
+	 * @returns {string}
+	 * @private
+	 */
+	Button.prototype._determineAccessibilityType = function () {
+		var bHasAriaLabelledBy = this.getAriaLabelledBy().length > 0,
+			bHasAriaDescribedBy = this.getAriaDescribedBy().length > 0,
+			bHasReferencingLabels = LabelEnablement.getReferencingLabels(this).length > 0,
+			bHasSemanticType = this.getType() !== ButtonType.Default,
+			bHasLabelling = bHasAriaLabelledBy || bHasReferencingLabels,
+			bHasDescription = bHasAriaDescribedBy || bHasSemanticType || (this._oBadgeData && this._oBadgeData.value !== "" && this._oBadgeData.State !== BadgeState.Disappear),
+			sAccType;
+
+		// Conditions are separated instead of grouped to improve readability afterwards.
+		if (!bHasLabelling && !bHasDescription) {
+			sAccType = ButtonAccessibilityType.Default;
+		} else if (bHasLabelling && !bHasDescription) {
+			sAccType = ButtonAccessibilityType.Labelled;
+		} else if (!bHasLabelling && bHasDescription) {
+			sAccType = ButtonAccessibilityType.Described;
+		} else if (bHasLabelling && bHasDescription) {
+			sAccType = ButtonAccessibilityType.Combined;
+		}
+
+		return sAccType;
+	};
+
+	//gets the title attribute for the given dom node id
+	Button.prototype._getTitleAttribute = function(sDOMID) {
+		return this.getTooltip();
 	};
 
 	return Button;

@@ -145,7 +145,7 @@
 
 /* focus */
 html.sap-desktop .sapMSliderHandle:focus {
-	outline: 1px dotted @sapUiContentFocusColor;
+	outline: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
 	outline-offset: 0.0625rem;
 }
 
@@ -181,9 +181,5 @@ html.sap-desktop .sapMSliderHandle:focus {
 	.sapMSliderTick {
 		margin-top: 0.125rem;
 		height: 0.75rem;
-	}
-
-	.sapMSliderTickLabel {
-		height: 1rem;
 	}
 }

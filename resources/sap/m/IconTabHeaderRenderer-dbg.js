@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ sap.ui.define([], function () {
 
 		var oIconTabBar = oControl.getParent(),
 			bUpperCase = oIconTabBar && oIconTabBar.isA('sap.m.IconTabBar') && oIconTabBar.getUpperCase(),
-			oAriaTexts = oControl._oAriaTexts;
+			mAriaTexts = oControl.getAriaTexts() || {};
 
 		// render wrapper div
 		oRM.openStart("div", oControl)
@@ -69,15 +69,15 @@ sap.ui.define([], function () {
 			role: "navigation"
 		});
 
-		if (oAriaTexts.headerLabel) {
+		if (mAriaTexts.headerLabel) {
 			oRM.accessibilityState(oControl, {
-				label: oAriaTexts.headerLabel
+				label: mAriaTexts.headerLabel
 			});
 		}
 
 		oRM.openEnd();
 
-		if (oAriaTexts.headerDescription) {
+		if (mAriaTexts.headerDescription) {
 			oRM.renderControl(oControl._getInvisibleHeadText());
 		}
 
@@ -89,7 +89,7 @@ sap.ui.define([], function () {
 			orientation: "horizontal"
 		});
 
-		if (oAriaTexts.headerDescription) {
+		if (mAriaTexts.headerDescription) {
 			oRM.accessibilityState({
 				describedby: oControl._getInvisibleHeadText().getId()
 			});

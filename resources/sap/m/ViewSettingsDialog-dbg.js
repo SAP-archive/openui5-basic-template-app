@@ -1,13 +1,12 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 // Provides control sap.m.ViewSettingsDialog.
 sap.ui.define([
 	'./library',
-	'./TitleAlignmentMixin',
 	'sap/ui/core/Control',
 	'sap/ui/core/IconPool',
 	'./Toolbar',
@@ -39,7 +38,6 @@ sap.ui.define([
 ],
 function(
 	library,
-	TitleAlignmentMixin,
 	Control,
 	IconPool,
 	Toolbar,
@@ -146,7 +144,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 *
 	 * @constructor
 	 * @public
@@ -185,6 +183,7 @@ function(
 
 			/**
 			 * Specifies the Title alignment (theme specific).
+			 * If set to <code>TitleAlignment.None</code>, the automatic title alignment depending on the theme settings will be disabled.
 			 * If set to <code>TitleAlignment.Auto</code>, the Title will be aligned as it is set in the theme (if not set, the default value is <code>center</code>);
 			 * Other possible values are <code>TitleAlignment.Start</code> (left or right depending on LTR/RTL), and <code>TitleAlignment.Center</code> (centered)
 			 * @since 1.72
@@ -736,6 +735,16 @@ function(
 		return this;
 	};
 
+	ViewSettingsDialog.prototype.setTitleAlignment = function (sAlignment) {
+		this.setProperty("titleAlignment", sAlignment);
+		if (this._page1) {
+			this._page1.setTitleAlignment(sAlignment);
+		}
+		if (this._page2) {
+			this._page2.setTitleAlignment(sAlignment);
+		}
+		return this;
+	};
 
 	/**
 	 * Override the method in order to attach some event handlers
@@ -1647,6 +1656,7 @@ function(
 					oSelectedSubFilterKeys = oSelectedFilterKeys[sParentKey];
 					aSubFilterItems = oParentItem.getItems();
 					bMultiSelect = oParentItem.getMultiSelect();
+					bOneSelected = false;
 					// loop through the sub-items
 					for (iIndex = 0; iIndex < aSubFilterItems.length; iIndex++) {
 						sKey = aSubFilterItems[iIndex].getKey();
@@ -1926,12 +1936,10 @@ function(
 	ViewSettingsDialog.prototype._getHeader = function() {
 		if (this._header === undefined) {
 			this._header = new Bar({
+				titleAlignment : this.getTitleAlignment(),
 				contentMiddle : [ this._getTitleLabel() ]
 			}).addStyleClass("sapMVSDBar");
 		}
-
-		// call the method that registers this Bar for alignment
-		this._setupBarTitleAlignment(this._header, this.getId() + '_header');
 
 		return this._header;
 	};
@@ -2047,8 +2055,9 @@ function(
 	ViewSettingsDialog.prototype._getPage1 = function(bSuppressCreation) {
 		if (this._page1 === undefined && !bSuppressCreation) {
 			this._page1 = new Page(this.getId() + '-page1', {
-				title           : this._rb.getText("VIEWSETTINGS_TITLE"),
-				customHeader    : this._getHeader()
+				title : this._rb.getText("VIEWSETTINGS_TITLE"),
+				titleAlignment : this.getTitleAlignment(),
+				customHeader : this._getHeader()
 			});
 			this._getNavContainer().addPage(this._page1); // sort, group, filter
 		}
@@ -2062,7 +2071,10 @@ function(
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._getPage2 = function() {
-		var oDetailHeader, oBackButton, oDetailResetButton;
+		var oDetailHeader,
+			oBackButton,
+			oDetailResetButton,
+			sTitleAlignment = this.getTitleAlignment();
 
 		if (this._page2 === undefined) {
 			// init internal page content
@@ -2072,17 +2084,16 @@ function(
 			});
 			oDetailResetButton = this._getDetailResetButton();
 			oDetailHeader = new Bar({
+				titleAlignment	: sTitleAlignment,
 				contentLeft     : [ oBackButton ],
 				contentMiddle   : [ this._getDetailTitleLabel() ],
 				contentRight    : [ oDetailResetButton ]
 			}).addStyleClass("sapMVSDBar");
 
-			// call the method that registers this Bar for alignment
-			this._setupBarTitleAlignment(oDetailHeader, this.getId() + "_page2_header");
-
 			this._page2 = new Page(this.getId() + '-page2', {
-				title           : this._rb.getText("VIEWSETTINGS_TITLE_FILTERBY"),
-				customHeader    : oDetailHeader
+				title : this._rb.getText("VIEWSETTINGS_TITLE_FILTERBY"),
+				titleAlignment : sTitleAlignment,
+				customHeader : oDetailHeader
 			});
 			this._getNavContainer().addPage(this._page2); // filter details
 		}
@@ -3517,7 +3528,7 @@ function(
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._applyContextualSettings = function () {
-		ManagedObject.prototype._applyContextualSettings.call(this, ManagedObject._defaultContextualSettings);
+		Control.prototype._applyContextualSettings.call(this);
 	};
 
 	/**
@@ -3659,10 +3670,6 @@ function(
 		var rAnyWordStartsWith = new RegExp(".*\\b" + sQuery + ".*");
 		return rAnyWordStartsWith.test(sValue);
 	}
-
-
-	// enrich the control functionality with TitleAlignmentMixin
-	TitleAlignmentMixin.mixInto(ViewSettingsDialog.prototype);
 
 	return ViewSettingsDialog;
 

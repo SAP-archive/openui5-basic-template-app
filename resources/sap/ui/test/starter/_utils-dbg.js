@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -137,7 +137,6 @@ sap.ui.define([
 	}
 
 	function mergeWithDefaults(oSuiteConfig, sTestSuite) {
-
 		function resolvePlaceholders(str, name) {
 			return str == null ? str : str.replace(/\{suite\}/g, sTestSuite).replace(/\{name\}/g, name);
 		}

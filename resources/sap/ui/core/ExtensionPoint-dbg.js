@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,11 +28,12 @@ sap.ui.define(["sap/base/Log", "sap/base/util/ObjectPath", "sap/ui/core/mvc/View
 	 * 			if not given, but an oTargetControl is still present, the function will attempt to add the extension point to the default aggregation of oTargetControl.
 	 * 			If no oTargetControl is provided, sAggregationName will also be ignored.
 	 *
-	 * @return {sap.ui.core.Control[]|Promise} An array with 0..n controls created from an ExtensionPoint or
+	 * @returns {sap.ui.core.Control[]|Promise<sap.ui.core.Control[]>} An array with 0..n controls created from an ExtensionPoint or
 	 * 			if fnCreateDefaultContent is called and returns a Promise, a Promise with the controls is returned instead
 	 * @deprecated since 1.56, Use {@link sap.ui.core.ExtensionPoint.load} instead
 	 * @public
 	 * @static
+	 * @ui5-global-only
 	 */
 	sap.ui.extensionpoint = function(oContainer, sExtName, fnCreateDefaultContent,  oTargetControl, sAggregationName) {
 		Log.warning("Do not use deprecated factory function 'sap.ui.extensionpoint'. Use 'sap.ui.core.ExtensionPoint.load' instead", "sap.ui.extensionpoint", null, function () {
@@ -110,7 +111,28 @@ sap.ui.define(["sap/base/Log", "sap/base/util/ObjectPath", "sap/ui/core/mvc/View
 		} else if (ExtensionPoint._fnExtensionProvider) {
 			var sExtensionProvider = ExtensionPoint._fnExtensionProvider(oView);
 
+			// For Fragments we need to make sure to pass the correct View instance to the EP Provider.
+			// We can infer the nearest View to the Fragment from the given controller (either explicitly given, or assigned via the containing view).
+			var sFragmentId;
+			if (oView.isA("sap.ui.core.Fragment")) {
+				sFragmentId = oView._sExplicitId;
+				// determine actual containing view instance
+				var oController = oView.getController();
+				oView = oController && oController instanceof sap.ui.core.mvc.Controller && oController.getView();
+				if (oView) {
+					// local ID of the fragment (minus the view-id prefix)
+					// Might include ID prefixes for nested Fragments.
+					sFragmentId = oView.getLocalId(sFragmentId) || sFragmentId;
+				}
+			}
+
 			if (sExtensionProvider) {
+				if (!oView) {
+					// Someone could create a Fragment via the factory with a Controller without an associated view,
+					// e.g. by creating a Controller instance via Controller.create().
+					Log.warning("View instance could not be passed to ExtensionPoint Provider for extension point '" + sExtName + "' " +
+								"in fragment '" + sFragmentId + "'.");
+				}
 				/**
 				 * In case we have an ExtensionProvider assigned, we return a marker object.
 				 * This marker object will be used later during the View processing to apply the ExtensionProvider
@@ -128,6 +150,11 @@ sap.ui.define(["sap/base/Log", "sap/base/util/ObjectPath", "sap/ui/core/mvc/View
 
 					// The containing view instance.
 					view: oView,
+
+					// The ID of the fragment, in case the ExtensionPoint is inside a Fragment
+					// (undefined if the ExtensionPoint is contained in a View).
+					// The EP Provider needs the Fragment ID to distinguish between multiple occurences of the same fragment.
+					fragmentId: sFragmentId,
 
 					// The extension point name.
 					name: sExtName,
@@ -244,7 +271,7 @@ sap.ui.define(["sap/base/Log", "sap/base/util/ObjectPath", "sap/ui/core/mvc/View
 	 * @param {function} [mOptions.createDefaultContent] Optional callback function creating default content, returning an array of controls. It is executed
 	 *        when there's no customizing, if not provided, no default content will be rendered.
 	 *        <code>mOptions.createDefaultContent</code> might also return a Promise, which resolves with an array of controls.
-	 * @return {Promise<sap.ui.core.Control[]>} a Promise, which resolves with an array of 0..n controls created from an <code>ExtensionPoint</code>.
+	 * @returns {Promise<sap.ui.core.Control[]>} a Promise, which resolves with an array of 0..n controls created from an <code>ExtensionPoint</code>.
 	 *        If <code>mOptions.createDefaultContent</code> is called and returns a Promise, that Promise is returned by <code>ExtensionPoint.load</code>.
 	 * @since 1.56.0
 	 * @public

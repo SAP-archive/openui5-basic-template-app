@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,8 +11,6 @@ sap.ui.define([
 		'sap/ui/core/Element',
 		'sap/ui/Device',
 		'./ListItemBase',
-		'./Text',
-		'./Image',
 		'./Button',
 		'./ToolbarSeparator',
 		'sap/m/OverflowToolbar',
@@ -26,8 +24,6 @@ sap.ui.define([
 			  Element,
 			  Device,
 			  ListItemBase,
-			  Text,
-			  Image,
 			  Button,
 			  ToolbarSeparator,
 			  OverflowToolbar,
@@ -84,10 +80,11 @@ sap.ui.define([
 		 * @extends sap.m.ListItemBase
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.84.11
 		 *
 		 * @constructor
 		 * @public
+		 * @abstract
 		 * @since 1.38
 		 * @alias sap.m.NotificationListBase
 		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
@@ -95,6 +92,7 @@ sap.ui.define([
 		var NotificationListBase = ListItemBase.extend('sap.m.NotificationListBase', /** @lends sap.m.NotificationListBase.prototype */ {
 			metadata: {
 				library: 'sap.m',
+				"abstract": true,
 				properties: {
 					// unread is inherit from the ListItemBase.
 
@@ -133,7 +131,7 @@ sap.ui.define([
 					/**
 					 * Determines the URL of the notification author picture.
 					 */
-					authorPicture: {type: 'sap.ui.core.URI', multiple: false}
+					authorPicture: {type: 'sap.ui.core.URI'}
 
 				},
 				aggregations: {
@@ -141,6 +139,12 @@ sap.ui.define([
 					 * Action buttons.
 					 */
 					buttons: {type: 'sap.m.Button', multiple: true},
+
+					/**
+					 * Close button.
+					 * @private
+					 */
+					_closeButton: {type: 'sap.m.Button', multiple: false, visibility: "hidden"},
 
 					/**
 					 * The overflow toolbar.
@@ -163,7 +167,8 @@ sap.ui.define([
 
 					// 'tap' and 'press' events are inherited from ListItemBase.
 				}
-			}
+			},
+			renderer: null // this class has no renderer (it is abstract)
 		});
 
 		// overrides ListItemBase method
@@ -181,8 +186,12 @@ sap.ui.define([
 		};
 
 		NotificationListBase.prototype.getButtons = function () {
+
+			var closeButton = this._getCloseButton(),
+				toolbarSeparator = this._getToolbarSeparator();
+
 			return this._getOverflowToolbar().getContent().filter(function (item) {
-				return item !== this._closeButton && item !== this._toolbarSeparator;
+				return item !== closeButton && item !== toolbarSeparator;
 			}, this);
 		};
 
@@ -250,7 +259,8 @@ sap.ui.define([
 		 * @returns {sap.m.NotificationListBase} The cloned NotificationListBase.
 		 */
 		NotificationListBase.prototype.clone = function () {
-			var clonedObject = Control.prototype.clone.apply(this, arguments);
+			var clonedObject = ListItemBase.prototype.clone.apply(this, arguments);
+
 			// overflow toolbar has been created but the clone of this item does no longer have bindings for the “buttons” aggregation; workaround: destroy and create anew as clone
 			clonedObject.destroyAggregation('_overflowToolbar');
 			var overflowToolbar = this.getAggregation('_overflowToolbar');
@@ -262,7 +272,9 @@ sap.ui.define([
 		};
 
 		NotificationListBase.prototype._getOverflowToolbar = function () {
-			var overflowToolbar = this.getAggregation('_overflowToolbar');
+			var overflowToolbar = this.getAggregation('_overflowToolbar'),
+				toolbarSeparator,
+				oCloseButton;
 
 			if (!overflowToolbar) {
 				overflowToolbar = new OverflowToolbar(this.getId() + '-overflowToolbar', {});
@@ -271,17 +283,17 @@ sap.ui.define([
 
 				if (Device.system.phone) {
 
-					var oCloseButton = this._getCloseButton();
+					oCloseButton = this._getCloseButton();
 					oCloseButton.setLayoutData(new OverflowToolbarLayoutData({
 						priority: OverflowToolbarPriority.AlwaysOverflow
 					}));
 
-					this._toolbarSeparator = new ToolbarSeparator();
-					this._toolbarSeparator.setLayoutData(new OverflowToolbarLayoutData({
+					toolbarSeparator = new ToolbarSeparator();
+					toolbarSeparator.setLayoutData(new OverflowToolbarLayoutData({
 						priority: OverflowToolbarPriority.AlwaysOverflow
 					}));
 
-					overflowToolbar.addContent(this._toolbarSeparator);
+					overflowToolbar.addContent(toolbarSeparator);
 					overflowToolbar.addContent(oCloseButton);
 				}
 			}
@@ -291,11 +303,28 @@ sap.ui.define([
 
 
 		NotificationListBase.prototype._getCloseButton = function () {
-			var closeButton = this._closeButton;
+			var closeButton,
+				overflowToolbar,
+				overflowToolbarContent,
+				closeButtonIndex;
+
+			if (Device.system.phone) {
+
+				overflowToolbar = this._getOverflowToolbar();
+				overflowToolbarContent = overflowToolbar.getContent();
+
+				if (overflowToolbar && overflowToolbarContent.length) {
+					closeButtonIndex = overflowToolbarContent.length - 1;
+
+					closeButton = overflowToolbarContent[closeButtonIndex];
+				}
+			} else {
+				closeButton = this.getAggregation("_closeButton");
+			}
 
 			if (!closeButton) {
 				if (Device.system.phone) {
-					this._closeButton = new Button(this.getId() + '-closeButtonOverflow', {
+					closeButton = new Button(this.getId() + '-closeButtonOverflow', {
 						text: this.isA("sap.m.NotificationListItem") ? closeText : closeAllText,
 						type: ButtonType.Default,
 						press: function () {
@@ -303,7 +332,7 @@ sap.ui.define([
 						}.bind(this)
 					});
 				} else {
-					this._closeButton = new Button(this.getId() + '-closeButtonX', {
+					closeButton = new Button(this.getId() + '-closeButtonX', {
 						icon: IconPool.getIconURI('decline'),
 						type: ButtonType.Transparent,
 						tooltip: this.isA("sap.m.NotificationListItem") ? closeText : closeAllText,
@@ -311,20 +340,35 @@ sap.ui.define([
 							this.close();
 						}.bind(this)
 					});
+
+					this.setAggregation("_closeButton", closeButton);
 				}
 			}
 
-			return this._closeButton;
+			return closeButton;
+		};
+
+		NotificationListBase.prototype._getToolbarSeparator = function () {
+
+			if (!Device.system.phone) {
+				return null;
+			}
+
+			var toolbarSeparator,
+				overflowToolbar = this._getOverflowToolbar(),
+				overflowToolbarContent = overflowToolbar.getContent(),
+				toolbarSeparatorIndex;
+
+			if (overflowToolbar && overflowToolbarContent.length) {
+				toolbarSeparatorIndex = overflowToolbarContent.length - 2;
+				toolbarSeparator = overflowToolbarContent[toolbarSeparatorIndex];
+			}
+
+			return toolbarSeparator;
 		};
 
 		NotificationListBase.prototype.exit = function () {
-			if (this._closeButton) {
-				this._closeButton.destroy();
-			}
 
-			if (this._toolbarSeparator) {
-				this._toolbarSeparator.destroy();
-			}
 		};
 
 		NotificationListBase.prototype._hasActionButtons = function () {
@@ -376,6 +420,7 @@ sap.ui.define([
 				isCollapsed = isNotificationListGroup && this.getCollapsed(),
 				hasActionButtons = !isCollapsed && this._hasActionButtons(),
 				showCloseButton = this.getShowCloseButton(),
+				toolbarSeparator = this._getToolbarSeparator(),
 				priority;
 
 			this.getButtons().forEach(function (button) {
@@ -394,7 +439,7 @@ sap.ui.define([
 
 			if (!showCloseButton) {
 				closeButton.setVisible(false);
-				this._toolbarSeparator.setVisible(false);
+				toolbarSeparator.setVisible(false);
 				return;
 			}
 
@@ -409,7 +454,7 @@ sap.ui.define([
 					priority: OverflowToolbarPriority.AlwaysOverflow
 				}));
 
-				this._toolbarSeparator.setVisible(true);
+				toolbarSeparator.setVisible(true);
 
 			} else {
 				closeButton.setText('');
@@ -420,7 +465,7 @@ sap.ui.define([
 					priority: OverflowToolbarPriority.NeverOverflow
 				}));
 
-				this._toolbarSeparator.setVisible(false);
+				toolbarSeparator.setVisible(false);
 			}
 		};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -93,6 +93,8 @@ sap.ui.define([
 		"zh_tw": 6
 	};
 
+	var ValueColor = library.ValueColor;
+
 	/**
 	 * Constructor for a new sap.m.GenericTile control.
 	 *
@@ -103,7 +105,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @since 1.34
 	 *
 	 * @public
@@ -362,12 +364,14 @@ sap.ui.define([
 		} else {
 			sAltText = sAltText.concat(sEmptyValue);
 		}
-		sAltText = sAltText.concat("\n");
 		if (this.getIndicator() && this.getIndicator() !== library.DeviationIndicator.None) {
-			sAltText = sAltText.concat(this._rb.getText(("NUMERICCONTENT_DEVIATION_" + this.getIndicator()).toUpperCase()));
 			sAltText = sAltText.concat("\n");
+			sAltText = sAltText.concat(this._rb.getText(("NUMERICCONTENT_DEVIATION_" + this.getIndicator()).toUpperCase()));
 		}
-		sAltText = sAltText.concat(sMeaning);
+		if (this.getValueColor() !== ValueColor.None) {
+			sAltText = sAltText.concat("\n");
+			sAltText = sAltText.concat(sMeaning);
+		}
 		return sAltText;
 	};
 

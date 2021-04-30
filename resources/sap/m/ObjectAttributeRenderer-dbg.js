@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/core/library"],
@@ -76,20 +76,28 @@ sap.ui.define(["sap/ui/core/library"],
 		oRm.close("div");
 	};
 
-	ObjectAttributeRenderer.renderActiveTitle = function (oRm, oOA) {
+	ObjectAttributeRenderer.renderActiveTitle = function(oRm, oOA) {
+		var sColon;
+
 		if (!oOA.getProperty("title")) {
 			return;
 		}
+
+		sColon = ": ";
 
 		oRm.openStart("span", oOA.getId() + "-title");
 		oRm.class("sapMObjectAttributeTitle");
 		oRm.openEnd();
 		oRm.text(oOA.getProperty("title"));
 		oRm.close("span");
+
 		oRm.openStart("span", oOA.getId() + "-colon");
 		oRm.class("sapMObjectAttributeColon");
 		oRm.openEnd();
-		oRm.unsafeHtml(":&nbsp;");
+		if (sap.ui.getCore().getConfiguration().getLocale().getLanguage().toLowerCase() === "fr") {
+			sColon = " " + sColon;
+		}
+		oRm.text(sColon);
 		oRm.close("span");
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,6 +21,7 @@ sap.ui.define([
 		},
 		sClassName = "sap.ui.model.odata.v4.lib._Requestor",
 		_Requestor,
+		rSystemQueryOptionWithPlaceholder = /(\$\w+)=~/g,
 		rTimeout = /^\d+$/;
 
 	/**
@@ -77,6 +78,7 @@ sap.ui.define([
 	 *   A callback function that is called with the group name as parameter when the first
 	 *   request is added to a group
 	 *
+	 * @alias sap.ui.model.odata.v4.lib._Requestor
 	 * @private
 	 */
 	function Requestor(sServiceUrl, mHeaders, mQueryParams, oModelInterface) {
@@ -178,10 +180,9 @@ sap.ui.define([
 	};
 
 	/**
-	 * Adds the given query options to the resource path, which itself may already have query
-	 * options.
+	 * Adds the given query options to the resource path.
 	 *
-	 * @param {string} sResourcePath The resource path with poss. query options
+	 * @param {string} sResourcePath The resource path with possible query options and placeholders
 	 * @param {string} sMetaPath The absolute meta path matching the resource path
 	 * @param {object} mQueryOptions Query options to add to the resource path
 	 * @returns {string} The resource path with the query options
@@ -189,7 +190,22 @@ sap.ui.define([
 	 * @private
 	 */
 	Requestor.prototype.addQueryString = function (sResourcePath, sMetaPath, mQueryOptions) {
-		var sQueryString = this.buildQueryString(sMetaPath, mQueryOptions, false, true);
+		var sQueryString;
+
+		mQueryOptions = this.convertQueryOptions(sMetaPath, mQueryOptions, false, true);
+		sResourcePath = sResourcePath.replace(rSystemQueryOptionWithPlaceholder,
+			function (unused, sOption) {
+				var sValue = mQueryOptions[sOption];
+
+				delete mQueryOptions[sOption];
+
+				return _Helper.encodePair(sOption, sValue);
+			});
+
+		sQueryString = _Helper.buildQuery(mQueryOptions);
+		if (!sQueryString) {
+			return sResourcePath;
+		}
 
 		return sResourcePath +
 			(sResourcePath.includes("?") ? "&" + sQueryString.slice(1) : sQueryString);
@@ -695,7 +711,7 @@ sap.ui.define([
 
 	/**
 	 * Converts the known OData system query options from map or array notation to a string. All
-	 * other parameters are simply passed through.
+	 * other parameters and placeholders are simply passed through.
 	 * May be overwritten for other OData service versions.
 	 *
 	 * @param {string} sMetaPath
@@ -723,7 +739,9 @@ sap.ui.define([
 
 			switch (sKey) {
 				case "$expand":
-					vValue = that.convertExpand(vValue, bSortExpandSelect);
+					if (vValue !== "~") {
+						vValue = that.convertExpand(vValue, bSortExpandSelect);
+					}
 					break;
 				case "$select":
 					if (Array.isArray(vValue)) {
@@ -799,11 +817,11 @@ sap.ui.define([
 	};
 
 	/**
-	*  Get the batch queue for the given group or create it if it does not exist yet.
-	*
-	*  @param {string} sGroupId The group ID
-	*  @returns {object[]} The batch queue for the group
-	*
+	 * Get the batch queue for the given group or create it if it does not exist yet.
+	 *
+	 * @param {string} sGroupId The group ID
+	 * @returns {object[]} The batch queue for the group
+	 *
 	 * @private
 	 */
 	Requestor.prototype.getOrCreateBatchQueue = function (sGroupId) {
@@ -1103,9 +1121,17 @@ sap.ui.define([
 					vRequest.$reject(oError);
 				} else if (vResponse.status >= 400) {
 					vResponse.getResponseHeader = getResponseHeader;
+					// Note: vRequest is an array in case a change set fails, hence url and
+					// $resourcePath are undefined
 					oCause = _Helper.createError(vResponse, "Communication error", vRequest.url,
 						vRequest.$resourcePath);
-					reject(oCause, vRequest);
+					if (Array.isArray(vRequest)) {
+						_Helper.decomposeError(oCause, vRequest).forEach(function (oError, i) {
+							vRequest[i].$reject(oError);
+						});
+					} else {
+						vRequest.$reject(oCause);
+					}
 				} else {
 					if (vResponse.responseText) {
 						try {
@@ -1118,7 +1144,9 @@ sap.ui.define([
 							return;
 						}
 					} else { // e.g. 204 No Content
-						oResponse = {/*null object pattern*/};
+						// With GET it must be visible that there is no content, with the other
+						// methods it must be possible to insert the ETag from the header
+						oResponse = vRequest.method === "GET" ? null : {};
 					}
 					that.reportUnboundMessagesAsJSON(vRequest.url,
 						getResponseHeader.call(vResponse, "sap-messages"));
@@ -1243,7 +1271,7 @@ sap.ui.define([
 					}
 					that.oSecurityTokenPromise = null;
 					fnResolve();
-				}, function (jqXHR, sTextStatus, sErrorMessage) {
+				}, function (jqXHR) {
 					that.oSecurityTokenPromise = null;
 					fnReject(_Helper.createError(jqXHR, "Could not refresh security token"));
 				});
@@ -1429,7 +1457,7 @@ sap.ui.define([
 	 * @param {object} [mQueryOptions]
 	 *   Query options if it is allowed to merge this request with another request having the same
 	 *   sResourcePath (only allowed for GET requests); the resulting resource path is the path from
-	 *   sResourcePath plus the merged query options
+	 *   sResourcePath plus the merged query options; may only contain $expand and $select
 	 * @returns {Promise}
 	 *   A promise on the outcome of the HTTP request; it will be rejected with an error having the
 	 *   property <code>canceled = true</code> instead of sending a request if
@@ -1603,7 +1631,11 @@ sap.ui.define([
 
 					// Note: string response appears only for $batch and thus cannot be empty;
 					// for 204 "No Content", vResponse === undefined
-					vResponse = vResponse || {/*null object pattern*/};
+					if (!vResponse) {
+						// With GET it must be visible that there is no content, with the other
+						// methods it must be possible to insert the ETag from the header
+						vResponse = sMethod === "GET" ? null : {};
+					}
 					if (sETag) {
 						vResponse["@odata.etag"] = sETag;
 					}
@@ -1614,7 +1646,7 @@ sap.ui.define([
 						messages : jqXHR.getResponseHeader("sap-messages"),
 						resourcePath : sResourcePath
 					});
-				}, function (jqXHR, sTextStatus, sErrorMessage) {
+				}, function (jqXHR) {
 					var sContextId = jqXHR.getResponseHeader("SAP-ContextId"),
 						sCsrfToken = jqXHR.getResponseHeader("X-CSRF-Token"),
 						sMessage;
@@ -1653,7 +1685,7 @@ sap.ui.define([
 
 	/**
 	 * Sets the session context. Starts a keep-alive timer in case there is a session context and
-	 * a timeout of 60 seconds or more is indicated. This timer runs for at most 15 minutes.
+	 * a timeout of 60 seconds or more is indicated. This timer runs for at most 30 minutes.
 	 *
 	 * @param {string} [sContextId] The value of the header 'SAP-ContextId'
 	 * @param {string} [sSAPHttpSessionTimeout] The value of the header 'SAP-Http-Session-Timeout',
@@ -1665,7 +1697,7 @@ sap.ui.define([
 		var iTimeoutSeconds = rTimeout.test(sSAPHttpSessionTimeout)
 				? parseInt(sSAPHttpSessionTimeout)
 				: 0,
-			iSessionTimeout = Date.now() + 15 * 60 * 1000, // 15 min
+			iSessionTimeout = Date.now() + 30 * 60 * 1000, // 30 min
 			that = this;
 
 		this.clearSessionContext(); // stop the current session and its timer
@@ -1675,7 +1707,7 @@ sap.ui.define([
 			that.mHeaders["SAP-ContextId"] = sContextId;
 			if (iTimeoutSeconds >= 60) {
 				this.iSessionTimer = setInterval(function () {
-					if (Date.now() >= iSessionTimeout) { // 15 min have passed
+					if (Date.now() >= iSessionTimeout) { // 30 min have passed
 						that.clearSessionContext(/*bTimeout*/true); // give up
 					} else {
 						jQuery.ajax(that.sServiceUrl + that.sQueryParams, {
@@ -1796,7 +1828,7 @@ sap.ui.define([
 			var oResult = oPayload;
 			if (oResult) {
 				Object.keys(oResult).forEach(function (sKey) {
-					if (sKey.indexOf("@$ui5.") === 0) {
+					if (sKey.startsWith("@$ui5.")) {
 						if (oResult === oPayload) {
 							oResult = Object.assign({}, oPayload);
 						}

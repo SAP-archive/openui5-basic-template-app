@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/ui/test/matchers/Matcher","sap/base/strings/capitalize"],function(e,t){"use strict";return e.extend("sap.ui.test.matchers.I18NText",{metadata:{publicMethods:["isMatching"],properties:{propertyName:{type:"string"},key:{type:"string"},parameters:{type:"any"},modelName:{type:"string",defaultValue:"i18n"}}},isMatching:function(e){var r=this.getKey(),o=this.getPropertyName(),s=this.getParameters(),a=this.getModelName(),i=e.getModel(a),n=e["get"+t(o,0)];if(!i){this._oLogger.debug("The '"+e+"' has no model with name '"+a+"'");return false}if(!i.getResourceBundle){this._oLogger.debug("The model '"+i+"' is not a valid resource model");return false}var u=this._getApplicationWindow();var g=i.getResourceBundle();if(g instanceof u.Promise){if(i._oResourceBundle instanceof u.Object&&i._oResourceBundle.getText){g=i._oResourceBundle}else{this._oLogger.debug("The model '"+a+"' of '"+e+"' is in async mode and not loaded yet");return false}}if(!n){this._oLogger.debug("The '"+e+"' has no '"+o+"' property");return false}var d=n.call(e);var h=g.getText(r,s,true);if(!h){var l="No value for the key '"+r+"' in the model '"+a+"' of '"+e+"'";this._oLogger.debug(l);return false}var c=d===h;if(!c){this._oLogger.debug("The text '"+h+"' does not match the value '"+d+"' of the '"+o+"' property for '"+e+"'")}return c}})});

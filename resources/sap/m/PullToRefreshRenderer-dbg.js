@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,6 +17,24 @@ sap.ui.define(['sap/ui/core/IconPool'],
 	 */
 	var PullToRefreshRenderer = {
 		apiVersion: 2
+	};
+
+	/**
+	 * Writes the accessibility state to the control's root element.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
+	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
+	 */
+	PullToRefreshRenderer.writeAccessibilityState = function(oRm, oControl) {
+
+		var oAccAttributes = {
+			role: "button",
+			controls: oControl.getParent().sId + "-cont",
+			keyshortcuts: "F5",
+			describedby: oControl._getAriaDescribedByReferences()
+		};
+
+		oRm.accessibilityState(oControl, oAccAttributes);
 	};
 
 	/**
@@ -45,8 +63,8 @@ sap.ui.define(['sap/ui/core/IconPool'],
 		}
 
 		oRm.attr("tabindex", 0);
-		oRm.attr("role", "button");
-		oRm.attr("aria-controls", oControl.getParent().sId + "-cont"); // aria attribute
+
+		this.writeAccessibilityState(oRm, oControl);
 
 		oRm.openEnd();
 

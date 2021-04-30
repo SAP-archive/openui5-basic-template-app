@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -266,7 +266,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.84.11
 	 * @public
 	 * @alias sap.ui.base.ManagedObject
 	 */
@@ -954,29 +954,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Optional StashedControlSupport dependency
-	 * @private
-	 */
-	var StashedControlSupport;
-
-	/**
-	 * Returns an array of stashed child elements or an empty array if there are none.
-	 *
-	 * @param {string} sId id of the object which should have stashed children
-	 * @return {sap.ui.core._StashedControl[]} array of stashed children
-	 * @private
-	 */
-	function getStashedControls(sId) {
-		if (!StashedControlSupport) {
-			StashedControlSupport = sap.ui.require("sap/ui/core/StashedControlSupport");
-		}
-		if (StashedControlSupport) {
-			return StashedControlSupport.getStashedControls(sId);
-		}
-		return [];
-	}
-
-	/**
 	 * A global preprocessor for the ID of a ManagedObject (used internally).
 	 * If set, this function will be called before the ID is applied to any ManagedObject.
 	 * If the original ID was empty, the hook will not be called (to be discussed).
@@ -1143,8 +1120,8 @@ sap.ui.define([
 			if ( typeof mSettings.objectBindings === "string" || mSettings.objectBindings.path ) { // excludes "path" as model name
 				this.bindObject(mSettings.objectBindings);
 			} else {
-				for (var sKey in mSettings.objectBindings ) {
-					mSettings.objectBindings.model = sKey;
+				for (sKey in mSettings.objectBindings ) {
+					mSettings.objectBindings[sKey].model = sKey === "undefined" ? undefined : sKey;
 					this.bindObject(mSettings.objectBindings[sKey]);
 				}
 			}
@@ -2003,12 +1980,18 @@ sap.ui.define([
 	 * Applications or frameworks must not use this method to generically read the content of an aggregation.
 	 * Use the concrete method get<i>XYZ</i> for aggregation 'XYZ' instead.
 	 *
-	 * @param {string}
-	 *            sAggregationName the name of the aggregation
-	 * @param {sap.ui.base.ManagedObject | Array}
-	 *			  oDefaultForCreation the object that is used in case the current aggregation is empty
-	 * @type sap.ui.base.ManagedObject|Array
-	 * @return the aggregation array in case of 0..n-aggregations or the managed object or null in case of 0..1-aggregations
+	 * @param {string} sAggregationName
+	 *            Name of the aggregation
+	 * @param {sap.ui.base.ManagedObject | Array} [oDefaultForCreation=null]
+	 *            Object that is used in case the current aggregation is empty. If provided, it must be null for
+	 *            0..1 aggregations or an empty array for 0..n aggregations. If not provided, null is used.
+	 *
+	 *            <b>Note:</b> When an empty array is given and used because the aggregation was not set before,
+	 *            then this array will be used for the aggregation from thereon. Sharing the same empty array
+	 *            between different calls to this method therefore is not possible and will result in
+	 *            inconsistencies.
+	 * @returns {sap.ui.base.ManagedObject|sap.ui.base.ManagedObject[]|null}
+	 *            Aggregation array in case of 0..n-aggregations or the managed object or null in case of 0..1-aggregations
 	 * @protected
 	 */
 	ManagedObject.prototype.getAggregation = function(sAggregationName, oDefaultForCreation) {
@@ -2350,13 +2333,6 @@ sap.ui.define([
 		var aChildren = this.mAggregations[sAggregationName],
 			i, aChild;
 
-		// destroy surrogates in this aggregation
-		getStashedControls(this.getId()).forEach(function(c) {
-			if (c.sParentAggregationName === sAggregationName) {
-				c.destroy();
-			}
-		});
-
 		if (!aChildren) {
 			return this;
 		}
@@ -2674,11 +2650,11 @@ sap.ui.define([
 
 	/**
 	 * Applies new contextual settings to a managed object, and propagates them to its children
-	 * @param oContextualSettings
+	 * @param {object} [oContextualSettings={}]
 	 * @private
 	 */
 	ManagedObject.prototype._applyContextualSettings = function(oContextualSettings) {
-
+		oContextualSettings = oContextualSettings || ManagedObject._defaultContextualSettings;
 		if (this._oContextualSettings !== oContextualSettings) {
 			this._oContextualSettings = oContextualSettings;
 			this._propagateContextualSettings();
@@ -2820,11 +2796,6 @@ sap.ui.define([
 			this.destroyAggregation(oAggr, bSuppressInvalidate);
 		}
 
-		// destroy all inactive children
-		getStashedControls(this.getId()).forEach(function(c) {
-			c.destroy();
-		});
-
 		// Deregister, if available
 		if (this.deregister) {
 			this.deregister();
@@ -2930,10 +2901,12 @@ sap.ui.define([
 	 * @private
 	 */
 	ManagedObject.prototype.extractBindingInfo = function(oValue, oScope, bDetectValue) {
-
 		// property:{path:"path", template:oTemplate}
 		if (oValue && typeof oValue === "object") {
-			if (oValue.ui5object) {
+			if (oValue.Type) {
+				// if value contains the 'Type' property (capital 'T'), this is not a binding info.
+				return undefined;
+			} else if (oValue.ui5object) {
 				// if value contains ui5object property, this is not a binding info,
 				// remove it and not check for path or parts property
 				delete oValue.ui5object;
@@ -2951,8 +2924,6 @@ sap.ui.define([
 			// either returns a binding info or an unescaped string or undefined - depending on binding syntax
 			return ManagedObject.bindingParser(oValue, oScope, true);
 		}
-
-		// return undefined;
 	};
 
 	/**
@@ -2990,9 +2961,11 @@ sap.ui.define([
 	 * method will be called to create a new {@link sap.ui.model.ContextBinding ContextBinding} with the configured
 	 * binding options.
 	 *
-	 * There is no difference between <code>bindObject</code> and {@link sap.ui.core.Element#bindElement bindElement}.
-	 * Method <code>bindElement</code> was deprecated and renamed to <code>bindObject</code> when this kind of binding
-	 * was no longer limited to <code>sap.ui.core.Element</code>s.
+	 * There's no difference between <code>bindObject</code> and {@link sap.ui.core.Element#bindElement bindElement}.
+	 * Method <code>bindObject</code> was introduced together with <code>ManagedObject</code> to make context bindings
+	 * also available on <code>ManagedObject</code>s. The new name was chosen to reflect that the binding is not
+	 * necessarily applied to an <code>Element</code>, it also could be applied to a component or some other
+	 * <code>ManagedObject</code>.
 	 *
 	 * Also see {@link topic:91f05e8b6f4d1014b6dd926db0e91070 Context Binding} in the documentation.
 	 *
@@ -3481,10 +3454,10 @@ sap.ui.define([
 		}
 
 		// set only one formatter function if any
-		// because the formatter gets the context of the element we have to set the context via proxy to ensure compatibility
+		// because the formatter gets the context of the element, we have to set the context via proxy to ensure compatibility
 		// for formatter function which is now called by the property binding
 		// proxy formatter here because "this" is the correct cloned object
-		if (oBindingInfo.formatter) {
+		if (typeof oBindingInfo.formatter === "function") {
 			oBinding.setFormatter(oBindingInfo.formatter.bind(this));
 		}
 
@@ -3561,6 +3534,10 @@ sap.ui.define([
 					exception: oException,
 					message: oException.message
 				}, false, true); // bAllowPreventDefault, bEnableEventBubbling
+				Log.error("FormatException in property '" + sName + "' of '" + that + "': " + oException.message +
+					"\nHint: single properties referenced in composite bindings and within binding expressions are automatically converted " +
+					"into the type of the bound control property, unless a different 'targetType' is specified. targetType:'any' may avoid " +
+					"the conversion and lead to the expected behavior.");
 				oBindingInfo.skipModelUpdate++;
 				that.resetProperty(sName);
 				oBindingInfo.skipModelUpdate--;
@@ -4224,7 +4201,8 @@ sap.ui.define([
 
 			if (aParts) {
 				for (i = 0; i < aParts.length; i++) {
-					if ( !that.getModel(aParts[i].model) ) {
+					// check if model exists - ignore static bindings
+					if ( !that.getModel(aParts[i].model) && aParts[i].value === undefined) {
 						return false;
 					}
 				}
@@ -4499,7 +4477,7 @@ sap.ui.define([
 					if (aParts && aParts.length > 1) {
 						// composite binding: update required  when a part use the model with the same name
 						for (i = 0; i < aParts.length; i++) {
-							if ( aParts[i].model == sModelName ) {
+							if ( aParts[i].model == sModelName && aParts[i].value === undefined) {
 								oBinding.aBindings[i].setContext(oContext);
 							}
 						}
@@ -4509,11 +4487,9 @@ sap.ui.define([
 							oBinding.setContext(oContext);
 						}
 
-					} else {
+					} else if (aParts[0].model == sModelName && aParts[0].value === undefined) {
 						// simple property binding: update required when the model has the same name
-						if ( aParts[0].model == sModelName) {
-							oBinding.setContext(oContext);
-						}
+						oBinding.setContext(oContext);
 					}
 				}
 			}
@@ -4608,9 +4584,9 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> A ManagedObject inherits models from the Core only when it is a descendant of a UIArea.
 	 *
-	 * @param {sap.ui.model.Model} oModel the model to be set or <code>null</code> or <code>undefined</code>
+	 * @param {sap.ui.model.Model|null|undefined} oModel Model to be set or <code>null</code> or <code>undefined</code>
 	 * @param {string} [sName=undefined] the name of the model or <code>undefined</code>
-	 * @return {sap.ui.base.ManagedObject} <code>this</code> to allow method chaining
+	 * @returns {sap.ui.base.ManagedObject} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	ManagedObject.prototype.setModel = function(oModel, sName) {
@@ -4982,14 +4958,6 @@ sap.ui.define([
 								? escape(oAggregation) : oAggregation;
 					}
 				}
-			}
-
-			// Clone inactive children
-			var aInactiveChildren = getStashedControls(this.getId());
-			for (var i = 0, l = aInactiveChildren.length; i < l; i++) {
-					var oClonedChild = aInactiveChildren[i].clone(sIdSuffix);
-					oClonedChild.sParentId = sId;
-					oClonedChild.sParentAggregationName = aInactiveChildren[i].sParentAggregationName;
 			}
 
 			// Clone associations
