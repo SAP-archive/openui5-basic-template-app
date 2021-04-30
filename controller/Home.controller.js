@@ -1,1 +1,1 @@
-sap.ui.define(["sap/ui/core/mvc/Controller","../model/formatter"],function(e,t){"use strict";return e.extend("sap.ui.demo.basicTemplate.controller.App",{formatter:t,onInit:function(){}})});
+sap.ui.define(["sap/ui/core/mvc/Controller","../model/formatter"],function(e,t){"use strict";return e.extend("sap.ui.demo.basicTemplate.controller.Home",{formatter:t,onInit:function(){}})});

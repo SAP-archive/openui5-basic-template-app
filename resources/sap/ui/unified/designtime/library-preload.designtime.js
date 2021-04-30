@@ -1,0 +1,7 @@
+//@ui5-bundle sap/ui/unified/designtime/library-preload.designtime.js
+sap.ui.predefine("sap/ui/unified/designtime/Calendar.designtime",[],function(){"use strict";return{palette:{group:"INPUT",icons:{svg:"sap/ui/unified/designtime/Calendar.icon.svg"}}}});
+sap.ui.predefine("sap/ui/unified/designtime/CalendarDateInterval.designtime",[],function(){"use strict";return{name:{singular:"CALENDARDATEINTERVAL_NAME",plural:"CALENDARDATEINTERVAL_NAME_PLURAL"},palette:{group:"INPUT",icons:{svg:"sap/ui/unified/designtime/CalendarDateInterval.icon.svg"}},templates:{create:"sap/ui/unified/designtime/CalendarDateInterval.create.fragment.xml"}}});
+sap.ui.predefine("sap/ui/unified/designtime/CalendarLegend.designtime",[],function(){"use strict";return{name:{singular:"CALENDARLEGEND_NAME",plural:"CALENDARLEGEND_NAME_PLURAL"},palette:{group:"DISPLAY"},templates:{create:"sap/ui/unified/designtime/CalendarLegend.create.fragment.xml"}}});
+sap.ui.predefine("sap/ui/unified/designtime/Currency.designtime",[],function(){"use strict";return{name:{singular:"CURRENCY_NAME",plural:"CURRENCY_NAME_PLURAL"},palette:{group:"DISPLAY",icons:{svg:"sap/ui/unified/designtime/Currency.icon.svg"}},templates:{create:"sap/ui/unified/designtime/Currency.create.fragment.xml"}}});
+sap.ui.predefine("sap/ui/unified/designtime/FileUploader.designtime",[],function(){"use strict";return{palette:{group:"INPUT",icons:{svg:"sap/ui/unified/designtime/FileUploader.icon.svg"}}}});
+sap.ui.predefine("sap/ui/unified/designtime/library.designtime",[],function(){"use strict";return{}});
