@@ -12,9 +12,10 @@ sap.ui.define([
 	'./ImageRenderer',
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
-	"sap/base/security/encodeCSS"
+	"sap/base/security/encodeCSS",
+	"sap/ui/core/library"
 ],
-	function(library, Control, DataType, ImageRenderer, KeyCodes, jQuery, encodeCSS) {
+	function(library, Control, DataType, ImageRenderer, KeyCodes, jQuery, encodeCSS, coreLibrary) {
 	"use strict";
 
 
@@ -22,7 +23,8 @@ sap.ui.define([
 	// shortcut for sap.m.ImageMode
 	var ImageMode = library.ImageMode;
 
-
+	// shortcut for sap.ui.core.aria.HasPopup
+	var AriaHasPopup = coreLibrary.aria.HasPopup;
 
 	/**
 	 * Constructor for a new Image.
@@ -55,7 +57,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @alias sap.m.Image
@@ -174,7 +176,35 @@ sap.ui.define([
 			* It takes effect only when the <code>mode</code> property is set to <code>sap.m.ImageMode.Background</code>.
 			* @since 1.30.0
 			*/
-			backgroundRepeat : {type : "string", group : "Appearance", defaultValue : "no-repeat"}
+			backgroundRepeat : {type : "string", group : "Appearance", defaultValue : "no-repeat"},
+			/**
+			* Enables lazy loading for images that are offscreen. If set to <code>true</code>, the property
+			* ensures that offscreen images are loaded early enough so that they have finished loading once
+			* the user scrolls near them.
+			*
+			* <b>Note:</b> Keep in mind that the property uses the loading attribute of HTML <code>&lt;img&gt;</code> element
+			* which is not supported for Internet Explorer.
+			*
+			* @since 1.87
+			*/
+			lazyLoading : {type : "boolean", defaultValue : false },
+
+			/**
+			 * Defines the aria-haspopup attribute of the <code>Image</code>.
+			 *
+			 * <b>Guidance for choosing appropriate value:</b>
+			 * <ul>
+			 * <li> We recommend you to use the property only when press handler is set.</li>
+			 * <li> If you use controls based on <code>sap.m.Popover</code> or <code>sap.m.Dialog</code>,
+			 * then you must use <code>AriaHasPopup.Dialog</code> (both <code>sap.m.Popover</code> and
+			 * <code>sap.m.Dialog</code> have role "dialog" assigned internally).</li>
+			 * <li> If you use other controls, or directly <code>sap.ui.core.Popup</code>, you need to check
+			 * the container role/type and map the value of <code>ariaHasPopup</code> accordingly.</li>
+			 * </ul>
+			 *
+			 * @since 1.87.0
+			 */
+			ariaHasPopup : {type : "sap.ui.core.aria.HasPopup", group : "Accessibility", defaultValue : AriaHasPopup.None}
 		},
 		aggregations : {
 			/**
@@ -744,7 +774,7 @@ sap.ui.define([
 	 *
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @protected
-	 * @returns {Object} The <code>sap.m.Image</code> accessibility information
+	 * @returns {object} The <code>sap.m.Image</code> accessibility information
 	 */
 	Image.prototype.getAccessibilityInfo = function() {
 		var bHasPressListeners = this.hasListeners("press");

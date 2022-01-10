@@ -59,16 +59,6 @@ html.sap-desktop .sapMGenericTag:focus {
 	}
 }
 
-/* FIX: IE and Edge - dotted line appears blurry. */
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapMGenericTag:focus {
-		&:after{
-			border-style: dashed;
-		}
-	}
-}
-
 .sapMGenericTagWrap {
 	background: @sapUiListBackground;
 	box-shadow: @sapUiShadowLevel0;
@@ -132,6 +122,7 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 
 	&:hover {
 		box-shadow: 0 0 0 0.0625rem fade(@sapUiContentShadowColor, 30);
+		cursor: pointer;
 	}
 
 	.sapMGenericTagActive &  {
@@ -188,7 +179,6 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 			}
 		}
 		.sapMObjectNumberUnit {
-			padding-top: 0.0625rem;
 			min-width: 0.75rem;
 		}
 	}

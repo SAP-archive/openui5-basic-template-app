@@ -19,11 +19,11 @@
 		// Provides class sap.ui.core.plugin.LessSupport
 		sap.ui.define('sap/ui/core/plugin/LessSupport', [
 			'sap/ui/thirdparty/jquery',
-			'sap/ui/core/Core',
 			'sap/ui/core/ThemeCheck',
 			'sap/base/Log',
-			'sap/base/util/UriParameters'],
-			function(jQuery, Core, ThemeCheck, Log, UriParameters) {
+			'sap/base/util/UriParameters',
+			'sap/ui/core/Core' // provides sap.ui.getCore()
+		], function(jQuery, ThemeCheck, Log, UriParameters) {
 
 			var LESS_FILENAME = "library.source";
 			var CSS_FILENAME = "library";
@@ -37,7 +37,7 @@
 			 *        feature - DO NOT USE IN PRODUCTIVE SCENARIOS!!
 			 *
 			 * @author Peter Muessig
-			 * @version 1.84.11
+			 * @version 1.96.2
 			 * @private
 			 * @alias sap.ui.core.plugin.LessSupport
 			 */

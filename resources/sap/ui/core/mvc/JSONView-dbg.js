@@ -6,37 +6,36 @@
 
 // Provides control sap.ui.core.mvc.JSONView.
 sap.ui.define([
-	'sap/ui/thirdparty/jquery',
 	'./View',
 	'./JSONViewRenderer',
+	'./ViewType',
 	'./EventHandlerResolver',
 	'sap/base/util/merge',
 	'sap/ui/base/ManagedObject',
-	'sap/ui/core/library',
 	'sap/ui/model/resource/ResourceModel',
 	'sap/base/Log',
 	'sap/base/util/LoaderExtensions'
 ],
 	function(
-		jQuery,
 		View,
 		JSONViewRenderer,
+		ViewType,
 		EventHandlerResolver,
 		merge,
 		ManagedObject,
-		library,
 		ResourceModel,
 		Log,
 		LoaderExtensions
 	) {
 	"use strict";
 
-	// shortcut for enum(s)
-	var ViewType = library.mvc.ViewType;
-
-
 	/**
 	 * Constructor for a new mvc/JSONView.
+	 *
+	 * <strong>Note:</strong> Application code shouldn't call the constructor directly, but rather use the factory
+	 * {@link sap.ui.core.mvc.JSONView.create JSONView.create} or {@link sap.ui.core.mvc.View.create View.create}
+	 * with type {@link sap.ui.core.mvc.ViewType.JSON JSON}. The factory simplifies asynchronous loading of a view
+	 * and future features might be added to the factory only.
 	 *
 	 * @param {string} [sId] id for the new control, generated automatically if no id is given
 	 * @param {object} [mSettings] initial settings for the new control
@@ -44,16 +43,18 @@ sap.ui.define([
 	 * @class
 	 * A View defined using JSON.
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.JSONView
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var JSONView = View.extend("sap.ui.core.mvc.JSONView", /** @lends sap.ui.core.mvc.JSONView.prototype */ { metadata : {
-
-		library : "sap.ui.core"
-	}});
+	var JSONView = View.extend("sap.ui.core.mvc.JSONView", /** @lends sap.ui.core.mvc.JSONView.prototype */ {
+		metadata : {
+			library : "sap.ui.core"
+		},
+		renderer: JSONViewRenderer
+	});
 
 	/**
 	 * Creates a JSON view of the given configuration.
@@ -76,7 +77,7 @@ sap.ui.define([
 		for (var sOption in mParameters) {
 			if (sOption === 'preprocessors') {
 				delete mParameters['preprocessors'];
-				Log.warning("JSView.create does not support the option preprocessors!");
+				Log.warning("JSONView.create does not support the option preprocessors!");
 			}
 		}
 		mParameters.type = ViewType.JSON;
@@ -114,12 +115,12 @@ sap.ui.define([
 	 * @param {sap.ui.core.mvc.Controller} [vView.controller] controller to be used for this view instance
 	 * @public
 	 * @static
-	 * @deprecated since 1.56: Use {@link sap.ui.core.mvc.JSONView.create JSONView.create} instead.
+	 * @deprecated Since 1.56. Use {@link sap.ui.core.mvc.JSONView.create JSONView.create} to create view instances
 	 * @return {sap.ui.core.mvc.JSONView} the created JSONView instance
 	 * @ui5-global-only
 	 */
 	sap.ui.jsonview = function(sId, vView) {
-		return sap.ui.view(sId, vView, ViewType.JSON);
+		return sap.ui.view(sId, vView, ViewType.JSON); // legacy-relevant
 	};
 
 	/**
@@ -131,10 +132,12 @@ sap.ui.define([
 	JSONView._sType = ViewType.JSON;
 
 	/**
-	* Flag for feature detection of asynchronous loading/rendering
-	* @public
-	* @since 1.30
-	*/
+	 * Flag for feature detection of asynchronous loading/rendering.
+	 * @public
+	 * @readonly
+	 * @type {boolean}
+	 * @since 1.30
+	 */
 	JSONView.asyncSupport = true;
 
 	JSONView.prototype.initViewSettings = function(mSettings) {

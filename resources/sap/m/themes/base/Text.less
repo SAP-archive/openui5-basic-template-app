@@ -36,7 +36,7 @@ html[data-sap-ui-browser="sf10"] {
 }
 
 .sapMTextMaxLine {
-  display: block;
+	display: block;
 }
 
 .sapMTextNoWrap {
@@ -130,6 +130,16 @@ html[data-sap-ui-browser="sf10"] {
 	line-height: 1.5rem;
 }
 
-.sapUiAnalyticalTable .sapUiAnalyticalTableSum .sapUiTableCell .sapMText {
-	font-weight: bold;
+.sapUiTableHeaderDataCell .sapMText,
+.sapMColumnHeader .sapMText {
+	font-weight: @sapUiColumnHeaderFontWeight;
+	font-size: @sapUiColumnHeaderFontSize;
+}
+
+.sapMText .sapMEmptyIndicator.sapMEmptyIndicatorAuto {
+	display: none;
+}
+
+.sapMShowEmpty-CTX .sapMText .sapMEmptyIndicator.sapMEmptyIndicatorAuto {
+	display: inline-block;
 }

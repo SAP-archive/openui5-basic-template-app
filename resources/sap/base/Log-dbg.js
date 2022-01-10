@@ -28,9 +28,9 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	 * one can retrieve a logger that automatically adds the given <code>sComponent</code> as component
 	 * parameter to each log entry, if no other component is specified. Typically, JavaScript code will
 	 * retrieve such a logger once during startup and reuse it for the rest of its lifecycle.
-	 * Second, the {@link module:sap/base/Log.Logger#setLevel}(iLevel, sComponent) method allows to set the log level
-	 * for a specific component only. This allows a more fine granular control about the created logging entries.
-	 * {@link module:sap/base/Log.Logger#getLevel} allows to retrieve the currently effective log level for a given
+	 * Second, the {@link module:sap/base/Log.setLevel}(iLevel, sComponent) method allows to set the log level
+	 * for a specific component only. This allows a more fine grained control about the created logging entries.
+	 * {@link module:sap/base/Log.getLevel} allows to retrieve the currently effective log level for a given
 	 * component.
 	 *
 	 * {@link module:sap/base/Log.getLogEntries} returns an array of the currently collected log entries.
@@ -436,10 +436,6 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 			 * Console Log, also tries to log to the console, if available.
 			 *
 			 * Unfortunately, the support for console is quite different between the UI5 browsers. The most important differences are:
-			 * - in IE (checked until IE9), the console object does not exist in a window, until the developer tools are opened for that window.
-			 *   After opening the dev tools, the console remains available even when the tools are closed again. Only using a new window (or tab)
-			 *   restores the old state without console.
-			 *   When the console is available, it provides most standard methods, but not debug and trace
 			 * - in FF3.6 the console is not available, until FireBug is opened. It disappears again, when fire bug is closed.
 			 *   But when the settings for a web site are stored (convenience), the console remains open
 			 *   When the console is available, it supports all relevant methods
@@ -448,7 +444,7 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 			 *   - Exception: in the iOS Simulator, console.info() does not exist
 			 */
 			/*eslint-disable no-console */
-			if (console) { // in IE and FF, console might not exist; in FF it might even disappear
+			if (console) { // in Firefox, console might not exist or it might even disappear
 				var isDetailsError = sDetails instanceof Error,
 					logText = oLogEntry.date + " " + oLogEntry.time + " " + oLogEntry.message + " - " + oLogEntry.details + " " + oLogEntry.component;
 				switch (iLevel) {
@@ -463,18 +459,10 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 						}
 						break;
 					case Log.Level.DEBUG:
-						if (console.debug) { // debug not available in IE, fallback to log
-							isDetailsError ? console.debug(logText, "\n", sDetails) : console.debug(logText);
-						} else {
-							isDetailsError ? console.log(logText, "\n", sDetails) : console.log(logText);
-						}
+						isDetailsError ? console.debug(logText, "\n", sDetails) : console.debug(logText);
 						break;
 					case Log.Level.TRACE:
-						if (console.trace) { // trace not available in IE, fallback to log (no trace)
-							isDetailsError ? console.trace(logText, "\n", sDetails) : console.trace(logText);
-						} else {
-							isDetailsError ? console.log(logText, "\n", sDetails) : console.log(logText);
-						}
+						isDetailsError ? console.trace(logText, "\n", sDetails) : console.trace(logText);
 						break;
 				}
 				if (console.info && oLogEntry.supportInfo) {
@@ -576,17 +564,17 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	/**
 	 * Returns a dedicated logger for a component
 	 *
-	 * The logger comes with the same API as the Logger module:
+	 * The logger comes with the same API as the <code>sap/base/Log</code> module:
 	 * <ul>
-	 * <li><code>#fatal</code> - see:  {@link sap/base/Log.fatal}
-	 * <li><code>#error</code> - see:  {@link sap/base/Log.error}
-	 * <li><code>#warning</code> - see:  {@link sap/base/Log.warning}
-	 * <li><code>#info</code> - see:  {@link sap/base/Log.info}
-	 * <li><code>#debug</code> - see:  {@link sap/base/Log.debug}
-	 * <li><code>#trace</code> - see:  {@link sap/base/Log.trace}
-	 * <li><code>#setLevel</code> - see:  {@link sap/base/Log.setLevel}
-	 * <li><code>#getLevel</code> - see:  {@link sap/base/Log.getLevel}
-	 * <li><code>#isLoggable</code> - see:  {@link sap/base/Log.isLoggable}
+	 * <li><code>#fatal</code> - see:  {@link module:sap/base/Log.fatal}
+	 * <li><code>#error</code> - see:  {@link module:sap/base/Log.error}
+	 * <li><code>#warning</code> - see:  {@link module:sap/base/Log.warning}
+	 * <li><code>#info</code> - see:  {@link module:sap/base/Log.info}
+	 * <li><code>#debug</code> - see:  {@link module:sap/base/Log.debug}
+	 * <li><code>#trace</code> - see:  {@link module:sap/base/Log.trace}
+	 * <li><code>#setLevel</code> - see:  {@link module:sap/base/Log.setLevel}
+	 * <li><code>#getLevel</code> - see:  {@link module:sap/base/Log.getLevel}
+	 * <li><code>#isLoggable</code> - see:  {@link module:sap/base/Log.isLoggable}
 	 * </ul>
 	 *
 	 * @param {string} sComponent Name of the component which should be logged

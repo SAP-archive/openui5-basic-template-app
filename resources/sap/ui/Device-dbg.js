@@ -11,7 +11,7 @@
  * This API is independent from any other part of the UI5 framework. This allows it to be loaded beforehand, if it is needed, to create the UI5 bootstrap
  * dynamically depending on the capabilities of the browser or device.
  *
- * @version 1.84.11
+ * @version 1.96.2
  * @namespace
  * @name sap.ui.Device
  * @public
@@ -32,7 +32,7 @@ if (typeof window.sap.ui !== "object") {
 
 	//Skip initialization if API is already available
 	if (typeof window.sap.ui.Device === "object" || typeof window.sap.ui.Device === "function") {
-		var apiVersion = "1.84.11";
+		var apiVersion = "1.96.2";
 		window.sap.ui.Device._checkAPIVersion(apiVersion);
 		return;
 	}
@@ -71,7 +71,7 @@ if (typeof window.sap.ui !== "object") {
 					component: sComponent || ""
 				};
 			/*eslint-disable no-console */
-			if (window.console) { // in IE and FF, console might not exist; in FF it might even disappear
+			if (window.console) { // in FF, console might not exist; it might even disappear
 				var logText = oLogEntry.date + " " + oLogEntry.time + " " + this.sWindowName + oLogEntry.message + " - " + oLogEntry.component;
 				switch (iLevel) {
 					case FATAL:
@@ -85,11 +85,11 @@ if (typeof window.sap.ui !== "object") {
 						console.info ? console.info(logText) : console.log(logText);
 						break; // info not available in iOS simulator
 					case DEBUG:
-						console.debug ? console.debug(logText) : console.log(logText);
-						break; // debug not available in IE, fallback to log
+						console.debug(logText);
+						break;
 					case TRACE:
-						console.trace ? console.trace(logText) : console.log(logText);
-						break; // trace not available in IE, fallback to log (no trace)
+						console.trace(logText);
+						break;
 				}
 			}
 			/*eslint-enable no-console */
@@ -105,7 +105,7 @@ if (typeof window.sap.ui !== "object") {
 
 	//Only used internal to make clear when Device API is loaded in wrong version
 	Device._checkAPIVersion = function(sVersion) {
-		var v = "1.84.11";
+		var v = "1.96.2";
 		if (v != sVersion) {
 			oLogger.log(WARNING, "Device API version differs: " + v + " <-> " + sVersion);
 		}
@@ -177,7 +177,7 @@ if (typeof window.sap.ui !== "object") {
 	 *
 	 * @see sap.ui.Device.os.OS
 	 * @name sap.ui.Device.os.name
-	 * @type String
+	 * @type string
 	 * @public
 	 */
 	/**
@@ -186,7 +186,7 @@ if (typeof window.sap.ui !== "object") {
 	 * Might be empty if no version can be determined.
 	 *
 	 * @name sap.ui.Device.os.versionStr
-	 * @type String
+	 * @type string
 	 * @public
 	 */
 	/**
@@ -249,7 +249,6 @@ if (typeof window.sap.ui !== "object") {
 	 * @type boolean
 	 * @public
 	 */
-
 	/**
 	 * Windows operating system name.
 	 *
@@ -326,14 +325,18 @@ if (typeof window.sap.ui !== "object") {
 				var rVersion = /Windows NT (\d+).(\d)/i;
 				var uaResult = userAgent.match(rVersion);
 				var sVersionStr = "";
-				if (uaResult[1] == "6") {
-					if (uaResult[2] == 1) {
-						sVersionStr = "7";
-					} else if (uaResult[2] > 1) {
-						sVersionStr = "8";
+				// Using Lighthouse tool within chrome on windows does not provide a valid userAgent
+				// navigator.platform is 'Win' but navigator.userAgent indicates macOS
+				if (uaResult) {
+					if (uaResult[1] == "6") {
+						if (uaResult[2] == 1) {
+							sVersionStr = "7";
+						} else if (uaResult[2] > 1) {
+							sVersionStr = "8";
+						}
+					} else {
+						sVersionStr = uaResult[1];
 					}
-				} else {
-					sVersionStr = uaResult[1];
 				}
 				return {
 					"name": OS.WINDOWS,
@@ -464,7 +467,7 @@ if (typeof window.sap.ui !== "object") {
 	 *
 	 * @see sap.ui.Device.browser.BROWSER
 	 * @name sap.ui.Device.browser.name
-	 * @type String
+	 * @type string
 	 * @public
 	 */
 	/**
@@ -473,7 +476,7 @@ if (typeof window.sap.ui !== "object") {
 	 * Might be empty if no version can be determined.
 	 *
 	 * @name sap.ui.Device.browser.versionStr
-	 * @type String
+	 * @type string
 	 * @public
 	 */
 	/**
@@ -493,32 +496,6 @@ if (typeof window.sap.ui !== "object") {
 	 *
 	 * @name sap.ui.Device.browser.mobile
 	 * @type boolean
-	 * @public
-	 */
-	/**
-	 * If this flag is set to <code>true</code>, the Microsoft Internet Explorer browser is used.
-	 *
-	 * @name sap.ui.Device.browser.internet_explorer
-	 * @type boolean
-	 * @deprecated since 1.20, use {@link sap.ui.Device.browser.msie} instead.
-	 * @public
-	 */
-	/**
-	 * If this flag is set to <code>true</code>, the Microsoft Internet Explorer browser is used.
-	 *
-	 * @name sap.ui.Device.browser.msie
-	 * @type boolean
-	 * @since 1.20.0
-	 * @public
-	 */
-	/**
-	 * If this flag is set to <code>true</code>, the Microsoft Edge (EdgeHTML) browser is used.
-	 * The Microsoft Edge (Chromium) browser is reported via the {@link #chrome} flag instead,
-	 * because it also uses Chromium as its browser engine.
-	 *
-	 * @name sap.ui.Device.browser.edge
-	 * @type boolean
-	 * @since 1.30.0
 	 * @public
 	 */
 	/**
@@ -600,7 +577,7 @@ if (typeof window.sap.ui !== "object") {
 	 *
 	 * @see sap.ui.Device.browser.webkit
 	 * @name sap.ui.Device.browser.webkitVersion
-	 * @type String
+	 * @type string
 	 * @since 1.20.0
 	 * @private
 	 */
@@ -610,21 +587,6 @@ if (typeof window.sap.ui !== "object") {
 	 * @name sap.ui.Device.browser.mozilla
 	 * @type boolean
 	 * @since 1.20.0
-	 * @public
-	 */
-	/**
-	 * Internet Explorer browser name.
-	 *
-	 * @see sap.ui.Device.browser.name
-	 * @name sap.ui.Device.browser.BROWSER.INTERNET_EXPLORER
-	 * @public
-	 */
-	/**
-	 * Edge browser name, used for Microsoft Edge (EdgeHTML) browser.
-	 *
-	 * @see sap.ui.Device.browser.name
-	 * @name sap.ui.Device.browser.BROWSER.EDGE
-	 * @since 1.28.0
 	 * @public
 	 */
 	/**
@@ -657,8 +619,6 @@ if (typeof window.sap.ui !== "object") {
 	 */
 
 	var BROWSER = {
-		"INTERNET_EXPLORER": "ie",
-		"EDGE": "ed",
 		"FIREFOX": "ff",
 		"CHROME": "cr",
 		"SAFARI": "sf",
@@ -690,17 +650,10 @@ if (typeof window.sap.ui !== "object") {
 
 			var rwebkit = /(webkit)[ \/]([\w.]+)/;
 			var ropera = /(opera)(?:.*version)?[ \/]([\w.]+)/;
-			var rmsie = /(msie) ([\w.]+)/;
-			var rmsie11 = /(trident)\/[\w.]+;.*rv:([\w.]+)/;
-			var redge = /(edge)[ \/]([\w.]+)/;
 			var rmozilla = /(mozilla)(?:.*? rv:([\w.]+))?/;
 
-			// WinPhone IE11 and MS Edge userAgents contain "WebKit" and "Mozilla" and therefore must be checked first
-			var browserMatch = redge.exec(sUserAgent) ||
-				rmsie11.exec(sUserAgent) ||
-				rwebkit.exec(sUserAgent) ||
+			var browserMatch = rwebkit.exec(sUserAgent) ||
 				ropera.exec(sUserAgent) ||
-				rmsie.exec(sUserAgent) ||
 				sUserAgent.indexOf("compatible") < 0 && rmozilla.exec(sUserAgent) || [];
 
 			var oRes = {
@@ -809,33 +762,6 @@ if (typeof window.sap.ui !== "object") {
 					};
 				}
 			}
-		} else if (oBrowser.msie || oBrowser.trident) {
-			var fVersion;
-			// recognize IE8 when running in compat mode (only then the documentMode property is there)
-			if (document.documentMode && !customUa) { // only use the actual documentMode when no custom user-agent was given
-				if (document.documentMode === 7) { // OK, obviously we are IE and seem to be 7... but as documentMode is there this cannot be IE7!
-					fVersion = 8.0;
-				} else {
-					fVersion = parseFloat(document.documentMode);
-				}
-			} else {
-				fVersion = parseFloat(oBrowser.version);
-			}
-			oResult = {
-				name: BROWSER.INTERNET_EXPLORER,
-				versionStr: "" + fVersion,
-				version: fVersion,
-				msie: true,
-				mobile: false // TODO: really?
-			};
-		} else if (oBrowser.edge) {
-			var fVersion = fVersion = parseFloat(oBrowser.version);
-			oResult = {
-				name: BROWSER.EDGE,
-				versionStr: "" + fVersion,
-				version: fVersion,
-				edge: true
-			};
 		} else {
 			oResult = {
 				name: "",
@@ -964,9 +890,8 @@ if (typeof window.sap.ui !== "object") {
 
 	Device.support.pointer = !!window.PointerEvent;
 
-	Device.support.matchmedia = !!window.matchMedia;
-	var m = Device.support.matchmedia ? window.matchMedia("all and (max-width:0px)") : null; //IE10 doesn't like empty string as argument for matchMedia, FF returns null when running within an iframe with display:none
-	Device.support.matchmedialistener = !!(m && m.addListener);
+	Device.support.matchmedia = true;
+	Device.support.matchmedialistener = true;
 
 	Device.support.orientation = !!("orientation" in window && "onorientationchange" in window);
 
@@ -1463,15 +1388,14 @@ if (typeof window.sap.ui !== "object") {
 
 		oQuerySets[oConfig.name] = oConfig;
 
-		if (Device.support.matchmedialistener) { //FF, Safari, Chrome, IE10?
-			oConfig.queries.forEach(function(oQuery) {
-				oQuery.media = window.matchMedia(oQuery.query);
+		oConfig.queries.forEach(function(oQuery) {
+			oQuery.media = window.matchMedia(oQuery.query);
+			if (oQuery.media.addEventListener) {
+				oQuery.media.addEventListener("change", oConfig.listener);
+			} else { // Safari 13 and older only supports deprecated MediaQueryList.addListener
 				oQuery.media.addListener(oConfig.listener);
-			});
-		} else { //IE, Safari (<6?)
-			window.addEventListener("resize", oConfig.listener, false);
-			window.addEventListener("orientationchange", oConfig.listener, false);
-		}
+			}
+		});
 
 		oConfig.listener();
 	};
@@ -1540,14 +1464,13 @@ if (typeof window.sap.ui !== "object") {
 		}
 
 		var oConfig = oQuerySets[sName];
-		if (Device.support.matchmedialistener) { //FF, Safari, Chrome, IE10?
-			var queries = oConfig.queries;
-			for (var i = 0; i < queries.length; i++) {
+		var queries = oConfig.queries;
+		for (var i = 0; i < queries.length; i++) {
+			if (queries[i].media.removeEventListener) {
+				queries[i].media.removeEventListener("change", oConfig.listener);
+			} else { // Safari 13 and older only supports deprecated MediaQueryList.removeListener
 				queries[i].media.removeListener(oConfig.listener);
 			}
-		} else { //IE, Safari (<6?)
-			window.removeEventListener("resize", oConfig.listener, false);
-			window.removeEventListener("orientationchange", oConfig.listener, false);
 		}
 
 		refreshCSSClasses(sName, "", true);
@@ -1560,10 +1483,11 @@ if (typeof window.sap.ui !== "object") {
 	/**
 	 * Provides a basic categorization of the used device based on various indicators.
 	 *
-	 * These indicators are for example the support of touch events, the screen size, the used operation system or
-	 * the user agent of the browser.
+	 * These indicators are, for example, the support of touch events, the used operating system, and the user agent of the browser.
 	 *
-	 * <b>Note:</b> Depending on the capabilities of the device it is also possible that multiple flags are set to <code>true</code>.
+	 * <b>Note:</b> There is no easy way to precisely determine the used device from the information provided by the browser. We therefore rely especially on the user agent.
+     * In combination with given device capabilities, it is therefore possible that multiple flags are set to <code>true</code>.
+     * This is mostly the case for desktop devices with touch capability, and for mobile devices requesting web pages as desktop pages.
 	 *
 	 * @namespace
 	 * @name sap.ui.Device.system
@@ -1574,8 +1498,7 @@ if (typeof window.sap.ui !== "object") {
 	 *
 	 * Furthermore, a CSS class <code>sap-tablet</code> is added to the document root element.
 	 *
-	 * <b>Note:</b> This flag is also true for some browsers on desktop devices running on Windows 8 or higher. Also see the
-	 * documentation for {@link sap.ui.Device.system.combi} devices.
+	 * <b>Note:</b> This flag is also <code>true</code> for some browsers running on desktop devices. See the documentation for {@link sap.ui.Device.system.combi} devices.
 	 * You can use the following logic to ensure that the current device is a tablet device:
 	 *
 	 * <pre>
@@ -1593,6 +1516,10 @@ if (typeof window.sap.ui !== "object") {
 	 *
 	 * Furthermore, a CSS class <code>sap-phone</code> is added to the document root element.
 	 *
+	 * <b>Note:</b> In case a phone requests a web page as a "Desktop Page", it is possible
+	 * that all properties except <code>Device.system.phone</code> are set to <code>true</code>.
+	 * In this case it is not possible to differentiate between tablet and phone relying on the user agent.
+	 *
 	 * @name sap.ui.Device.system.phone
 	 * @type boolean
 	 * @public
@@ -1601,6 +1528,10 @@ if (typeof window.sap.ui !== "object") {
 	 * If this flag is set to <code>true</code>, the device is recognized as a desktop system.
 	 *
 	 * Furthermore, a CSS class <code>sap-desktop</code> is added to the document root element.
+	 *
+	 * <b>Note:</b> This flag is by default also true for Safari on iPads running on iOS 13 or higher.
+	 * The end user can change this behavior by disabling "Request Desktop Website -> All websites" within the iOS settings.
+	 * See also the documentation for {@link sap.ui.Device.system.combi} devices.
 	 *
 	 * @name sap.ui.Device.system.desktop
 	 * @type boolean
@@ -1611,8 +1542,7 @@ if (typeof window.sap.ui !== "object") {
 	 *
 	 * Furthermore, a CSS class <code>sap-combi</code> is added to the document root element.
 	 *
-	 * <b>Note:</b> This property is mainly for Microsoft Windows 8 (and following) devices where the mouse and touch event may be supported
-	 * natively by the browser being used. This property is set to <code>true</code> only when both mouse and touch event are natively supported.
+	 * <b>Note:</b> This property is set to <code>true</code> only when both a desktop and a mobile device is detected.
 	 *
 	 * @name sap.ui.Device.system.combi
 	 * @type boolean
@@ -1635,15 +1565,13 @@ if (typeof window.sap.ui !== "object") {
 
 	Device.system = {};
 
-	function getSystem(simMobileOnDesktop, customUA) {
-		var bTabletDetected = isTablet(customUA);
-		var isWin8Upwards = Device.os.windows && Device.os.version >= 8;
-		var isWin7 = Device.os.windows && Device.os.version === 7;
+	function getSystem(customUA) {
+		var bTabletDetected = !!isTablet(customUA);
 
 		var oSystem = {};
-		oSystem.tablet = !!(((Device.support.touch && !isWin7) || isWin8Upwards || !!simMobileOnDesktop) && bTabletDetected);
-		oSystem.phone = !!(Device.os.windows_phone || ((Device.support.touch && !isWin7) || !!simMobileOnDesktop) && !bTabletDetected);
-		oSystem.desktop = !!((!oSystem.tablet && !oSystem.phone) || isWin8Upwards || isWin7 || Device.os.linux || Device.os.macintosh);
+		oSystem.tablet = bTabletDetected;
+		oSystem.phone = Device.support.touch && !bTabletDetected;
+		oSystem.desktop = !!((!oSystem.tablet && !oSystem.phone) || Device.os.windows || Device.os.linux || Device.os.macintosh);
 		oSystem.combi = oSystem.desktop && oSystem.tablet;
 		oSystem.SYSTEMTYPE = SYSTEMTYPE;
 
@@ -1657,18 +1585,19 @@ if (typeof window.sap.ui !== "object") {
 		var sUserAgent = customUA || navigator.userAgent;
 		if (Device.os.ios) {
 			return /ipad/i.test(sUserAgent);
-		} else if (Device.os.macintosh) {
+		} else if (Device.os.windows || Device.os.macintosh || Device.os.linux) {
+			// For iOS:
 			// With iOS 13 the string 'iPad' was removed from the user agent string through a browser setting, which is applied on all sites by default:
 			// "Request Desktop Website -> All websites" (for more infos see: https://forums.developer.apple.com/thread/119186).
-			// Therefore the OS is detected as MACINTOSH instead of iOS and the device is a tablet if the supported touch points are more than 1
-			return navigator.maxTouchPoints > 1;
+			// Therefore the OS is detected as MACINTOSH instead of iOS and the device is a tablet if the Device.support.touch is true.
+			// For Android:
+			// At least some devices (e.g. Samsung Galaxy S20 and Samsung Galaxy Tab S7) can't be recognized as Android device in case they request a page
+			// as desktop page. In this case the userAgent does not contain any information regarding the real OS and we detect the device as linux OS
+			// deriving from navigator.platform. Therefore we decided to handle this behaviour similar to iOS.
+			return Device.support.touch;
 		} else {
 			//in real mobile device
-			if (Device.support.touch) {
-				if (Device.os.windows && Device.os.version >= 8) {
-					return true;
-				}
-
+			if (Device.support.touch) { // eslint-disable-line no-lonely-if
 				if (Device.browser.chrome && Device.os.android && Device.os.version >= 4.4) {
 					// From Android version 4.4, WebView also uses Chrome as Kernel.
 					// We can use the user agent pattern defined in Chrome to do phone/tablet detection
@@ -1711,16 +1640,14 @@ if (typeof window.sap.ui !== "object") {
 			} else {
 				// This simple android phone detection can be used here because this is the mobile emulation mode in desktop browser
 				var bAndroidPhone = (/(?=android)(?=.*mobile)/i.test(sUserAgent));
-				// in desktop browser, it's detected as tablet when
-				// 1. Windows 8 device with a touch screen where "Touch" is contained in the userAgent
-				// 2. Android emulation and it's not an Android phone
-				return (Device.browser.msie && sUserAgent.indexOf("Touch") !== -1) || (Device.os.android && !bAndroidPhone);
+				// in desktop browser, it's detected as tablet when Android emulation and it's not an Android phone
+				return Device.os.android && !bAndroidPhone;
 			}
 		}
 	}
 
-	function setSystem(simMobileOnDesktop, customUA) {
-		Device.system = getSystem(simMobileOnDesktop, customUA);
+	function setSystem(customUA) {
+		Device.system = getSystem(customUA);
 		if (Device.system.tablet || Device.system.phone) {
 			Device.browser.mobile = true;
 		}
@@ -2028,16 +1955,6 @@ if (typeof window.sap.ui !== "object") {
 		bResize = false;
 		iClearFlagTimeout = null;
 	}
-
-	//******** Update browser settings for test purposes ********
-
-	Device._update = function(simMobileOnDesktop) {
-		ua = navigator.userAgent;
-		oLogger.log(WARNING, "Device API values manipulated: NOT PRODUCTIVE FEATURE!!! This should be only used for test purposes. Only use if you know what you are doing.");
-		setBrowser();
-		setOS();
-		setSystem(simMobileOnDesktop);
-	};
 
 	//********************************************************
 

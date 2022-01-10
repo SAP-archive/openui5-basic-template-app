@@ -7,27 +7,31 @@
 // Provides control sap.m.FormattedText.
 sap.ui.define([
 	'./library',
+	'sap/ui/core/library',
 	'sap/ui/core/Control',
 	'./FormattedTextAnchorGenerator',
 	'./FormattedTextRenderer',
 	"sap/base/Log",
-	"sap/base/security/URLWhitelist",
+	"sap/base/security/URLListValidator",
 	"sap/base/security/sanitizeHTML"
 ],
 function(
 	library,
+	coreLibrary,
 	Control,
 	FormattedTextAnchorGenerator,
 	FormattedTextRenderer,
 	Log,
-	URLWhitelist,
+	URLListValidator,
 	sanitizeHTML0
 	) {
 		"use strict";
 
 
 		// shortcut for sap.m.LinkConversion
-		var LinkConversion = library.LinkConversion;
+		var LinkConversion = library.LinkConversion,
+			TextDirection = coreLibrary.TextDirection,
+			TextAlign = coreLibrary.TextAlign;
 
 		/**
 		 * Constructor for a new FormattedText.
@@ -38,7 +42,7 @@ function(
 		 * @class
 		 * The FormattedText control allows the usage of a limited set of tags for inline display of formatted text in HTML format.
 		 * @extends sap.ui.core.Control
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -57,6 +61,7 @@ function(
 					 * <ul>
 					 *	<li><code>a</code></li>
 					 *	<li><code>abbr</code></li>
+					 *	<li><code>bdi</code></li>
 					 *	<li><code>blockquote</code></li>
 					 *	<li><code>br</code></li>
 					 *	<li><code>cite</code></li>
@@ -80,9 +85,9 @@ function(
 					 *	<li><code>ol</code></li>
 					 *	<li><code>li</code></li>
 					 * </ul>
-					 * <p><code>class, style,</code> and <code>target</code> attributes are allowed.
+					 * <p><code>class, style, dir,</code> and <code>target</code> attributes are allowed.
 					 * If <code>target</code> is not set, links open in a new window by default.
-					 * <p>Only safe <code>href</code> attributes can be used. See {@link module:sap/base/security/URLWhitelist URLWhitelist}.
+					 * <p>Only safe <code>href</code> attributes can be used. See {@link module:sap/base/security/URLListValidator URLListValidator}.
 					 *
 					 * <b>Note:</b> Keep in mind that not supported HTML tags and
 					 * the content nested inside them are both not rendered by the control.
@@ -114,7 +119,28 @@ function(
 					/**
 					 *  Optional height of the control in CSS units.
 					 */
-					height: {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : null}
+					height: {type : "sap.ui.core.CSSSize", group : "Appearance", defaultValue : null},
+
+					/**
+					 * Defines the directionality of the text in the <code>FormattedText</code>, e.g. right-to-left(<code>RTL</code>)
+					 * or left-to-right (<code>LTR</code>).
+					 *
+					 * <b>Note:</b> This functionality if set to the root element. Use the <code>bdi</code> element and
+					 * the <code>dir</code> attribute to set explicit direction to an element.
+					 *
+					 * @since 1.86.0
+					 */
+					textDirection: { type: "sap.ui.core.TextDirection", group: "Appearance", defaultValue: TextDirection.Inherit },
+
+					/**
+					 * Determines the text alignment in the text elements in the <code>FormattedText</code>.
+					 *
+					 * <b>Note:</b> This functionality if set to the root element. To set explicit alignment to an element
+					 * use the <code>style</code> attribute.
+					 *
+					 * @since 1.86.0
+					 */
+					textAlign : {type : "sap.ui.core.TextAlign", group : "Appearance", defaultValue : TextAlign.Begin}
 				},
 				aggregations: {
 
@@ -137,13 +163,15 @@ function(
 				'style' : 1,
 				'class' : 1,
 				'a::href' : 1,
-				'a::target' : 1
+				'a::target' : 1,
+				'dir' : 1
 			},
 			// rules for the allowed tags
 			ELEMENTS: {
 				// Text Module Tags
 				'a' : {cssClass: 'sapMLnk'},
 				'abbr': 1,
+				'bdi' : 1,
 				'blockquote': 1,
 				'br': 1,
 				'cite': 1,
@@ -177,6 +205,7 @@ function(
 			},
 			ELEMENTS: {
 				'a' : {cssClass: 'sapMLnk'},
+				'br': 1,
 				'em': 1,
 				'strong': 1,
 				'u': 1
@@ -229,7 +258,7 @@ function(
 
 				// sanitize hrefs
 				if (attr == "href") { // a::href
-					if (!URLWhitelist.validate(value)) {
+					if (!URLListValidator.validate(value)) {
 						Log.warning("FormattedText: incorrect href attribute:" + value, this);
 						attribs[i + 1] = "#";
 						addTarget = false;
@@ -280,8 +309,8 @@ function(
 			return sanitizeHTML0(sText, {
 				tagPolicy: fnPolicy.bind(this),
 				uriRewriter: function (sUrl) {
-					// by default we use the URL whitelist to check the URLs
-					if (URLWhitelist.validate(sUrl)) {
+					// by default, we use the URLListValidator to check the URLs
+					if (URLListValidator.validate(sUrl)) {
 						return sUrl;
 					}
 				}
@@ -308,7 +337,7 @@ function(
 			var sText = this.getHtmlText(),
 				sAutoGenerateLinkTags = this.getConvertLinksToAnchorTags();
 
-			if (sAutoGenerateLinkTags === library.LinkConversion.None) {
+			if (sAutoGenerateLinkTags === LinkConversion.None) {
 				return sText;
 			}
 
@@ -320,7 +349,7 @@ function(
 		/**
 		 * Defines the HTML text to be displayed.
 		 * @param {string} sText HTML text as a string
-		 * @return {sap.m.FormattedText} this for chaining
+		 * @return {this} this for chaining
 		 * @public
 		 */
 		FormattedText.prototype.setHtmlText = function (sText) {

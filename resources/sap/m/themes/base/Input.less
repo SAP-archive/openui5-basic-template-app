@@ -6,12 +6,6 @@
 .sapMListFocus .sapMLIBFocused {
 	outline: 1px dotted @sapUiContentFocusColor;
 	outline-offset: -2px;
-
-	/* IE ignores outline-offset */
-	&.sapMLIBLegacyOutline {
-		outline: none;
-		border: 1px dotted @sapUiContentFocusColor;
-	}
 }
 
 .sapMInputDescriptionText {
@@ -94,4 +88,16 @@
 
 .sapMInputHighlight {
 	font-weight: bold;
+}
+
+/* Overrides due to experimental flex layouting after IE drop */
+
+.sapMInput.sapMInputBaseHasEndIcons .sapMInputBaseInner,
+.sapMInput.sapMInputBaseHasBeginIcons .sapMInputBaseInner {
+	width: auto;
+	flex: 1
+}
+
+.sapMInput .sapMInputBaseContentWrapper {
+	display: inline-flex;
 }

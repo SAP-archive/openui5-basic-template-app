@@ -525,7 +525,6 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 		};
 
 		Breakpoint.prototype._alertNoDebugger = function() {
-
 			if (this._bAlertNoDebugger) {
 				return; // show alert only one time
 			}
@@ -534,10 +533,6 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 
 			if (Device.browser.chrome) {
 				text = "Please open your debugger by pressing CTRL + SHIFT + I.";
-			}
-
-			if (Device.browser.msie) {// TODO remove after the end of support for Internet Explorer
-				text = "Please open your debugger using F12, go to the 'Script' tab and attach it by pressing F5.";
 			}
 
 			if (text == null) {

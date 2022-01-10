@@ -9,32 +9,20 @@ sap.ui
 	.define(
 		[
 			'jquery.sap.global',
-			'sap/ui/Device',
 			'sap/ui/base/ManagedObject',
 			'sap/ui/thirdparty/sinon',
 			'sap/base/Log',
 			'sap/base/util/isEmptyObject',
+			'sap/ui/core/util/MockServerAnnotationsHandler',
+			'sap/ui/core/util/DraftEnabledMockServer',
+			'jquery.sap.xml',
 			'jquery.sap.sjax'
 		],
-		function(jQuery, Device, ManagedObject, sinon, Log, isEmptyObject/*, jQuerySapSjax*/) {
+		function(jQuery, ManagedObject, sinon, Log, isEmptyObject, MockServerAnnotationsHandler, DraftEnabledMockServer/*, jQuerySapXml, jQuerySapSjax*/) {
 			"use strict";
 
-			if (Device.browser.msie) {
-
-				if (window.sinon.log) { // sinon has no version property, but 'log' was removed with 2.x)
-					sap.ui.requireSync("sap/ui/thirdparty/sinon-ie");
-				}
-
-				// sinon internally checks the transported data to be an instance
-				// of FormData and this fails in case of IE9! - therefore we
-				// add a dummy function to enable instanceof check
-				if (!window.FormData) {
-					window.FormData = function() {};
-				}
-			}
-
 			/**
-			 * Creates a mocked server. This helps to mock all or some backend calls, e.g. for OData/JSON Models or simple XHR calls, without
+			 * Creates a mocked server. This helps to mock all or some back-end calls, e.g. for OData V2/JSON Models or simple XHR calls, without
 			 * changing the application code. This class can also be used for qunit tests.
 			 *
 			 * @param {string} [sId] id for the new server object; generated automatically if no non-empty id is given
@@ -42,11 +30,11 @@ sap.ui
 			 * @param {object} [mSettings] optional map/JSON-object with initial property values, aggregated objects etc. for the new object
 			 * @param {object} [oScope] scope object for resolving string based type and formatter references in bindings
 			 *
-			 * @class Class to mock http requests made to a remote server.
+			 * @class Class to mock http requests made to a remote server supporting the OData V2 REST protocol.
 			 * @extends sap.ui.base.ManagedObject
 			 * @abstract
 			 * @author SAP SE
-			 * @version 1.84.11
+			 * @version 1.96.2
 			 * @public
 			 * @alias sap.ui.core.util.MockServer
 			 */
@@ -154,7 +142,7 @@ sap.ui
 						 *
 						 * Default value is <code>[]</code>
 						 *
-						 * @return {object[]} the value of property <code>rootUri</code>
+						 * @return {object[]} the value of property <code>requests</code>
 						 * @public
 						 * @name sap.ui.core.util.MockServer#getRequests
 						 * @function
@@ -564,12 +552,12 @@ sap.ui
 			 */
 			MockServer.prototype._getBracketIndices = function(sString) {
 				var aStack = [];
-				var bReserved = false;
+				var iReserved = 0;
 				var iStartIndex, iEndIndex = 0;
 				for (var character = 0; character < sString.length; character++) {
 					if (sString[character] === '(') {
 						if (/[substringof|endswith|startswith]$/.test(sString.substring(0, character))) {
-							bReserved = true;
+							++iReserved;
 						} else {
 							aStack.push(sString[character]);
 							if (iStartIndex === undefined) {
@@ -577,7 +565,7 @@ sap.ui
 							}
 						}
 					} else if (sString[character] === ')') {
-						if (!bReserved) {
+						if (!iReserved) {
 							aStack.pop();
 							iEndIndex = character;
 							if (aStack.length === 0) {
@@ -587,7 +575,7 @@ sap.ui
 								};
 							}
 						} else {
-							bReserved = false;
+							--iReserved;
 						}
 					}
 				}
@@ -648,11 +636,6 @@ sap.ui
 
 					// base case
 					if (aParts.length === 1) {
-						// IE8 handling
-						if (sODataQueryValue.match(/ +and | or +/)) {
-							throw new Error("400");
-						}
-
 						return this._getOdataQueryFilter(aDataSet, this._trim(sODataQueryValue));
 					}
 
@@ -893,74 +876,74 @@ sap.ui
 				var oPushedObject;
 				var oDataEntry = aDataSet[0] ? aDataSet[0][aProperties[0].split('/')[0]] : null;
 				if (!(oDataEntry != null && oDataEntry.results && oDataEntry.results.length > 0)) {
-                    var fnCreatePushedEntry = function (aProperties, oData, oPushedObject, sParentName) {
-                        // Get for each complex type or navigation property its list of properties
-                        var oComplexOrNav = {};
-                        jQuery.each(aProperties, function (i, sPropertyName) {
-                            var iComplexOrNavProperty = sPropertyName.indexOf("/");
-                            // This is a complex type or navigation property
-                            if (iComplexOrNavProperty !== -1) {
-                                sPropName = sPropertyName.substring(iComplexOrNavProperty + 1);
-                                sComplexOrNavProperty = sPropertyName.substring(0, iComplexOrNavProperty);
-                                if (oComplexOrNav[sComplexOrNavProperty]) {
-                                    oComplexOrNav[sComplexOrNavProperty].push(sPropName);
-                                } else {
-                                    oComplexOrNav[sComplexOrNavProperty] = [sPropName];
-                                }
-                            }
-                        });
-                        jQuery.each(Object.keys(oComplexOrNav), function (i, sComplexOrNav) {
-                            if (!oPushedObject[sComplexOrNav]) {
-                                oPushedObject[sComplexOrNav] = {};
-                            }
-                            // call recursively to get the properties of each complex type or navigation property
-                            oPushedObject[sComplexOrNav] = fnCreatePushedEntry(oComplexOrNav[sComplexOrNav], oData[sComplexOrNav], oPushedObject[sComplexOrNav], sComplexOrNav);
-                        });
+					var fnCreatePushedEntry = function (aProperties, oData, oPushedObject, sParentName) {
+						// Get for each complex type or navigation property its list of properties
+						var oComplexOrNav = {};
+						jQuery.each(aProperties, function (i, sPropertyName) {
+							var iComplexOrNavProperty = sPropertyName.indexOf("/");
+							// This is a complex type or navigation property
+							if (iComplexOrNavProperty !== -1) {
+								sPropName = sPropertyName.substring(iComplexOrNavProperty + 1);
+								sComplexOrNavProperty = sPropertyName.substring(0, iComplexOrNavProperty);
+								if (oComplexOrNav[sComplexOrNavProperty]) {
+									oComplexOrNav[sComplexOrNavProperty].push(sPropName);
+								} else {
+									oComplexOrNav[sComplexOrNavProperty] = [sPropName];
+								}
+							}
+						});
+						jQuery.each(Object.keys(oComplexOrNav), function (i, sComplexOrNav) {
+							if (!oPushedObject[sComplexOrNav]) {
+								oPushedObject[sComplexOrNav] = {};
+							}
+							// call recursively to get the properties of each complex type or navigation property
+							oPushedObject[sComplexOrNav] = fnCreatePushedEntry(oComplexOrNav[sComplexOrNav], oData[sComplexOrNav], oPushedObject[sComplexOrNav], sComplexOrNav);
+						});
 
-                        if (oData.results) {
-                            // Navigation property - filter the results for each navigation property based on the properties defined by $select
-                            var oFilteredResults = [];
-                            jQuery.each(oData.results, function (i, oResult) {
-                                var oFilteredResult = {};
-                                jQuery.each(aProperties, function (j, sPropertyName) {
-                                    oFilteredResult[sPropertyName] = oResult[sPropertyName];
-                                });
-                                oFilteredResults.push(oFilteredResult);
-                            });
-                            if (oPushedObject) {
-                                oPushedObject.results = oFilteredResults;
-                            }
-                        } else {
-                            // Complex types or flat properties
-                            if (oData["__metadata"]) {
-                                oPushedObject["__metadata"] = oData["__metadata"];
-                            }
-                            jQuery.each(aProperties, function (i, sPropertyName) {
-                                var iComplexType = sPropertyName.indexOf("/");
-                                if (iComplexType === -1) { // Complex types were already handled above
-                                    if (oData && !oData.hasOwnProperty(sPropertyName)) {
-                                        var bExist = false;
-                                        var aTypeProperties = [];
-                                        if (sParentName) {
-                                            var sTargetEntitySet = that._mEntitySets[sEntitySetName].navprops[sParentName].to.entitySet;
-                                            aTypeProperties = that._mEntityTypes[that._mEntitySets[sTargetEntitySet].type].properties;
-                                            for (var i = 0; i < aTypeProperties.length; i++) {
-                                                if (aTypeProperties[i].name === sPropertyName) {
-                                                    bExist = true;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        if (!bExist) {
-                                            that._logAndThrowMockServerCustomError(404, that._oErrorMessages.RESOURCE_NOT_FOUND_FOR_SEGMENT, sPropertyName);
-                                        }
-                                    }
-                                    oPushedObject[sPropertyName] = oData[sPropertyName];
-                                }
-                            });
-                        }
-                        return oPushedObject;
-                    };
+						if (oData.results) {
+							// Navigation property - filter the results for each navigation property based on the properties defined by $select
+							var oFilteredResults = [];
+							jQuery.each(oData.results, function (i, oResult) {
+								var oFilteredResult = {};
+								jQuery.each(aProperties, function (j, sPropertyName) {
+									oFilteredResult[sPropertyName] = oResult[sPropertyName];
+								});
+								oFilteredResults.push(oFilteredResult);
+							});
+							if (oPushedObject) {
+								oPushedObject.results = oFilteredResults;
+							}
+						} else {
+							// Complex types or flat properties
+							if (oData["__metadata"]) {
+								oPushedObject["__metadata"] = oData["__metadata"];
+							}
+							jQuery.each(aProperties, function (i, sPropertyName) {
+								var iComplexType = sPropertyName.indexOf("/");
+								if (iComplexType === -1) { // Complex types were already handled above
+									if (oData && !oData.hasOwnProperty(sPropertyName)) {
+										var bExist = false;
+										var aTypeProperties = [];
+										if (sParentName) {
+											var sTargetEntitySet = that._mEntitySets[sEntitySetName].navprops[sParentName].to.entitySet;
+											aTypeProperties = that._mEntityTypes[that._mEntitySets[sTargetEntitySet].type].properties;
+											for (var i = 0; i < aTypeProperties.length; i++) {
+												if (aTypeProperties[i].name === sPropertyName) {
+													bExist = true;
+													break;
+												}
+											}
+										}
+										if (!bExist) {
+											that._logAndThrowMockServerCustomError(404, that._oErrorMessages.RESOURCE_NOT_FOUND_FOR_SEGMENT, sPropertyName);
+										}
+									}
+									oPushedObject[sPropertyName] = oData[sPropertyName];
+								}
+							});
+						}
+						return oPushedObject;
+					};
 
 					// in case of $select=* return the data as is
 					if (aProperties.indexOf("*") !== -1) {
@@ -1076,13 +1059,13 @@ sap.ui
 
 						//check if an expanded operation was already executed. for 1:* check results . otherwise, check if there is __deferred for clean start.
 						var aNavEntry = oRecord[sNavProp].results || oRecord[sNavProp];
-						if (!aNavEntry || !!aNavEntry.__deferred) {
+						if (!aNavEntry || aNavEntry.__deferred) {
 							aNavEntry = jQuery.extend(true, [], that._resolveNavigation(sEntitySetName, oRecord, sNavProp, oRecord));
 						} else if (!Array.isArray(aNavEntry)) {
 							aNavEntry = [aNavEntry];
 						}
 
-						if (!!aNavEntry && aNavProps.length > 1) {
+						if (aNavEntry && aNavProps.length > 1) {
 							var sRestNavProps = aNavProps.splice(1, aNavProps.length).join("/");
 							aNavEntry = that._getOdataQueryExpand(aNavEntry, sRestNavProps,
 								oEntitySetNavProps[sNavProp].to.entitySet);
@@ -1629,7 +1612,7 @@ sap.ui
 						case "Edm.Binary":
 						case "Edm.DateTimeOffset":
 						default:
-							oResult[sKeyName] = oResult[sKeyName];
+							// no value update needed
 					}
 
 				}
@@ -1972,9 +1955,7 @@ sap.ui
 				}
 				// create mockserver annotations handler only when metadata exists
 				if (this._sMetadata) {
-					var MockServerAnnotationsHandler = sap.ui.requireSync("sap/ui/core/util/MockServerAnnotationsHandler");
 					var oAnnotations = MockServerAnnotationsHandler.parse(this._oMetadata, this._sMetadata);
-					var DraftEnabledMockServer = sap.ui.requireSync("sap/ui/core/util/DraftEnabledMockServer");
 					DraftEnabledMockServer.handleDraft(oAnnotations, this);
 				}
 				this._resetPseudoRandomNumberGenerator();
@@ -2027,7 +2008,8 @@ sap.ui
 									break;
 								case "Edm.Int16":
 								case "Edm.Int32":
-									//case "Edm.Int64": In ODataModel this type is represented as a string. (https://openui5.hana.ondemand.com/docs/api/symbols/sap.ui.model.odata.type.Int64.html)
+								//case "Edm.Int64": In ODataModel this type is represented as a string. (https://openui5.hana.ondemand.com/docs/api/symbols/sap.ui.model.odata.type.Int64.html)
+								// eslint-ignore-next-line no-fallthrough
 								case "Edm.Decimal":
 								case "Edm.Byte":
 								case "Edm.Double":
@@ -2051,7 +2033,7 @@ sap.ui
 								case "Edm.Binary":
 								case "Edm.DateTimeOffset":
 								default:
-									sNewValue = sNewValue;
+									// no value update needed
 							}
 
 							//value doesn't match, continue to next entry
@@ -2178,7 +2160,6 @@ sap.ui
 					method: "GET",
 					path: new RegExp("\\$metadata([?#].*)?"),
 					response: function(oXhr) {
-						sap.ui.requireSync("jquery.sap.xml");
 						Log.debug("MockServer: incoming request for url: " + oXhr.url);
 						var mHeaders = {
 							"Content-Type": "application/xml;charset=utf-8"
@@ -2401,7 +2382,7 @@ sap.ui
 							var oBoundaryRegex = new RegExp("--batch_[a-z0-9-]*");
 							var sBoundary = oBoundaryRegex.exec(sRequestBody)[0];
 							// boundary is defined in request header
-							if (!!sBoundary) {
+							if (sBoundary) {
 								var aBatchBodyResponse = [];
 								//split requests by boundary
 								var aBatchRequests = sRequestBody.split(sBoundary);
@@ -3660,7 +3641,7 @@ sap.ui
 			 * Global configuration of all mock servers.
 			 *
 			 * @param {object} mConfig the configuration object.
-			 * @param {boolean} [mConfig.autoRespond=true] If set true, all mock servers will respond automatically. If set false you have to call {@link sap.ui.core.util.MockServer#respond} method for response.
+			 * @param {boolean} [mConfig.autoRespond=true] If set true, all mock servers will respond automatically. If set false you have to call {@link sap.ui.core.util.MockServer.respond} method for response.
 			 * @param {int} [mConfig.autoRespondAfter=0] the time in ms after all mock servers should send their response.
 			 * @param {boolean} [mConfig.fakeHTTPMethods=false] If set to true, all mock server will find <code>_method</code> parameter in the POST body and use this to override the actual method.
 			 * @public
@@ -3709,21 +3690,44 @@ sap.ui
 			 */
 			MockServer.destroyAll = function() {
 				this.stopAll();
-				for (var i = 0; i < this._aServers.length; i++) {
-					this._aServers[i].destroy();
+				while (this._aServers.length > 0) {
+					/* When destroying a server instance the instance is removed from static MockServer._aServers.
+					 * With that, the remaining instances might be moved by 1 index position to the left in MockServer._aServers.
+					 * Therefore, we destroy everytime the first instance in MockServer._aServers until no instance is left.
+					 */
+					this._aServers[0].destroy();
 				}
 			};
 
 			/**
 			 * Enum for the method.
 			 * @public
+			 * @enum {string}
 			 */
 			MockServer.HTTPMETHOD = {
+				/**
+				 * @public
+				 */
 				GET: "GET",
+				/**
+				 * @public
+				 */
 				POST: "POST",
+				/**
+				 * @public
+				 */
 				DELETE: "DELETE",
+				/**
+				 * @public
+				 */
 				PUT: "PUT",
+				/**
+				 * @public
+				 */
 				MERGE: "MERGE",
+				/**
+				 * @public
+				 */
 				PATCH: "PATCH"
 			};
 

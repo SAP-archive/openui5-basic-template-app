@@ -5,8 +5,8 @@
  */
 
 // Provides default renderer for JSONView
-sap.ui.define(['./ViewRenderer', 'sap/ui/core/Control'],
-	function(ViewRenderer, Control) {
+sap.ui.define(['./ViewRenderer'],
+	function(ViewRenderer) {
 	"use strict";
 
 

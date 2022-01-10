@@ -3,22 +3,18 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides class sap.ui.model.odata.ODataAnnotations
 sap.ui.define([
 	"./AnnotationParser",
 	"sap/base/assert",
 	"sap/base/Log",
+	"sap/base/util/extend",
 	"sap/base/util/isEmptyObject",
-	"sap/ui/Device",
 	"sap/ui/base/EventProvider",
 	"sap/ui/thirdparty/jquery"
-], function (AnnotationParser, assert, Log, isEmptyObject, Device, EventProvider, jQuery) {
+], function (AnnotationParser, assert, Log, extend, isEmptyObject, EventProvider, jQuery) {
 	"use strict";
-
-	/*global ActiveXObject */
-
-
 
 	/**
 	 * @param {string|string[]} aAnnotationURI The annotation-URL or an array of URLs that should be parsed and merged
@@ -29,7 +25,7 @@ sap.ui.define([
 	 *
 	 * @author SAP SE
 	 * @version
-	 * 1.84.11
+	 * 1.96.2
 	 *
 	 * @public
 	 * @deprecated As of version 1.66, please use {@link sap.ui.model.odata.v2.ODataAnnotations} instead.
@@ -63,7 +59,7 @@ sap.ui.define([
 			this.oRequestHandles = [];
 			this.oLoadEvent = null;
 			this.oFailedEvent = null;
-			this.mCustomHeaders = mOptions.headers ? jQuery.extend({}, mOptions.headers) : {};
+			this.mCustomHeaders = mOptions.headers ? extend({}, mOptions.headers) : {};
 
 			if (mOptions.urls) {
 				this.addUrl(mOptions.urls);
@@ -135,7 +131,7 @@ sap.ui.define([
 	 * Fires event {@link #event:loaded loaded} to attached listeners.
 	 *
 	 * @param {object} [oParameters] Parameters that will be given as parameters to the event handler
-	 * @return {sap.ui.model.odata.ODataAnnotations} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @protected
 	 */
 	ODataAnnotations.prototype.fireLoaded = function(oParameters) {
@@ -156,7 +152,7 @@ sap.ui.define([
 	 *            [oListener] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.model.odata.ODataAnnotations</code> itself
 	 *
-	 * @returns {sap.ui.model.odata.ODataAnnotations} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	ODataAnnotations.prototype.attachLoaded = function(oData, fnFunction, oListener) {
@@ -174,7 +170,7 @@ sap.ui.define([
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
 	 *            [oListener] Context object on which the given function had to be called
-	 * @returns {sap.ui.model.odata.ODataAnnotations} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	ODataAnnotations.prototype.detachLoaded = function(fnFunction, oListener) {
@@ -201,7 +197,7 @@ sap.ui.define([
 	 * @param {string} [oParameters.statusText] The status as a text, details not specified, intended only for diagnosis output
 	 * @param {string} [oParameters.responseText] Response that has been received for the request ,as a text string
 	 *
-	 * @returns {sap.ui.model.odata.ODataAnnotations} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
 	 */
 	ODataAnnotations.prototype.fireFailed = function(oParameters) {
@@ -224,7 +220,7 @@ sap.ui.define([
 	 *            [oListener] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.model.odata.ODataAnnotations</code> itself
 	 *
-	 * @returns {sap.ui.model.odata.ODataAnnotations} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	ODataAnnotations.prototype.attachFailed = function(oData, fnFunction, oListener) {
@@ -242,7 +238,7 @@ sap.ui.define([
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
 	 *            [oListener] Context object on which the given function had to be called
-	 * @returns {sap.ui.model.odata.ODataAnnotations} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	ODataAnnotations.prototype.detachFailed = function(fnFunction, oListener) {
@@ -262,7 +258,7 @@ sap.ui.define([
 	 */
 	ODataAnnotations.prototype.setHeaders = function(mHeaders) {
 		// Copy headers (dont use reference to mHeaders map)
-		this.mCustomHeaders = jQuery.extend({}, mHeaders);
+		this.mCustomHeaders = extend({}, mHeaders);
 	};
 
 	/**
@@ -280,31 +276,11 @@ sap.ui.define([
 			vXML = null;
 		}
 
-		if (Device.browser.msie) {
-			// IE creates an XML Document, but we cannot use it since it does not support the
-			// evaluate-method. So we have to create a new document from the XML string every time.
-			// This also leads to using a difference XPath implementation @see getXPath
-			oXMLDoc = new ActiveXObject("Microsoft.XMLDOM"); // ??? "Msxml2.DOMDocument.6.0"
-			oXMLDoc.preserveWhiteSpace = true;
-
-			// The MSXML implementation does not parse documents with the technically correct "xmlns:xml"-attribute
-			// So if a document contains 'xmlns:xml="http://www.w3.org/XML/1998/namespace"', IE will stop working.
-			// This hack removes the XML namespace declaration which is then implicitly set to the default one.
-			if (sXMLContent.indexOf(" xmlns:xml=") > -1) {
-				sXMLContent = sXMLContent
-					.replace(' xmlns:xml="http://www.w3.org/XML/1998/namespace"', "")
-					.replace(" xmlns:xml='http://www.w3.org/XML/1998/namespace'", "");
-			}
-
-			oXMLDoc.loadXML(sXMLContent);
-		} else if (vXML) {
+		if (vXML) {
 			oXMLDoc = vXML;
-		} else if (window.DOMParser) {
-			oXMLDoc = new DOMParser().parseFromString(sXMLContent, 'application/xml');
 		} else {
-			Log.fatal("The browser does not support XML parsing. Annotations are not available.");
+			oXMLDoc = new DOMParser().parseFromString(sXMLContent, 'application/xml');
 		}
-
 
 		return oXMLDoc;
 	};
@@ -316,12 +292,7 @@ sap.ui.define([
 	 * @return {boolean} true if errors exist false otherwise
 	 */
 	ODataAnnotations.prototype._documentHasErrors = function(oXMLDoc) {
-		return (
-			// All browsers including IE
-			oXMLDoc.getElementsByTagName("parsererror").length > 0
-			// IE 11 special case
-			|| (oXMLDoc.parseError && oXMLDoc.parseError.errorCode !== 0)
-		);
+		return oXMLDoc.getElementsByTagName("parsererror").length > 0;
 	};
 
 	/**
@@ -371,7 +342,7 @@ sap.ui.define([
 			error:      function() {},
 			fireEvents: false
 		};
-		mOptions = jQuery.extend({}, mDefaultOptions, mOptions);
+		mOptions = extend({}, mDefaultOptions, mOptions);
 
 		var oXMLDoc = this._createXMLDocument(oXMLDocument, sXMLContent);
 
@@ -521,7 +492,7 @@ sap.ui.define([
 			var mAjaxOptions = {
 				url: sUrl,
 				async: that.bAsync,
-				headers: jQuery.extend({}, that.mCustomHeaders, {
+				headers: extend({}, that.mCustomHeaders, {
 					"Accept-Language": sap.ui.getCore().getConfiguration().getLanguageTag() // Always overwrite
 				})
 			};

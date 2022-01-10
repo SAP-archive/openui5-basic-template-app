@@ -35,7 +35,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @private
@@ -301,7 +301,7 @@ function(
 		/**
 		 * Sets the width of the SliderTooltipContainer.
 		 * @param {sap.ui.core.CSSSize} sWidth The width of the SliderTooltipContainer as CSS size.
-		 * @returns {sap.m.SliderTooltipContainer} Pointer to the control instance to allow method chaining.
+		 * @returns {this} Pointer to the control instance to allow method chaining.
 		 * @public
 		 */
 		SliderTooltipContainer.prototype.setWidth = function (sWidth) {

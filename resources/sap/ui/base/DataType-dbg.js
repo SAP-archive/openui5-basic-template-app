@@ -4,6 +4,8 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
+/* global Set */
+
 // Provides class sap.ui.base.DataType
 sap.ui.define([
 	'sap/base/util/ObjectPath',
@@ -14,7 +16,6 @@ sap.ui.define([
 ],
 	function(ObjectPath, assert, Log, isPlainObject, resolveReference) {
 	"use strict";
-
 
 	/**
 	 * Pseudo-Constructor for class <code>DataType</code>, never to be used.
@@ -198,7 +199,6 @@ sap.ui.define([
 		return this._fnNormalizer ? this._fnNormalizer(oValue) : oValue;
 	};
 
-
 	function createType(sName, mSettings, oBase) {
 
 		mSettings = mSettings || {};
@@ -243,6 +243,109 @@ sap.ui.define([
 
 		return oType;
 	}
+
+	var mTypes = {
+
+		"any" :
+			createType("any", {
+				defaultValue : null,
+				isValid : function(vValue) {
+					return true;
+				}
+			}),
+
+		"boolean" :
+			createType("boolean", {
+				defaultValue : false,
+				isValid : function(vValue) {
+					return typeof vValue === "boolean";
+				},
+				parseValue: function(sValue) {
+					return sValue == "true";
+				}
+			}),
+
+		"int" :
+			createType("int", {
+				defaultValue : 0,
+				isValid : function(vValue) {
+					return typeof vValue === "number" && (isNaN(vValue) || Math.floor(vValue) == vValue);
+				},
+				parseValue: function(sValue) {
+					return parseInt(sValue);
+				}
+			}),
+
+		"float" :
+			createType("float", {
+				defaultValue : 0.0,
+				isValid : function(vValue) {
+					return typeof vValue === "number";
+				},
+				parseValue: function(sValue) {
+					return parseFloat(sValue);
+				}
+			}),
+
+		"string" :
+			createType("string", {
+				defaultValue : "",
+				isValid : function(vValue) {
+					return typeof vValue === "string" || vValue instanceof String;
+				},
+				parseValue: function(sValue) {
+					return sValue;
+				}
+			}),
+
+		"object" :
+			createType("object", {
+				defaultValue : null,
+				isValid : function(vValue) {
+					return typeof vValue === "object" || typeof vValue === "function";
+				},
+				parseValue: function(sValue) {
+					return sValue ? JSON.parse(sValue) : null;
+				}
+			}),
+
+		"function" :
+			createType("function", {
+				defaultValue : null,
+				isValid : function(vValue) {
+					return vValue == null || typeof vValue === 'function';
+				},
+				/*
+				 * Note: the second parameter <code>_oOptions</code> is a hidden feature for internal use only.
+				 * Its structure is subject to change. No code other than the XMLTemplateProcessor must use it.
+				 */
+				parseValue: function(sValue, _oOptions) {
+					if ( sValue === "" ) {
+						return undefined;
+					}
+
+					if ( !/^\.?[A-Z_\$][A-Z0-9_\$]*(\.[A-Z_\$][A-Z0-9_\$]*)*$/i.test(sValue) ) {
+						throw new Error(
+							"Function references must consist of dot separated " +
+							"simple identifiers (A-Z, 0-9, _ or $) only, but was '" + sValue + "'");
+					}
+
+					var fnResult,
+						oContext = _oOptions && _oOptions.context,
+						oLocals = _oOptions && _oOptions.locals;
+
+					fnResult = resolveReference(sValue,
+						Object.assign({".": oContext}, oLocals));
+
+					if ( fnResult && this.isValid(fnResult) ) {
+						return fnResult;
+					}
+
+					throw new TypeError("The string '" + sValue + "' couldn't be resolved to a function");
+				}
+			})
+
+	};
 
 	// The generic "array" type must not be exposed by DataType.getType to avoid direct usage
 	// as type of a managed property. It is therefore not stored in the mTypes map
@@ -364,109 +467,6 @@ sap.ui.define([
 		return oType;
 	}
 
-	var mTypes = {
-
-		"any" :
-			createType("any", {
-				defaultValue : null,
-				isValid : function(vValue) {
-					return true;
-				}
-			}),
-
-		"boolean" :
-			createType("boolean", {
-				defaultValue : false,
-				isValid : function(vValue) {
-					return typeof vValue === "boolean";
-				},
-				parseValue: function(sValue) {
-					return sValue == "true";
-				}
-			}),
-
-		"int" :
-			createType("int", {
-				defaultValue : 0,
-				isValid : function(vValue) {
-					return typeof vValue === "number" && (isNaN(vValue) || Math.floor(vValue) == vValue);
-				},
-				parseValue: function(sValue) {
-					return parseInt(sValue);
-				}
-			}),
-
-		"float" :
-			createType("float", {
-				defaultValue : 0.0,
-				isValid : function(vValue) {
-					return typeof vValue === "number";
-				},
-				parseValue: function(sValue) {
-					return parseFloat(sValue);
-				}
-			}),
-
-		"string" :
-			createType("string", {
-				defaultValue : "",
-				isValid : function(vValue) {
-					return typeof vValue === "string" || vValue instanceof String;
-				},
-				parseValue: function(sValue) {
-					return sValue;
-				}
-			}),
-
-		"object" :
-			createType("object", {
-				defaultValue : null,
-				isValid : function(vValue) {
-					return typeof vValue === "object" || typeof vValue === "function";
-				},
-				parseValue: function(sValue) {
-					return sValue ? JSON.parse(sValue) : null;
-				}
-			}),
-
-		"function" :
-			createType("function", {
-				defaultValue : null,
-				isValid : function(vValue) {
-					return vValue == null || typeof vValue === 'function';
-				},
-				/*
-				 * Note: the second parameter <code>_oOptions</code> is a hidden feature for internal use only.
-				 * Its structure is subject to change. No code other than the XMLTemplateProcessor must use it.
-				 */
-				parseValue: function(sValue, _oOptions) {
-					if ( sValue === "" ) {
-						return undefined;
-					}
-
-					if ( !/^\.?[A-Z_\$][A-Z0-9_\$]*(\.[A-Z_\$][A-Z0-9_\$]*)*$/i.test(sValue) ) {
-						throw new Error(
-							"Function references must consist of dot separated " +
-							"simple identifiers (A-Z, 0-9, _ or $) only, but was '" + sValue + "'");
-					}
-
-					var fnResult,
-						oContext = _oOptions && _oOptions.context,
-						oLocals = _oOptions && _oOptions.locals;
-
-					fnResult = resolveReference(sValue,
-						Object.assign({".": oContext}, oLocals));
-
-					if ( fnResult && this.isValid(fnResult) ) {
-						return fnResult;
-					}
-
-					throw new TypeError("The string '" + sValue + "' couldn't be resolved to a function");
-				}
-			})
-
-	};
-
 	/**
 	 * Looks up the type with the given name and returns it.
 	 *
@@ -529,14 +529,12 @@ sap.ui.define([
 					mTypes[sTypeName] = oType;
 				} else if ( isPlainObject(oType) ) {
 					oType = mTypes[sTypeName] = createEnumType(sTypeName, oType);
+				} else if ( oType ) {
+					Log.warning("'" + sTypeName + "' is not a valid data type. Falling back to type 'any'.");
+					oType = mTypes.any;
 				} else {
-					if ( oType ) {
-						Log.warning("'" + sTypeName + "' is not a valid data type. Falling back to type 'any'.");
-						oType = mTypes.any;
-					} else {
-						Log.error("data type '" + sTypeName + "' could not be found.");
-						oType = undefined;
-					}
+					Log.error("data type '" + sTypeName + "' could not be found.");
+					oType = undefined;
 				}
 			}
 		}
@@ -584,24 +582,24 @@ sap.ui.define([
 	 *                       type (inherited if not given)
 	 * @param {function} [mSettings.parseValue] Parse function that converts a locale independent
 	 *                       string into a value of the type (inherited if not given)
-	 * @param {sap.ui.base.DataType|string} [base='any'] Base type for the new type
+	 * @param {sap.ui.base.DataType|string} [vBase='any'] Base type for the new type
 	 * @returns {sap.ui.base.DataType} The newly created type object
 	 * @public
 	 */
-	DataType.createType = function(sName, mSettings, oBase) {
+	DataType.createType = function(sName, mSettings, vBase) {
 		assert(typeof sName === "string" && sName, "DataType.createType: type name must be a non-empty string");
-		assert(oBase == null || oBase instanceof DataType || typeof oBase === "string" && oBase,
+		assert(vBase == null || vBase instanceof DataType || typeof vBase === "string" && vBase,
 				"DataType.createType: base type must be empty or a DataType or a non-empty string");
 		if ( /[\[\]]/.test(sName) ) {
 			Log.error(
 				"DataType.createType: array types ('something[]') must not be created with createType, " +
 				"they're created on-the-fly by DataType.getType");
 		}
-		if ( typeof oBase === "string" ) {
-			oBase = DataType.getType(oBase);
+		if ( typeof vBase === "string" ) {
+			vBase = DataType.getType(vBase);
 		}
-		oBase = oBase || mTypes.any;
-		if ( oBase.isArrayType() || oBase.isEnumType() ) {
+		vBase = vBase || mTypes.any;
+		if ( vBase.isArrayType() || vBase.isEnumType() ) {
 			Log.error("DataType.createType: base type must not be an array- or enum-type");
 		}
 		if ( sName === 'array' || mTypes[sName] instanceof DataType ) {
@@ -611,36 +609,41 @@ sap.ui.define([
 			Log.warning("DataTypes.createType: type " + sName + " is redefined. " +
 				"This is an unsupported usage of DataType and might cause issues." );
 		}
-		var oType = mTypes[sName] = createType(sName, mSettings, oBase);
+		var oType = mTypes[sName] = createType(sName, mSettings, vBase);
 		return oType;
 	};
 
 
 	// ---- minimal support for interface types -------------------------------------------------------------------
 
-	var mInterfaces = {};
+	var oInterfaces = new Set();
 
 	/**
 	 * Registers the given array of type names as known interface types.
 	 * Only purpose is to enable the {@link #isInterfaceType} check.
 	 * @param {string[]} aTypes interface types to be registered
 	 * @private
-	 * @ui5-restricted sap.ui.base,sap.ui.core.Core
+	 * @ui5-restricted sap.ui.core.Core
 	 */
 	DataType.registerInterfaceTypes = function(aTypes) {
-		for (var i = 0; i < aTypes.length; i++) {
-			ObjectPath.set(aTypes[i], mInterfaces[aTypes[i]] = new String(aTypes[i]));
-		}
+		aTypes.forEach(function(sType) {
+			oInterfaces.add(sType);
+
+			// Defining the interface on global namespace for compatibility reasons.
+			// This has never been a public feature and it is strongly discouraged it be relied upon.
+			// An interface must always be referenced by a string literal, not via the global namespace.
+			ObjectPath.set(sType, sType);
+		});
 	};
 
 	/**
 	 * @param {string} sType name of type to check
 	 * @returns {boolean} whether the given type is known to be an interface type
 	 * @private
-	 * @ui5-restricted sap.ui.base,sap.ui.core.Core
+	 * @ui5-restricted sap.ui.base.ManagedObject
 	 */
 	DataType.isInterfaceType = function(sType) {
-		return mInterfaces.hasOwnProperty(sType) && ObjectPath.get(sType) === mInterfaces[sType];
+		return oInterfaces.has(sType);
 	};
 
 

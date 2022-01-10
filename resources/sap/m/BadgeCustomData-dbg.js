@@ -7,8 +7,9 @@
 // Provides element sap.m.BadgeCustomData.
 sap.ui.define([
 	'sap/ui/core/CustomData',
-	'sap/base/Log'
-], function(CustomData, Log) {
+	'sap/base/Log',
+	'sap/m/library'
+], function(CustomData, Log, library) {
 	"use strict";
 
 	/**
@@ -29,10 +30,18 @@ sap.ui.define([
 	 * @public
 	 * @alias sap.m.BadgeCustomData
 	 */
+
+	var BadgeAnimationType = library.BadgeAnimationType;
+
 	var BadgeCustomData = CustomData.extend("sap.m.BadgeCustomData", {
 		metadata: {
 			properties: {
-				visible: {type: "boolean", group: "Appearance", defaultValue: true}
+				visible: {type: "boolean", group: "Appearance", defaultValue: true},
+				/**
+				 * Determines the type of animation to be performed by the Badge DOM element.
+				 * @since 1.87
+				 */
+				animation: {type: "sap.m.BadgeAnimationType", group: "Appearance", defaultValue: BadgeAnimationType.Full}
 			}
 		}
 	});
@@ -49,14 +58,20 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @param {string} Value to be.
-	 * @return {sap.m.BadgeCustomData} this BadgeCustomData reference for chaining.
+	 * @return {this} this BadgeCustomData reference for chaining.
 	 */
 	BadgeCustomData.prototype.setValue =  function (sValue) {
 		if (this.getValue() === sValue) { return this; }
+
+		if (sValue === null || sValue === undefined) {
+			sValue = "";
+		}
+
 		var oParent = this.getParent();
+		sValue = sValue.toString();
 
 		CustomData.prototype.setValue.call(this, sValue);
-		if (oParent && typeof sValue === "string") {
+		if (oParent) {
 			oParent.updateBadgeValue(sValue);
 		}
 
@@ -78,12 +93,27 @@ sap.ui.define([
 		return this;
 	};
 
+	BadgeCustomData.prototype.setAnimation =  function (sAnimationType) {
+		if (this.getAnimation() === sAnimationType) { return this; }
+
+		this.setProperty("animation", sAnimationType, true);
+
+		var oParent = this.getParent();
+
+		if (oParent) {
+			oParent.updateBadgeAnimation(sAnimationType);
+		}
+
+
+		return this;
+	};
+
 	/**
 	 * Sets the key property of BadgeCustomData as it can be only 'badge'.
 	 *
 	 * @private
 	 * @param {string} Key to be.
-	 * @return {sap.m.BadgeCustomData} this BadgeCustomData reference for chaining.
+	 * @return {this} this BadgeCustomData reference for chaining.
 	 */
 	BadgeCustomData.prototype.setKey = function () {
 		return this;

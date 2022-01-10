@@ -39,7 +39,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/base/L
 				this.statusCode = xmlHttpReq.status;
 				this.status = xmlHttpReq.statusText;
 				this.startTimestamp = xmlHttpReq.xstartTimestamp;
-				this.firstByteSent = xmlHttpReq.xfirstByteSent ? xmlHttpReq.xfirstByteSent : xmlHttpReq.xstartTimestamp; //not available on IE9
+				this.firstByteSent = xmlHttpReq.xfirstByteSent;
 				this.lastByteSent = this.firstByteSent; //last Byte sent cannot be captured
 				this.firstByteReceived = xmlHttpReq.xfirstByteReceived ? xmlHttpReq.xfirstByteReceived : xmlHttpReq.xlastByteReceived;
 				this.lastByteReceived = xmlHttpReq.xlastByteReceived;
@@ -213,8 +213,8 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/base/L
 						} else {
 							// alternatively allow upload via form
 							try {
-								var bDone = true;
-								while (bDone) {
+								var bDone = false;
+								while (!bDone) {
 
 									/*eslint-disable no-alert */
 									var sUrl = window.prompt('Please enter a valid URL for the store server', 'http://<host>:<port>');
@@ -232,7 +232,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/base/L
 										xmlHttpPost.open("POST", sUrl + '/E2EClientTraceUploadW/UploadForm.jsp', false);
 										xmlHttpPost.setRequestHeader('Content-type', 'multipart/form-data; boundary="' + boundary + '"');
 										xmlHttpPost.send(postBody);
-										break;
+										bDone = true;
 									}
 								}
 							} catch (ex) {
@@ -367,7 +367,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/base/L
 						//do not set passport as this is done already in jquery.sap.trace
 						//this.setRequestHeader("SAP-PASSPORT", EppLib.passportHeader(busTrx.getCurrentTransactionStep().trcLvl, busTrx.id, this.xDsrGuid));
 						//matching function isCORSRequest from FESR.js
-						var sHOST = (new URI(this.xurl)).host;
+						var sHOST = (new URI(this.xurl)).host();
 						if (!(sHOST && (sHOST != window.location.host))) {
 						//if ((this.xRequestHeaders != undefined) && (this.xRequestHeaders[0][0] == "SAP-PASSPORT")) {
 							this.setRequestHeader("X-CorrelationID", busTrx.getCurrentTransactionStep().getId() + "-" + idx);

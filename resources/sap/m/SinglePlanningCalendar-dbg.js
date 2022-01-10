@@ -4,11 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
-
 // Provides control sap.m.SinglePlanningCalendar.
 sap.ui.define([
 	'./library',
@@ -69,11 +64,13 @@ function(
 	 *
 	 * <h3>Overview</h3>
 	 *
-	 * <b>Note:</b> The <code>SinglePlanningCalendar</code> uses parts of the <code>sap.ui.unified</code> library.
+	 * <b>Note:</b> The application developer should add dependency to <code>sap.ui.unified</code> library on application level
+	 * to ensure that the library is loaded before the module dependencies will be required.
+	 * The <code>SinglePlanningCalendar</code> uses parts of the <code>sap.ui.unified</code> library.
 	 * This library will be loaded after the <code>SinglePlanningCalendar</code>, if it wasn't previously loaded.
-	 * This could lead to a waiting time when a <code>SinglePlanningCalendar</code> is used for the first time.
+	 * This could lead to CSP compliance issues and adds an additional waiting time when a <code>SinglePlanningCalendar</code> is used for the first time.
 	 * To prevent this, apps using the <code>SinglePlanningCalendar</code> must also load the
-	 * <code>sap.ui.unified</code> library.
+	 * <code>sap.ui.unified</code> library in advance.
 	 *
 	 * The <code>SinglePlanningCalendar</code> has the following structure:
 	 *
@@ -105,7 +102,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -217,6 +214,9 @@ function(
 			 * The appointments to be displayed in the grid. Appointments outside the visible time frame are not rendered.
 			 * Appointments, longer than a day, will be displayed in all of the affected days.
 			 * To display an all-day appointment, the appointment must start at 00:00 and end on any day in the future in 00:00h.
+			 *
+			 * Note: The <code>customContent</code> functionality of the <code>CalendarAppointment</code> is not available
+			 * in the <code>SinglePlanningCalendar</code>. If set, it will not make any effect.
 			 */
 			appointments : {
 				type: "sap.ui.unified.CalendarAppointment",
@@ -517,7 +517,7 @@ function(
 	 * Called when the navigation toolbar changes its width or height.
 	 *
 	 * @param oEvent The resize event
-	 * @returns {sap.m.SinglePlanningCalendar} <code>this</code> for chaining
+	 * @returns {this} <code>this</code> for chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._onHeaderResize = function (oEvent) {
@@ -597,7 +597,7 @@ function(
 	/**
 	 * Applies or removes sticky classes based on <code>stickyMode</code>'s value.
 	 *
-	 * @returns {sap.m.SinglePlanningCalendar} <code>this</code> for chaining
+	 * @returns {this} <code>this</code> for chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._toggleStickyClasses = function () {
@@ -613,7 +613,7 @@ function(
 	 * Makes sure that the column headers are offset in such a way, that they are positioned right
 	 * after the navigation toolbar.
 	 *
-	 * @returns {sap.m.SinglePlanningCalendar} <code>this</code> for chaining
+	 * @returns {this} <code>this</code> for chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._adjustColumnHeadersTopOffset = function () {
@@ -951,10 +951,10 @@ function(
 
 	/**
 	 * Finds the view object by given key
-	 * @param {String} sKey The key of the view
+	 * @param {string} sKey The key of the view
 	 * @public
 	 * @since 1.75
-	 * @returns {sap.m.SinglePlanningCalendarView} the view object matched the given sKey, of null if there is no such view
+	 * @returns {sap.m.SinglePlanningCalendarView} the view object which matched the given <code>sKey</code>, or null if there is no such view
 	 */
 	SinglePlanningCalendar.prototype.getViewByKey = function (sKey) {
 		var aViews = this.getViews(),
@@ -969,9 +969,9 @@ function(
 
 	/**
 	 * Finds the view object by given ID
-	 * @param {String} sId The ID of the view
+	 * @param {string} sId The ID of the view
 	 * @private
-	 * @returns {sap.m.SinglePlanningCalendarView} the view object matched the given sId, of null if there is no such view
+	 * @returns {sap.m.SinglePlanningCalendarView} the view object which matched the given <code>sId</code>, or null if there is no such view
 	 */
 	SinglePlanningCalendar.prototype._getViewById = function (sId) {
 		var aViews = this.getViews(),
@@ -1070,7 +1070,7 @@ function(
 
 		var fnHandleHeadersSelect = function(oEvent) {
 			this.fireHeaderDateSelect({
-				date: oEvent.getSource().getDate()
+				date: oEvent.getSource()._oDate.toLocalJSDate()
 			});
 		};
 		var fnHandleAppointmentSelect = function(oEvent) {
@@ -1264,6 +1264,8 @@ function(
 	 */
 	SinglePlanningCalendar.prototype._updateCalendarPickerSelection = function() {
 		var oRangeDates = this._getFirstAndLastRangeDate(),
+			oHeader = this._getHeader(),
+			oCalPicker = oHeader.getAggregation("_calendarPicker") ? oHeader.getAggregation("_calendarPicker") : oHeader._oPopup.getContent()[0],
 			oSelectedRange;
 
 		oSelectedRange = new DateRange({
@@ -1271,8 +1273,8 @@ function(
 			endDate: oRangeDates.oEndDate.toLocalJSDate()
 		});
 
-		this._getHeader().getAggregation("_calendarPicker").removeAllSelectedDates();
-		this._getHeader().getAggregation("_calendarPicker").addSelectedDate(oSelectedRange);
+		oCalPicker.removeAllSelectedDates();
+		oCalPicker.addSelectedDate(oSelectedRange);
 	};
 
 	/**
@@ -1286,11 +1288,18 @@ function(
 		var oRangeDates = this._getFirstAndLastRangeDate(),
 			oStartDate = oRangeDates.oStartDate.toLocalJSDate(),
 			oEndDate = oRangeDates.oEndDate.toLocalJSDate(),
-			oLongDateFormat = DateFormat.getDateInstance({format: "yMMMMd"}),
-			oResult = oLongDateFormat.format(oStartDate);
+			oFormat,
+			oResult;
 
-		if (oStartDate.getTime() !== oEndDate.getTime()) {
-			oResult += " - " + oLongDateFormat.format(oEndDate);
+		if (this._getSelectedView().isA("sap.m.SinglePlanningCalendarMonthView")) {
+			oFormat = DateFormat.getDateInstance({format: "yMMMM"});
+			oResult = oFormat.format(oStartDate);
+		} else {
+			oFormat = DateFormat.getDateInstance({format: "yMMMMd"});
+			oResult = oFormat.format(oStartDate);
+			if (oStartDate.getTime() !== oEndDate.getTime()) {
+				oResult += " - " + oFormat.format(oEndDate);
+			}
 		}
 
 		return oResult;
@@ -1412,7 +1421,7 @@ function(
 	 * @param {string} sHandler the handler ID
 	 * @param {Object} oObject
 	 * @param {Function} fnHandler
-	 * @returns {sap.m.SinglePlanningCalendar} <code>this</code> for chaining
+	 * @returns {this} <code>this</code> for chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._registerResizeHandler = function (sHandler, oObject, fnHandler) {
@@ -1426,7 +1435,7 @@ function(
 	/**
 	 * De-registers resize handler.
 	 * @param {string} sHandler the handler ID
-	 * @returns {sap.m.SinglePlanningCalendar} <code>this</code> for chaining
+	 * @returns {this} <code>this</code> for chaining
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._deRegisterResizeHandler = function (sHandler) {

@@ -3,30 +3,20 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the base implementation for all model implementations
 sap.ui.define([
 	"sap/base/Log",
-	'sap/ui/core/format/NumberFormat',
-	'sap/ui/model/CompositeType',
-	'sap/ui/model/FormatException',
-	'sap/ui/model/ParseException',
-	'sap/ui/model/ValidateException',
-	"sap/ui/thirdparty/jquery",
-	"sap/base/util/isEmptyObject"
-],
-	function(
-		Log,
-		NumberFormat,
-		CompositeType,
-		FormatException,
-		ParseException,
-		ValidateException,
-		jQuery,
-		isEmptyObject
-	) {
+	"sap/base/util/each",
+	"sap/base/util/isEmptyObject",
+	"sap/ui/core/format/NumberFormat",
+	"sap/ui/model/CompositeType",
+	"sap/ui/model/FormatException",
+	"sap/ui/model/ParseException",
+	"sap/ui/model/ValidateException"
+], function(Log, each, isEmptyObject, NumberFormat, CompositeType, FormatException, ParseException,
+		ValidateException) {
 	"use strict";
-
 
 	/**
 	 * Constructor for a <code>Currency</code> type.
@@ -42,16 +32,20 @@ sap.ui.define([
 	 * @extends sap.ui.model.CompositeType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions]
 	 *   Format options; for a list of all available options, see
-	 *   {@link sap.ui.core.format.NumberFormat.getCurrencyInstance}. If the format option
-	 *   <code>showMeasure</code> is set to <code>false</code>, model messages for the currency
-	 *   code are not propagated to the control if the corresponding binding supports the feature
-	 *   of ignoring model messages, see {@link sap.ui.model.Binding#supportsIgnoreMessages}, and
-	 *   the corresponding binding parameter is not set manually.
+	 *   {@link sap.ui.core.format.NumberFormat.getCurrencyInstance}. If the format options
+	 *   <code>showMeasure</code> or since 1.89.0 <code>showNumber</code> are set to
+	 *   <code>false</code>, model messages for the respective parts are not propagated to the
+	 *   control, provided the corresponding binding supports the feature of ignoring model
+	 *   messages, see {@link sap.ui.model.Binding#supportsIgnoreMessages}, and the corresponding
+	 *   binding parameter is not set manually.
+	 * @param {boolean} [oFormatOptions.preserveDecimals=true]
+	 *   By default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
+	 *   "short" or "long"; since 1.89.0
 	 * @param {object} [oFormatOptions.source]
 	 *   A set of format options as defined for
 	 *   {@link sap.ui.core.format.NumberFormat.getCurrencyInstance} which describes the format of
@@ -68,9 +62,13 @@ sap.ui.define([
 	 */
 	var Currency = CompositeType.extend("sap.ui.model.type.Currency", /** @lends sap.ui.model.type.Currency.prototype  */ {
 
-		constructor : function () {
+		constructor : function (oFormatOptions) {
 			CompositeType.apply(this, arguments);
 			this.sName = "Currency";
+			this.bShowMeasure = !oFormatOptions || !("showMeasure" in oFormatOptions)
+				|| oFormatOptions.showMeasure;
+			this.bShowNumber = !oFormatOptions || !("showNumber" in oFormatOptions)
+				|| oFormatOptions.showNumber;
 			this.bUseRawValues = true;
 		}
 
@@ -105,7 +103,7 @@ sap.ui.define([
 		if (!Array.isArray(aValues)) {
 			throw new FormatException("Cannot format currency: " + vValue + " has the wrong format");
 		}
-		if (aValues[0] == undefined || aValues[0] == null) {
+		if ((aValues[0] == undefined || aValues[0] == null) && this.bShowNumber) {
 			return null;
 		}
 		switch (this.getPrimitiveType(sTargetType)) {
@@ -124,8 +122,8 @@ sap.ui.define([
 	 * @param {string} sSourceType
 	 *   The source type (the expected type of <code>sValue</code>); must be "string", or a type
 	 *   with "string" as its {@link sap.ui.base.DataType#getPrimitiveType primitive type}.
-	 * @param {array} aCurrentValues
-	 *   The current values of all binding parts
+	 * @param {array} [aCurrentValues]
+	 *   Not used
 	 * @returns {any[]|string}
 	 *   If the <code>source</code> format option is not set, the method returns an array
 	 *   containing amount and currency: the amount is a <code>string</code> if the format
@@ -138,13 +136,13 @@ sap.ui.define([
 	 * @public
 	 */
 	Currency.prototype.parseValue = function(sValue, sSourceType) {
-		var vResult, oBundle;
+		var vResult;
+
 		switch (this.getPrimitiveType(sSourceType)) {
 			case "string":
 				vResult = this.oOutputFormat.parse(sValue);
-				if (!Array.isArray(vResult) || isNaN(vResult[0])) {
-					oBundle = sap.ui.getCore().getLibraryResourceBundle();
-					throw new ParseException(oBundle.getText("Currency.Invalid", [sValue]));
+				if (!Array.isArray(vResult) || this.bShowNumber && isNaN(vResult[0])) {
+					throw this.getParseException();
 				}
 				break;
 			default:
@@ -167,7 +165,7 @@ sap.ui.define([
 				aValues = this.oInputFormat.parse(vValue);
 			}
 			iValue = aValues[0];
-			jQuery.each(this.oConstraints, function(sName, oContent) {
+			each(this.oConstraints, function(sName, oContent) {
 				switch (sName) {
 					case "minimum":
 						if (iValue < oContent) {
@@ -193,7 +191,11 @@ sap.ui.define([
 	};
 
 	Currency.prototype.setFormatOptions = function(oFormatOptions) {
-		this.oFormatOptions = oFormatOptions;
+		this.oFormatOptions = Object.assign(
+			oFormatOptions.style !== "short" && oFormatOptions.style !== "long"
+				? {preserveDecimals : true}
+				: {},
+			oFormatOptions);
 		this._createFormats();
 	};
 
@@ -225,12 +227,36 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns the parse exception based on "showNumber" and "showMeasure" format options.
+	 *
+	 * @returns {sap.ui.model.ParseException} The parse exception
+	 *
+	 * @private
+	 */
+	Currency.prototype.getParseException = function () {
+		var oBundle = sap.ui.getCore().getLibraryResourceBundle(),
+			sText;
+
+		if (!this.bShowNumber) {
+			sText = oBundle.getText("Currency.InvalidMeasure");
+		} else if (!this.bShowMeasure) {
+			sText = oBundle.getText("EnterNumber");
+		} else {
+			sText = oBundle.getText("Currency.Invalid");
+		}
+
+		return new ParseException(sText);
+	};
+
+	/**
 	 * Gets an array of indices that determine which parts of this type shall not propagate their
 	 * model messages to the attached control. Prerequisite is that the corresponding binding
 	 * supports this feature, see {@link sap.ui.model.Binding#supportsIgnoreMessages}. If the format
 	 * option <code>showMeasure</code> is set to <code>false</code> and the currency value is not
 	 * shown in the control, the part for the currency code shall not propagate model messages to
-	 * the control.
+	 * the control. Analogously, since 1.89.0, if the format option <code>showNumber</code> is set
+	 * to <code>false</code>, the amount is not shown in the control and the part for the amount
+	 * shall not propagate model messages to the control.
 	 *
 	 * @return {number[]}
 	 *   An array of indices that determine which parts of this type shall not propagate their model
@@ -242,8 +268,10 @@ sap.ui.define([
 	 */
 	// @override sap.ui.model.Binding#supportsIgnoreMessages
 	Currency.prototype.getPartsIgnoringMessages = function () {
-		if (this.oFormatOptions.showMeasure === false) {
+		if (!this.bShowMeasure) {
 			return [1];
+		} else if (!this.bShowNumber) {
+			return [0];
 		}
 		return [];
 	};

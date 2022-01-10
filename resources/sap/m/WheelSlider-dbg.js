@@ -28,7 +28,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -913,7 +913,7 @@ sap.ui.define([
 
 			$aItems.eq(this._iSelectedItemIndex).addClass("sapMWSItemSelected");
 			//WAI-ARIA region
-			oDescriptionElement = document.getElementById(this.getId() + "-valDescription");
+			oDescriptionElement = this.getDomRef("valDescription");
 			if (oDescriptionElement.innerText !== sAriaLabel) {
 				oDescriptionElement.innerText = sAriaLabel;
 			}
@@ -961,7 +961,7 @@ sap.ui.define([
 			}
 
 			this.$().on('selectstart', fnFalse);
-			this.$().on(!!Device.browser.firefox ? "DOMMouseScroll" : "mousewheel", this._onMouseWheel);
+			this.$().on(Device.browser.firefox ? "DOMMouseScroll" : "mousewheel", this._onMouseWheel);
 		};
 
 		function fnFalse() {
@@ -1000,7 +1000,7 @@ sap.ui.define([
 			}
 
 			this.$().off('selectstart', fnFalse);
-			this.$().off(!!Device.browser.firefox ? "DOMMouseScroll" : "mousewheel", this._onMouseWheel);
+			this.$().off(Device.browser.firefox ? "DOMMouseScroll" : "mousewheel", this._onMouseWheel);
 		};
 
 		/**

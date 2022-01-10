@@ -9,10 +9,10 @@ sap.ui.define([
 	'sap/ui/thirdparty/jquery',
 	'./View',
 	'./HTMLViewRenderer',
+	'./ViewType',
 	'sap/base/util/merge',
 	'sap/ui/base/ManagedObject',
 	'sap/ui/core/DeclarativeSupport',
-	'sap/ui/core/library',
 	'sap/ui/model/resource/ResourceModel',
 	'sap/base/util/LoaderExtensions'
 ],
@@ -20,20 +20,22 @@ sap.ui.define([
 		jQuery,
 		View,
 		HTMLViewRenderer,
+		ViewType,
 		merge,
 		ManagedObject,
 		DeclarativeSupport,
-		library,
 		ResourceModel,
 		LoaderExtensions
 	) {
 	"use strict";
 
-	// shortcut for enum(s)
-	var ViewType = library.mvc.ViewType;
-
 	/**
-	 * Constructor for a new mvc/HTMLView.
+	 * Constructor for a new <code>HTMLView</code>.
+	 *
+	 * <strong>Note:</strong> Application code shouldn't call the constructor directly, but rather use the factory
+	 * {@link sap.ui.core.mvc.HTMLView.create HTMLView.create} or {@link sap.ui.core.mvc.View.create View.create}
+	 * with type {@link sap.ui.core.mvc.ViewType.HTML HTML}. The factory simplifies asynchronous loading of a view
+	 * and future features might be added to the factory only.
 	 *
 	 * @param {string} [sId] id for the new control, generated automatically if no id is given
 	 * @param {object} [mSettings] initial settings for the new control
@@ -43,17 +45,19 @@ sap.ui.define([
 	 * @extends sap.ui.core.mvc.View
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @since 1.9.2
 	 * @alias sap.ui.core.mvc.HTMLView
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var HTMLView = View.extend("sap.ui.core.mvc.HTMLView", /** @lends sap.ui.core.mvc.HTMLView.prototype */ { metadata : {
-
-		library : "sap.ui.core"
-	}});
+	var HTMLView = View.extend("sap.ui.core.mvc.HTMLView", /** @lends sap.ui.core.mvc.HTMLView.prototype */ {
+		metadata : {
+			library : "sap.ui.core"
+		},
+		renderer: HTMLViewRenderer
+	});
 
 
 
@@ -95,15 +99,15 @@ sap.ui.define([
 	 *
 	 * @param {string} [sId] id of the newly created view, only allowed for instance creation
 	 * @param {string | object} vView name or implementation of the view.
-	 * @param {boolean} [vView.async] defines how the view source is loaded and rendered later on
+	 * @param {boolean} [vView.async] whether the view source is loaded asynchronously
 	 * @public
 	 * @static
-	 * @deprecated since 1.56: Use {@link sap.ui.core.mvc.HTMLView.create HTMLView.create} instead
+	 * @deprecated Since 1.56. Use {@link sap.ui.core.mvc.HTMLView.create HTMLView.create} to create view instances
 	 * @return {sap.ui.core.mvc.HTMLView | undefined} the created HTMLView instance in the creation case, otherwise undefined
 	 * @ui5-global-only
 	 */
 	sap.ui.htmlview = function(sId, vView) {
-		return sap.ui.view(sId, vView, ViewType.HTML);
+		return sap.ui.view(sId, vView, ViewType.HTML); // legacy-relevant
 	};
 
 	/**
@@ -117,6 +121,8 @@ sap.ui.define([
 	/**
 	 * Flag for feature detection of asynchronous loading/rendering
 	 * @public
+	 * @readonly
+	 * @type {boolean}
 	 * @since 1.30
 	 */
 	HTMLView.asyncSupport = true;
@@ -354,7 +360,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.Control} oControl reference to a Control
 	 * @private
 	 */
-		HTMLView.prototype.connectControl = function(oControl) {
+	HTMLView.prototype.connectControl = function(oControl) {
 		this._connectedControls = this._connectedControls || [];
 		this._connectedControls.push(oControl);
 	};

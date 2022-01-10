@@ -4,7 +4,8 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([], function () {
+sap.ui.define(['./library'],
+		function (library) {
 	"use strict";
 
 	/**
@@ -14,6 +15,9 @@ sap.ui.define([], function () {
 	var IconTabHeaderRenderer = {
 		apiVersion: 2
 	};
+
+	// shortcut for sap.m.TabsOverflowMode
+	var TabsOverflowMode = library.TabsOverflowMode;
 
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
@@ -44,10 +48,6 @@ sap.ui.define([], function () {
 			.class("sapContrastPlus")
 			.class("sapMITHBackgroundDesign" + oControl.getBackgroundDesign());
 
-		if (aItems.length) {
-			oRM.class("sapMITHOverflowList");
-		}
-
 		// Check for upperCase property on IconTabBar
 		if (bUpperCase) {
 			oRM.class("sapMITBTextUpperCase");
@@ -63,6 +63,7 @@ sap.ui.define([], function () {
 
 		if (bInLine) {
 			oRM.class("sapMITBInLine");
+			oRM.class("sapMITBTextOnly");
 		}
 
 		oRM.accessibilityState(oControl, {
@@ -76,6 +77,16 @@ sap.ui.define([], function () {
 		}
 
 		oRM.openEnd();
+
+		if (aItems.length && oControl.getTabsOverflowMode() === TabsOverflowMode.StartAndEnd) {
+			oRM.openStart("div")
+				.class("sapMITHStartOverflow")
+				.openEnd();
+
+			oControl._getStartOverflow().render(oRM);
+
+			oRM.close("div");
+		}
 
 		if (mAriaTexts.headerDescription) {
 			oRM.renderControl(oControl._getInvisibleHeadText());
@@ -112,7 +123,7 @@ sap.ui.define([], function () {
 
 		if (aItems.length) {
 			oRM.openStart("div")
-				.class("sapMITHOverflow")
+				.class("sapMITHEndOverflow")
 				.openEnd();
 
 			oControl._getOverflow().render(oRM);

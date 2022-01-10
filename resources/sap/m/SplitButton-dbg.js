@@ -13,7 +13,6 @@ sap.ui.define([
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/IconPool',
 	'sap/ui/core/library',
-	'sap/ui/Device',
 	'sap/ui/core/InvisibleText',
 	'./SplitButtonRenderer',
 	"sap/ui/events/KeyCodes"
@@ -26,7 +25,6 @@ function(
 	EnabledPropagator,
 	IconPool,
 	coreLibrary,
-	Device,
 	InvisibleText,
 	SplitButtonRenderer,
 	KeyCodes
@@ -50,7 +48,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @private
@@ -198,9 +196,6 @@ function(
 					press: this._handleAction.bind(this, false)
 				}).addStyleClass('sapMSBText');
 
-				if (Device.browser.msie) {
-					oCtrl.addStyleClass('sapMSBTextIE');
-				}
 				this.setAggregation("_textButton", oCtrl);
 			}
 
@@ -261,15 +256,11 @@ function(
 				oEvent.preventDefault();
 			}
 
-			if (oEvent.which === KeyCodes.ENTER) {
-				this._getTextButton().firePress({/* no parameters */ });
-			}
+			this._getTextButton().onkeydown(oEvent);
 		};
 
 		SplitButton.prototype.onkeyup = function(oEvent) {
-			if (oEvent.which === KeyCodes.SPACE) {
-				this._getTextButton().firePress({/* no parameters */ });
-			}
+			this._getTextButton().onkeyup(oEvent);
 		};
 
 		SplitButton.prototype.onsapup = function(oEvent) {

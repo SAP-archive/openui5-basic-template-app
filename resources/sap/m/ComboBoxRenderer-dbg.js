@@ -3,9 +3,9 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['./ComboBoxBaseRenderer', 'sap/ui/core/Renderer', 'sap/ui/Device'
+sap.ui.define(['./ComboBoxBaseRenderer', 'sap/ui/core/Renderer', 'sap/m/inputUtils/ListHelpers'
 ],
-	function(ComboBoxBaseRenderer, Renderer) {
+	function(ComboBoxBaseRenderer, Renderer, ListHelpers) {
 		"use strict";
 
 		/**
@@ -69,20 +69,39 @@ sap.ui.define(['./ComboBoxBaseRenderer', 'sap/ui/core/Renderer', 'sap/ui/Device'
 		 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
 		 */
 		ComboBoxRenderer.writeInnerAttributes = function(oRm, oControl) {
-			var oSelectedItem = oControl.getSelectedItem(),
-				oSelectedListItem = oSelectedItem && oControl.getListItem(oSelectedItem),
-				bOpen = oControl.isOpen(),
-				bFormattedTextHeaderFocused = oControl.getProperty("formattedTextFocused");
+			var bOpen = oControl.isOpen(), bIsGroupHeader, oSelectedItem, oListItem;
+			var oSuggestionPopover = oControl._getSuggestionsPopover();
 
 			ComboBoxBaseRenderer.writeInnerAttributes.apply(this, arguments);
 			oRm.attr("aria-expanded", bOpen);
 
-			// Aria-activedescendant attributed must be added only if there is selected item
-			// and the visual focus is on it or the visual focus is on the formatted text value state header
-			if (bFormattedTextHeaderFocused) {
+			if (!oSuggestionPopover) {
+				return;
+			}
+
+			var oFocusedItem = oSuggestionPopover.getFocusedListItem();
+			var bValueStateFocused = oSuggestionPopover.getValueStateActiveState();
+
+			// If the picker is not opened, no active descendant should be set
+			// If there is no focused element in the picker, no active descendant should be set
+			if (!bOpen || (!oFocusedItem && !bValueStateFocused)) {
+				return;
+			}
+
+			// If the value state is focused, set the active descendant in order to read out the value state header
+			if (bValueStateFocused) {
 				oRm.attr("aria-activedescendant", oControl._getFormattedValueStateText().getId());
-			} else if (bOpen && oSelectedListItem && oSelectedListItem.hasStyleClass("sapMLIBFocused") && oControl.getFocusDomRef() === document.activeElement) {
-				oRm.attr("aria-activedescendant", oSelectedListItem.getId());
+				return;
+			}
+
+			// Active descendant should be set only when there is a selected item or a group header is set
+			bIsGroupHeader = (oFocusedItem.isA("sap.m.GroupHeaderListItem") || oFocusedItem.isA("sap.ui.core.SeparatorItem"));
+			oSelectedItem = oControl.getSelectedItem();
+			oListItem = oSelectedItem && ListHelpers.getListItem(oSelectedItem);
+			oFocusedItem = bIsGroupHeader ? oFocusedItem : oListItem;
+
+			if (oFocusedItem) {
+				oRm.attr("aria-activedescendant", oFocusedItem.getId());
 			}
 		};
 

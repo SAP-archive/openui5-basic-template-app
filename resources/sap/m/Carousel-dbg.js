@@ -14,8 +14,6 @@ sap.ui.define([
 	"sap/ui/core/ResizeHandler",
 	"sap/ui/core/library",
 	"sap/m/MessagePage",
-	"sap/ui/core/theming/Parameters",
-	"sap/ui/dom/units/Rem",
 	"./CarouselRenderer",
 	"./CarouselLayout",
 	"sap/ui/events/KeyCodes",
@@ -32,8 +30,6 @@ sap.ui.define([
 	ResizeHandler,
 	coreLibrary,
 	MessagePage,
-	Parameters,
-	Rem,
 	CarouselRenderer,
 	CarouselLayout,
 	KeyCodes,
@@ -103,7 +99,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -280,7 +276,10 @@ sap.ui.define([
 		this._fnAdjustAfterResize = function() {
 			var $carouselInner = this.$().find(Carousel._INNER_SELECTOR);
 			this._oMobifyCarousel.resize($carouselInner);
-			this._setWidthOfPages(this._getNumberOfItemsToShow());
+
+			if (this.getPages().length > 1) {
+				this._setWidthOfPages(this._getNumberOfItemsToShow());
+			}
 		}.bind(this);
 
 		this._aOrderOfFocusedElements = [];
@@ -396,7 +395,6 @@ sap.ui.define([
 		// remove event delegates before rendering
 		this.$().off('beforeSlide', this._onBeforePageChangedRef);
 		this.$().off('afterSlide', this._onAfterPageChangedRef);
-		this.$().find(".sapMCrslItemTableCell").off("focus"); // Fixes wrong focusing in IE// TODO remove after the end of support for Internet Explorer
 
 		return this;
 	};
@@ -497,17 +495,6 @@ sap.ui.define([
 
 		this._sResizeListenerId = ResizeHandler.register(this._$InnerDiv, this._fnAdjustAfterResize);
 
-		// Fixes wrong focusing in IE// TODO remove after the end of support for Internet Explorer
-		// BCP: 1670008915
-		this.$().find(".sapMCrslItemTableCell").on("focus", function(e) {
-
-			e.preventDefault();
-
-			jQuery(e.target).parents('.sapMCrsl').trigger("focus");
-
-			return false;
-		});
-
 		// Fixes displaying correct page after carousel become visible in an IconTabBar
 		// BCP: 1680019792
 		var oParent = this.getParent();
@@ -582,9 +569,17 @@ sap.ui.define([
 	 * @private
 	 */
 	Carousel.prototype._setWidthOfPages = function (iNumberOfItemsToShow) {
-		var iItemWidth = this._calculatePagesWidth(iNumberOfItemsToShow);
+		var $items = this.$().find(".sapMCrslItem"),
+			iItemWidth;
 
-		this.$().find(".sapMCrslItem").each(function (iIndex, oPage) {
+		if (!$items.length) {
+			// pages are not yet rendered, calculation will be done in the next onAfterRendering
+			return;
+		}
+
+		iItemWidth = this._calculatePagesWidth(iNumberOfItemsToShow);
+
+		$items.each(function (iIndex, oPage) {
 			oPage.style.width = iItemWidth  + "%";
 		});
 	};
@@ -598,7 +593,8 @@ sap.ui.define([
 	 */
 	Carousel.prototype._calculatePagesWidth = function (iNumberOfItemsToShow) {
 		var iWidth = this.$().width(),
-			iMargin = Rem.toPx(Parameters.get("_sap_m_Carousel_PagesMarginRight")),
+			oSlide = this.getDomRef().querySelector(".sapMCrslFluid .sapMCrslItem"),
+			iMargin = parseFloat(window.getComputedStyle(oSlide).marginRight),
 			iItemWidth = (iWidth - (iMargin * (iNumberOfItemsToShow - 1))) / iNumberOfItemsToShow,
 			iItemWidthPercent = (iItemWidth / iWidth) * 100;
 
@@ -667,11 +663,13 @@ sap.ui.define([
 			jQuery(document.activeElement).trigger("blur");
 		}
 
-		this.firePageChanged({
-			oldActivePageId: sOldActivePageId,
-			newActivePageId: sNewActivePageId,
-			activePages: this._aAllActivePagesIndexes
-		});
+		if (this._oMobifyCarousel && this._oMobifyCarousel.getShouldFireEvent()) {
+			this.firePageChanged({
+				oldActivePageId: sOldActivePageId,
+				newActivePageId: sNewActivePageId,
+				activePages: this._aAllActivePagesIndexes
+			});
+		}
 
 		// change the number in the page indicator
 		this.$('slide-number').text(sTextBetweenNumbers);
@@ -757,6 +755,7 @@ sap.ui.define([
 			if (!isNaN(iPageNr)) {
 				if (this._oMobifyCarousel) {
 					//mobify carousel's move function is '1' based
+					this._oMobifyCarousel.setShouldFireEvent(true);
 					this._oMobifyCarousel.move(iPageNr + 1);
 				}
 				// if oMobifyCarousel is not present yet, move takes place
@@ -808,12 +807,13 @@ sap.ui.define([
 	/**
 	 * Call this method to display the previous page (corresponds to a swipe left). Returns 'this' for method chaining.
 	 *
-	 * @type sap.m.Carousel
+	 * @type this
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Carousel.prototype.previous = function () {
 		if (this._oMobifyCarousel) {
+			this._oMobifyCarousel.setShouldFireEvent(true);
 			this._oMobifyCarousel.prev();
 		} else {
 			Log.warning("Unable to execute sap.m.Carousel.previous: carousel must be rendered first.");
@@ -824,12 +824,13 @@ sap.ui.define([
 	/**
 	 * Call this method to display the next page (corresponds to a swipe right). Returns 'this' for method chaining.
 	 *
-	 * @type sap.m.Carousel
+	 * @type this
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	Carousel.prototype.next = function () {
 		if (this._oMobifyCarousel) {
+			this._oMobifyCarousel.setShouldFireEvent(true);
 			this._oMobifyCarousel.next();
 		} else {
 			Log.warning("Unable to execute sap.m.Carousel.next: carousel must be rendered first.");
@@ -1253,6 +1254,8 @@ sap.ui.define([
 			this._oMobifyCarousel.onTransitionComplete();
 		}
 
+		this._oMobifyCarousel.setShouldFireEvent(true);
+
 		// Calculate the index of the next page that will be shown
 		if (nIndex !== 0) {
 			nNewIndex = this._getPageNumber(this.getActivePage()) + 1 + nIndex;
@@ -1267,12 +1270,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Carousel.prototype._handleF7Key = function (oEvent) {
-		var oActivePageLastFocusedElement;
-
-		// Needed for IE// TODO remove after the end of support for Internet Explorer
-		oEvent.preventDefault();
-
-		oActivePageLastFocusedElement = this._getActivePageLastFocusedElement();
+		var oActivePageLastFocusedElement = this._getActivePageLastFocusedElement();
 
 		// If focus is on an interactive element inside a page, move focus to the Carousel.
 		// As long as the focus remains on the Carousel, a consecutive press on [F7]

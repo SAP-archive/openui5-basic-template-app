@@ -37,7 +37,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -107,7 +107,29 @@ sap.ui.define([
 						group: "Misc",
 						defaultValue: false
 					},
-
+					/**
+					 * Determines the ratio between the first and the second column when secondary values are displayed.
+					 *
+					 * <b>Note:</b> This property takes effect only when the <code>showSecondaryValues</code> property is set to <code>true</code>
+					 * and only in the context of <code>sap.m.Select</code>.
+					 * @private
+					 */
+					_columnRatio: {
+						type: "sap.m.SelectColumnRatio",
+						group: "Appearance",
+						visibility: "hidden"
+					},
+					/**
+					 * Determines the tabindex value of the [role="listbox"] element.
+					 *
+					 * @private
+					 */
+					_tabIndex: {
+						type: "string",
+						group: "Misc",
+						visibility: "hidden",
+						defaultValue: ""
+					},
 					/**
 					 * Defines the keyboard navigation mode.
 					 *
@@ -121,6 +143,17 @@ sap.ui.define([
 						type: "sap.m.SelectListKeyboardNavigationMode",
 						group: "Behavior",
 						defaultValue: SelectListKeyboardNavigationMode.Delimited
+					},
+					/**
+					 * Determines whether the disabled items are hidden from the DOM structure.
+					 *
+					 * @private
+					 * @since 1.91
+					 */
+					hideDisabledItems: {
+						type: "boolean",
+						group: "Behavior",
+						defaultValue: false
 					}
 				},
 				defaultAggregation: "items",
@@ -223,7 +256,7 @@ sap.ui.define([
 			}
 		};
 
-		SelectList.prototype.updateItems = function(sReason) {
+		SelectList.prototype.updateItems = function(sReason, oEventInfo) {
 			this.bItemsUpdated = false;
 
 			// note: for backward compatibility and to keep the old data binding behavior,
@@ -231,6 +264,16 @@ sap.ui.define([
 			this.destroyItems();
 			this.updateAggregation("items");
 			this.bItemsUpdated = true;
+
+			// Do not try to synchronize selection when updateItems is called with reason Add/Remove VirtualContext,
+			// as in some cases, when forceSelection is "true", unwanted PATCH requests with null value may be triggered
+			if (oEventInfo && (oEventInfo.detailedReason === "AddVirtualContext"
+				|| oEventInfo.detailedReason === "RemoveVirtualContext")) {
+				this._bHasVirtualContext = true;
+				return;
+			}
+
+			this._bHasVirtualContext = false;
 
 			// Try to synchronize the selection (synchronous), but if any item's key match with the value of the "selectedKey" property,
 			// don't force the first enabled item to be selected when the forceSelection property is set to true.
@@ -286,10 +329,14 @@ sap.ui.define([
 		 * @returns {array} The enabled items DOM references.
 		 * @private
 		 */
-		SelectList.prototype._queryEnabledItemsDomRefs = function(oDomRef) {
-			var CSS_CLASS = "." + this.getRenderer().CSS_CLASS + "ItemBase";
-			oDomRef = oDomRef || this.getDomRef();
-			return oDomRef ? Array.prototype.slice.call(oDomRef.querySelectorAll(CSS_CLASS + ":not(" + CSS_CLASS + "Disabled)")) : [];
+		SelectList.prototype._queryEnabledItemsDomRefs = function() {
+			return this.getItems().reduce(function (aResult, oItem) {
+				if (oItem.getEnabled() && !(oItem.isA("sap.ui.core.SeparatorItem"))) {
+					aResult.push(oItem.getDomRef());
+				}
+
+				return aResult;
+			}, []);
 		};
 
 		SelectList.prototype._handleARIAActivedescendant = function() {
@@ -575,7 +622,7 @@ sap.ui.define([
 
 			// the aggregation items is not bound or
 			// it is bound and the data is already available
-			} else if (bForceSelection && this.getDefaultSelectedItem() && (!this.isBound("items") || this.bItemsUpdated)) {
+			} else if (bForceSelection && !this._bHasVirtualContext && this.getDefaultSelectedItem() && (!this.isBound("items") || this.bItemsUpdated)) {
 				try {
 					this.setSelection(this.getDefaultSelectedItem());
 				} catch (e) {
@@ -690,13 +737,44 @@ sap.ui.define([
 		};
 
 		/*
+		 * Returns the <code>columnRatio</code> transformed to columns percentages.
+		 *
+		 * @returns {Object}
+		 * @private
+		 */
+		SelectList.prototype._getColumnsPercentages = function() {
+			var sRatio = this.getProperty("_columnRatio"),
+				aRatios,
+				iTotalProportions,
+				iFirstColumnProportion;
+
+			if (!sRatio) {
+				return null;
+			}
+
+			aRatios = sRatio.split(":").map(function(sNumber){
+					return parseInt(sNumber);
+				});
+
+			iTotalProportions = aRatios[0] + aRatios[1];
+			iFirstColumnProportion = Math.round(aRatios[0] / iTotalProportions * 100);
+
+			return {
+				firstColumn: iFirstColumnProportion + "%",
+				secondColumn: 100 - iFirstColumnProportion + "%"
+			};
+		};
+
+		/*
 		 * Retrieves the selectables items from the aggregation named <code>items</code>.
 		 *
 		 * @returns {sap.ui.core.Item[]} An array containing the selectables items.
 		 * @protected
 		 */
 		SelectList.prototype.getSelectableItems = function() {
-			return this.getEnabledItems(this.getVisibleItems());
+			return this.getEnabledItems(this.getVisibleItems()).filter(function(oItem) {
+				return !(oItem.isA("sap.ui.core.SeparatorItem"));
+			});
 		};
 
 		/*
@@ -752,8 +830,8 @@ sap.ui.define([
 		 * @private
 		 */
 		SelectList.prototype._getNonSeparatorItemsCount = function () {
-			return this.getItems().filter(function(oItem) {
-				return !(oItem instanceof sap.ui.core.SeparatorItem);
+			return this.getEnabledItems().filter(function(oItem) {
+				return !(oItem.isA("sap.ui.core.SeparatorItem"));
 			}).length;
 		};
 
@@ -843,7 +921,7 @@ sap.ui.define([
 		 * If an ID of a <code>sap.ui.core.Item</code> is given, the item with this ID becomes the <code>selectedItem</code> association.
 		 * Alternatively, a <code>sap.ui.core.Item</code> instance may be given or <code>null</code> to clear the selection.
 		 *
-		 * @returns {sap.m.SelectList} <code>this</code> to allow method chaining.
+		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		SelectList.prototype.setSelectedItem = function(vItem) {
@@ -872,7 +950,7 @@ sap.ui.define([
 		 * Default value is an empty string <code>""</code> or <code>undefined</code>.
 		 *
 		 * @param {string | undefined} vItem New value for property <code>selectedItemId</code>.
-		 * @returns {sap.m.SelectList} <code>this</code> to allow method chaining.
+		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		SelectList.prototype.setSelectedItemId = function(vItem) {
@@ -887,7 +965,7 @@ sap.ui.define([
 		 * Default value is an empty string <code>""</code> or <code>undefined</code>.
 		 *
 		 * @param {string} sKey New value for property <code>selectedKey</code>.
-		 * @returns {sap.m.SelectList} <code>this</code> to allow method chaining.
+		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		SelectList.prototype.setSelectedKey = function(sKey) {
@@ -1018,7 +1096,7 @@ sap.ui.define([
 		/**
 		 * Destroys all the items in the aggregation named <code>items</code>.
 		 *
-		 * @returns {sap.m.SelectList} <code>this</code> to allow method chaining.
+		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		SelectList.prototype.destroyItems = function() {

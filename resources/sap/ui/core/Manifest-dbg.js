@@ -92,7 +92,8 @@ sap.ui.define([
 	/**
 	 * Freezes the object and nested objects to avoid later manipulation
 	 *
-	 * @param oObject the object to deep freeze
+	 * @param {object} oObject the object to deep freeze
+	 * @private
 	 */
 	function deepFreeze(oObject) {
 		if (oObject && typeof oObject === 'object' && !Object.isFrozen(oObject)) {
@@ -127,7 +128,7 @@ sap.ui.define([
 	 *            bundle values.
 	 *            To use active terminologies, the <code>sap.app.i18n</code> section in the manifest
 	 *            must be defined in object syntax as described here: {@link topic:eba8d25a31ef416ead876e091e67824e Text Verticalization}.
-	 *            The order of the given active terminologies is significant. The {@link sap.base.i18n.ResourceBundle ResourceBundle} API
+	 *            The order of the given active terminologies is significant. The {@link module:sap/base/i18n/ResourceBundle ResourceBundle} API
 	 *            documentation describes the processing behavior in more detail.
 	 *
 	 *
@@ -136,7 +137,7 @@ sap.ui.define([
 	 * @class The Manifest class.
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @alias sap.ui.core.Manifest
 	 * @since 1.33.0
 	 */
@@ -153,13 +154,16 @@ sap.ui.define([
 
 			// instance variables
 			this._iInstanceCount = 0;
-			this._bIncludesLoaded = false;
 
 			// apply the manifest related values
 			this._oRawManifest = oManifest;
 			this._bProcess = !(mOptions && mOptions.process === false);
 			this._bAsync = !(mOptions && mOptions.async === false);
 			this._activeTerminologies = mOptions && mOptions.activeTerminologies;
+
+			// This should be only the case if manifestFirst is true but there was no manifest.json
+			// As of 08.07.2021 we only set this parameter in Manifest.load in case of failing request
+			this._bLoadManifestRequestFailed = mOptions && mOptions._bLoadManifestRequestFailed;
 
 			// component name is passed via options (overrides the one defined in manifest)
 			this._sComponentName = mOptions && mOptions.componentName;
@@ -336,7 +340,7 @@ sap.ui.define([
 		 * section and by path allows to specify a concrete path to a dedicated entry
 		 * inside the manifest. The path syntax always starts with a slash (/).
 		 *
-		 * @param {string} sKey Either the manifest section name (namespace) or a concrete path
+		 * @param {string} sPath Either the manifest section name (namespace) or a concrete path
 		 * @return {any|null} Value of the key (could be any kind of value)
 		 * @public
 		 */
@@ -392,16 +396,13 @@ sap.ui.define([
 		 * Loads the included CSS and JavaScript resources. The resources will be
 		 * resolved relative to the component location.
 		 *
+		 * @param {boolean} bAsync indicator whether the *.js resources should be loaded asynchronous
+		 * @return {Promise<void>|undefined} Promise for required *.js resources
+		 *
 		 * @private
 		 */
-		loadIncludes: function() {
-
-			// skip loading includes once already loaded
-			if (this._bIncludesLoaded) {
-				return;
-			}
-
-			var mResources = this.getEntry("/sap.ui5/resources");
+		_loadIncludes: function(bAsync) {
+			var mResources = this.getEntry("/sap.ui5/resources"), oPromise;
 
 			if (!mResources) {
 				return;
@@ -409,9 +410,21 @@ sap.ui.define([
 
 			var sComponentName = this.getComponentName();
 
-			// load JS files
+			// [Deprecated since 1.94]: Load JS files.
+			//                          Standard dependencies should be used instead.
 			var aJSResources = mResources["js"];
 			if (aJSResources) {
+				var requireAsync = function (sModule) {
+					// Wrap promise within function because OPA waitFor (sap/ui/test/autowaiter/_promiseWaiter.js)
+					// can't deal with a promise instance in the wrapped then handler
+					return function() {
+						return new Promise(function(resolve, reject) {
+							sap.ui.require([sModule], resolve, reject);
+						});
+					};
+				};
+
+				oPromise = Promise.resolve();
 				for (var i = 0; i < aJSResources.length; i++) {
 					var oJSResource = aJSResources[i];
 					var sFile = oJSResource.uri;
@@ -419,11 +432,14 @@ sap.ui.define([
 						// load javascript file
 						var m = sFile.match(/\.js$/i);
 						if (m) {
-							//var sJsUrl = this.resolveUri(sFile.slice(0, m.index));
+							// call internal sap.ui.require variant that accepts a requireJS path and loads the module synchronously
 							var sJsUrl = sComponentName.replace(/\./g, '/') + (sFile.slice(0, 1) === '/' ? '' : '/') + sFile.slice(0, m.index);
 							Log.info("Component \"" + sComponentName + "\" is loading JS: \"" + sJsUrl + "\"");
-							// call internal sap.ui.require variant that accepts a requireJS path and loads the module synchronously
-							sap.ui.requireSync(sJsUrl);
+							if (bAsync) {
+								oPromise = oPromise.then(requireAsync(sJsUrl));
+							} else {
+								sap.ui.requireSync(sJsUrl); // legacy-relevant: Sync path
+							}
 						}
 					}
 				}
@@ -445,8 +461,7 @@ sap.ui.define([
 				}
 			}
 
-			this._bIncludesLoaded = true;
-
+			return oPromise;
 		},
 
 		/**
@@ -455,12 +470,6 @@ sap.ui.define([
 		 * @private
 		 */
 		removeIncludes: function() {
-
-			// skip removing includes when not loaded yet
-			if (!this._bIncludesLoaded) {
-				return;
-			}
-
 			var mResources = this.getEntry("/sap.ui5/resources");
 
 			if (!mResources) {
@@ -483,18 +492,18 @@ sap.ui.define([
 					oLink.parentNode.removeChild(oLink);
 				}
 			}
-
-			this._bIncludesLoaded = false;
-
 		},
 
 		/**
 		 * Load external dependencies (like libraries and components)
 		 *
+		 * @param {boolean} bAsync indicator whether the dependent libraries and components should be loaded asynchronous
+		 * @return {Promise<void>} Promise containing further promises of dependent libs and components requests
+		 *
 		 * @private
 		 */
-		loadDependencies: function() {
-
+		_loadDependencies: function(bAsync) {
+			var aPromises = [];
 			// afterwards we load our dependencies!
 			var oDep = this.getEntry("/sap.ui5/dependencies"),
 				sComponentName = this.getComponentName();
@@ -507,37 +516,64 @@ sap.ui.define([
 					for (var sLib in mLibraries) {
 						if (!mLibraries[sLib].lazy) {
 							Log.info("Component \"" + sComponentName + "\" is loading library: \"" + sLib + "\"");
-							sap.ui.getCore().loadLibrary(sLib);
+							aPromises.push(sap.ui.getCore().loadLibrary(sLib, {async: bAsync}));
 						}
 					}
 				}
 
-				// load the components
+				// collect all "non-lazy" components
 				var mComponents = oDep["components"];
+				var aComponentDependencies = [];
 				if (mComponents) {
 					for (var sName in mComponents) {
 						if (!mComponents[sName].lazy) {
-							// TODO: refactor component/library loading code within Manifest / Component
-							// Only load component if not (pre-)loaded already
-							// Usually the dependencies are already loaded beforehand within Component.create
-							var sControllerModule = sName.replace(/\./g, "/") + "/Component";
-							var iModuleState = sap.ui.loader._.getModuleState(sControllerModule + ".js");
-							if (iModuleState === -1 /* PRELOADED */) {
-								// Execute preloaded component controller module
-								sap.ui.requireSync(sControllerModule);
-							} else if (iModuleState === 0 /* INITIAL */) {
-								Log.info("Component \"" + sComponentName + "\" is loading component: \"" + sName + ".Component\"");
-								// This can't be migrated to "Component.load" as the contract is sync
-								sap.ui.requireSync("sap/ui/core/Component");
-								sap.ui.component.load({
-									name: sName
-								});
-							}
+							aComponentDependencies.push(sName);
 						}
 					}
 				}
 
+				if (bAsync) {
+					// Async loading of Component, so that Component.load is available
+					var pComponentLoad = new Promise(function(fnResolve, fnReject) {
+						sap.ui.require(["sap/ui/core/Component"], function(Component) {
+							fnResolve(Component);
+						}, fnReject);
+					}).then(function(Component) {
+						// trigger Component.load for all "non-lazy" component dependencies (parallel)
+						return Promise.all(aComponentDependencies.map(function(sComponentName) {
+							// Component.load does not load the dependencies of a dependent component in case property manifest: false
+							// because this could have a negative impact on performance and we do not know if there is a necessity
+							// to load the dependencies
+							// If needed we could make this configurable via manifest.json by adding a 'manifestFirst' option
+							return Component.load({
+								name: sComponentName,
+								manifest: false
+							});
+						}));
+					});
+
+					aPromises.push(pComponentLoad);
+				} else {
+					aComponentDependencies.forEach(function(sName) {
+						// Check for and execute preloaded component controller module
+						// Don't use sap.ui.component.load in order to avoid a warning log
+						// See comments in commit 83f4b601f896dbfcab76fffd455cce841f15b2fb
+						var sControllerModule = sName.replace(/\./g, "/") + "/Component";
+						var iModuleState = sap.ui.loader._.getModuleState(sControllerModule + ".js");
+						if (iModuleState === -1 /* PRELOADED */) {
+							sap.ui.requireSync(sControllerModule);
+						} else if (iModuleState === 0 /* INITIAL */) {
+							Log.info("Component \"" + sComponentName + "\" is loading component: \"" + sName + ".Component\"");
+							// requireSync needed because of cyclic dependency
+							sap.ui.requireSync("sap/ui/core/Component");
+							sap.ui.component.load({
+								name: sName
+							});
+						}
+					});
+				}
 			}
+			return Promise.all(aPromises);
 
 		},
 
@@ -645,51 +681,58 @@ sap.ui.define([
 		/**
 		 * Initializes the manifest which executes checks, define the resource
 		 * roots, load the dependencies and the includes.
+		 *
+		 * @param {sap.ui.core.Component} [oInstance] Reference to the Component instance
 		 * @private
 		 */
 		init: function(oInstance) {
-
 			if (this._iInstanceCount === 0) {
-
-				// version check => only if minVersion is available a warning
-				// will be logged and the debug mode is turned on
-				this.checkUI5Version();
-
-				// define the resource roots
-				// => if not loaded via manifest first approach the resource roots
-				//    will be registered too late for the AMD modules of the Component
-				//    controller. This is a constraint for the resource roots config
-				//    in the manifest!
-				this.defineResourceRoots();
-
-				// resolve "ui5://..." URLs after the resource-rooots have been defined
-				// this way all ui5 URLs can rely on any resource root definition
-				this._preprocess({
-					resolveUI5Urls: true
-				});
-
-				// load the component dependencies (other UI5 libraries)
-				this.loadDependencies();
-
-				// load the custom scripts and CSS files
-				this.loadIncludes();
-
-				// activate the static customizing
-				this.activateCustomizing();
-
+				this.loadDependenciesAndIncludes();
 			}
-
-			// activate the instance customizing
-			if (oInstance) {
-				this.activateCustomizing(oInstance);
-			}
-
 			this._iInstanceCount++;
+		},
 
+		/**
+		 * Executes checks, define the resource roots, load the dependencies and the includes.
+		 *
+		 * @param {boolean} bAsync indicator whether the dependent dependencies and includes should be loaded asynchronous
+		 * @return {Promise<void>} Promise containing further promises of dependent libs and includes requests
+		 *
+		 * @private
+		 */
+		loadDependenciesAndIncludes: function (bAsync) {
+			if (this._pDependenciesAndIncludes) {
+				return this._pDependenciesAndIncludes;
+			}
+			// version check => only if minVersion is available a warning
+			// will be logged and the debug mode is turned on
+			this.checkUI5Version();
+
+			// define the resource roots
+			// => if not loaded via manifest first approach the resource roots
+			//    will be registered too late for the AMD modules of the Component
+			//    controller. This is a constraint for the resource roots config
+			//    in the manifest!
+			this.defineResourceRoots();
+
+			// resolve "ui5://..." URLs after the resource-rooots have been defined
+			// this way all ui5 URLs can rely on any resource root definition
+			this._preprocess({
+				resolveUI5Urls: true
+			});
+
+			this._pDependenciesAndIncludes = Promise.all([
+				this._loadDependencies(bAsync), // load the component dependencies (other UI5 libraries)
+				this._loadIncludes(bAsync) // load the custom scripts and CSS files
+			]);
+
+			return this._pDependenciesAndIncludes;
 		},
 
 		/**
 		 * Terminates the manifest and does some final clean-up.
+		 *
+		 * @param {sap.ui.core.Component} [oInstance] Reference to the Component instance
 		 * @private
 		 */
 		exit: function(oInstance) {
@@ -697,61 +740,15 @@ sap.ui.define([
 			// ensure that the instance count is never negative
 			var iInstanceCount = Math.max(this._iInstanceCount - 1, 0);
 
-			// deactivate the instance customizing
-			if (oInstance) {
-				this.deactivateCustomizing(oInstance);
-			}
-
 			if (iInstanceCount === 0) {
-
-				// deactivcate the customizing
-				this.deactivateCustomizing();
-
 				// remove the custom scripts and CSS files
 				this.removeIncludes();
 
+				delete this._pDependenciesAndIncludes;
 			}
 
 			this._iInstanceCount = iInstanceCount;
 
-		},
-
-		/**
-		 * Activates the customizing for the component or a dedicated component
-		 * instance when providing the component instance as parameter.
-		 * @param {sap.ui.core.Component} [oInstance] Reference to the Component instance
-		 * @private
-		 */
-		activateCustomizing: function(oInstance) {
-			// activate the customizing configuration
-			var oUI5Manifest = this.getEntry("sap.ui5", true),
-				mExtensions = oUI5Manifest && oUI5Manifest["extends"] && oUI5Manifest["extends"].extensions;
-			if (!isEmptyObject(mExtensions)) {
-				var CustomizingConfiguration = sap.ui.requireSync('sap/ui/core/CustomizingConfiguration');
-				if (!oInstance) {
-					CustomizingConfiguration.activateForComponent(this.getComponentName());
-				} else {
-					CustomizingConfiguration.activateForComponentInstance(oInstance);
-				}
-			}
-		},
-
-		/**
-		 * Deactivates the customizing for the component or a dedicated component
-		 * instance when providing the component instance as parameter.
-		 * @param {sap.ui.core.Component} [oInstance] Reference to the Component instance
-		 * @private
-		 */
-		deactivateCustomizing: function(oInstance) {
-			// deactivate the customizing configuration
-			var CustomizingConfiguration = sap.ui.require('sap/ui/core/CustomizingConfiguration');
-			if (CustomizingConfiguration) {
-				if (!oInstance) {
-					CustomizingConfiguration.deactivateForComponent(this.getComponentName());
-				} else {
-					CustomizingConfiguration.deactivateForComponentInstance(oInstance);
-				}
-			}
 		}
 
 	});
@@ -791,10 +788,9 @@ sap.ui.define([
 	 *   }
 	 * }
 	 *
-	 * @param mSettings Map with model config settings
-	 * @param sBaseBundleUrlRelativeTo BundleUrlRelativeTo info from base config
-	 * @param bAlreadyResolvedOnRoot Whether the bundleUrl was already resolved (usually by the sap.ui.core.Component)
-	 *
+	 * @param {object} mSettings Map with model config settings
+	 * @param {string} sBaseBundleUrlRelativeTo BundleUrlRelativeTo info from base config
+	 * @param {boolean} [bAlreadyResolvedOnRoot] Whether the bundleUrl was already resolved (usually by the sap.ui.core.Component)
 	 * @private
 	 * @ui5-restricted sap.ui.core.Component
 	 */
@@ -835,7 +831,7 @@ sap.ui.define([
 	 * The callback receives the parsed manifest object and must return a Promise which resolves with an object.
 	 * It allows to early access and modify the manifest object.
 	 * @param {string[]} [mOptions.activeTerminologies] A list of active terminologies.
-	 * The order of the given active terminologies is significant. The {@link sap.base.i18n.ResourceBundle ResourceBundle} API
+	 * The order of the given active terminologies is significant. The {@link module:sap/base/i18n/ResourceBundle ResourceBundle} API
 	 * documentation describes the processing behavior in more detail.
 	 * Please have a look at this dev-guide chapter for general usage instructions: {@link topic:eba8d25a31ef416ead876e091e67824e Text Verticalization}.
 	 * @return {sap.ui.core.Manifest|Promise} Manifest object or for asynchronous calls an ECMA Script 6 Promise object will be returned.
@@ -896,12 +892,18 @@ sap.ui.define([
 		if (bAsync) {
 			return oManifestJSON.then(function(oManifestJSON) {
 				// callback for preprocessing the json, e.g. via flex-hook in Component
-				if (fnProcessJson) {
+				if (fnProcessJson && oManifestJSON) {
 					return fnProcessJson(oManifestJSON);
 				} else {
 					return oManifestJSON;
 				}
 			}).then(function(oManifestJSON) {
+				if (!oManifestJSON) {
+					// Loading manifest.json was not successful e.g. because there is no manifest.json
+					// This should be only the case if manifestFirst is true but there was
+					// no manifest.json
+					mSettings._bLoadManifestRequestFailed = true;
+				}
 				return new Manifest(oManifestJSON, mSettings);
 			});
 		}

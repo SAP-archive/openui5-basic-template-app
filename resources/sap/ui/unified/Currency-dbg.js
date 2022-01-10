@@ -7,10 +7,15 @@
 // Provides control sap.ui.unified.Currency.
 sap.ui.define([
 	'sap/ui/core/Control',
+	'sap/m/library',
 	'sap/ui/core/format/NumberFormat',
 	"./CurrencyRenderer"
-], function(Control, NumberFormat, CurrencyRenderer) {
+], function(Control, library, NumberFormat, CurrencyRenderer) {
 		"use strict";
+
+		// shortcut for sap.m.EmptyIndicator
+		var EmptyIndicatorMode = library.EmptyIndicatorMode;
+
 
 		/**
 		 * Constructor for a new <code>Currency</code>.
@@ -53,7 +58,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -95,12 +100,19 @@ sap.ui.define([
 				/**
 				 * Defines the space that is available for the precision of the various currencies.
 				 */
-				maxPrecision : {type : "int", group : "Appearance", defaultValue : 3},
+				maxPrecision : {type : "int", group : "Appearance"},
 
 				/**
 				 * Displays the currency symbol instead of the ISO currency code.
 				 */
-				useSymbol : {type : "boolean", group : "Appearance", defaultValue : true}
+				useSymbol : {type : "boolean", group : "Appearance", defaultValue : true},
+
+				/**
+				 * Specifies if an empty indicator should be displayed when there is no text.
+				 *
+				 * @since 1.89
+				 */
+				emptyIndicatorMode: { type: "sap.m.EmptyIndicatorMode", group: "Appearance", defaultValue: EmptyIndicatorMode.Off }
 			},
 			designtime: "sap/ui/unified/designtime/Currency.designtime",
 			dnd: { draggable: true, droppable: false }
@@ -151,7 +163,7 @@ sap.ui.define([
 		 *
 		 * @override
 		 * @param {string} sValue The value to be set
-		 * @returns {sap.ui.unified.Currency} <code>this</code> pointer for chaining
+		 * @returns {this} <code>this</code> pointer for chaining
 		 */
 		Currency.prototype.setValue = function(sValue) {
 			// Check if the value is bound and is undefined. In case of
@@ -160,10 +172,6 @@ sap.ui.define([
 			// instead and this cannot be changed due to compatibility.
 			if (this.isBound("value")) {
 				this._bRenderNoValClass = sValue == null;
-				// Toggle class if control is rendered
-				if (this.$()) {
-					this.$().toggleClass("sapUiUfdCurrencyNoVal", this._bRenderNoValClass);
-				}
 			}
 
 			this.setProperty("value", sValue, true);
@@ -176,16 +184,13 @@ sap.ui.define([
 
 			if (sPropName === "value") {
 				this._bRenderNoValClass = false;
-				if (this.$()) {
-					this.$().toggleClass("sapUiUfdCurrencyNoVal", false);
-				}
 			}
 		};
 
 		/**
 		 * Currency property setter.
 		 * @param {string} sValue The ISO 4217 currency code
-		 * @return {sap.ui.unified.Currency} <code>this</code> pointer for chaining
+		 * @return {this} <code>this</code> pointer for chaining
 		 */
 		Currency.prototype.setCurrency = function (sValue) {
 			var iCurrencyDigits,
@@ -212,12 +217,6 @@ sap.ui.define([
 
 			if (bRenderValue) {
 				this._renderValue();
-				// In the special case where the currency is set to "*" we need to remove the CSS class
-				// "sapUiUfdCurrencyNoVal" which hides the control.
-				if (sValue === "*" && this.$()) {
-					this._bRenderNoValClass = false;
-					this.$().toggleClass("sapUiUfdCurrencyNoVal", false);
-				}
 			}
 
 			return this;
@@ -226,7 +225,7 @@ sap.ui.define([
 		/**
 		 * UseSymbol property setter.
 		 * @param {boolean} bValue Whether the control must show the currency symbol instead of the ISO currency code
-		 * @return {sap.ui.unified.Currency} <code>this</code> pointer for chaining
+		 * @return {this} <code>this</code> pointer for chaining
 		 */
 		Currency.prototype.setUseSymbol = function (bValue) {
 			this.setProperty("useSymbol", bValue, true);
@@ -237,7 +236,7 @@ sap.ui.define([
 		/**
 		 * MaxPrecision property setter.
 		 * @param {int} iValue The maximum precision value
-		 * @return {sap.ui.unified.Currency} <code>this</code> pointer for chaining
+		 * @return {this} <code>this</code> pointer for chaining
 		 */
 		Currency.prototype.setMaxPrecision = function (iValue) {
 			this.setProperty("maxPrecision", iValue, true);
@@ -284,17 +283,21 @@ sap.ui.define([
 		 */
 		Currency.prototype.getFormattedValue = function() {
 			var sCurrency = this.getCurrency(),
-				iMaxPrecision,
 				iPadding,
 				iCurrencyDigits,
-				sFormattedCurrencyValue;
+				sFormattedCurrencyValue,
+				iMaxPrecision = this.getMaxPrecision(),
+				bMaxPrecisionValidValue = !iMaxPrecision && iMaxPrecision !== 0;
 
 			if (sCurrency === "*") {
 				return "";
 			}
 
 			iCurrencyDigits = this._oFormat.oLocaleData.getCurrencyDigits(sCurrency);
-			iMaxPrecision = this.getMaxPrecision();
+			if (bMaxPrecisionValidValue) {
+				iMaxPrecision = iCurrencyDigits;
+			}
+
 			// Should recalculate iMaxPrecision in order to fix an edge case where decimal precision is not removed
 			// Note: Take into account currencies that do not have decimal values. Example: JPY
 			iMaxPrecision = (iMaxPrecision <= 0 && iCurrencyDigits > 0 ? iMaxPrecision - 1 : iMaxPrecision);
@@ -328,7 +331,7 @@ sap.ui.define([
 
 		/**
 		 * @see sap.ui.core.Control#getAccessibilityInfo
-		 * @returns {Object} Current accessibility state of the control.
+		 * @returns {object} Current accessibility state of the control.
 		 * @protected
 		 */
 		Currency.prototype.getAccessibilityInfo = function() {

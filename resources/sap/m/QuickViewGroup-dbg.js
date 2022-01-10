@@ -22,7 +22,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Element
 	*
 	* @author SAP SE
-	* @version 1.84.11
+	* @version 1.96.2
 	*
 	* @constructor
 	* @public
@@ -72,9 +72,8 @@ sap.ui.define([
 
 	["setModel", "bindAggregation", "setAggregation", "insertAggregation", "addAggregation",
 		"removeAggregation", "removeAllAggregation", "destroyAggregation"].forEach(function (sFuncName) {
-			Group.prototype["_" + sFuncName + "Old"] = Group.prototype[sFuncName];
 			Group.prototype[sFuncName] = function () {
-				var result = Group.prototype["_" + sFuncName + "Old"].apply(this, arguments);
+				var result = Element.prototype[sFuncName].apply(this, arguments);
 
 				var oPage = this.getParent();
 				if (oPage) {

@@ -13,7 +13,6 @@ sap.ui.define([
 	'./TokenRenderer',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/events/KeyCodes',
-	'sap/ui/core/theming/Parameters',
 	'sap/ui/core/Core'
 ],
 	function(
@@ -24,7 +23,6 @@ sap.ui.define([
 		TokenRenderer,
 		InvisibleText,
 		KeyCodes,
-		Parameters,
 		Core
 	) {
 	"use strict";
@@ -54,7 +52,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -312,7 +310,7 @@ sap.ui.define([
 	 *
 	 * @param {boolean} bValue The new property value.
 	 * @param {boolean} bSkipInvalidation true if control invalidation should not happen.
-	 * @returns {sap.m.Token} this reference for method chaining.
+	 * @returns {this} this reference for method chaining.
 	 * @private
 	 * @ui5-restricted sap.m.Tokenizer
 	 */

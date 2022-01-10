@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.84.11"
+      "version": "1.96.2"
     },
     "title": "SAPUI5 library with layout controls.",
     "description": "SAPUI5 library with layout controls.",
@@ -22,10 +22,10 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.84",
+      "minUI5Version": "1.96",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.84.11"
+          "minVersion": "1.96.2"
         }
       }
     },
@@ -70,7 +70,6 @@
           "pl",
           "pt",
           "pt-PT",
-          "rigi",
           "ro",
           "ru",
           "sh",
@@ -150,7 +149,8 @@
           "sap.ui.layout.cssgrid.CSSGridGapShortHand"
         ],
         "interfaces": [
-          "sap.ui.layout.cssgrid.IGridConfigurable"
+          "sap.ui.layout.cssgrid.IGridConfigurable",
+          "sap.ui.layout.cssgrid.IGridItemLayoutData"
         ]
       }
     }

@@ -3,6 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
 /*
  * IMPORTANT: This is a private module, its API must not be used and is subject to change.
  * Code other than the OpenUI5 libraries must not introduce dependencies to this module.
@@ -27,10 +28,10 @@ sap.ui.define(['sap/ui/thirdparty/jquery'], function(jQuery) {
 
 	if (!getValue(jQuery.fn, "zIndex")) {
 		/**
-		 * Get the z-index for an element.
+		 * Get (if no zIndex parameter is given) or set the z-index for an element.
 		 *
-		 * @param {int} zIndex The z-index to set
-		 * @returns {number} The z-index
+		 * @param {int} [zIndex] The z-index to set
+		 * @returns {jQuery | number} The z-index
 		 * @public
 		 * @name jQuery#zIndex
 		 * @function
@@ -49,8 +50,6 @@ sap.ui.define(['sap/ui/thirdparty/jquery'], function(jQuery) {
 					// WebKit always returns auto if the element is positioned
 					position = elem.css( "position" );
 					if ( position === "absolute" || position === "relative" || position === "fixed" ) {
-						// IE returns 0 when zIndex is not specified
-						// other browsers return a string
 						// we ignore the case of nested elements with an explicit value of 0
 						// <div style="z-index: -10;"><div style="z-index: 0;"></div></div>
 						value = parseInt( elem.css( "zIndex" ));

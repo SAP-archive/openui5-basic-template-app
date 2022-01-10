@@ -25,7 +25,7 @@ sap.ui.define([
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.ui.unified",
-		version: "1.84.11",
+		version: "1.96.2",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/ui/unified/designtime/library.designtime",
 		types: [
@@ -98,7 +98,8 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.unified
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
+	 * @since 1.28
 	 * @public
 	 */
 	var thisLib = sap.ui.unified;
@@ -108,7 +109,7 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @since 1.24.0
+	 * @since 1.13
 	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.CalendarDayType = {

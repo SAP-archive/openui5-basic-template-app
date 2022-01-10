@@ -50,12 +50,6 @@
 	text-overflow: ellipsis;
 }
 
-html[data-sap-ui-browser^='ie'], html[data-sap-ui-browser^='ed'] {
-	.sapMListTblCell .sapMObjectAttributeActive {
-		word-break: break-all;
-	}
-}
-
 .sapMObjectAttributeActive{
 	white-space: normal;
 	word-break: break-word;
@@ -102,12 +96,6 @@ html.sap-desktop .sapMObjectAttributeActive:focus {
 	line-height: normal;
 }
 
-html[data-sap-ui-browser^='ie'], html[data-sap-ui-browser^='ed'] {
-	.sapMObjectAttributeActive:focus .sapMObjectAttributeText::after {
-		outline-style: dashed;
-	}
-}
-
 /*=========================================== */
 /* Custom design for Responsive Object Header */
 /*=========================================== */
@@ -142,7 +130,7 @@ html[data-sap-ui-browser^='ie'], html[data-sap-ui-browser^='ed'] {
 	font-size: @sapMFontMediumSize;
 	font-weight: normal;
 	color: @sapUiContentLabelColor;
-	white-space: nowrap;
+	white-space: pre;
 	max-width: 0.5rem;
 	margin-left: -0.5rem;
 	overflow: auto;

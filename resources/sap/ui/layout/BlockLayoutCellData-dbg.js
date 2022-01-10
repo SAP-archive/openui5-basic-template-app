@@ -18,7 +18,7 @@ sap.ui.define(['sap/ui/core/LayoutData', './library'],
 	 * @class
 	 * Holds layout data for the BlockLayoutCells contents.
 	 * @extends sap.ui.core.LayoutData
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @constructor
 	 * @public
 	 * @since 1.50.0
@@ -79,7 +79,7 @@ sap.ui.define(['sap/ui/core/LayoutData', './library'],
 	 * Sets width of the cell to all sizes if the width is specified.
 	 * @param iValue
 	 * @public
-	 * @returns {sap.ui.layout.BlockLayoutCellData}
+	 * @returns {this}
 	 */
 	BlockLayoutCellData.prototype.setSize = function (iValue) {
 		this.setProperty("mSize", iValue);

@@ -14,10 +14,10 @@ sap.ui.define([
 		'sap/ui/core/delegate/ItemNavigation',
 		'sap/ui/core/library',
 		'sap/ui/core/IntervalTrigger',
-		'sap/ui/base/ManagedObject',
 		'sap/ui/core/Icon',
 		'./HeaderContainerRenderer',
 		"sap/base/Log",
+		"sap/ui/events/KeyCodes",
 		"sap/ui/events/PseudoEvents",
 		"sap/ui/thirdparty/jquery",
 		// jQuery Plugin "control"
@@ -40,10 +40,10 @@ sap.ui.define([
 		ItemNavigation,
 		coreLibrary,
 		IntervalTrigger,
-		ManagedObject,
 		Icon,
 		HeaderContainerRenderer,
 		Log,
+		KeyCodes,
 		PseudoEvents,
 		jQuery
 	) {
@@ -85,26 +85,27 @@ sap.ui.define([
 					}
 				}
 			},
-			renderer: function (oRM, oControl) {
-				var oInnerControl = oControl.getAggregation("item");
-				if (!oInnerControl || !oInnerControl.getVisible()) {
-					return;
-				}
+			renderer: {
+				apiVersion: 2,
+				render: function (oRM, oControl) {
+					var oInnerControl = oControl.getAggregation("item");
+					if (!oInnerControl || !oInnerControl.getVisible()) {
+						return;
+					}
 
-				oRM.write("<div");
-				oRM.writeControlData(oControl);
-				oRM.addClass("sapMHdrCntrItemCntr");
-				oRM.addClass("sapMHrdrCntrInner");
-				oRM.writeAttribute("aria-setsize", oControl.getSetSize());
-				oRM.writeAttribute("aria-posinset", oControl.getPosition());
-				oRM.writeAttribute("role", "listitem");
-				if (oControl.getAriaLabelledBy()) {
-					oRM.writeAttributeEscaped("aria-labelledby", oControl.getAriaLabelledBy());
+					oRM.openStart("div", oControl);
+					oRM.class("sapMHdrCntrItemCntr");
+					oRM.class("sapMHrdrCntrInner");
+					oRM.attr("aria-setsize", oControl.getSetSize());
+					oRM.attr("aria-posinset", oControl.getPosition());
+					oRM.attr("role", "listitem");
+					if (oControl.getAriaLabelledBy()) {
+						oRM.attr("aria-labelledby", oControl.getAriaLabelledBy());
+					}
+					oRM.openEnd();
+					oRM.renderControl(oInnerControl);
+					oRM.close("div");
 				}
-				oRM.writeClasses();
-				oRM.write(">");
-				oRM.renderControl(oInnerControl);
-				oRM.write("</div>");
 			}
 		});
 
@@ -123,7 +124,7 @@ sap.ui.define([
 		 * @since 1.44.0
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @public
 		 * @alias sap.m.HeaderContainer
@@ -319,6 +320,7 @@ sap.ui.define([
 						var oFocusRef = this._oScrollCntr.getDomRef("scroll");
 						var oFocusObj = this._oScrollCntr.$("scroll");
 						var aDomRefs = oFocusObj.find(".sapMHrdrCntrInner").attr("tabindex", "0");
+						oFocusRef.setAttribute("role", "list");
 
 						if (!this._oItemNavigation) {
 							this._oItemNavigation = new HeaderContainerItemNavigator();
@@ -343,6 +345,9 @@ sap.ui.define([
 		};
 
 		HeaderContainer.prototype.onBeforeRendering = function () {
+			var isHorizontal = this.getOrientation() === Orientation.Horizontal,
+				sIconPrev = isHorizontal ? "sap-icon://slim-arrow-left" : "sap-icon://slim-arrow-up",
+				sIconNext = isHorizontal ? "sap-icon://slim-arrow-right" : "sap-icon://slim-arrow-down";
 			if (!this.getHeight()) {
 				Log.warning("No height provided", this);
 			}
@@ -350,12 +355,15 @@ sap.ui.define([
 				Log.warning("No width provided", this);
 			}
 			if (Device.system.desktop) {
-				this._oArrowPrev.setIcon(this.getOrientation() === Orientation.Horizontal ? "sap-icon://slim-arrow-left" : "sap-icon://slim-arrow-up");
-				this._oArrowNext.setIcon(this.getOrientation() === Orientation.Horizontal ? "sap-icon://slim-arrow-right" : "sap-icon://slim-arrow-down");
+				this._oArrowPrev.setProperty("icon", sIconPrev, true);
+				this._oArrowNext.setProperty("icon", sIconNext, true);
 			} else if (Device.system.phone || Device.system.tablet) {
-				this._oArrowPrev.setSrc(this.getOrientation() === Orientation.Horizontal ? "sap-icon://slim-arrow-left" : "sap-icon://slim-arrow-up");
-				this._oArrowNext.setSrc(this.getOrientation() === Orientation.Horizontal ? "sap-icon://slim-arrow-right" : "sap-icon://slim-arrow-down");
+				this._oArrowPrev.setProperty("src", sIconPrev, true);
+				this._oArrowNext.setProperty("src", sIconNext, true);
 			}
+
+			// before rendering starts, content items need to be updated - see _callSuperMethod
+			this.getContent();
 		};
 
 		HeaderContainer.prototype.onAfterRendering = function () {
@@ -432,44 +440,94 @@ sap.ui.define([
 		};
 
 		HeaderContainer.prototype.validateAggregation = function (sAggregationName, oObject, bMultiple) {
-			return this._callMethodInManagedObject("validateAggregation", sAggregationName, oObject, bMultiple);
+			return this._callSuperMethod("validateAggregation", sAggregationName, oObject, bMultiple);
 		};
 
 		HeaderContainer.prototype.getAggregation = function (sAggregationName, oObject, bSuppressInvalidate) {
-			return this._callMethodInManagedObject("getAggregation", sAggregationName, oObject, bSuppressInvalidate);
+			return this._callSuperMethod("getAggregation", sAggregationName, oObject, bSuppressInvalidate);
 		};
 
 		HeaderContainer.prototype.setAggregation = function (sAggregationName, oObject, bSuppressInvalidate) {
-			return this._callMethodInManagedObject("setAggregation", sAggregationName, oObject, bSuppressInvalidate);
+			return this._callSuperMethod("setAggregation", sAggregationName, oObject, bSuppressInvalidate);
 		};
 
 		HeaderContainer.prototype.indexOfAggregation = function (sAggregationName, oObject) {
-			return this._callMethodInManagedObject("indexOfAggregation", sAggregationName, oObject);
+			return this._callSuperMethod("indexOfAggregation", sAggregationName, oObject);
 		};
 
 		HeaderContainer.prototype.insertAggregation = function (sAggregationName, oObject, iIndex, bSuppressInvalidate) {
-			return this._callMethodInManagedObject("insertAggregation", sAggregationName, oObject, iIndex, bSuppressInvalidate);
+			return this._callSuperMethod("insertAggregation", sAggregationName, oObject, iIndex, bSuppressInvalidate);
 		};
 
 		HeaderContainer.prototype.addAggregation = function (sAggregationName, oObject, bSuppressInvalidate) {
-			return this._callMethodInManagedObject("addAggregation", sAggregationName, oObject, bSuppressInvalidate);
+			return this._callSuperMethod("addAggregation", sAggregationName, oObject, bSuppressInvalidate);
 		};
 
 		HeaderContainer.prototype.removeAggregation = function (sAggregationName, oObject, bSuppressInvalidate) {
-			return this._callMethodInManagedObject("removeAggregation", sAggregationName, oObject, bSuppressInvalidate);
+			return this._callSuperMethod("removeAggregation", sAggregationName, oObject, bSuppressInvalidate);
 		};
 
 		HeaderContainer.prototype.removeAllAggregation = function (sAggregationName, bSuppressInvalidate) {
-			return this._callMethodInManagedObject("removeAllAggregation", sAggregationName, bSuppressInvalidate);
+			return this._callSuperMethod("removeAllAggregation", sAggregationName, bSuppressInvalidate);
 		};
 
 		HeaderContainer.prototype.destroyAggregation = function (sAggregationName, bSuppressInvalidate) {
-			return this._callMethodInManagedObject("destroyAggregation", sAggregationName, bSuppressInvalidate);
+			return this._callSuperMethod("destroyAggregation", sAggregationName, bSuppressInvalidate);
 		};
 
 		/* =========================================================== */
 		/* Private methods                                             */
 		/* =========================================================== */
+		/**
+		 * Handle the key dwon event for Arrow Naviagtion.
+		 * @param {jQuery.Event} oEvent - the keyboard event.
+		 * @private
+		 */
+		 HeaderContainer.prototype.onkeydown = function(oEvent) {
+			var bHorizontal = this.getOrientation() === Orientation.Horizontal,
+				$prevButton = this.$("prev-button-container"),
+				$nextButton = this.$("next-button-container"),
+				iScrollSize, iButtonSize = 0,
+				aItems = this._filterVisibleItems();
+			if (oEvent.which === KeyCodes.ARROW_RIGHT && bHorizontal) {
+				iScrollSize = aItems[oEvent.srcControl.mProperties.position - 1].$().parent().outerWidth(true);
+				if (iScrollSize < this._getSize($prevButton.is(":visible"))){
+					this._scroll((iScrollSize - iButtonSize), this.getScrollTime());
+				}
+			} else if (oEvent.which === KeyCodes.ARROW_LEFT && bHorizontal) {
+				iScrollSize = aItems[oEvent.srcControl.mProperties.position - 1].$().parent().outerWidth(true);
+				if (iScrollSize < this._getSize($nextButton.is(":visible"))) {
+					if (!$nextButton.is(":visible")) {
+						var OFFSET = 10;
+						if (iScrollSize + OFFSET < this._getSize(true)) {
+							iButtonSize = $nextButton.width() + OFFSET;
+						} else {
+							iButtonSize = $nextButton.width();
+						}
+					}
+					this._scroll(-(iScrollSize - iButtonSize), this.getScrollTime());
+				}
+			}
+			if (oEvent.which === KeyCodes.ARROW_DOWN && !bHorizontal) {
+				iScrollSize = aItems[oEvent.srcControl.mProperties.position - 1].$().parent().outerHeight(true);
+				if (iScrollSize < this._getSize($prevButton.is(":visible"))) {
+					this._scroll((iScrollSize - iButtonSize), this.getScrollTime());
+				}
+			} else if (oEvent.which === KeyCodes.ARROW_UP && !bHorizontal) {
+				iScrollSize = aItems[oEvent.srcControl.mProperties.position - 1].$().parent().outerHeight(true);
+				if (iScrollSize < this._getSize($nextButton.is(":visible"))) {
+					if (!$nextButton.is(":visible")) {
+						var OFFSET = 10;
+						if (iScrollSize + OFFSET < this._getSize(true)) {
+							iButtonSize = $nextButton.height() + OFFSET;
+						} else {
+							iButtonSize = $nextButton.wheightidth();
+						}
+					}
+					this._scroll(-(iScrollSize - iButtonSize), this.getScrollTime());
+				}
+			}
+		};
 		HeaderContainer.prototype._setScrollInProcess = function (value) {
 			this.bScrollInProcess = value;
 		};
@@ -973,21 +1031,33 @@ sap.ui.define([
 			return wrapped;
 		};
 
-		HeaderContainer._AGGREGATION_FUNCTIONS = ["validateAggregation", "validateAggregation", "getAggregation", "setAggregation", "indexOfAggregation", "removeAggregation"];
+		HeaderContainer._AGGREGATION_FUNCTIONS = ["validateAggregation", "getAggregation", "setAggregation", "indexOfAggregation", "removeAggregation"];
 		HeaderContainer._AGGREGATION_FUNCTIONS_FOR_INSERT = ["insertAggregation", "addAggregation"];
-		HeaderContainer.prototype._callMethodInManagedObject = function (sFunctionName, sAggregationName) {
+		HeaderContainer.prototype._callSuperMethod = function (sFunctionName, sAggregationName) {
 			var args = Array.prototype.slice.call(arguments);
 			if (sAggregationName === "content") {
 				var oContent = args[2];
 				args[1] = "content";
 				if (oContent instanceof Control) {
-					if (((HeaderContainer._AGGREGATION_FUNCTIONS ? Array.prototype.indexOf.call(HeaderContainer._AGGREGATION_FUNCTIONS, sFunctionName) : -1)) > -1 && oContent.getParent() instanceof HeaderContainerItemContainer) {
+					if (HeaderContainer._AGGREGATION_FUNCTIONS.indexOf(sFunctionName) > -1 && oContent.getParent() instanceof HeaderContainerItemContainer) {
 						args[2] = oContent.getParent();
-					} else if (((HeaderContainer._AGGREGATION_FUNCTIONS_FOR_INSERT ? Array.prototype.indexOf.call(HeaderContainer._AGGREGATION_FUNCTIONS_FOR_INSERT, sFunctionName) : -1)) > -1) {
+					} else if (HeaderContainer._AGGREGATION_FUNCTIONS_FOR_INSERT.indexOf(sFunctionName) > -1) {
 						args[2] = new HeaderContainerItemContainer({
 							item: oContent
 						});
 					}
+				}
+
+				//Traverse through the ScrollContainer Contents and remove the Contents which does not contain any Inner Items.
+				var aContentsToRemove = [];
+				this._oScrollCntr.getContent().forEach(function (oContent, index) {
+					if (!oContent.getItem()) {
+						aContentsToRemove.push(index);
+					}
+				});
+
+				for (var i = 0; i < aContentsToRemove.length; i++ ) {
+					this._oScrollCntr.removeContent(aContentsToRemove[i]);
 				}
 
 				var vResult = this._oScrollCntr[sFunctionName].apply(this._oScrollCntr, args.slice(1));
@@ -1005,18 +1075,25 @@ sap.ui.define([
 					for (var i = 0; i < aContent.length; i++) {
 						var oItem = aContent[i];
 						if (oItem.getItem().getVisible()) {
+							oItem.setVisible(true);
 							oItem.setPosition(iPosition);
 							oItem.setSetSize(iVisibleSize);
 							oItem.setAriaLabelledBy(aAriaLabelledBy[i]);
 							iPosition++;
+						} else {
+							oItem.setVisible(false);
 						}
 					}
 				}
 
 				return this._unWrapHeaderContainerItemContainer(vResult);
 			} else {
-				return ManagedObject.prototype[sFunctionName].apply(this, args.slice(1));
+				return Control.prototype[sFunctionName].apply(this, args.slice(1));
 			}
+		};
+
+		HeaderContainer.prototype._callMethodInManagedObject = function() {
+			throw new TypeError("Method no longer exists: HeaderContainer.prototype._callMethodInManagedObject");
 		};
 
 		HeaderContainer.prototype._getParentCell = function (oDomElement) {

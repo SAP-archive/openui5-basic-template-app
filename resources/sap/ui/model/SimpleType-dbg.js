@@ -3,16 +3,18 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the base implementation for all simple type implementations that are able to format,
 // parse and validate values
 sap.ui.define([
+	'sap/base/util/merge',
 	'sap/ui/base/DataType',
 	'./Type',
 	'./FormatException',
 	'./ParseException',
 	'./ValidateException'
-], function (DataType, Type /*, kept for compatibility with existing referrers: FormatException, ParseException, ValidateException*/) {
+], function (merge, DataType, Type /*, kept for compatibility with existing referrers:
+		FormatException, ParseException, ValidateException*/) {
 	"use strict";
 
 	// A formatter that returns the given value in <code>format</code> and <code>parse</code>
@@ -44,7 +46,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.model.Type
 	 * @public
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 */
 	var SimpleType = Type.extend("sap.ui.model.SimpleType", /** @lends sap.ui.model.SimpleType.prototype */ {
 
@@ -107,7 +109,7 @@ sap.ui.define([
 	 *
 	 * @param {any} vValue
 	 *   The value to be validated
-	 * @return {Promise}
+	 * @returns {void|Promise}
 	 *   <code>undefined</code> or a <code>Promise</code> resolving with an undefined value
 	 * @throws {sap.ui.model.ValidateException}
 	 *   If at least one of the type constraints are not met; the message of the exception is
@@ -125,8 +127,8 @@ sap.ui.define([
 	 * built-in object such as Date which can be used by a control to the raw value, and
 	 * <code>parse</code> converts the raw value to the internal value.
 	 *
-	 * You may return an instance of {@link sap.ui.core.format.DateFormat#constructor DateFormat} or
-	 * {@link sap.ui.core.format.NumberFormat#constructor NumberFormat}.
+	 * You may return an instance of {@link sap.ui.core.format.DateFormat DateFormat} or
+	 * {@link sap.ui.core.format.NumberFormat NumberFormat}.
 	 *
 	 * The default implementation of the <code>format</code> and <code>parse</code> methods simply
 	 * returns the given parameter. Subclasses of
@@ -137,7 +139,7 @@ sap.ui.define([
 	 * Example:<br>
 	 * If the type is related to a JavaScript <code>Date</code> object, but the raw value isn't,
 	 * this method should return an instance of
-	 * {@link sap.ui.core.format.DateFormat#constructor DateFormat}, which is able to convert
+	 * {@link sap.ui.core.format.DateFormat DateFormat}, which is able to convert
 	 * between the raw value and a JavaScript <code>Date</code> object.
 	 *
 	 * @return {object}
@@ -153,6 +155,22 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns a deep copy of the constraints of this type. The returned constraints can be used to
+	 * create a new instance of the type with equivalent constraints.
+	 *
+	 * Subclasses may need to override this method.
+	 *
+	 * @return {object} The constraints of this type or an empty object
+	 *
+	 * @private
+	 * @since 1.85.0
+	 * @ui5-restricted sap.ui.mdc
+	 */
+	SimpleType.prototype.getConstraints = function () {
+		return merge({}, this.oConstraints);
+	};
+
+	/**
 	 * Sets constraints for this type, which are used to validate the value.
 	 *
 	 * @param {object} oConstraints The constraints as defined by concrete subclasses
@@ -161,6 +179,22 @@ sap.ui.define([
 	 */
 	SimpleType.prototype.setConstraints = function (oConstraints) {
 		this.oConstraints = oConstraints;
+	};
+
+	/**
+	 * Returns a deep copy of the format options of this type. The returned format options can be
+	 * used to create a new instance of the type with equivalent format options.
+	 *
+	 * Subclasses may need to override this method.
+	 *
+	 * @return {object} The format options of this type or an empty object
+	 *
+	 * @private
+	 * @since 1.86.0
+	 * @ui5-restricted sap.ui.mdc
+	 */
+	SimpleType.prototype.getFormatOptions = function () {
+		return merge({}, this.oFormatOptions);
 	};
 
 	/**

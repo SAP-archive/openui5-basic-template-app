@@ -24,6 +24,10 @@
 	height: 6rem;
 }
 
+.sapPCRelative.sapMPlanCalWithWeekNumbers .sapMPlanCalHead{
+	height: 3rem;
+}
+
 .sapMPlanCalWithDayNamesLine .sapMPlanCalHead{
 	height: 5rem;
 }
@@ -184,6 +188,11 @@
 	display: block;
 }
 
+.sapMSize0.sapMPlanCal.sapPCRelative > .sapMList .sapMListInfoTBar,
+.sapMSize1.sapMPlanCal.sapPCRelative > .sapMList .sapMListInfoTBar {
+	display: flex;
+}
+
 .sapMPlanCal.sapMPlanCalNoHead > .sapMList .sapMListInfoTBar > .sapMPlanCalHead,
 .sapMPlanCal.sapMPlanCalNoHead > .sapMList .sapMListInfoTBar > .sapUiCalRow,
 .sapMSize0.sapMPlanCal > .sapMList .sapMListInfoTBar > .sapMPlanCalHead,
@@ -191,6 +200,16 @@
 .sapMSize1.sapMPlanCal > .sapMList .sapMListInfoTBar > .sapMPlanCalHead,
 .sapMSize1.sapMPlanCal > .sapMList .sapMListInfoTBar > .sapUiCalRow{
 	width: 100%;
+}
+
+.sapMSize0.sapMPlanCal.sapPCRelative > .sapMList .sapMListInfoTBar > .sapMPlanCalHead,
+.sapMSize1.sapMPlanCal.sapPCRelative > .sapMList .sapMListInfoTBar > .sapMPlanCalHead {
+	width: 20%;
+}
+
+.sapMSize0.sapMPlanCal.sapPCRelative > .sapMList .sapMListInfoTBar > .sapUiCalRow,
+.sapMSize1.sapMPlanCal.sapPCRelative > .sapMList .sapMListInfoTBar > .sapUiCalRow {
+	width: 80%;
 }
 
 .sapMPlanCal.sapMPlanCalNoHead > .sapMList .sapMListInfoTBar > .sapMPlanCalHead,
@@ -255,7 +274,7 @@
 		}
 
 		:not(li) .sapMLIBContent {
-			padding: 1rem 0;
+			padding: .5rem 0;
 		}
 
 		.sapMSLIImg {
@@ -279,11 +298,12 @@
 			position: absolute;
 			padding-left: calc(3rem + 0.75rem); // Width of the image + right margin
 			width: 100%;
+		}
 
-			html[data-sap-ui-browser^="ie"] & {
-				top: .5rem;
-				left: 0;
-			}
+		.sapMCLI .sapMObjLItem { // row header in custom content scenario
+			display: revert;
+			padding: 0;
+			border-bottom: 0;
 		}
 	}
 
@@ -337,26 +357,14 @@
 	}
 }
 
-html[data-sap-ui-browser ^= "ie"], html[data-sap-ui-browser^="ed"] {
-	.sapUiSizeCompact .sapMPlanCal .sapUiCalNoNameLine:not(.sapUiCalOneMonthDatesRow) .sapUiCalItem > .sapUiCalItemText{
-		text-align: left;
-	}
-
-	.sapUiSizeCompact .sapMPlanCal .sapUiCalNoNameLine:not(.sapUiCalOneMonthDatesRow) .sapUiCalItem > .sapUiCalDayName{
-		text-align: right;
-	}
-}
-
-html[dir=rtl][data-sap-ui-browser ^= "ie"], html[dir=rtl][data-sap-ui-browser^="ed"] {
-	.sapUiSizeCompact .sapMPlanCal .sapUiCalNoNameLine:not(.sapUiCalOneMonthDatesRow) .sapUiCalItem > .sapUiCalItemText{
-		text-align: right;
-	}
-
-	.sapUiSizeCompact .sapMPlanCal .sapUiCalNoNameLine:not(.sapUiCalOneMonthDatesRow) .sapUiCalItem > .sapUiCalDayName{
-		text-align: left;
-	}
-}
-
 .sapMPlanCal .sapUiCalMonthView .sapUiCalWeekNum {
 	text-align: center;
+}
+
+.sapMPlanCal .sapMListTblCell.sapMPlanCalRowHead {
+	vertical-align: top;
+}
+
+.sapMPlanCal .sapMIBar.sapMTB .sapMBarChild ~ .sapUiCalMonthView.sapMBarChild {
+	margin: 0;
 }

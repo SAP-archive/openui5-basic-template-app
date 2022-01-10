@@ -8,6 +8,7 @@
 sap.ui.define([
 	'./library',
 	'./Button',
+	'./Select',
 	'sap/ui/core/Control',
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/delegate/ItemNavigation',
@@ -19,6 +20,7 @@ sap.ui.define([
 function(
 	library,
 	Button,
+	Select,
 	Control,
 	EnabledPropagator,
 	ItemNavigation,
@@ -50,7 +52,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -93,11 +95,13 @@ function(
 			 * The buttons of the SegmentedButton control. The items set in this aggregation are used as an interface for the buttons displayed by the control. Only the properties ID, icon, text, enabled and textDirections of the Button control are evaluated. Setting other properties of the button will have no effect. Alternatively, you can use the createButton method to add buttons.
 			 * @deprecated as of 1.28.0, replaced by <code>items</code> aggregation
 			 */
-			buttons : {type : "sap.m.Button", multiple : true, singularName : "button"},
+			buttons : {type : "sap.m.Button", multiple : true, singularName : "button", deprecated: true},
 
 			/**
 			 * Aggregation of items to be displayed. The items set in this aggregation are used as an interface for the buttons displayed by the control.
 			 * The "items" and "buttons" aggregations should NOT be used simultaneously as it causes the control to work incorrectly.
+			 * Note: If <code>width</code> is supplied in percetange to <code>SegmentedButtonItem</code> instances and
+			 * the sum of all percentages exeeds 100%, then the buttons display could overlap other elements in the page.
 			 * @since 1.28
 			 */
 			items : { type : "sap.m.SegmentedButtonItem", multiple : true, singularName : "item", bindable : "bindable" },
@@ -594,7 +598,7 @@ function(
 	 * Sets the <code>selectedKey</code> and is usable only when the control is initiated with the <code>items</code> aggregation.
 	 *
 	 * @param {string} sKey The key of the button to be selected
-	 * @returns {sap.m.SegmentedButton} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 * @public
 	 * @override
 	 * @since 1.28
@@ -656,7 +660,7 @@ function(
 	/**
 	 * Adds item to <code>items</code> aggregation.
 	 * @param {sap.m.SegmentedButtonItem} oItem The item to be added
-	 * @returns {sap.m.SegmentedButton} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 * @public
 	 * @override
 	 */
@@ -694,7 +698,7 @@ function(
 	 * Inserts item into <code>items</code> aggregation.
 	 * @param {sap.m.SegmentedButtonItem} oItem The item to be inserted
 	 * @param {int} iIndex index the item should be inserted at
-	 * @returns {sap.m.SegmentedButton} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 * @public
 	 * @override
 	 */
@@ -734,7 +738,7 @@ function(
 			// CSN# 0001429454/2014: remove class for all other items
 			this.getButtons().forEach(function (oButton) {
 				oButton.$().removeClass("sapMSegBBtnSel");
-				oButton.$().attr("aria-checked", false);
+				oButton.$().attr("aria-selected", false);
 			});
 
 			//get the corresponding item regarding the pressed button
@@ -743,7 +747,7 @@ function(
 			})[0];
 
 			oButtonPressed.$().addClass("sapMSegBBtnSel");
-			oButtonPressed.$().attr("aria-checked", true);
+			oButtonPressed.$().attr("aria-selected", true);
 
 			this.setAssociation('selectedButton', oButtonPressed, true);
 			this.setProperty("selectedKey", this.getSelectedKey(), true);
@@ -786,7 +790,7 @@ function(
 	 *    An sap.m.Button instance which becomes the new target of this <code>selectedButton</code> association.
 	 *    Alternatively, the ID of an sap.m.Button instance may be given as a string.
 	 *    If the value of null, undefined, or an empty string is provided the first item will be selected.
-	 * @returns {sap.m.SegmentedButton} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 * @public
 	 */
 	SegmentedButton.prototype.setSelectedButton = function (vButton) {
@@ -814,7 +818,7 @@ function(
 	 *    An sap.m.SegmentedButtonItem instance which becomes the new target of this <code>selectedItem</code> association.
 	 *    Alternatively, the ID of an <code>sap.m.SegmentedButtonItem</code> instance may be given as a string.
 	 *    If the value of null, undefined, or an empty string is provided, the first item will be selected.
-	 * @returns {sap.m.SegmentedButton} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 * @public
 	 * @override
 	 */
@@ -855,24 +859,14 @@ function(
 		oEvent.preventDefault();
 	};
 
-	/** Select form function **/
-
 	/**
-	 * Lazy loader for the select hidden aggregation.
+	 * Hidden select aggregation factory function.
 	 * @private
 	 */
-	SegmentedButton.prototype._lazyLoadSelectForm = function() {
-		var oSelect = this.getAggregation("_select");
-
-		if (!oSelect) {
-			// lazy load sap.m.Select, TODO should be loaded async
-			jQuery.sap.require("sap.m.Select");
-			var Select = sap.ui.require("sap/m/Select");
-			oSelect = new Select(this.getId() + "-select");
-			oSelect.attachChange(this._selectChangeHandler, this);
-			oSelect.addStyleClass("sapMSegBSelectWrapper");
-			this.setAggregation("_select", oSelect, true);
-		}
+	SegmentedButton.prototype._fnSelectFormFactory = function() {
+		return new Select(this.getId() + "-select")
+			.attachChange(this._selectChangeHandler, this)
+			.addStyleClass("sapMSegBSelectWrapper");
 	};
 
 	/**
@@ -935,7 +929,10 @@ function(
 	SegmentedButton.prototype._toSelectMode = function() {
 		this._bInOverflow = true;
 		this.addStyleClass("sapMSegBSelectWrapper");
-		this._lazyLoadSelectForm();
+		if (!this.getAggregation("_select")) {
+			this.setAggregation("_select", this._fnSelectFormFactory(), true);
+		}
+
 		this._syncSelect();
 		this._syncAriaAssociations();
 	};
@@ -997,8 +994,8 @@ function(
 	SegmentedButton.prototype._getIconAriaLabel = function (oIcon) {
 		var oIconInfo = IconPool.getIconInfo(oIcon.getSrc()),
 			sResult = "";
-		if (oIconInfo && oIconInfo.name) {
-			sResult = oIconInfo.name;
+		if (oIconInfo) {
+			sResult = oIconInfo.text ? oIconInfo.text : oIconInfo.name;
 		}
 		return sResult;
 	};

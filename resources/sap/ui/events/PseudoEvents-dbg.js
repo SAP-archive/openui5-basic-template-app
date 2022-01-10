@@ -51,7 +51,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 	 * delivered to any jQuery-style listeners registered for that browser event.
 	 *
 	 * Pure JavaScript listeners can evaluate the classification information using
-	 * the {@link module:sap/ui/events/jquery/EventExtension#isPseudoType} method.
+	 * the {@link jQuery.Event.prototype.isPseudoType} method.
 	 *
 	 * Instead of using the procedure as described above, the SAPUI5 controls and elements
 	 * should simply implement an <code>on<i>pseudo-event</i>(oEvent)</code> method. It will
@@ -73,7 +73,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapdown",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				return (oEvent.key ? (oEvent.key === "ArrowDown" || oEvent.key === "Down") : oEvent.keyCode == KeyCodes.ARROW_DOWN) && !hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "ArrowDown" : oEvent.keyCode == KeyCodes.ARROW_DOWN) && !hasModifierKeys(oEvent);
 			}
 		},
 
@@ -85,7 +85,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapdownmodifiers",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				return (oEvent.key ? (oEvent.key === "ArrowDown" || oEvent.key === "Down") : oEvent.keyCode == KeyCodes.ARROW_DOWN) && hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "ArrowDown" : oEvent.keyCode == KeyCodes.ARROW_DOWN) && hasModifierKeys(oEvent);
 			}
 		},
 
@@ -99,7 +99,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			fnCheck: function(oEvent) {
 				if (oEvent.key) {
 					return (oEvent.key === "F4" && !hasModifierKeys(oEvent)) ||
-						((oEvent.key === "ArrowDown" || oEvent.key === "Down") && checkModifierKeys(oEvent, /*Ctrl*/ false, /*Alt*/ true, /*Shift*/ false));
+						(oEvent.key === "ArrowDown" && checkModifierKeys(oEvent, /*Ctrl*/ false, /*Alt*/ true, /*Shift*/ false));
 				}
 				return (oEvent.keyCode == KeyCodes.F4 && !hasModifierKeys(oEvent)) ||
 					(oEvent.keyCode == KeyCodes.ARROW_DOWN && checkModifierKeys(oEvent, /*Ctrl*/ false, /*Alt*/ true, /*Shift*/ false));
@@ -114,7 +114,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapup",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				return (oEvent.key ? (oEvent.key === "ArrowUp" || oEvent.key === "Up") : oEvent.keyCode == KeyCodes.ARROW_UP) && !hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "ArrowUp" : oEvent.keyCode == KeyCodes.ARROW_UP) && !hasModifierKeys(oEvent);
 			}
 		},
 
@@ -126,7 +126,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapupmodifiers",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				return (oEvent.key ? (oEvent.key === "ArrowUp" || oEvent.key === "Up") : oEvent.keyCode == KeyCodes.ARROW_UP) && hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "ArrowUp" : oEvent.keyCode == KeyCodes.ARROW_UP) && hasModifierKeys(oEvent);
 			}
 		},
 
@@ -138,7 +138,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "saphide",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				return (oEvent.key ? (oEvent.key === "ArrowUp" || oEvent.key === "Up") : oEvent.keyCode == KeyCodes.ARROW_UP) && checkModifierKeys(oEvent, /*Ctrl*/ false, /*Alt*/ true, /*Shift*/ false);
+				return (oEvent.key ? oEvent.key === "ArrowUp" : oEvent.keyCode == KeyCodes.ARROW_UP) && checkModifierKeys(oEvent, /*Ctrl*/ false, /*Alt*/ true, /*Shift*/ false);
 			}
 		},
 
@@ -150,7 +150,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapleft",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				return (oEvent.key ? (oEvent.key === "ArrowLeft" || oEvent.key === "Left") : oEvent.keyCode == KeyCodes.ARROW_LEFT) && !hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "ArrowLeft" : oEvent.keyCode == KeyCodes.ARROW_LEFT) && !hasModifierKeys(oEvent);
 			}
 		},
 
@@ -162,7 +162,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapleftmodifiers",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				return (oEvent.key ? (oEvent.key === "ArrowLeft" || oEvent.key === "Left") : oEvent.keyCode == KeyCodes.ARROW_LEFT) && hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "ArrowLeft" : oEvent.keyCode == KeyCodes.ARROW_LEFT) && hasModifierKeys(oEvent);
 			}
 		},
 
@@ -174,7 +174,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapright",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				return (oEvent.key ? (oEvent.key === "ArrowRight" || oEvent.key === "Right") : oEvent.keyCode == KeyCodes.ARROW_RIGHT) && !hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "ArrowRight" : oEvent.keyCode == KeyCodes.ARROW_RIGHT) && !hasModifierKeys(oEvent);
 			}
 		},
 
@@ -186,7 +186,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "saprightmodifiers",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				return (oEvent.key ? (oEvent.key === "ArrowRight" || oEvent.key === "Right") : oEvent.keyCode == KeyCodes.ARROW_RIGHT) && hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "ArrowRight" : oEvent.keyCode == KeyCodes.ARROW_RIGHT) && hasModifierKeys(oEvent);
 			}
 		},
 
@@ -319,8 +319,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
 				if (oEvent.key) {
-					// "Spacebar" is IE only
-					return (oEvent.key === "Enter" || oEvent.key === "Spacebar" || oEvent.key === " ") && !hasModifierKeys(oEvent);
+					return (oEvent.key === "Enter" || oEvent.key === " ") && !hasModifierKeys(oEvent);
 				}
 				return (oEvent.keyCode == KeyCodes.ENTER || oEvent.keyCode == KeyCodes.SPACE) && !hasModifierKeys(oEvent);
 			}
@@ -335,8 +334,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
 				if (oEvent.key) {
-					// "Spacebar" is IE only
-					return (oEvent.key === "Enter" || oEvent.key === "Spacebar" || oEvent.key === " ") && hasModifierKeys(oEvent);
+					return (oEvent.key === "Enter" || oEvent.key === " ") && hasModifierKeys(oEvent);
 				}
 				return (oEvent.keyCode == KeyCodes.ENTER || oEvent.keyCode == KeyCodes.SPACE) && hasModifierKeys(oEvent);
 			}
@@ -350,8 +348,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapspace",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				// "Spacebar" is IE only
-				return (oEvent.key ? (oEvent.key === "Spacebar" || oEvent.key === " ") : oEvent.keyCode == KeyCodes.SPACE) && !hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === " " : oEvent.keyCode == KeyCodes.SPACE) && !hasModifierKeys(oEvent);
 			}
 		},
 
@@ -363,8 +360,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapspacemodifiers",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				// "Spacebar" is IE only
-				return (oEvent.key ? (oEvent.key === "Spacebar" || oEvent.key === " ") : oEvent.keyCode == KeyCodes.SPACE) && hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === " " : oEvent.keyCode == KeyCodes.SPACE) && hasModifierKeys(oEvent);
 			}
 		},
 
@@ -424,8 +420,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapdelete",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				// "Del" is IE only
-				return (oEvent.key ? oEvent.key === "Delete" || oEvent.key === "Del" : oEvent.keyCode == KeyCodes.DELETE) && !hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "Delete" : oEvent.keyCode == KeyCodes.DELETE) && !hasModifierKeys(oEvent);
 			}
 		},
 
@@ -437,8 +432,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapdeletemodifiers",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				// "Del" is IE only
-				return (oEvent.key ? oEvent.key === "Delete" || oEvent.key === "Del" : oEvent.keyCode == KeyCodes.DELETE) && hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "Delete" : oEvent.keyCode == KeyCodes.DELETE) && hasModifierKeys(oEvent);
 			}
 		},
 
@@ -510,8 +504,7 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 			sName: "sapescape",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				// "Esc" is IE only
-				return (oEvent.key ? oEvent.key === "Escape" || oEvent.key === "Esc" : oEvent.keyCode == KeyCodes.ESCAPE) && !hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "Escape" : oEvent.keyCode == KeyCodes.ESCAPE) && !hasModifierKeys(oEvent);
 			}
 		},
 
@@ -540,26 +533,28 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 		},
 
 		/**
-		 * Pseudo event for pseudo skip forward (F6 + no modifier)
+		 * Pseudo event for pseudo skip forward (F6 + no modifier or ctrl + alt + ArrowDown)
 		 * @public
 		 */
 		sapskipforward: {
 			sName: "sapskipforward",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				return (oEvent.key ? oEvent.key === "F6" : oEvent.keyCode == KeyCodes.F6) && !hasModifierKeys(oEvent);
+				return (oEvent.key ? oEvent.key === "F6" : oEvent.keyCode == KeyCodes.F6) && !hasModifierKeys(oEvent) ||
+						(oEvent.key ? oEvent.key === "ArrowDown" : oEvent.keyCode == KeyCodes.ARROW_DOWN) && checkModifierKeys(oEvent, /*Ctrl*/ true, /*Alt*/ true, /*Shift*/ false);
 			}
 		},
 
 		/**
-		 * Pseudo event for pseudo skip back (F6 + shift modifier)
+		 * Pseudo event for pseudo skip back (F6 + shift modifier or ctrl + alt + ArrowUp)
 		 * @public
 		 */
 		sapskipback: {
 			sName: "sapskipback",
 			aTypes: ["keydown"],
 			fnCheck: function(oEvent) {
-				return (oEvent.key ? oEvent.key === "F6" : oEvent.keyCode == KeyCodes.F6) && checkModifierKeys(oEvent, /*Ctrl*/ false, /*Alt*/ false, /*Shift*/ true);
+				return (oEvent.key ? oEvent.key === "F6" : oEvent.keyCode == KeyCodes.F6) && checkModifierKeys(oEvent, /*Ctrl*/ false, /*Alt*/ false, /*Shift*/ true) ||
+				(oEvent.key ? oEvent.key === "ArrowUp" : oEvent.keyCode == KeyCodes.ARROW_UP) && checkModifierKeys(oEvent, /*Ctrl*/ true, /*Alt*/ true, /*Shift*/ false);
 			}
 		},
 
@@ -579,9 +574,9 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 				var bRtl = sap.ui.getCore().getConfiguration().getRTL();
 				if (oEvent.key) {
 					if (bRtl) {
-						return (oEvent.key === "ArrowRight" || oEvent.key === "Right" || oEvent.key === "ArrowDown" || oEvent.key === "Down") && !hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowRight" || oEvent.key === "ArrowDown") && !hasModifierKeys(oEvent);
 					} else {
-						return (oEvent.key === "ArrowLeft" || oEvent.key === "Left" || oEvent.key === "ArrowDown" || oEvent.key === "Down") && !hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowLeft" || oEvent.key === "ArrowDown") && !hasModifierKeys(oEvent);
 					}
 				}
 				var iPreviousKey = bRtl ? KeyCodes.ARROW_RIGHT : KeyCodes.ARROW_LEFT;
@@ -612,9 +607,9 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 				var bRtl = sap.ui.getCore().getConfiguration().getRTL();
 				if (oEvent.key) {
 					if (bRtl) {
-						return (oEvent.key === "ArrowRight" || oEvent.key === "Right" || oEvent.key === "ArrowDown" || oEvent.key === "Down") && hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowRight" || oEvent.key === "ArrowDown") && hasModifierKeys(oEvent);
 					} else {
-						return (oEvent.key === "ArrowLeft" || oEvent.key === "Left" || oEvent.key === "ArrowDown" || oEvent.key === "Down") && hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowLeft" || oEvent.key === "ArrowDown") && hasModifierKeys(oEvent);
 					}
 				}
 				var iPreviousKey = bRtl ? KeyCodes.ARROW_RIGHT : KeyCodes.ARROW_LEFT;
@@ -634,9 +629,9 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 				var iNextKey;
 				if (oEvent.key) {
 					if (bRtl) {
-						return (oEvent.key === "ArrowLeft" || oEvent.key === "Left" || oEvent.key === "ArrowUp" || oEvent.key === "Up") && !hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowLeft" || oEvent.key === "ArrowUp") && !hasModifierKeys(oEvent);
 					} else {
-						return (oEvent.key === "ArrowRight" || oEvent.key === "Right" || oEvent.key === "ArrowUp" || oEvent.key === "Up") && !hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowRight" || oEvent.key === "ArrowUp") && !hasModifierKeys(oEvent);
 					}
 				}
 				iNextKey = bRtl ? KeyCodes.ARROW_LEFT : KeyCodes.ARROW_RIGHT;
@@ -667,9 +662,9 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 				var bRtl = sap.ui.getCore().getConfiguration().getRTL();
 				if (oEvent.key) {
 					if (bRtl) {
-						return (oEvent.key === "ArrowLeft" || oEvent.key === "Left" || oEvent.key === "ArrowUp" || oEvent.key === "Up") && hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowLeft" || oEvent.key === "ArrowUp") && hasModifierKeys(oEvent);
 					} else {
-						return (oEvent.key === "ArrowRight" || oEvent.key === "Right" || oEvent.key === "ArrowUp" || oEvent.key === "Up") && hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowRight" || oEvent.key === "ArrowUp") && hasModifierKeys(oEvent);
 
 					}
 				}
@@ -689,9 +684,9 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 				var bRtl = sap.ui.getCore().getConfiguration().getRTL();
 				if (oEvent.key) {
 					if (bRtl) {
-						return (oEvent.key === "ArrowRight" || oEvent.key === "Right" || oEvent.key === "ArrowUp" || oEvent.key === "Up") && !hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowRight" || oEvent.key === "ArrowUp") && !hasModifierKeys(oEvent);
 					} else {
-						return (oEvent.key === "ArrowLeft" || oEvent.key === "Left" || oEvent.key === "ArrowUp" || oEvent.key === "Up") && !hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowLeft" || oEvent.key === "ArrowUp") && !hasModifierKeys(oEvent);
 					}
 				}
 				var iPreviousKey = bRtl ? KeyCodes.ARROW_RIGHT : KeyCodes.ARROW_LEFT;
@@ -710,9 +705,9 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 				var bRtl = sap.ui.getCore().getConfiguration().getRTL();
 				if (oEvent.key) {
 					if (bRtl) {
-						return (oEvent.key === "ArrowRight" || oEvent.key === "Right" || oEvent.key === "ArrowUp" || oEvent.key === "Up") && hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowRight" || oEvent.key === "ArrowUp") && hasModifierKeys(oEvent);
 					} else {
-						return (oEvent.key === "ArrowLeft" || oEvent.key === "Left" || oEvent.key === "ArrowUp" || oEvent.key === "Up") && hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowLeft" || oEvent.key === "ArrowUp") && hasModifierKeys(oEvent);
 					}
 				}
 				var iPreviousKey = bRtl ? KeyCodes.ARROW_RIGHT : KeyCodes.ARROW_LEFT;
@@ -731,9 +726,9 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 				var bRtl = sap.ui.getCore().getConfiguration().getRTL();
 				if (oEvent.key) {
 					if (bRtl) {
-						return (oEvent.key === "ArrowLeft" || oEvent.key === "Left" || oEvent.key === "ArrowDown" || oEvent.key === "Down") && !hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowLeft" || oEvent.key === "ArrowDown") && !hasModifierKeys(oEvent);
 					} else {
-						return (oEvent.key === "ArrowRight" || oEvent.key === "Right" || oEvent.key === "ArrowDown" || oEvent.key === "Down") && !hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowRight" || oEvent.key === "ArrowDown") && !hasModifierKeys(oEvent);
 					}
 				}
 				var iNextKey = bRtl ? KeyCodes.ARROW_LEFT : KeyCodes.ARROW_RIGHT;
@@ -752,41 +747,15 @@ sap.ui.define(['sap/ui/events/KeyCodes', 'sap/ui/thirdparty/jquery'], function(K
 				var bRtl = sap.ui.getCore().getConfiguration().getRTL();
 				if (oEvent.key) {
 					if (bRtl) {
-						return (oEvent.key === "ArrowLeft" || oEvent.key === "Left" || oEvent.key === "ArrowDown" || oEvent.key === "Down") && hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowLeft" || oEvent.key === "ArrowDown") && hasModifierKeys(oEvent);
 					} else {
-						return (oEvent.key === "ArrowRight" || oEvent.key === "Right" || oEvent.key === "ArrowDown" || oEvent.key === "Down") && hasModifierKeys(oEvent);
+						return (oEvent.key === "ArrowRight" || oEvent.key === "ArrowDown") && hasModifierKeys(oEvent);
 					}
 				}
 				var iNextKey = bRtl ? KeyCodes.ARROW_LEFT : KeyCodes.ARROW_RIGHT;
 				return (oEvent.keyCode == iNextKey || oEvent.keyCode == KeyCodes.ARROW_DOWN) && hasModifierKeys(oEvent);
 			}
 		},
-
-		//// pseudo hotkey event
-		//{sName: "saphotkey", aTypes: ["keydown"], fnCheck: function(oEvent) {
-		//  return false;
-		//}},
-		/* TODO: hotkeys: all other events could be hotkeys
-		if(UCF_KeyboardHelper.bIsValidHotkey(iKey, bCtrl, bAlt, bShift)) {
-
-			if (iKey == KeyCodes.F1 && bNoModifiers) {
-				//special handling for FF - in IE the help is handeled by onHelp
-				if (UCF_System.sDevice == "ff1") {
-					this.fireSapEvent(this.E_SAP_EVENTS.hotkey, oEvent);
-				}
-			}
-			else if (bCtrlOnly && iKey == KeyCodes.C && document.selection) {
-				//handle ctrl+c centrally if text is selected to allow to copy it instead of firing the hotkey
-				var oTextRange = document.selection.createRange();
-				if (!oTextRange || oTextRange.text.length <= 0) {
-					this.fireSapEvent(this.E_SAP_EVENTS.hotkey, oEvent);
-				}
-			}
-			else {
-				this.fireSapEvent(this.E_SAP_EVENTS.hotkey, oEvent);
-			}
-		}
-		*/
 
 		/*
 		 * Other pseudo events

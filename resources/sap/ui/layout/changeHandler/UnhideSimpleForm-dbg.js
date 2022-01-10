@@ -13,10 +13,14 @@ sap.ui.define([
 	 * Change handler for hiding of a control.
 	 * @alias sap.ui.fl.changeHandler.HideControl
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @experimental Since 1.27.0
 	 */
 	var UnhideForm = { };
+
+	function _isXmlModifier(mPropertyBag) {
+		return mPropertyBag.modifier.targets === "xmlTree";
+	}
 
 	/**
 	 * Unhides a control
@@ -25,7 +29,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.Control} oControl - control that matches the change selector for applying the change
 	 * @param {object} mPropertyBag - map containing the control modifier object (either sap.ui.core.util.reflection.JsControlTreeModifier or
 	 *                                sap.ui.core.util.reflection.XmlTreeModifier), the view object where the controls are embedded and the application component
-	 * @returns {boolean} True if successful
+	 * @returns {Promise} Promise resolving when change is successfully applied
 	 * @public
 	 */
 	UnhideForm.applyChange = function(oChangeWrapper, oControl, mPropertyBag) {
@@ -35,34 +39,42 @@ sap.ui.define([
 
 		var oChangeDefinition = oChangeWrapper.getDefinition();
 
-		// !important : sUnhideId was used in 1.40, do not remove for compatibility reasons!
-		var oControlToUnhide = oModifier.bySelector(oChangeDefinition.content.elementSelector || oChangeDefinition.content.sUnhideId, oAppComponent, oView);
-		var aContent = oModifier.getAggregation(oControl, "content");
-		var iStart = -1;
-
-		if (oChangeDefinition.changeType === "unhideSimpleFormField") {
-			oChangeWrapper.setRevertData(true);
-			aContent.some(function (oField, index) {
-				if (oField === oControlToUnhide) {
-					iStart = index;
-					oModifier.setVisible(oField, true);
-				}
-				if (iStart >= 0 && index > iStart) {
-					if ((oModifier.getControlType(oField) === "sap.m.Label")
-						|| (oModifier.getControlType(oField) === "sap.ui.comp.smartfield.SmartLabel")
-						|| (oModifier.getControlType(oField) === "sap.ui.core.Title")
-						|| (oModifier.getControlType(oField) === "sap.m.Title")
-						|| (oModifier.getControlType(oField) === "sap.m.Toolbar")
-						|| (oModifier.getControlType(oField) === "sap.m.OverflowToolbar")) {
-						return true;
-					} else {
-						oModifier.setVisible(oField, true);
-					}
-				}
-			});
+		// in case of custom fields the application needs to be on JS.
+		// In the other case the visuality of the control will be overriden by the custom field binding afterwards
+		if (_isXmlModifier(mPropertyBag)) {
+			return Promise.reject(Error("Change cannot be applied in XML. Retrying in JS."));
 		}
 
-		return true;
+		// !important : sUnhideId was used in 1.40, do not remove for compatibility reasons!
+		var oControlToUnhide = oModifier.bySelector(oChangeDefinition.content.elementSelector || oChangeDefinition.content.sUnhideId, oAppComponent, oView);
+		return Promise.resolve()
+			.then(function() {
+				return oModifier.getAggregation(oControl, "content");
+			})
+			.then(function(aContent) {
+				var iStart = -1;
+
+				if (oChangeDefinition.changeType === "unhideSimpleFormField") {
+					oChangeWrapper.setRevertData(true);
+					aContent.some(function (oField, index) {
+						if (oField === oControlToUnhide) {
+							iStart = index;
+							oModifier.setVisible(oField, true);
+						}
+						if (iStart >= 0 && index > iStart) {
+							if ((oModifier.getControlType(oField) === "sap.m.Label")
+								|| (oModifier.getControlType(oField) === "sap.ui.comp.smartfield.SmartLabel")
+								|| (oModifier.getControlType(oField) === "sap.ui.core.Title")
+								|| (oModifier.getControlType(oField) === "sap.m.Title")
+								|| (oModifier.getControlType(oField) === "sap.m.Toolbar")
+								|| (oModifier.getControlType(oField) === "sap.m.OverflowToolbar")) {
+								return true;
+							}
+							oModifier.setVisible(oField, true);
+						}
+					});
+				}
+			});
 	};
 
 	/**
@@ -100,7 +112,7 @@ sap.ui.define([
 	 * @param {object} mPropertyBag.modifier Modifier for the controls
 	 * @param {object} mPropertyBag.appComponent Component in which the change should be applied
 	 * @param {object} mPropertyBag.view Application view
-	 * @returns {boolean} True if successful
+	 * @returns {Promise} Promise resolving when change is successfully reverted
 	 * @public
 	 */
 	UnhideForm.revertChange = function(oChangeWrapper, oControl, mPropertyBag) {
@@ -112,37 +124,40 @@ sap.ui.define([
 
 		// !important : sUnhideId was used in 1.40, do not remove for compatibility reasons!
 		var oControlToRevertUnhide = oModifier.bySelector(oChangeDefinition.content.elementSelector || oChangeDefinition.content.sUnhideId, oAppComponent, oView);
-		var aContent = oModifier.getAggregation(oControl, "content");
-		var iStart = -1;
+		return Promise.resolve()
+			.then(function() {
+				return oModifier.getAggregation(oControl, "content");
+			})
+			.then(function(aContent) {
+				var iStart = -1;
 
-		if (oChangeDefinition.changeType === "unhideSimpleFormField") {
-			aContent.some(function (oField, index) {
-				if (oField === oControlToRevertUnhide) {
-					iStart = index;
-					oModifier.setVisible(oField, false);
+				if (oChangeDefinition.changeType === "unhideSimpleFormField") {
+					aContent.some(function (oField, index) {
+						if (oField === oControlToRevertUnhide) {
+							iStart = index;
+							oModifier.setVisible(oField, false);
+						}
+						if (iStart >= 0 && index > iStart) {
+							if ((oModifier.getControlType(oField) === "sap.m.Label")
+								|| (oModifier.getControlType(oField) === "sap.ui.comp.smartfield.SmartLabel")
+								|| (oModifier.getControlType(oField) === "sap.ui.core.Title")
+								|| (oModifier.getControlType(oField) === "sap.m.Title")
+								|| (oModifier.getControlType(oField) === "sap.m.Toolbar")
+								|| (oModifier.getControlType(oField) === "sap.m.OverflowToolbar")) {
+								return undefined;
+							}
+							oModifier.setVisible(oField, false);
+						}
+					});
+					oChangeWrapper.resetRevertData();
 				}
-				if (iStart >= 0 && index > iStart) {
-					if ((oModifier.getControlType(oField) === "sap.m.Label")
-						|| (oModifier.getControlType(oField) === "sap.ui.comp.smartfield.SmartLabel")
-						|| (oModifier.getControlType(oField) === "sap.ui.core.Title")
-						|| (oModifier.getControlType(oField) === "sap.m.Title")
-						|| (oModifier.getControlType(oField) === "sap.m.Toolbar")
-						|| (oModifier.getControlType(oField) === "sap.m.OverflowToolbar")) {
-						return true;
-					} else {
-						oModifier.setVisible(oField, false);
-					}
-				}
+				return Promise.resolve();
 			});
-			oChangeWrapper.resetRevertData();
-		}
-
-		return true;
 	};
 
-	UnhideForm.getChangeVisualizationInfo = function(oChange) {
+	UnhideForm.getChangeVisualizationInfo = function(oChange, oAppComponent) {
 		return {
-			affectedControls: [oChange.getDefinition().content.elementSelector]
+			affectedControls: [JsControlTreeModifier.bySelector(oChange.getDefinition().content.elementSelector, oAppComponent).getParent().getId()]
 		};
 	};
 

@@ -3,4 +3,4 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/Renderer","sap/m/ButtonRenderer"],function(e,r){"use strict";var t=e.extend(r);t.render=function(e,r){var t=r.getAggregation("_button");e.write("<div");e.writeControlData(r);e.write(">");e.renderControl(t);e.write("</div>")};return t},true);
+sap.ui.define([],function(){"use strict";var e={apiVersion:2};e.render=function(e,n){var r=n.getAggregation("_button");e.openStart("div",n);e.openEnd();e.renderControl(r);e.close("div")};return e},true);

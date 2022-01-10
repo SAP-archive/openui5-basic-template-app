@@ -18,7 +18,7 @@ sap.ui.define(['./ServiceFactory', "sap/base/assert"],
 	 * The service factory registry.
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @alias sap.ui.core.service.ServiceFactoryRegistry
 	 * @private
 	 * @ui5-restricted sap.ushell
@@ -32,7 +32,7 @@ sap.ui.define(['./ServiceFactory', "sap/base/assert"],
 	 *
 	 * @param {string} sServiceFactoryName Name of the service factory
 	 * @param {sap.ui.core.service.ServiceFactory} oServiceFactory Service factory instance
-	 * @return {sap.ui.core.service.ServiceFactoryRegistry} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @static
 	 * @private
 	 * @ui5-restricted sap.ushell
@@ -53,7 +53,7 @@ sap.ui.define(['./ServiceFactory', "sap/base/assert"],
 	 * Unregisters a service factory instance for the given name.
 	 *
 	 * @param {string} sServiceFactoryName Name of the service factory
-	 * @return {sap.ui.core.service.ServiceFactoryRegistry} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @static
 	 * @private
 	 * @ui5-restricted sap.ushell

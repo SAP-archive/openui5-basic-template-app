@@ -5,24 +5,26 @@
  */
 
 // Provides class sap.ui.core.plugin.DeclarativeSupport
-sap.ui.define(['sap/ui/core/Core', 'sap/ui/core/DeclarativeSupport', "sap/base/Log"],
-	function(Core, DeclarativeSupport1, Log) {
+sap.ui.define([
+	"sap/base/Log",
+	'sap/ui/core/DeclarativeSupport',
+	'sap/ui/core/Core' // provides sap.ui.getCore()
+], function(Log, DeclarativeSupport) {
 	"use strict";
-
 
 
 	/**
 	 * Creates an instance of the class <code>sap.ui.core.plugin.DeclarativeSupport</code>
-	 * The plugin uses the <code>sap.ui.core.DeclarativeSupport</code>.
+	 * The plugin uses the {@link sap.ui.core.DeclarativeSupport}.
 	 *
 	 * @author Peter Muessig, Tino Butz
 	 * @see sap.ui.core.DeclarativeSupport
 	 * @public
 	 * @since 1.7.0
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @alias sap.ui.core.plugin.DeclarativeSupport
 	 */
-	var DeclarativeSupport = function() {
+	var DeclarativeSupportPlugin = function() {
 	};
 
 
@@ -33,32 +35,29 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/core/DeclarativeSupport', "sap/base/L
 	 * @param {boolean} [bOnInit] whether the hook is called during core initialization
 	 * @public
 	 */
-	DeclarativeSupport.prototype.startPlugin = function(oCore, bOnInit) {
+	DeclarativeSupportPlugin.prototype.startPlugin = function(oCore, bOnInit) {
 		Log.info("Starting DeclarativeSupport plugin.");
 		this.oCore = oCore;
 		this.oWindow = window;
-		DeclarativeSupport1.compile(document.body);
+		DeclarativeSupport.compile(document.body);
 	};
 
 	/**
 	 * Will be invoked by <code>sap.ui.core.Core</code> to notify the plugin to start
 	 * @public
 	 */
-	DeclarativeSupport.prototype.stopPlugin = function() {
+	DeclarativeSupportPlugin.prototype.stopPlugin = function() {
 		Log.info("Stopping DeclarativeSupport plugin.");
 		this.oCore = null;
 	};
 
 
-	/**
+	/*
 	 * Create the <code>sap.ui.core.plugin.DeclarativeSupport</code> plugin and
 	 * register it within the <code>sap.ui.core.Core</code>.
 	 */
-	(function(){
-		var oThis = new DeclarativeSupport();
-		sap.ui.getCore().registerPlugin(oThis);
-	}());
+	sap.ui.getCore().registerPlugin(new DeclarativeSupportPlugin());
 
-	return DeclarativeSupport;
+	return DeclarativeSupportPlugin;
 
 }, /* bExport= */ true);

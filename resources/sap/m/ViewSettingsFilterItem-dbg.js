@@ -5,8 +5,8 @@
  */
 
 // Provides control sap.m.ViewSettingsFilterItem.
-sap.ui.define(['./ViewSettingsItem', './library', 'sap/ui/base/ManagedObject'],
-	function(ViewSettingsItem, library, ManagedObject) {
+sap.ui.define(['./ViewSettingsItem', './library'],
+	function(ViewSettingsItem, library) {
 	"use strict";
 
 
@@ -24,7 +24,7 @@ sap.ui.define(['./ViewSettingsItem', './library', 'sap/ui/base/ManagedObject'],
 	 * @extends sap.m.ViewSettingsItem
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -85,10 +85,10 @@ sap.ui.define(['./ViewSettingsItem', './library', 'sap/ui/base/ManagedObject'],
 		 * @param {string} sAggregationName Name of the added aggregation
 		 * @param {object} oObject Intance that is going to be added
 		 * @param {boolean} bSuppressInvalidate Flag indicating whether invalidation should be supressed
-		 * @returns {sap.m.ViewSettingsFilterItem} This instance for chaining
+		 * @returns {this} This instance for chaining
 		 */
 	ViewSettingsFilterItem.prototype.addAggregation = function (sAggregationName, oObject, bSuppressInvalidate) {
-		ManagedObject.prototype.addAggregation.apply(this, arguments);
+		ViewSettingsItem.prototype.addAggregation.apply(this, arguments);
 		this._handleNewAggregationEvents(oObject);
 		return this;
 	};
@@ -101,11 +101,11 @@ sap.ui.define(['./ViewSettingsItem', './library', 'sap/ui/base/ManagedObject'],
 	 * @param {any} oObject The value of the aggregation to be inserted
 	 * @param {int} iIndex The index of the position of the entity to be inserted
 	 * @param {boolean} bSuppressInvalidate Whether to suppress invalidation
-	 * @returns {sap.m.ViewSettingsFilterItem} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 * @override
 	 */
 	ViewSettingsFilterItem.prototype.insertAggregation = function(sAggregationName, oObject, iIndex, bSuppressInvalidate) {
-		ManagedObject.prototype.insertAggregation.apply(this, arguments);
+		ViewSettingsItem.prototype.insertAggregation.apply(this, arguments);
 		this._handleNewAggregationEvents(oObject);
 		return this;
 	};
@@ -116,11 +116,11 @@ sap.ui.define(['./ViewSettingsItem', './library', 'sap/ui/base/ManagedObject'],
 	 * @param {string} sAggregationName The name of the aggregation
 	 * @param {any} oObject The value of aggregation to be removed
 	 * @param {boolean} bSuppressInvalidate Whether to suppress invalidation
-	 * @returns {sap.m.ViewSettingsFilterItem} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 * @override
 	 */
 	ViewSettingsFilterItem.prototype.removeAggregation = function(sAggregationName, oObject, bSuppressInvalidate) {
-		ManagedObject.prototype.removeAggregation.apply(this, arguments);
+		ViewSettingsItem.prototype.removeAggregation.apply(this, arguments);
 		this.fireFilterDetailItemsAggregationChange();
 		return this;
 	};
@@ -130,11 +130,11 @@ sap.ui.define(['./ViewSettingsItem', './library', 'sap/ui/base/ManagedObject'],
 	 *
 	 * @param {string} sAggregationName The name of aggregation
 	 * @param {boolean} bSuppressInvalidate Whether to suppress invalidation
-	 * @returns {sap.m.ViewSettingsFilterItem} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 * @override
 	 */
 	ViewSettingsFilterItem.prototype.removeAllAggregation = function(sAggregationName, bSuppressInvalidate) {
-		ManagedObject.prototype.removeAllAggregation.apply(this, arguments);
+		ViewSettingsItem.prototype.removeAllAggregation.apply(this, arguments);
 		this.fireFilterDetailItemsAggregationChange();
 		return this;
 	};
@@ -144,11 +144,11 @@ sap.ui.define(['./ViewSettingsItem', './library', 'sap/ui/base/ManagedObject'],
 	 *
 	 * @param {string} sAggregationName The name of aggregation
 	 * @param {boolean} bSuppressInvalidate Whether to suppress invalidation
-	 * @returns {sap.m.ViewSettingsFilterItem} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 * @override
 	 */
 	ViewSettingsFilterItem.prototype.destroyAggregation = function(sAggregationName, bSuppressInvalidate) {
-		ManagedObject.prototype.destroyAggregation.apply(this, arguments);
+		ViewSettingsItem.prototype.destroyAggregation.apply(this, arguments);
 		this.fireFilterDetailItemsAggregationChange();
 		return this;
 	};

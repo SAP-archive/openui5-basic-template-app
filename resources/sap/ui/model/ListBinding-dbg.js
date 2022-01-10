@@ -4,10 +4,10 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides an abstraction for list bindings
-sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
-	function(Binding, Filter, Sorter, diff) {
+sap.ui.define(['./Binding', './Filter', './FilterType', './Sorter', 'sap/base/util/array/diff'],
+	function(Binding, Filter, FilterType, Sorter, diff) {
 	"use strict";
 
 
@@ -16,18 +16,23 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 	 *
 	 * @abstract
 	 * @class
-	 * ListBinding is a specific binding for lists in the model, which can be used
-	 * to populate Tables or ItemLists.
+	 * ListBinding is a specific binding for lists in the model, which can be used to populate
+	 * Tables or ItemLists.
 	 *
-	 * @param {sap.ui.model.Model} oModel Model instance that this binding belongs to
-	 * @param {string} sPath Binding path for this binding;
-	 *   a relative path will be resolved relative to a given context
-	 * @param {sap.ui.model.Context} oContext Context to be used to resolve a relative path
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters] Initial sort order (can be either a sorter or an array of sorters)
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters] Predefined filter/s (can be either a filter or an array of filters)
-	 * @param {object} [mParameters] Additional, implementation-specific parameters that should be used
-	 *   by the new list binding; this base class doesn't define any parameters, check the API reference
-	 *   for the concrete model implementations to learn about their supported parameters (if any)
+	 * @param {sap.ui.model.Model} oModel
+	 *   Model instance that this binding belongs to
+	 * @param {string} sPath
+	 *   Binding path for this binding; a relative path will be resolved relative to a given context
+	 * @param {sap.ui.model.Context} oContext
+	 *   Context to be used to resolve a relative path
+	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters]
+	 *   Initial sort order (can be either a sorter or an array of sorters)
+	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters]
+	 *   Predefined filter/s (can be either a filter or an array of filters)
+	 * @param {object} [mParameters]
+	 *   Additional, implementation-specific parameters that should be used by the new list binding;
+	 *   this base class doesn't define any parameters, check the API reference for the concrete
+	 *   model implementations to learn about their supported parameters (if any)
 	 *
 	 * @public
 	 * @alias sap.ui.model.ListBinding
@@ -69,24 +74,36 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 	 * Returns an array of binding contexts for the bound target list.
 	 *
 	 * <h4>Extended Change Detection</h4>
-	 * If extended change detection is enabled using {@link sap.ui.model.ListBinding.prototype.enableExtendedChangeDetection},
-	 * the context array may carry an additional property named <code>diff</code>, which contains an array of actual changes
-	 * on the context array compared to the last call of <code>getContexts()</code>.
-	 * In case no <code>diff</code> property is available on the context array, the list is completely different and needs to
-	 * be recreated. In case the <code>diff</code> property contains an empty array, there have been no changes on the list.
+	 * If extended change detection is enabled using
+	 * {@link sap.ui.model.ListBinding.prototype.enableExtendedChangeDetection}, the context array
+	 * may carry an additional property named <code>diff</code>, which contains an array of actual
+	 * changes on the context array compared to the last call of <code>getContexts()</code>. In case
+	 * no <code>diff</code> property is available on the context array, the list is completely
+	 * different and needs to be recreated. In case the <code>diff</code> property contains an empty
+	 * array, there have been no changes on the list.
 	 *
 	 * Sample diff array:
 	 * <code>[{index: 1, type: "delete"}, {index: 4, type: "insert}]</code>
 	 *
-	 * <strong>Note:</strong>The public usage of this method is deprecated, as calls from outside of controls will lead
-	 * to unexpected side effects. To avoid these side effect, use {@link sap.ui.model.ListBinding.prototype.getCurrentContexts}
-	 * instead.
+	 * <strong>Note:</strong>The public usage of this method is deprecated, as calls from outside of
+	 * controls will lead to unexpected side effects. To avoid these side effect, use
+	 * {@link sap.ui.model.ListBinding.prototype.getCurrentContexts} instead.
 	 *
 	 * @function
 	 * @name sap.ui.model.ListBinding.prototype.getContexts
-	 * @param {int} [iStartIndex=0] the startIndex where to start the retrieval of contexts
-	 * @param {int} [iLength=length of the list] determines how many contexts to retrieve beginning from the start index.
-	 * @return {sap.ui.model.Context[]} the array of contexts for each row of the bound list
+	 * @param {int} [iStartIndex=0]
+	 *   The startIndex where to start the retrieval of contexts
+	 * @param {int} [iLength=length of the list]
+	 *   Determines how many contexts to retrieve beginning from the start index.
+	 * @param {int} [iMaximumPrefetchSize]
+	 *   The maximum number of contexts to read before and after the given range; with this,
+	 *   controls can prefetch data that is likely to be needed soon, e.g. when scrolling down in a
+	 *   table; this parameter is model-specific and not implemented by all models
+	 * @param {boolean} [bKeepCurrent]
+	 *   Whether this call keeps the result of {@link #getCurrentContexts} untouched; since 1.86.0.
+	 *   This parameter is model-specific and not implemented by all models
+	 * @return {sap.ui.model.Context[]}
+	 *   The array of contexts for each row of the bound list
 	 *
 	 * @protected
 	 */
@@ -99,27 +116,29 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 	 *
 	 * <h4>Application and Control Filters</h4>
 	 * Each list binding maintains two separate lists of filters, one for filters defined by the
-	 * control that owns the binding and another list for filters that an application can define
-	 * in addition. When executing the filter operation, both sets of filters are combined.
+	 * control that owns the binding, and another list for filters that an application can define in
+	 * addition. When executing the filter operation, both sets of filters are combined.
 	 *
-	 * By using the second parameter <code>sFilterType</code> of method <code>filter</code>,
-	 * the caller can control which set of filters is modified. If no type is given, then the
+	 * By using the <code>sFilterType</code> parameter of the <code>filter</code> method, the
+	 * caller can control which set of filters is modified. If no type is given, then the
 	 * behavior depends on the model implementation and should be documented in the API reference
 	 * for that model.
 	 *
 	 * <h4>Auto-Grouping of Filters</h4>
-	 * Filters are first grouped according to their binding path.
-	 * All filters belonging to the same group are ORed and after that the
-	 * results of all groups are ANDed.
-	 * Usually this means, all filters applied to a single table column
-	 * are ORed, while filters on different table columns are ANDed.
-	 * Please either use the automatic grouping of filters (where applicable) or use explicit
-	 * AND/OR filters, a mixture of both is not supported.
+	 * Filters are first grouped according to their binding path. All filters belonging to the same
+	 * path are ORed, and after that the results of all paths are ANDed. Usually this means that all
+	 * filters applied to the same property are ORed, while filters on different properties are
+	 * ANDed.
+	 * Please use either the automatic grouping of filters (where applicable) or explicit
+	 * AND/OR filters, as a mixture of both is not supported.
 	 *
-	 * @param {sap.ui.model.Filter[]} aFilters Array of filter objects
-	 * @param {sap.ui.model.FilterType} [sFilterType=undefined] Type of the filter which should
-	 *  be adjusted; if no type is given, the behavior depends on the model implementation
-	 * @return {sap.ui.model.ListBinding} returns <code>this</code> to facilitate method chaining
+	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} aFilters
+	 *   Single filter object or an array of filter objects
+	 * @param {sap.ui.model.FilterType} [sFilterType=undefined]
+	 *   Type of the filter which should be adjusted; if no type is given, the behavior depends on
+	 *   the model implementation
+	 * @return {this}
+	 *   Returns <code>this</code> to facilitate method chaining
 	 *
 	 * @function
 	 * @name sap.ui.model.ListBinding.prototype.filter
@@ -129,31 +148,33 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 	/**
 	 * Sorts the list according to the sorter object.
 	 *
-	 * Instead of a single sorter also an array of sorters can be passed to the sort method. In this case they
-	 * are processed in the sequence in which they are contained in the array.
+	 * Instead of a single sorter also an array of sorters can be passed to the sort method. In this
+	 * case they are processed in the sequence in which they are contained in the array.
 	 *
 	 * <h4>Grouping</h4>
-	 * Sorting and grouping are closely related, in case a list should be grouped, it must be sorted by the
-	 * property to group with. Grouping is enabled by setting the <code>group</code> property on the sorter object. If it is
-	 * enabled, you can get the current group of an item using {@link sap.ui.model.ListBinding.prototype.getGroup}.
-	 * In case multiple sorters are provided, grouping can only be done on the first sorter, nested grouping is
-	 * not supported.
+	 * Sorting and grouping are closely related. In case a list should be grouped, it must be sorted
+	 * by the property to group with. Grouping is enabled by setting the <code>group</code> property
+	 * on the sorter object. If it is enabled, you can get the current group of an item using
+	 * {@link sap.ui.model.ListBinding.prototype.getGroup}. In case multiple sorters are provided,
+	 * grouping can only be done on the first sorter, nested grouping is not supported.
 	 *
 	 * @function
 	 * @name sap.ui.model.ListBinding.prototype.sort
-	 * @param {sap.ui.model.Sorter|Array} aSorters the Sorter object or an array of sorters which defines the sort order
-	 * @return {sap.ui.model.ListBinding} returns <code>this</code> to facilitate method chaining
+	 * @param {sap.ui.model.Sorter|Array} aSorters
+	 *   The Sorter object or an array of sorters which defines the sort order
+	 * @return {this}
+	 *   Returns <code>this</code> to facilitate method chaining
 	 * @public
 	 */
 
 	/**
 	 * Returns an array of currently used binding contexts of the bound control.
 	 *
-	 * This method does not trigger any data requests from the backend or delta calculation, but just returns the context
-	 * array as last requested by the control. This can be used by the application to get access to the data currently
-	 * displayed by a list control.
+	 * This method does not trigger any data requests from the back end or a delta calculation, but
+	 * just returns the context array as last requested by the control. This can be used by the
+	 * application to get access to the data currently displayed by a list control.
 	 *
-	 * @return {sap.ui.model.Context[]} the array of contexts for each row of the bound list
+	 * @return {sap.ui.model.Context[]} The array of contexts for each row of the bound list
 	 * @since 1.28
 	 * @public
 	 */
@@ -162,12 +183,31 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 	};
 
 	/**
+	 * Returns the count of entries in the list, or <code>undefined</code> if it is unknown.
+	 * The count is by default identical to the list length if it is final. Concrete subclasses may,
+	 * however, override the method, for example:
+	 * <ul>
+	 *   <li> for server-side models where lists are not completely read by the client,
+	 *   <li> for lists representing hierarchical data.
+	 * </ul>
+	 *
+	 * @returns {number|undefined} The count of entries
+	 * @public
+	 * @see #getLength
+	 * @see #isLengthFinal
+	 * @since 1.93.0
+	 */
+	ListBinding.prototype.getCount = function() {
+		return this.isLengthFinal() ? this.getLength() : undefined;
+	};
+
+	/**
 	 * Returns the number of entries in the list.
 	 *
-	 * This might be an estimated or preliminary length, in case the full length is not known yet, see method
-	 * {@link #isLengthFinal}.
+	 * This might be an estimated or preliminary length, in case the full length is not known yet,
+	 * see method {@link #isLengthFinal}.
 	 *
-	 * @return {int} returns the number of entries in the list
+	 * @return {int} Returns the number of entries in the list
 	 * @since 1.24
 	 * @public
 	 */
@@ -208,34 +248,41 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 	 * @event
 	 * @param {sap.ui.base.Event} oEvent
 	 * @public
-	 * @deprecated As of version 1.11, use the <code>change</code> event. It now contains
-	 *             a parameter <code>(reason : "sort")</code> when a sorter event is fired.
+	 * @deprecated
+	 *   As of version 1.11, use the <code>change</code> event. It now contains a parameter
+	 *   <code>(reason : "sort")</code> when a sorter event is fired.
 	 */
 
 	/**
 	 * Attaches event handler <code>fnFunction</code> to the {@link #event:sort sort} event of this
 	 * <code>sap.ui.model.ListBinding</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.ListBinding</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.ListBinding</code> itself.
 	 *
-	 * @param {function} fnFunction The function to be called, when the event occurs
-	 * @param {object} [oListener] Context object to call the event handler with,
-	 *            defaults to this <code>ListBinding</code> itself
+	 * @param {function} fnFunction
+	 *   The function to be called, when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with; defaults to this <code>ListBinding</code>
+	 *   itself
 	 * @protected
-	 * @deprecated As of version 1.11, use the <code>change</code> event. It now contains
-	 *             a parameter <code>(reason : "sort")</code> when a sorter event is fired.
+	 * @deprecated
+	 *   As of version 1.11, use the <code>change</code> event. It now contains a parameter
+	 *   <code>(reason : "sort")</code> when a sorter event is fired.
 	 */
 	ListBinding.prototype.attachSort = function(fnFunction, oListener) {
 		this.attachEvent("sort", fnFunction, oListener);
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:sort sort} event of this
-	 * <code>sap.ui.model.ListBinding</code>.
+	 * Detaches event handler <code>fnFunction</code> from the {@link #event:sort sort} event of
+	 * this <code>sap.ui.model.ListBinding</code>.
 	 *
-	 * @param {function} fnFunction The function to be called, when the event occurs
-	 * @param {object} [oListener] Context object on which the given function had to be called
+	 * @param {function} fnFunction
+	 *   The function to be called, when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object on which the given function had to be called
 	 * @protected
 	 * @deprecated As of version 1.11, use the <code>change</code> event.
 	 */
@@ -248,8 +295,9 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 	 *
 	 * @param {object} [oParameters] Parameters to pass along with the event.
 	 * @private
-	 * @deprecated As of version 1.11, use the <code>change</code> event. It now contains
-	 *             a parameter <code>(reason : "sort")</code> when a sorter event is fired.
+	 * @deprecated
+	 *   As of version 1.11, use the <code>change</code> event. It now contains a parameter
+	 *   <code>(reason : "sort")</code> when a sorter event is fired.
 	 */
 	ListBinding.prototype._fireSort = function(oParameters) {
 		this.fireEvent("sort", oParameters);
@@ -262,34 +310,39 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 	 * @event
 	 * @param {sap.ui.base.Event} oEvent
 	 * @public
-	 * @deprecated As of version 1.11, use the <code>change</code> event. It now contains a parameter
-	 *             <code>(reason : "filter")</code> when a filter event is fired.
+	 * @deprecated
+	 *   As of version 1.11, use the <code>change</code> event. It now contains a parameter
+	 *   <code>(reason : "filter")</code> when a filter event is fired.
 	 */
 
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:filter filter} event of this
-	 * <code>sap.ui.model.ListBinding</code>.
+	 * Attaches event handler <code>fnFunction</code> to the {@link #event:filter filter} event of
+	 * this <code>sap.ui.model.ListBinding</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.ListBinding</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.ListBinding</code> itself.
 	 *
-	 * @param {function} fnFunction The function to be called, when the event occurs
-	 * @param {object} [oListener] Context object to call the event handler with,
-	 *            defaults to this <code>ListBinding</code> itself
+	 * @param {function} fnFunction
+	 *   The function to be called, when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with; defaults to this <code>ListBinding</code>
+	 *   itself
 	 * @protected
-	 * @deprecated As of version 1.11, use the <code>change</code> event. It now contains a parameter
-	 *             <code>(reason : "filter")</code> when a filter event is fired.
+	 * @deprecated
+	 *   As of version 1.11, use the <code>change</code> event. It now contains a parameter
+	 *   <code>(reason : "filter")</code> when a filter event is fired.
 	 */
 	ListBinding.prototype.attachFilter = function(fnFunction, oListener) {
 		this.attachEvent("filter", fnFunction, oListener);
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:filter filter} event of this
-	 * <code>sap.ui.model.ListBinding</code>.
+	 * Detaches event handler <code>fnFunction</code> from the {@link #event:filter filter} event of
+	 * this <code>sap.ui.model.ListBinding</code>.
 	 *
 	 * @param {function} fnFunction The function to be called, when the event occurs
-	 * @param {object} [oListener] on which the given function had to be called
+	 * @param {object} [oListener] On which object the given function had to be called
 	 * @protected
 	 * @deprecated As of version 1.11, use the <code>change</code> event.
 	 */
@@ -302,8 +355,9 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 	 *
 	 * @param {object} [oParameters] Parameters to pass along with the event.
 	 * @private
-	 * @deprecated As of version 1.11, use the <code>change</code> event. It now contains a parameter
-	 *             <code>(reason : "filter")</code> when a filter event is fired.
+	 * @deprecated
+	 *   As of version 1.11, use the <code>change</code> event. It now contains a parameter
+	 *   <code>(reason : "filter")</code> when a filter event is fired.
 	 */
 	ListBinding.prototype._fireFilter = function(oParameters) {
 		this.fireEvent("filter", oParameters);
@@ -311,8 +365,8 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 
 	/**
 	 * Indicates whether grouping is enabled for the binding.
-	 * Grouping is enabled for a list binding, if at least one sorter exists on the binding and the first sorter
-	 * is a grouping sorter.
+	 * Grouping is enabled for a list binding if at least one sorter exists on the binding and the
+	 * first sorter is a grouping sorter.
 	 * @public
 	 * @returns {boolean} Whether grouping is enabled
 	 */
@@ -322,8 +376,9 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 
 	/**
 	 * Gets the group for the given context.
-	 * Must only be called if <code>isGrouped()</code> returns that grouping is enabled for this binding.
-	 * The grouping will be performed using the first sorter (in case multiple sorters are defined).
+	 * Must only be called if <code>isGrouped()</code> returns that grouping is enabled for this
+	 * binding. The grouping will be performed using the first sorter (in case multiple sorters are
+	 * defined).
 	 * @param {sap.ui.model.Context} oContext The binding context
 	 * @public
 	 * @returns {object} The group object containing a key property and optional custom properties
@@ -349,15 +404,21 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 
 	/**
 	 * Enable extended change detection.
-	 * When extended change detection is enabled, the list binding provides detailed information about changes, for example
-	 * which entries have been removed or inserted. This can be utilized by a control for fine-grained update of its elements.
+	 * When extended change detection is enabled, the list binding provides detailed information
+	 * about changes, for example which entries have been removed or inserted. This can be utilized
+	 * by a control for fine-grained update of its elements.
 	 * Please see {@link sap.ui.model.ListBinding.prototype.getContexts} for more information.
 	 *
-	 * For models that do not have a unique key on each entry by default, a key property or function can be set which is used to
-	 * identify entries.
+	 * For models that do not have a unique key on each entry by default, a key property or function
+	 * can be set which is used to identify entries.
 	 *
-	 * @param {boolean} bDetectUpdates Whether changes within the same entity should cause a delete and insert command
-	 * @param {function|string} vKey The path of the property containing the key or a function getting the context as only parameter to calculate a key to identify an entry
+	 * @param {boolean} bDetectUpdates
+	 *   Whether changes within the same entity should cause a delete and insert command
+	 * @param {function|string} vKey
+	 *   The path of the property containing the key or a function getting the context as only
+	 *   parameter to calculate a key to identify an entry
+	 * @param {object} oExtendedChangeDetectionConfig
+	 *   The configuration for the change detection
 	 * @protected
 	 */
 	ListBinding.prototype.enableExtendedChangeDetection = function(bDetectUpdates, vKey, oExtendedChangeDetectionConfig /* restricted */) {
@@ -377,11 +438,12 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 	};
 
 	/**
-	 * Return the data used for the extended change detection. Dependent on the configuration this can either be a
-	 * serialization of the complete data, or just a unique key identifying the entry. If grouping is enabled, the
-	 * grouping key will also be included, to detect grouping changes.
+	 * Return the data used for the extended change detection. Dependent on the configuration this
+	 * can either be a serialization of the complete data, or just a unique key identifying the
+	 * entry. If grouping is enabled, the grouping key will also be included, to detect grouping
+	 * changes.
 	 *
-	 * @param {sap.ui.model.Context} oContext the context object
+	 * @param {sap.ui.model.Context} oContext The context object
 	 * @returns {string} A string which is used for diff comparison
 	 */
 	ListBinding.prototype.getContextData = function(oContext) {
@@ -398,24 +460,51 @@ sap.ui.define(['./Binding', './Filter', './Sorter', 'sap/base/util/array/diff'],
 	};
 
 	/**
-	 * Return the entry data serialized as a string. The default implementation assumes a JS object and uses
-	 * JSON.stringify to serialize it, subclasses may override as needed.
+	 * Return the entry data serialized as a string. The default implementation assumes a JS object
+	 * and uses JSON.stringify to serialize it. Subclasses may override as needed.
 	 *
-	 * @param {sap.ui.model.Context} oContext the context object
+	 * @param {sap.ui.model.Context} oContext The context object
 	 * @returns {string} The serialized object data
 	 */
 	ListBinding.prototype.getEntryData = function(oContext) {
 		return JSON.stringify(oContext.getObject());
 	};
 
+
 	/**
-	 * Return the filter information as an AST. The default implementation checks for this.oCombinedFilter,
-	 * models not using this member may override the method.
-	 * Consumers must not rely on the origin information to be available, future filter implementations will
-	 * not provide this information.
+	 * Returns the filters set via the constructor or via {@link #filter} for the given
+	 * {@link sap.ui.model.FilterType}.
 	 *
-	 * @param {boolean} bIncludeOrigin include information about the filter objects the tree has been created from
-	 * @returns {object} The AST of the filter tree
+	 * @param {sap.ui.model.FilterType} sFilterType
+	 *   The FilterType
+	 * @returns {sap.ui.model.Filter[]}
+	 *   An array of filters for the given filter type.
+	 * @throws {Error}
+	 *   If no or an invalid filter type was given
+	 * @public
+	 * @since 1.96.0
+	 */
+	ListBinding.prototype.getFilters = function (sFilterType) {
+		switch (sFilterType) {
+			case FilterType.Application:
+				return this.aApplicationFilters && this.aApplicationFilters.slice() || [];
+			case FilterType.Control:
+				return this.aFilters && this.aFilters.slice() || [];
+			default:
+				throw new Error("Invalid FilterType: " + sFilterType);
+		}
+	};
+
+	/**
+	 * Return the filter information as an AST. The default implementation checks for
+	 * <code>this.oCombinedFilter</code>. Models not using this member may override the method.
+	 * Consumers must not rely on the origin information to be available as future filter
+	 * implementations will not provide this information.
+	 *
+	 * @param {boolean} bIncludeOrigin
+	 *   Include information about the filter objects the tree has been created from
+	 * @returns {object}
+	 *   The AST of the filter tree
 	 * @private
 	 * @ui5-restricted sap.ui.table, sap.ui.export
 	 */

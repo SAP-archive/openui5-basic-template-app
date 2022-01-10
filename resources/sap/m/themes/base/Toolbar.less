@@ -3,12 +3,13 @@
 /* Base theme                     */
 /* ============================== */
 
-.sapMIBar.sapMTB .sapMBarChild {
-	margin: 0 0 0 0.5rem;
+//we want the first visible element on the row to have specific padding-left value
+.sapMIBar.sapMTB .sapMBarChild{
+	margin-left: 0.25rem;
 }
 
-.sapMIBar.sapMTB .sapMBarChild:first-child {
-	margin-left: 0.25rem;
+.sapMIBar.sapMTB .sapMBarChild ~ .sapMBarChild {
+	margin: 0 0 0 0.5rem;
 }
 
 .sapMIBar.sapMTB .sapMBarChild:first-child[style*="width: 100%"] {
@@ -25,7 +26,6 @@
 	box-sizing: border-box;
 	-webkit-text-size-adjust: none;
 	-moz-text-size-adjust: none;
-	-ms-text-size-adjust: none;
 	height: 3rem;
 	background: @sapUiToolbarBackground;
 	padding-right: 0.25rem;
@@ -62,12 +62,18 @@
 	padding: 1px;
 }
 
+/* Background and text colors for different states */
+.sapMTB-Info-CTX > .sapUiIcon:focus {
+	outline: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+	outline-offset: 0.0625rem;
+}
+
 .sapMTBActive,
 .sapMTBActive > * {
 	cursor: pointer;
 }
 
-.sapMTBShrinkItem {
+.sapMTBShrinkItem:not(.sapMSF) {
 	min-width: 2.5rem; /* default min-width value for the shrinkable items */
 }
 
@@ -109,6 +115,7 @@
 .sapMTB-Info-CTX.sapMTB {
 	background: @sapUiInfobarBackground;
 	color: contrast(@sapUiInfobarBackground, @sapUiListActiveTextColor, @sapUiListTextColor, @sapUiContentContrastTextThreshold);
+	height: 2rem;
 
 	.sapMText {
 		white-space: nowrap;
@@ -145,7 +152,7 @@
 }
 
 /* default min-width value for the shrinkable items */
-.sapUiSizeCompact .sapMTBShrinkItem,
+.sapUiSizeCompact .sapMTBShrinkItem:not(.sapMSF),
 .sapUiSizeCondensed .sapUiTableCell .sapMTBShrinkItem{
 	min-width: 2rem;
 }

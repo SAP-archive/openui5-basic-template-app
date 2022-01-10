@@ -4,11 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
-
 // Provides control sap.m.DatePicker.
 sap.ui.define([
 	'sap/ui/thirdparty/jquery',
@@ -18,6 +13,7 @@ sap.ui.define([
 	'./DateTimeField',
 	'./Button',
 	'./ResponsivePopover',
+	"./ValueStateHeader",
 	'sap/ui/core/date/UniversalDate',
 	'./library',
 	'sap/ui/core/Control',
@@ -46,6 +42,7 @@ sap.ui.define([
 		DateTimeField,
 		Button,
 		ResponsivePopover,
+		ValueStateHeader,
 		UniversalDate,
 		library,
 		Control,
@@ -87,13 +84,15 @@ sap.ui.define([
 	 * mouse, or keyboard input. It consists of two parts: the date input field and the
 	 * date picker.
 	 *
-	 * <b>Note:</b> The {@link sap.ui.unified.Calendar} is used internally only if the
+	 * <b>Note:</b> The application developer should add dependency to <code>sap.ui.unified</code>
+	 * library on application level to ensure that the library is loaded before the module dependencies will be required.
+	 * The {@link sap.ui.unified.Calendar} is used internally only if the
 	 * <code>DatePicker</code> is opened (not used for the initial rendering). If the
 	 * <code>sap.ui.unified</code> library is not loaded before the
 	 * <code>DatePicker</code> is opened, it will be loaded upon opening. This could
-	 * lead to a waiting time when the <code>DatePicker</code> is opened for the
+	 * lead to CSP compliance issues and adds an additional waiting time when the <code>DatePicker</code> is opened for the
 	 * first time. To prevent this, apps using the <code>DatePicker</code> should also
-	 * load the <code>sap.ui.unified</code> library.
+	 * load the <code>sap.ui.unified</code> library in advance.
 	 *
 	 * <h3>Usage</h3>
 	 *
@@ -149,7 +148,7 @@ sap.ui.define([
 	 * the close event), or select Cancel.
 	 *
 	 * @extends sap.m.DateTimeField
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -202,7 +201,17 @@ sap.ui.define([
 			 *
 			 * @since 1.70
 			 */
-			showFooter : {type : "boolean", group : "Misc", defaultValue : false}
+			showFooter : {type : "boolean", group : "Misc", defaultValue : false},
+
+			/**
+			 * Determines whether there is a shortcut navigation to Today. When used in Month, Year or
+			 * Year-range picker view, the calendar navigates to Day picker view.
+			 *
+			 * Note: The Current date button appears if the <code>displayFormat</code> property allows entering day.
+			 *
+			 * @since 1.95
+			 */
+			showCurrentDateButton : {type : "boolean", group : "Behavior", defaultValue : false}
 
 		},
 
@@ -388,6 +397,9 @@ sap.ui.define([
 		}
 
 		if (this._getCalendar()) {
+			if (this._oCalendarAfterRenderDelegate) {
+				this._getCalendar().removeDelegate(this._oCalendarAfterRenderDelegate);
+			}
 			this._getCalendar().destroy();
 			delete this._getCalendar();
 		}
@@ -430,10 +442,32 @@ sap.ui.define([
 	};
 
 	/**
+	 * Sets the displayFormat of the DatePicker.
+	 *
+	 * @param {string} sDisplayFormat  new value for <code>displayFormat</code>
+	 * @returns {this} <code>this</code> to allow method chaining
+	 * @public
+	 */
+	 DatePicker.prototype.setDisplayFormat = function(sDisplayFormat) {
+
+		this.setProperty("displayFormat", sDisplayFormat);
+
+		if (this._oCalendar) { // if the calendar already exists, destroy it and create new one according to the new format
+			this._oCalendar.removeDelegate(this._oCalendarAfterRenderDelegate);
+			this._oCalendar.destroy();
+			this._oCalendar = null;
+			this._createPopupContent();
+		}
+
+		return this;
+
+	};
+
+	/**
 	 * Defines the width of the DatePicker. Default value is 100%
 	 *
 	 * @param {string} sWidth  new value for <code>width</code>
-	 * @returns {sap.m.DatePicker} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	DatePicker.prototype.setWidth = function(sWidth) {
@@ -460,7 +494,7 @@ sap.ui.define([
 	DatePicker.prototype.onfocusin = function(oEvent) {
 
 		if (!jQuery(oEvent.target).hasClass("sapUiIcon")) {
-			InputBase.prototype.onfocusin.apply(this, arguments);
+			DateTimeField.prototype.onfocusin.apply(this, arguments);
 		}
 
 		this._bFocusNoPopup = undefined;
@@ -582,7 +616,7 @@ sap.ui.define([
 	 * This prevents unwanted automatic corrections of wrong input.
 	 *
 	 * @param {string} sValue The new value of the input.
-	 * @return {sap.m.DatePicker} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 * @name sap.m.DatePicker#setValue
 	 * @function
@@ -627,6 +661,7 @@ sap.ui.define([
 			var oDateValue = this.getDateValue();
 			if (oDateValue && oDateValue.getTime() < oDate.getTime()) {
 				this._bValid = false;
+				this._bOutOfAllowedRange = true;
 				Log.warning("DateValue not in valid date range", this);
 			}
 		} else {
@@ -667,6 +702,7 @@ sap.ui.define([
 			var oDateValue = this.getDateValue();
 			if (oDateValue && oDateValue.getTime() > oDate.getTime()) {
 				this._bValid = false;
+				this._bOutOfAllowedRange = true;
 				Log.warning("DateValue not in valid date", this);
 			}
 		} else {
@@ -684,6 +720,12 @@ sap.ui.define([
 
 		return this;
 
+	};
+
+	DatePicker.prototype.setCurrentDateButton = function(bShow) {
+		var oCalendar = this._getCalendar();
+		oCalendar && oCalendar.setCurrentDateButton(bShow);
+		return this.setProperty("showCurrentDateButton", bShow);
 	};
 
 	DatePicker.prototype._checkMinMaxDate = function () {
@@ -804,7 +846,7 @@ sap.ui.define([
 	 *
 	 * @since 1.38.5
 	 * @param {sap.ui.unified.DateTypeRange} oSpecialDate the specialDate to add; if empty, nothing is added
-	 * @return {sap.m.DatePicker} Reference to <code>this</code> in order to allow method chaining
+	 * @return {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	DatePicker.prototype.addSpecialDate = function(oSpecialDate){
@@ -827,7 +869,7 @@ sap.ui.define([
 	 * @param {int} iIndex the 0-based index the <code>specialDate</code> should be inserted at;
 	 *              for a negative value of <code>iIndex</code>, the <code>specialDate</code> is inserted at position 0;
 	 *              for a value greater than the current size of the aggregation, the <code>specialDate</code> is inserted at the last position
-	 * @return {sap.m.DatePicker} Reference to <code>this</code> in order to allow method chaining
+	 * @return {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	DatePicker.prototype.insertSpecialDate = function(oSpecialDate, iIndex){
@@ -886,7 +928,7 @@ sap.ui.define([
 	 * @since 1.38.5
 	 * @param {sap.ui.core.ID | sap.ui.unified.CalendarLegend} oLegend ID of an element which becomes the new target of this <code>legend</code> association;
 	 *                                                         alternatively, an element instance may be given
-	 * @return {sap.m.DatePicker} Reference to <code>this</code> in order to allow method chaining
+	 * @return {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	DatePicker.prototype.setLegend = function(oLegend){
@@ -938,7 +980,7 @@ sap.ui.define([
 			if (!oDate || oDate.getTime() < this._oMinDate.getTime() || oDate.getTime() > this._oMaxDate.getTime()) {
 				this._bValid = false;
 				oDate = undefined;
-			}else {
+			} else  {
 				// check if Formatter changed the value (it correct some wrong inputs or known patterns)
 				sValue = this._formatValue(oDate);
 			}
@@ -1023,29 +1065,6 @@ sap.ui.define([
 		return this;
 	};
 
-	DatePicker.prototype._storeInputSelection = function (oInput) {
-		if ((Device.browser.msie || Device.browser.edge) && !Device.support.touch) {
-			//For IE & Edge, any selection of the underlying input must be removed before opening the picker popup,
-			//otherwise the input will receive focus via TAB during the picker is opened. The selection is restored back
-			//when the popup is closed
-			this._oInputSelBeforePopupOpen = {
-				iStart: oInput.selectionStart,
-				iEnd: oInput.selectionEnd
-			};
-			oInput.selectionStart = 0;
-			oInput.selectionEnd = 0;
-		}
-	};
-
-	DatePicker.prototype._restoreInputSelection = function (oInput) {
-		if ((Device.browser.msie || Device.browser.edge) && !Device.support.touch) {
-			//The selection is restored back due to issue with IE & Edge. See _handleBeforeOpen
-			oInput.selectionStart = this._oInputSelBeforePopupOpen.iStart;
-			oInput.selectionEnd = this._oInputSelBeforePopupOpen.iEnd;
-		}
-	};
-
-
 	function _open(){
 		this._createPopup();
 
@@ -1097,6 +1116,7 @@ sap.ui.define([
 				showArrow: false,
 				showHeader: false,
 				placement: library.PlacementType.VerticalPreferedBottom,
+				contentWidth: this.$().closest(".sapUiSizeCompact").length > 0 ? "18rem" : "21rem",
 				beginButton: new Button({
 					type: library.ButtonType.Emphasized,
 					text: oResourceBundle.getText("DATEPICKER_SELECTION_CONFIRM"),
@@ -1125,7 +1145,7 @@ sap.ui.define([
 				this._oPopup.setShowHeader(true);
 				this._oPopup.setShowCloseButton(true);
 			} else {
-				// sap.m.Dialog used insed of the sap.m.ResponsivePopover doesen't display
+				// sap.m.Dialog used instead of the sap.m.ResponsivePopover doesen't display
 				// correctly without an animation on mobile devices so we remove the animation
 				// only for desktop when sap.m.Popover is used instead of sap.m.Dialog
 				this._oPopup._getPopup().setDurations(0, 0);
@@ -1146,7 +1166,6 @@ sap.ui.define([
 		if (!this._oPopup) {
 			return;
 		}
-		this._storeInputSelection(this._$input.get(0));
 		this._oPopup._getPopup().setAutoCloseAreas([this.getDomRef()]);
 		this._oPopup.openBy(this);
 
@@ -1189,6 +1208,7 @@ sap.ui.define([
 					}.bind(this)
 				});
 
+			this._oCalendar.setShowCurrentDateButton(this.getShowCurrentDateButton());
 			this._oDateRange = new DateRange();
 			this._getCalendar().addSelectedDate(this._oDateRange);
 			this._getCalendar()._setSpecialDatesControlOrigin(this);
@@ -1207,12 +1227,28 @@ sap.ui.define([
 
 				this._oPopup._getButtonFooter().setVisible(this.getShowFooter());
 				this._getCalendar()._bSkipCancelButtonRendering = true;
+				if (!this._oPopup.getContent().length) {
+					var oHeader = this._getValueStateHeader();
+					this._oPopup.addContent(this._getValueStateHeader());
+					oHeader.setPopup(this._oPopup._oControl);
+				}
 				this._oPopup.addContent(this._getCalendar());
 
 				if (!this.getDateValue()) {
 					this._oPopup.getBeginButton().setEnabled(false);
 				}
 			}
+			this._oCalendarAfterRenderDelegate = {
+				onAfterRendering: function() {
+					var oPopup = this._oPopup && this._oPopup._getPopup();
+					oPopup && oPopup._oLastPosition && oPopup._applyPosition(oPopup._oLastPosition);
+
+					if (this._oPopup.isOpen()) {
+						this._oCalendar.focus();
+					}
+				}.bind(this)
+			};
+			this._oCalendar.addDelegate(this._oCalendarAfterRenderDelegate);
 		}
 	};
 
@@ -1229,7 +1265,7 @@ sap.ui.define([
 				return oPatternSymbolSettings.type.toLowerCase();
 			}),
 			bDay = aPatternSymbolTypes.indexOf("day") >= 0,
-			bMonth = aPatternSymbolTypes.indexOf("month") >= 0,
+			bMonth = aPatternSymbolTypes.indexOf("month") >= 0 || aPatternSymbolTypes.indexOf("monthstandalone") >= 0,
 			bYear =  aPatternSymbolTypes.indexOf("year") >= 0;
 
 		if (bDay && bMonth && bYear) {
@@ -1275,7 +1311,7 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {Object} Current accessibility state of the control.
+	 * @returns {object} Current accessibility state of the control.
 	 * @protected
 	 */
 	DatePicker.prototype.getAccessibilityInfo = function() {
@@ -1305,7 +1341,7 @@ sap.ui.define([
 			sValue = this.getValue();
 			this.fireChangeEvent(sValue, {valid: true});
 			this._focusInput();
-		}else if (!this._bValid){
+		} else if (!this._bValid){
 			// wrong input before open calendar
 			sValue = this._formatValue(oDate);
 			if (sValue != this._$input.val()) {
@@ -1453,7 +1489,7 @@ sap.ui.define([
 
 			if (oDate.getTime() < this._oMinDate.getTime()) {
 				oDate = new UniversalDate(this._oMinDate.getTime());
-			}else if (oDate.getTime() > this._oMaxDate.getTime()){
+			} else if (oDate.getTime() > this._oMaxDate.getTime()){
 				oDate = new UniversalDate(this._oMaxDate.getTime());
 			}
 
@@ -1498,7 +1534,8 @@ sap.ui.define([
 		this.$("inner").attr("aria-expanded", true);
 
 		InstanceManager.addPopoverInstance(this._oPopup);
-		this._getCalendar().focus();
+
+		this._oCalendar.focus();
 	}
 
 	function _handleClose() {
@@ -1508,8 +1545,7 @@ sap.ui.define([
 		this.removeStyleClass(InputBase.ICON_PRESSED_CSS_CLASS);
 		this.$("inner").attr("aria-expanded", false);
 
-		this._restoreInputSelection(this._$input.get(0));
-		this._getCalendar()._closedPickers();
+		this._getCalendar()._closePickers();
 
 		InstanceManager.removePopoverInstance(this._oPopup);
 	}
@@ -1578,7 +1614,7 @@ sap.ui.define([
 	 * </ul>
 	 *
 	 * @param {object} [mArguments] the arguments to pass along with the event.
-	 * @return {sap.m.DatePicker} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @protected
 	 * @name sap.m.DatePicker#fireChange
 	 * @function

@@ -18,6 +18,7 @@ sap.ui.define([
 	"sap/ui/Device",
 	"./MessagePopoverRenderer",
 	"sap/base/Log",
+	"sap/ui/base/ManagedObjectObserver",
 	"sap/ui/thirdparty/jquery"
 ],
 function(
@@ -33,6 +34,7 @@ function(
 	Device,
 	MessagePopoverRenderer,
 	Log,
+	ManagedObjectObserver,
 	jQuery
 ) {
 		"use strict";
@@ -89,7 +91,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -403,6 +405,32 @@ function(
 					this['set' + capitalize(sFuncName)](DEFAULT_ASYNC_HANDLERS[sFuncName]);
 				}
 			}, this);
+
+			this._observeItems();
+		};
+
+		MessagePopover.prototype._observeItems = function () {
+			var oItemsObserver = new ManagedObjectObserver(function(oChange) {
+				var sMutation = oChange.mutation;
+				var oItem = oChange.child;
+
+				switch (sMutation) {
+
+					case "insert":
+						// invalidate items when something is changed so we can have them recraeted
+						oItem.attachEvent("_change", this.invalidate, this);
+						break;
+					case "remove":
+						oItem.detachEvent("_change", this.invalidate, this);
+						break;
+					default:
+						break;
+				}
+			}.bind(this));
+
+			oItemsObserver.observe(this, {
+				aggregations: ["items"]
+			});
 		};
 
 		MessagePopover.prototype.onBeforeRendering = function () {
@@ -504,7 +532,7 @@ function(
 		 * Opens the MessagePopover
 		 *
 		 * @param {sap.ui.core.Control} oControl Control which opens the MessagePopover
-		 * @returns {sap.m.MessagePopover} Reference to the 'this' for chaining purposes
+		 * @returns {this} Reference to the 'this' for chaining purposes
 		 * @public
 		 * @ui5-metamodel
 		 */
@@ -540,7 +568,7 @@ function(
 		/**
 		 * Closes the MessagePopover
 		 *
-		 * @returns {sap.m.MessagePopover} Reference to the 'this' for chaining purposes
+		 * @returns {this} Reference to the 'this' for chaining purposes
 		 * @public
 		 */
 		MessagePopover.prototype.close = function () {
@@ -559,7 +587,7 @@ function(
 		 * @returns {boolean} Whether the MessagePopover is open
 		 */
 		MessagePopover.prototype.isOpen = function () {
-			return this._oPopover.isOpen();
+			return this._oPopover ? this._oPopover.isOpen() : false;
 		};
 
 		/**
@@ -567,7 +595,7 @@ function(
 		 * oControl parameter is mandatory in the same way as in 'openBy' method
 		 *
 		 * @param {sap.ui.core.Control} oControl Control which opens the MessagePopover
-		 * @returns {sap.m.MessagePopover} Reference to the 'this' for chaining purposes
+		 * @returns {this} Reference to the 'this' for chaining purposes
 		 * @public
 		 */
 		MessagePopover.prototype.toggle = function (oControl) {

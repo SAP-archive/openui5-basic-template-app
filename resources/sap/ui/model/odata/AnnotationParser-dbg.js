@@ -3,15 +3,13 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides class sap.ui.model.odata.ODataAnnotations
 sap.ui.define([
 	"sap/base/assert",
 	"sap/base/Log",
-	"sap/base/util/isEmptyObject",
-	"sap/ui/Device",
-	"sap/ui/thirdparty/jquery"
-], function (assert, Log, isEmptyObject, Device, jQuery) {
+	"sap/base/util/isEmptyObject"
+], function (assert, Log, isEmptyObject) {
 "use strict";
 
 /*
@@ -441,7 +439,6 @@ var AnnotationParser =  {
 			aSegments = [];
 
 		// returns the current oElement's index in its parentElement's "children" collection
-		// (but works in IE as well)
 		function index() {
 			return Array.prototype.filter.call(oElement.parentNode.childNodes, function (oNode) {
 					return oNode.nodeType === 1;
@@ -601,6 +598,13 @@ var AnnotationParser =  {
 			AnnotationParser._parserData.aliases[oNode.getAttribute("Alias")] = oNode.getAttribute("Namespace");
 		}
 
+		// order the aliases by length to ensure that aliases are properly resolved even if there is
+		// an alias which is an infix of another alias
+		AnnotationParser._parserData.aliasesByLength =
+			Object.keys(AnnotationParser._parserData.aliases)
+				.sort(function (sAlias0, sAlias1) {
+					return sAlias1.length - sAlias0.length;
+				});
 
 		var sReferenceSelector = "//edmx:Reference[@Uri]/edmx:IncludeAnnotations[@TermNamespace]";
 		var oReferenceNodes = xPath.selectNodes(sReferenceSelector, AnnotationParser._parserData.xmlDocument);
@@ -904,8 +908,8 @@ var AnnotationParser =  {
 	 *
 	 * @param {Node} oNode - The Node of which the text value should be determined
 	 * @return {string} The text content
- 	 * @static
- 	 * @private
+	 * @static
+	 * @private
 	 */
 	_getTextValue: function(oNode) {
 		var xPath = AnnotationParser._oXPath;
@@ -1154,8 +1158,8 @@ var AnnotationParser =  {
 	 * @param {string} sEntityType - The entity type to look for
 	 * @param {string} sPathValue - The path to look for
 	 * @returns {map|null} The NavigationProperty map as defined in the EntityType or null if nothing is found
- 	 * @static
- 	 * @private
+	 * @static
+	 * @private
 	 */
 	findNavProperty: function(sEntityType, sPathValue) {
 		var oMetadata = AnnotationParser._parserData.serviceMetadata;
@@ -1179,30 +1183,28 @@ var AnnotationParser =  {
 	},
 
 	/*
-	 * Replaces the first alias (existing as key in the map) found in the given string with the
-	 * respective value in the map if it is not directly behind a ".". By default only one
-	 * replacement is done, unless the iReplacements parameter is set to a higher number or 0
+	 * Replaces the first alias found in the given string with the corresponding namespace as given
+	 * in "AnnotationParser._parserData.aliases". Ensure that the array
+	 * "AnnotationParser._parserData.aliasesByLength" contains all aliases ordered by its length
+	 * starting with the longest alias. This order is necessary to avoid wrong replacement if there
+	 * is an alias which is a prefix of another alias, for example "Common" and "SAP_Common".
 	 *
-	 * @param {string} sValue - The string where the alias should be replaced
-	 * @param {int} iReplacements - The number of replacements to doo at most or 0 for all
-	 * @return {string} The string with the alias replaced
- 	 * @static
- 	 * @private
+	 * @param {string} sValue The string in which an alias should be replaced
+	 * @returns {string} The string with the alias replaced
+	 * @static
+	 * @private
 	 */
-	replaceWithAlias: function(sValue, iReplacements) {
-		if (iReplacements === undefined) {
-			iReplacements = 1;
-		}
-		for (var sAlias in AnnotationParser._parserData.aliases) {
-			if (sValue.indexOf(sAlias + ".") >= 0 && sValue.indexOf("." + sAlias + ".") < 0) {
-				sValue = sValue.replace(sAlias + ".", AnnotationParser._parserData.aliases[sAlias] + ".");
+	replaceWithAlias : function (sValue) {
+		AnnotationParser._parserData.aliasesByLength.some(function (sAlias) {
+			if (sValue.includes(sAlias + ".") && !sValue.includes("." + sAlias + ".")) {
+				sValue = sValue.replace(sAlias + ".",
+					AnnotationParser._parserData.aliases[sAlias] + ".");
 
-				iReplacements--;
-				if (iReplacements === 0) {
-					return sValue;
-				}
+				return true;
 			}
-		}
+			return false;
+		});
+
 		return sValue;
 	},
 
@@ -1214,49 +1216,29 @@ var AnnotationParser =  {
 		var xPath = {};
 		var mParserData = AnnotationParser._parserData;
 
-		if (Device.browser.msie) {// old IE
-			xPath = {
-				setNameSpace : function(outNode) {
-					outNode.setProperty("SelectionNamespaces",
-							'xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" xmlns:d="http://docs.oasis-open.org/odata/ns/edm"');
-					outNode.setProperty("SelectionLanguage", "XPath");
-					return outNode;
-				},
-				selectNodes : function(xPath, inNode) {
-					return inNode.selectNodes(xPath);
-				},
-				nextNode : function(node) {
-					return node.nextNode();
-				},
-				getNodeText : function(node) {
-					return node.text;
-				}
-			};
-		} else {// Chrome, Firefox, Opera, etc.
-			xPath = {
-				setNameSpace : function(outNode) {
-					return outNode;
-				},
-				nsResolver : function(prefix) {
-					var ns = {
-						"edmx" : "http://docs.oasis-open.org/odata/ns/edmx",
-						"d" : "http://docs.oasis-open.org/odata/ns/edm"
-					};
-					return ns[prefix] || null;
-				},
-				selectNodes : function(sPath, inNode) {
-					var xmlNodes = mParserData.xmlDocument.evaluate(sPath, inNode, this.nsResolver, /* ORDERED_NODE_SNAPSHOT_TYPE: */ 7, null);
-					xmlNodes.length = xmlNodes.snapshotLength;
-					return xmlNodes;
-				},
-				nextNode : function(node, item) {
-					return node.snapshotItem(item);
-				},
-				getNodeText : function(node) {
-					return node.textContent;
-				}
-			};
-		}
+		xPath = {
+			setNameSpace : function(outNode) {
+				return outNode;
+			},
+			nsResolver : function(prefix) {
+				var ns = {
+					"edmx" : "http://docs.oasis-open.org/odata/ns/edmx",
+					"d" : "http://docs.oasis-open.org/odata/ns/edm"
+				};
+				return ns[prefix] || null;
+			},
+			selectNodes : function(sPath, inNode) {
+				var xmlNodes = mParserData.xmlDocument.evaluate(sPath, inNode, this.nsResolver, /* ORDERED_NODE_SNAPSHOT_TYPE: */ 7, null);
+				xmlNodes.length = xmlNodes.snapshotLength;
+				return xmlNodes;
+			},
+			nextNode : function(node, item) {
+				return node.snapshotItem(item);
+			},
+			getNodeText : function(node) {
+				return node.textContent;
+			}
+		};
 
 		xPath.getPath = function(oNode) {
 			var sPath = "";

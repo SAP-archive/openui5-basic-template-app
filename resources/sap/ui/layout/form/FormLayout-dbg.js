@@ -9,12 +9,13 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/layout/library',
 	'./FormLayoutRenderer',
-	"sap/ui/thirdparty/jquery",
+	'sap/ui/core/theming/Parameters',
+	'sap/ui/thirdparty/jquery',
 	// jQuery custom selectors ":sapFocusable"
 	'sap/ui/dom/jquery/Selectors',
 	// jQuery Plugin "control"
 	'sap/ui/dom/jquery/control'
-], function(Control, library, FormLayoutRenderer, jQuery) {
+], function(Control, library, FormLayoutRenderer, Parameters, jQuery) {
 	"use strict";
 
 	// shortcut for sap.ui.layout.BackgroundDesign
@@ -35,7 +36,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -59,6 +60,20 @@ sap.ui.define([
 	}});
 
 	/* eslint-disable no-lonely-if */
+
+	FormLayout.prototype.init = function(){
+
+		this._sFormTitleSize = "H4"; // to have default as Theme parameter could be loaded async.
+		this._sFormSubTitleSize = "H5";
+
+	};
+
+	FormLayout.prototype.onBeforeRendering = function( oEvent ){
+
+		// get title sizes from theme
+		this.loadTitleSizes();
+
+	};
 
 	FormLayout.prototype.contentOnAfterRendering = function(oFormElement, oControl){
 
@@ -886,8 +901,8 @@ sap.ui.define([
 	FormLayout.prototype.getContainerRenderedDomRef = function(oContainer) {
 
 		if (this.getDomRef()) {
-			return (oContainer.getId() ? window.document.getElementById(oContainer.getId()) : null);
-		}else {
+			return oContainer.getDomRef();
+		} else  {
 			return null;
 		}
 
@@ -903,9 +918,81 @@ sap.ui.define([
 	FormLayout.prototype.getElementRenderedDomRef = function(oElement) {
 
 		if (this.getDomRef()) {
-			return (oElement.getId() ? window.document.getElementById(oElement.getId()) : null);
-		}else {
+			return oElement.getDomRef();
+		} else  {
 			return null;
+		}
+
+	};
+
+	/**
+	 * In <code>sap.ui.layout.form.SemanticFormElement</> delimiters are rendered.
+	 * They should use only a small space. So <code>Layout</code> dependent <code>LayoutData</code>
+	 * are needed.
+	 *
+	 * This function need to be implemented by the specific <code>Layout</code>.
+	 *
+	 * @return {sap.ui.core.LayoutData | Promise} LayoutData or promise retuning LayoutData
+	 * @private
+	 * @since: 1.86.0
+	 */
+	FormLayout.prototype.getLayoutDataForDelimiter = function() {
+	};
+
+	/**
+	 * In <code>sap.ui.layout.form.SemanticFormElement</> delimiters are rendered.
+	 * The fields should be rendered per default in a way, the field and the corresponding delimiter filling one row in
+	 * phone mode. In desktop mode they should all be in one row.
+	 *
+	 * This function need to be implemented by the specific <code>Layout</code>.
+	 *
+	 * @param {int} iFields Number of field in the <code>SemanticFormElement</code>
+	 * @param {int} iIndex Index of field in the <code>SemanticFormElement</code>
+	 * @param {sap.ui.core.LayoutData} [oLayoutData] existing <code>LayoutData</code> that might be just changed
+	 * @return {sap.ui.core.LayoutData | Promise} LayoutData or promise retuning LayoutData
+	 * @private
+	 * @since: 1.86.0
+	 */
+	FormLayout.prototype.getLayoutDataForSemanticField = function(iFields, iIndex, oLayoutData) {
+	};
+
+	/**
+	 * Determines the sizes for <code>Form</code> and <code>FormContainer</code> from the theme
+	 *
+	 * @private
+	 * @since: 1.92.0
+	 */
+	FormLayout.prototype.loadTitleSizes = function() {
+
+		// read theme parameters to get current header sizes
+		var oSizes = Parameters.get({
+			name: ['sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize', 'sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize'],
+			callback: this.applyTitleSizes.bind(this)
+		});
+		if (oSizes && oSizes.hasOwnProperty('sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize')) { // sync case
+			this.applyTitleSizes(oSizes, true);
+		}
+
+	};
+
+	/**
+	 * Applies the sizes for <code>Form</code> and <code>FormContainer</code> from the theme
+	 *
+	 * @param {object} oSizes Sizes from theme parameters
+	 * @param {boolean} bSync If set, the paramters are determines synchronously. (No re-rendering needed.)
+	 * @private
+	 * @since: 1.92.0
+	 */
+	FormLayout.prototype.applyTitleSizes = function(oSizes, bSync) {
+
+		if (oSizes && (this._sFormTitleSize !== oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize"] ||
+				this._sFormSubTitleSize !== oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize"])) {
+			this._sFormTitleSize = oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormTitleSize"];
+			this._sFormSubTitleSize = oSizes["sap.ui.layout.FormLayout:_sap_ui_layout_FormLayout_FormSubTitleSize"];
+
+			if (!bSync) {
+				this.invalidate(); // re-render
+			}
 		}
 
 	};

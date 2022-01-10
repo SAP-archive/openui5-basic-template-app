@@ -28,7 +28,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -83,6 +83,10 @@ sap.ui.define([
 			 * If a <code>Title</code> element is used, the style of the title can be set.
 			 *
 			 * <b>Note:</b> If a <code>Toolbar</code> is used, the <code>Title</code> is ignored.
+			 *
+			 * <b>Note:</b> If the title is provided as a string, the title is rendered with a theme-dependent default level.
+			 * As the <code>Form</code> control cannot know the structure of the page, this might not fit the page structure.
+			 * In this case provide the title using a <code>Title</code> element and set its {@link sap.ui.core.Title#setLevel level} to the needed value.
 			 */
 			title : {type : "sap.ui.core.Title", altTypes : ["string"], multiple : false},
 
@@ -92,6 +96,7 @@ sap.ui.define([
 			 * <b>Note:</b> If a <code>Toolbar</code> is used, the <code>Title</code> is ignored.
 			 * If a title is needed inside the <code>Toolbar</code> it must be added at content to the <code>Toolbar</code>.
 			 * In this case add the <code>Title</code> to the <code>ariaLabelledBy</code> association.
+			 * Use the right title level to meet the visual requirements. This might be theme-dependent.
 			 * @since 1.36.0
 			 */
 			toolbar : {type : "sap.ui.core.Toolbar", multiple : false},
@@ -246,7 +251,7 @@ sap.ui.define([
 
 		if (oForm && oForm.getContainerRenderedDomRef) {
 			return oForm.getContainerRenderedDomRef(that);
-		}else {
+		} else  {
 			return null;
 		}
 
@@ -266,7 +271,7 @@ sap.ui.define([
 
 		if (oForm && oForm.getElementRenderedDomRef) {
 			return oForm.getElementRenderedDomRef(oElement);
-		}else {
+		} else  {
 			return null;
 		}
 

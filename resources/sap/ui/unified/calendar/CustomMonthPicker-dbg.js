@@ -10,16 +10,14 @@ sap.ui.define([
 	"sap/ui/unified/Calendar",
 	'sap/ui/unified/CalendarRenderer',
 	"sap/ui/unified/calendar/Header",
-	"sap/ui/unified/DateRange",
-	"sap/ui/dom/containsOrEquals"
+	"sap/ui/unified/DateRange"
 ],
 	function(
 		Renderer,
 		Calendar,
 		CalendarRenderer,
 		Header,
-		DateRange,
-		containsOrEquals
+		DateRange
 	) {
 	"use strict";
 
@@ -33,6 +31,10 @@ sap.ui.define([
 		},
 		renderer: CustomMonthPickerRenderer
 	});
+
+	/*
+	 * Possible values for the "_currentPicker" aggregation: monthPicker and yearPicker.
+	 */
 
 	CustomMonthPicker.prototype._initializeHeader = function() {
 		var oHeader = new Header(this.getId() + "--Head", {
@@ -50,15 +52,33 @@ sap.ui.define([
 		this.setAggregation("header",oHeader);
 	};
 
-	CustomMonthPicker.prototype.onBeforeRendering = function () {
-		var oHeader = this.getAggregation("header");
-		Calendar.prototype.onBeforeRendering.call(this, arguments);
-		oHeader.setVisibleButton1(false);
-		oHeader.setVisibleButton2(true);
+	CustomMonthPicker.prototype.init = function(){
+		Calendar.prototype.init.apply(this, arguments);
+		this.setProperty("_currentPicker", "monthPicker");
+		this._bNamesLengthChecked = true;
 	};
 
-	CustomMonthPicker.prototype.onAfterRendering = function () {
-		this._showMonthPicker(undefined, true);
+	CustomMonthPicker.prototype.onBeforeRendering = function () {
+		var oSelectedDates = this.getSelectedDates(),
+			oYearPickerDate = this._getYearPicker().getDate(),
+			oMonthPicker, oSelectedStartDate;
+
+		Calendar.prototype.onBeforeRendering.apply(this, arguments);
+
+		if (this._iMode === 1) {
+			if (oSelectedDates.length && oSelectedDates[0].getStartDate() && (!oYearPickerDate || (oSelectedDates[0].getStartDate().getFullYear() === oYearPickerDate.getFullYear()))) {
+				oMonthPicker = this._getMonthPicker();
+				oSelectedStartDate = oSelectedDates[0].getStartDate();
+				oMonthPicker.setMonth(oSelectedStartDate.getMonth());
+				oMonthPicker._iYear = oSelectedStartDate.getFullYear();
+			}
+		}
+	};
+
+	CustomMonthPicker.prototype._closePickers = function(){
+		this.setProperty("_currentPicker", "monthPicker");
+
+		this._togglePrevNext(this._getFocusedDate(), true);
 	};
 
 	CustomMonthPicker.prototype._selectYear = function () {
@@ -84,7 +104,7 @@ sap.ui.define([
 		}
 
 		if (!oMonthPicker.getIntervalSelection()) {
-			oFocusedDate.setMonth(oMonthPicker.getMonth());
+			oFocusedDate.setMonth(oMonthPicker.getMonth(), 1);
 
 			oSelectedDate.setStartDate(oFocusedDate.toLocalJSDate());
 			this.addSelectedDate(oSelectedDate);
@@ -97,6 +117,26 @@ sap.ui.define([
 		this.fireCancel();
 	};
 
+	CustomMonthPicker.prototype._hideMonthPicker = function(){
+		this._hideOverlay();
+		this._togglePrevNext(this._getFocusedDate(), true);
+		this._bActionTriggeredFromSecondHeader = false;
+	};
+
+	/**
+	 * Sets the visibility of the Current date button in the CustomMonthPicker.
+	 *
+	 * This functionality is not supported for CustomMonthPicker as there is no Day view in the Calendar.
+	 *
+	 * @param {boolean} bShow whether the Today button will be displayed
+	 * @return {this} <code>this</code> for method chaining
+	 * @public
+	 * @deprecated Not supported
+	 * @ui5-not-supported
+	 */
+	CustomMonthPicker.prototype.setShowCurrentDateButton = function(bShow){
+		return this;
+	};
 	return CustomMonthPicker;
 
 });

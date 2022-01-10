@@ -18,9 +18,14 @@ sap.ui.define([
 	 * @param {boolean} <code>true</code> for observing and <code>false</code> for unobserving
 	 *
 	 * @private
+	 * @ui5-restricted sap.ui.mdc
 	 */
 	function _adaptDeepChildObservation(caller, oControl, oAggregation, bObserve) {
 		var aChildren = oAggregation.get(oControl) || [], oChild, bRecord;
+
+		if (aChildren && !Array.isArray(aChildren) && !oAggregation.multiple) {
+			aChildren = [aChildren];
+		}
 
 		for (var i = 0; i < aChildren.length; i++) {
 			oChild = aChildren[i];
@@ -289,7 +294,7 @@ sap.ui.define([
 	 * this object.
 	 *
 	 * @param {sap.ui.base.ManagedObject} oObject the managed object models root object
-	 * @param {object} oData an object for custom data
+	 * @param {object} [oData] an object for custom data
 	 * @alias sap.ui.model.base.ManagedObjectModel
 	 * @extends sap.ui.model.json.JSONModel
 	 * @public
@@ -313,6 +318,8 @@ sap.ui.define([
 				]);
 
 				this._oObserver = new ManagedObjectObserver(this.observerChanges.bind(this));
+
+				this.setSizeLimit(1000000); // SizeLimit should be set on Model the control is bound to, the ManagedObjectModel should not limit aggregations inside.
 			}
 		});
 
@@ -987,17 +994,25 @@ sap.ui.define([
 	 */
 	ManagedObjectModel.prototype.checkUpdate = function (bForceUpdate, bAsync, fnFilter) {
 		if (bAsync) {
+			this.bForceUpdate = this.bForceUpdate || bForceUpdate;
 			if (!this.sUpdateTimer) {
+				this.fnFilter = this.fnFilter || fnFilter;
 				this.sUpdateTimer = setTimeout(function () {
-					this.checkUpdate(bForceUpdate, false, fnFilter);
+					this.checkUpdate(this.bForceUpdate, false, this.fnFilter);
 				}.bind(this), 0);
+			} else if (this.fnFilter && this.fnFilter !== fnFilter) {
+				this.fnFilter = undefined; // if different filter set use no filter
 			}
 			return;
 		}
+		bForceUpdate = this.bForceUpdate || bForceUpdate;
+		fnFilter = !this.fnFilter || this.fnFilter === fnFilter ? fnFilter : undefined; // if different filter set use no filter
 
 		if (this.sUpdateTimer) {
 			clearTimeout(this.sUpdateTimer);
 			this.sUpdateTimer = null;
+			this.bForceUpdate = undefined;
+			this.fnFilter = undefined;
 		}
 		var aBindings = this.aBindings.slice(0);
 		aBindings.forEach(function (oBinding) {

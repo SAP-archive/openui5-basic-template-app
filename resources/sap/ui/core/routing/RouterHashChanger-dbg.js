@@ -5,9 +5,8 @@
  */
 
 sap.ui.define([
-	'./HashChangerBase',
-	"sap/base/Log"
-], function(HashChangerBase, Log) {
+	'./HashChangerBase'
+], function(HashChangerBase) {
 	"use strict";
 
 	/**
@@ -180,16 +179,35 @@ sap.ui.define([
 	};
 
 	/**
-	 * Reset the hash
+	 * In case a RouterHashChanger is shared by multiple routers, the router that is latest initialized is saved as the
+	 * active router in the RouterHashChanger in order to allow it to do more actions (such as resetHash) to avoid the
+	 * change from affecting the other routers.
+	 *
+	 * @param {sap.ui.core.routing.Router} oRouter the router that should be saved as the active router
+	 * @returns {this} The 'this' instance to chain the call
+	 * @private
+	 */
+	RouterHashChanger.prototype._setActiveRouter = function(oRouter) {
+		if (oRouter.getHashChanger() === this) {
+			this._oActiveRouter = oRouter;
+		}
+		return this;
+	};
+
+	/**
+	 * Reset the hash if the given router is the active router that is saved in this RouterHashChanger
 	 *
 	 * This is needed for allowing to fire the hashChanged event with the previous hash again
 	 * after displaying a Target without involving a Router.
 	 *
-	 * @return {sap.ui.core.routing.RouterHashChanger} The current RouterHashChanger for chaining the method
+	 * @param {sap.ui.core.routing.Router} oRouter the router from which the resetHash is started
+	 * @return {this} The current RouterHashChanger for chaining the method
 	 * @protected
 	 */
-	RouterHashChanger.prototype.resetHash = function() {
-		this.hash = undefined;
+	RouterHashChanger.prototype.resetHash = function(oRouter) {
+		if (oRouter && this._oActiveRouter === oRouter) {
+			this.hash = undefined;
+		}
 		return this;
 	};
 
@@ -222,6 +240,7 @@ sap.ui.define([
 	 * If you want to have an entry in the browser history, please use the {@link #setHash} function.
 	 *
 	 * @param {string} sHash New hash
+	 * @param {sap.ui.core.routing.HistoryDirection} sDirection The direction information for the hash replacement
 	 * @param {Promise} [pNestedHashChange] When this parameter is given, this RouterHashChanger switchs to collect
 	 *  mode and all hash changes from its children will be collected. When this promise resolves, this
 	 *  RouterHashChanger fires a "hashReplaced" event with its own hash and the hashes which are collected from the child
@@ -232,12 +251,19 @@ sap.ui.define([
 	 *  a Promise which resolves after the given promise resolves. Otherwise it returns <code>undefined</code>.
 	 * @protected
 	 */
-	RouterHashChanger.prototype.replaceHash = function(sHash, pNestedHashChange, bSuppressActiveHashCollect) {
+	RouterHashChanger.prototype.replaceHash = function(sHash, sDirection, pNestedHashChange, bSuppressActiveHashCollect) {
+		if (typeof sDirection !== "string") {
+			bSuppressActiveHashCollect = pNestedHashChange;
+			pNestedHashChange = sDirection;
+			sDirection = undefined;
+		}
+
 		if (!(pNestedHashChange instanceof Promise)) {
 			bSuppressActiveHashCollect = pNestedHashChange;
 			pNestedHashChange = null;
 		}
-		return this._modifyHash(sHash, pNestedHashChange, bSuppressActiveHashCollect, /* bReplace */true);
+
+		return this._modifyHash(sHash, pNestedHashChange, bSuppressActiveHashCollect, /* bReplace */true, sDirection);
 	};
 
 	/**
@@ -256,30 +282,35 @@ sap.ui.define([
 	 * @param {boolean} [bSuppressActiveHashCollect=false] Whether this RouterHashChanger shouldn't collect the prefixes
 	 *  from its active child RouterHashChanger(s) and forward them as delete prefixes within the next "hashReplaced" event
 	 * @param {boolean} [bReplace=false] Whether a "hashReplace" or "hashSet" event should be fired at the end
+	 * @param {sap.ui.core.routing.HistoryDirection} sDirection The direction information for the hash replacement.
+	 * This is set only when the parameter <code>bReplace</code> is set to <code>true</code>.
 	 * @returns {Promise|undefined} When <code>pNestedHashChange</code> is given as a Promise, this function also returns
 	 *  a Promise which resolves after the given promise resolves. Otherwise it returns <code>undefined</code>.
 	 *
 	 * @private
 	 */
-	RouterHashChanger.prototype._modifyHash = function(sHash, pNestedHashChange, bSuppressActiveHashCollect, bReplace) {
-		var aActivePrefixes,
-			sEventName = bReplace ? "hashReplaced" : "hashSet",
-			that = this;
+	RouterHashChanger.prototype._modifyHash = function(sHash, pNestedHashChange, bSuppressActiveHashCollect, bReplace, sDirection) {
+		var sEventName = bReplace ? "hashReplaced" : "hashSet",
+			that = this,
+			oParams = {
+				hash: sHash
+			};
+
+		if (bReplace && sDirection) {
+			oParams.direction = sDirection;
+		}
 
 		if (!bSuppressActiveHashCollect) {
-			aActivePrefixes = this._collectActiveDescendantPrefix();
+			oParams.deletePrefix = this._collectActiveDescendantPrefix();
 		}
 
 		if (pNestedHashChange) {
 			this._bCollectMode = true;
 
 			return pNestedHashChange.then(function() {
+				oParams.nestedHashInfo = that._aCollectedHashInfo;
 				// fire hashSet or hashReplaced event with the collected info
-				that.fireEvent(sEventName, {
-					hash: sHash,
-					nestedHashInfo: that._aCollectedHashInfo,
-					deletePrefix: aActivePrefixes
-				});
+				that.fireEvent(sEventName, oParams);
 
 				// reset collected hash info and exit collect mode
 				that._aCollectedHashInfo = null;
@@ -287,10 +318,7 @@ sap.ui.define([
 			});
 		} else {
 			// fire hashSet or hashReplaced event
-			this.fireEvent(sEventName, {
-				hash: sHash,
-				deletePrefix: aActivePrefixes
-			});
+			this.fireEvent(sEventName, oParams);
 		}
 	};
 

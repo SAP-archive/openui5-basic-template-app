@@ -60,7 +60,7 @@ sap.ui.define([
 	 * @private
 	 */
 	var XMLViewRenderer = {
-		apiVersion: 1 // HTML fragments still require write (fragments are explicitly not wellformed HTML)
+		apiVersion: 2
 	};
 
 
@@ -72,6 +72,7 @@ sap.ui.define([
 	 */
 	XMLViewRenderer.render = function(rm, oControl) {
 		// write the HTML into the render manager
+		var aParsedContent = oControl._aParsedContent;
 		var $oldContent = oControl._$oldContent = RenderManager.findPreservedContent(oControl.getId());
 		if ( $oldContent.length === 0) {
 			// Log.debug("rendering " + oControl + " anew");
@@ -89,21 +90,20 @@ sap.ui.define([
 				rm.style("height", oControl.getHeight());
 				rm.openEnd();
 			}
-			if (oControl._aParsedContent) {
-				for (var i = 0; i < oControl._aParsedContent.length; i++) {
-					var fragment = oControl._aParsedContent[i];
-					if (fragment && typeof (fragment) === "string") {
-						// Due to the possibility of mixing (X)HTML and UI5 controls in the XML content,
-						// the XMLViewRenderer cannot be migrated fully to API version 2 yet.
-						// Here we need to pass the raw strings to the RenderManager as it was written in the *.view.xml.
-						rm.write(fragment);
+			if (aParsedContent) {
+				for (var i = 0; i < aParsedContent.length; i++) {
+					var vRmInfo = aParsedContent[i];
+					// apply RenderManagerAPI calls which might have been recorded during XML processing for all encountered HTML elements in an XMLView
+					if (Array.isArray(vRmInfo)) {
+						rm[vRmInfo[0]].apply(rm, vRmInfo[1]);
 					} else {
-						rm.renderControl(fragment);
-						// when the child control did not render anything (e.g. visible=false), we add a placeholder to know where to render the child later
-						if ( !fragment.bOutput ) {
-							rm.openStart("div", PREFIX_DUMMY + fragment.getId());
+						rm.renderControl(vRmInfo);
+						// when the child control did not render anything, we add a placeholder to know where to render the child later
+						if ( !vRmInfo.bOutput ) {
+							rm.openStart("div", PREFIX_DUMMY + vRmInfo.getId());
 							rm.class("sapUiHidden");
 							rm.openEnd();
+							rm.close("div");
 						}
 					}
 				}
@@ -121,15 +121,15 @@ sap.ui.define([
 			rm.openStart("div", PREFIX_TEMPORARY + oControl.getId());
 			rm.class("sapUiHidden");
 			rm.openEnd();
-			for (var i = 0; i < oControl._aParsedContent.length; i++) {
-				var fragment = oControl._aParsedContent[i];
-				if ( typeof (fragment) !== "string") {
-
+			for (var i = 0; i < aParsedContent.length; i++) {
+				var vFragment = aParsedContent[i];
+				// if the parsed content does not have a corresponding _renderManagerAPICall, it's a control
+				if (!Array.isArray(vFragment)) {
 					// render DOM string for child control
-					rm.renderControl(fragment);
+					rm.renderControl(vFragment);
 
 					// replace any old DOM (or invisible placeholder) for a child control with a dummy placeholder
-					var sFragmentId = fragment.getId(),
+					var sFragmentId = vFragment.getId(),
 						$fragment = jQuery(document.getElementById(sFragmentId));
 					if ($fragment.length == 0) {
 						$fragment = jQuery(document.getElementById(PREFIX_INVISIBLE + sFragmentId));

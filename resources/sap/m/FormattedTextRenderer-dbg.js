@@ -4,9 +4,10 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/ui/core/library"
 ],
-	function(Log) {
+	function(Log, coreLibrary) {
 		"use strict";
 
 
@@ -18,12 +19,20 @@ sap.ui.define([
 			apiVersion: 2
 		};
 
+		// shortcut for sap.ui.core.TextDirection
+		var TextDirection = coreLibrary.TextDirection;
+
+		// shortcut for sap.ui.core.TextAlign
+		var TextAlign = coreLibrary.TextAlign;
+
 		// Renderer with "indexed" placeholders
 		// (each placeholder has an index and is replaced with control with this index from the aggregation)
 
 		FormattedTextRenderer.render = function (oRm, oControl) {
 			var iWidth = oControl.getWidth(),
 				iHeight = oControl.getHeight(),
+				sTextDir = oControl.getTextDirection(),
+				sTextAlign = oControl.getTextAlign(),
 				aControls = oControl.getAggregation("controls"),
 				sText = oControl._getDisplayHtml(),
 				aRenderedControls = [],
@@ -39,6 +48,14 @@ sap.ui.define([
 
 			if (iHeight) {
 				oRm.class("sapMFTOverflowHeight");
+			}
+
+			if (sTextDir !== TextDirection.Inherit){
+				oRm.attr("dir", sTextDir.toLowerCase());
+			}
+
+			if (sTextAlign && sTextAlign != TextAlign.Initial) {
+				oRm.style("text-align", sTextAlign.toLowerCase());
 			}
 
 			// render Tooltip

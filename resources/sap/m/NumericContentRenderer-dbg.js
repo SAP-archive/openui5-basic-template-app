@@ -11,7 +11,9 @@ sap.ui.define([
 
 	var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 
-	var ValueColor = library.ValueColor;
+	var DeviationIndicator = library.DeviationIndicator,
+		LoadState = library.LoadState,
+		ValueColor = library.ValueColor;
 
 	/**
 	 * NumericContent renderer.
@@ -41,7 +43,7 @@ sap.ui.define([
 		oRm.attr("role", "img");
 		oRm.attr("aria-roledescription", oResourceBundle.getText("NUMERIC_CONTENT_ROLE_DESCRIPTION"));
 
-		if (sState === library.LoadState.Failed || sState === library.LoadState.Loading) {
+		if (sState === LoadState.Failed || sState === LoadState.Loading) {
 			oRm.attr("aria-disabled", "true");
 		}
 		if (oControl.getAnimateTextChange()) {
@@ -82,14 +84,13 @@ sap.ui.define([
 	NumericContentRenderer._prepareAndRenderIcon = function (oRm, oControl, oIcon, sNumericContentFontClass) {
 		if (oIcon) {
 			var sState,
-			oLoadState = library.LoadState,
 			sCurrentState = oControl.getState();
 
 			//remove state classes from icon and only add the current state's class
-			for (sState in oLoadState) {
-				if (oLoadState.hasOwnProperty(sState) && sState !== sCurrentState) {
+			for (sState in LoadState) {
+				if (LoadState.hasOwnProperty(sState) && sState !== sCurrentState) {
 					oIcon.removeStyleClass(sState);
-				} else if (oLoadState.hasOwnProperty(sState) && sState === sCurrentState) {
+				} else if (LoadState.hasOwnProperty(sState) && sState === sCurrentState) {
 					oIcon.addStyleClass(sState);
 				}
 			}
@@ -122,7 +123,7 @@ sap.ui.define([
 	 * @param {String} sNumericContentFontClass font class of related NumericContent
 	 */
 	NumericContentRenderer._renderScaleAndIndicator = function(oRm, oControl, sWithoutMargin, sValue, sScale, sNumericContentFontClass) {
-		var bIndicator = library.DeviationIndicator.None !== oControl.getIndicator() && sValue !== "";
+		var bIndicator = DeviationIndicator.None !== oControl.getIndicator() && sValue !== "";
 		var bScale = sScale && sValue;
 		if (bIndicator || bScale) {
 			var sState = oControl.getState();
@@ -176,35 +177,52 @@ sap.ui.define([
 		oRm.class("sapMNCValue");
 		oRm.class(sWithoutMargin);
 		if (oControl.getValueColor() === ValueColor.None) {
-			oRm.class(oResourceBundle.getText("SEMANTIC_COLOR_NEUTRAL"));
+			oRm.class("Neutral");
 		} else {
 			oRm.class(oControl.getValueColor());
 		}
 		oRm.class(oControl.getState());
 		oRm.openEnd();
 
-		var oMaxDigitsData = oControl._getMaxDigitsData();
-		this._prepareAndRenderIcon(oRm, oControl, oControl._oIcon, oMaxDigitsData.fontClass);
+		if (oControl.getState() === LoadState.Loading) {
+			oRm.openStart("div").class("sapMNCContentShimmerPlaceholderItem");
+			oRm.openEnd();
+			oRm.openStart("div")
+				.class("sapMNCContentShimmerPlaceholderRows")
+				.openEnd();
+			oRm.openStart("div")
+				.class("sapMNCContentShimmerPlaceholderItemHeader")
+				.class("sapMNCLoadingShimmer")
+				.openEnd()
+				.close("div");
 
-		var iChar = oControl.getTruncateValueTo() || oMaxDigitsData.maxLength;
-	    oRm.openStart("span" , oControl.getId() + "-value-inner");
-		if (oMaxDigitsData.fontClass) {
-			oRm.class(oMaxDigitsData.fontClass);
-		}
-		oRm.openEnd();
-
-		//Control shows only iChar characters. If the last shown character is decimal separator - show only first N-1 characters. So "144.5" is shown like "144" and not like "144.".
-		if (sValue.length >= iChar && (sValue[iChar - 1] === "." || sValue[iChar - 1] === ",")) {
-			oRm.text(sValue.substring(0, iChar - 1));
+			oRm.close("div");
+			oRm.close("div");
+			oRm.close("div");
 		} else {
-			oRm.text(sValue ? sValue.substring(0, iChar) : sEmptyValue);
+			var oMaxDigitsData = oControl._getMaxDigitsData();
+			this._prepareAndRenderIcon(oRm, oControl, oControl._oIcon, oMaxDigitsData.fontClass);
+
+			var iChar = oControl.getTruncateValueTo() || oMaxDigitsData.maxLength;
+			oRm.openStart("span" , oControl.getId() + "-value-inner");
+			if (oMaxDigitsData.fontClass) {
+				oRm.class(oMaxDigitsData.fontClass);
+			}
+			oRm.openEnd();
+
+			//Control shows only iChar characters. If the last shown character is decimal separator - show only first N-1 characters. So "144.5" is shown like "144" and not like "144.".
+			if (sValue.length >= iChar && (sValue[iChar - 1] === "." || sValue[iChar - 1] === ",")) {
+				oRm.text(sValue.substring(0, iChar - 1));
+			} else {
+				oRm.text(sValue ? sValue.substring(0, iChar) : sEmptyValue);
+			}
+
+			oRm.close("span");
+
+			this._renderScaleAndIndicator(oRm, oControl, sWithoutMargin, sValue, sScale, oMaxDigitsData.fontClass);
+
+			oRm.close("div");
 		}
-
-		oRm.close("span");
-
-		this._renderScaleAndIndicator(oRm, oControl, sWithoutMargin, sValue, sScale, oMaxDigitsData.fontClass);
-
-		oRm.close("div");
 	};
 
 	return NumericContentRenderer;

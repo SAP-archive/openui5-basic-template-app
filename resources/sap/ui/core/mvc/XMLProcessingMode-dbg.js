@@ -12,6 +12,7 @@
 	 * Specifies possible xml processing modes.
 	 *
 	 * @enum {string}
+	 * @since 1.89.0
 	 * @private
 	 * @alias sap.ui.core.mvc.XMLProcessingMode
 	 */

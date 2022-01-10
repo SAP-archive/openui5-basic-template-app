@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*global Blob*/
-sap.ui.define(["sap/base/Log"], function (Log) {
+sap.ui.define([], function () {
 	"use strict";
 
 	/**

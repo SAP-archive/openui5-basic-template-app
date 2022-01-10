@@ -3,7 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 /**
  * OData-based DataBinding Utility Class
  *
@@ -14,16 +14,15 @@
 
 // Provides class sap.ui.model.odata.ODataUtils
 sap.ui.define([
-	'sap/ui/model/Sorter',
-	'sap/ui/model/FilterProcessor',
-	'sap/ui/core/format/DateFormat',
-	"sap/base/Log",
 	"sap/base/assert",
-	"sap/ui/thirdparty/jquery",
+	"sap/base/Log",
 	"sap/base/security/encodeURL",
-	"sap/ui/core/CalendarType"
-],
-	function(Sorter, FilterProcessor, DateFormat, Log, assert, jQuery, encodeURL, CalendarType ) {
+	"sap/base/util/each",
+	"sap/ui/core/CalendarType",
+	"sap/ui/core/format/DateFormat",
+	"sap/ui/model/FilterProcessor",
+	"sap/ui/model/Sorter"
+], function(assert, Log, encodeURL, each, CalendarType, DateFormat, FilterProcessor, Sorter) {
 	"use strict";
 
 	var oDateTimeFormat,
@@ -108,7 +107,8 @@ sap.ui.define([
 	 * same path are ORed and filters on different paths are ANDed with each other
 	 * @see ODataUtils._createFilterParams
 	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} vFilter the root filter or filter array
-	 * @param {object} oEntityType the entity metadata object
+	 * @param {object} oMetadata the entity metadata object
+	 * @param {object} oEntityType the entity type object
 	 * @return {string} the URL encoded filter parameters
 	 * @private
 	 */
@@ -131,7 +131,8 @@ sap.ui.define([
 	 * Creates a string of logically (or/and) linked filter options,
 	 * which will be used as URL query parameters for filtering.
 	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} vFilter the root filter or filter array
-	 * @param {object} oEntityType the entity metadata object
+	 * @param {object} oMetadata the entity metadata object
+	 * @param {object} oEntityType the entity type object
 	 * @return {string} the URL encoded filter parameters
 	 * @private
 	 */
@@ -190,7 +191,7 @@ sap.ui.define([
 	 * If vParams is an object map, it will be also encoded properly.
 	 *
 	 * @private
-	 * @param {string|object|array} vParams
+	 * @param {string|object|array} vParams parameters
 	 */
 	ODataUtils._createUrlParamsArray = function(vParams) {
 		var aUrlParams, sType = typeof vParams, sParams;
@@ -225,7 +226,7 @@ sap.ui.define([
 			return "";
 		}
 		var aUrlParams = [];
-		jQuery.each(mParams, function (sName, oValue) {
+		each(mParams, function (sName, oValue) {
 			if (typeof oValue === "string" || oValue instanceof String) {
 				oValue = encodeURIComponent(oValue);
 			}
@@ -370,9 +371,9 @@ sap.ui.define([
 				sFinalAnnotationURL = sAnnotationWithOrigin + sAnnotationUrlRest;
 			}
 		} else if (iHanaXsSegmentIndex >= 0) {
-			// Hana XS case: the Hana XS engine can provide static Annotation files for its services.
-			// The services can be identifed by their URL segment ".xsodata"; if such a service uses the origin feature
-			// the Annotation URLs need also adaption.
+			// Hana XS case: the Hana XS engine can provide static Annotation files for its
+			// services. The services can be identified by their URL segment ".xsodata"; if such a
+			// service uses the origin feature the Annotation URLs need also adaption.
 			sFinalAnnotationURL = ODataUtils.setOrigin(sAnnotationURL, vParameters);
 
 		} else {
@@ -397,7 +398,7 @@ sap.ui.define([
 
 		if (aFilters) {
 			sFilterParam += "(";
-			jQuery.each(aFilters, function(i, oFilter) {
+			each(aFilters, function(i, oFilter) {
 				if (oFilter._bMultiFilter) {
 					sFilterParam += that._resolveMultiFilter(oFilter, oMetadata, oEntityType);
 				} else if (oFilter.sPath) {
@@ -490,10 +491,10 @@ sap.ui.define([
 	 * <a href="http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
 	 * EDM type</a>.
 	 *
-	 * @param {any} vValue the value to format
-	 * @param {string} sType the EDM type (e.g. Edm.Decimal)
-	 * @param {boolean} bCaseSensitive Wether strings gets compared case sensitive or not
-	 * @return {string} the formatted value
+	 * @param {any} vValue The value to format
+	 * @param {string} sType The EDM type (e.g. Edm.Decimal)
+	 * @param {boolean} bCaseSensitive Whether strings gets compared case sensitive or not
+	 * @return {string} The formatted value
 	 * @public
 	 */
 	ODataUtils.formatValue = function(vValue, sType, bCaseSensitive) {
@@ -799,6 +800,132 @@ sap.ui.define([
 
 	ODataUtils._normalizeKey = function(sKey) {
 		return sKey.replace(rNormalizeString, fnNormalizeString).replace(rNormalizeCase, fnNormalizeCase).replace(rNormalizeBinary, fnNormalizeBinary);
+	};
+
+	/**
+	 * Merges the given intervals into a single interval. The start and end of the resulting
+	 * interval are the start of the first interval and the end of the last interval.
+	 *
+	 * @param {object[]} aIntervals
+	 *   The array of available intervals
+	 * @returns {object|undefined}
+	 *   The merged interval with a member <code>start</code> and <code>end</code>, or
+	 *   <code>undefined</code> if no intervals are given.
+	 *
+	 * @private
+	 */
+	ODataUtils._mergeIntervals = function (aIntervals) {
+		if (aIntervals.length) {
+			return {start : aIntervals[0].start, end : aIntervals[aIntervals.length - 1].end};
+		}
+		return undefined;
+	};
+
+	/**
+	 * Returns the array of gaps in the given array of elements, taking the given start index,
+	 * length, and prefetch length into consideration.
+	 *
+	 * @param {any[]} aElements
+	 *   The array of available elements; it is used read-only to check if an element at a given
+	 *   index is not yet available (that is, is <code>undefined</code>)
+	 * @param {number} iStart
+	 *   The start index of the range
+	 * @param {number} iLength
+	 *   The length of the range; <code>Infinity</code> is supported
+	 * @param {number} iPrefetchLength
+	 *   The number of elements to read before and after the given range; with this it is possible
+	 *   to prefetch data for a paged access. The read intervals are computed so that at least half
+	 *   the prefetch length is available left and right of the requested range without a further
+	 *   request. If data is missing on one side, the full prefetch length is added at this side.
+	 *   <code>Infinity</code> is supported.
+	 * @param {number} [iLimit=Infinity]
+	 *   An upper limit on the number of elements
+	 * @returns {object[]}
+	 *   Array of right open intervals which need to be read; each interval is an object with
+	 *   properties <code>start</code> and <code>end</code> with the interval's start and end index;
+	 *   empty if no intervals need to be read
+	 *
+	 * @private
+	 * @see sap.ui.model.ListBinding#getContexts
+	 */
+	ODataUtils._getReadIntervals = function (aElements, iStart, iLength, iPrefetchLength, iLimit) {
+		var i, iEnd, n,
+			iGapStart = -1,
+			aIntervals = [],
+			oRange = ODataUtils._getReadRange(aElements, iStart, iLength, iPrefetchLength);
+
+		if (iLimit === undefined) {
+			iLimit = Infinity;
+		}
+		iEnd = Math.min(oRange.start + oRange.length, iLimit);
+		n = Math.min(iEnd, Math.max(oRange.start, aElements.length) + 1);
+
+		for (i = oRange.start; i < n; i += 1) {
+			if (aElements[i] !== undefined) {
+				if (iGapStart >= 0) {
+					aIntervals.push({start : iGapStart, end : i});
+					iGapStart = -1;
+				}
+			} else if (iGapStart < 0) {
+				iGapStart = i;
+			}
+		}
+		if (iGapStart >= 0) {
+			aIntervals.push({start : iGapStart, end : iEnd});
+		}
+
+		return aIntervals;
+	};
+
+	/**
+	 * Calculates the index range to be read for the given start, length and prefetch length.
+	 * Checks if <code>aElements</code> entries are available for half the prefetch length left and
+	 * right to it. If not, the full prefetch length is added to this side.
+	 *
+	 * @param {object[]} aElements
+	 *   The array of available elements
+	 * @param {number} iStart
+	 *   The start index for the data request
+	 * @param {number} iLength
+	 *   The number of requested entries
+	 * @param {number} iPrefetchLength
+	 *   The number of entries to prefetch before and after the given range; <code>Infinity</code>
+	 *   is supported
+	 * @returns {object}
+	 *   An object with a member <code>start</code> for the start index for the next read and
+	 *   <code>length</code> for the number of entries to be read
+	 *
+	 * @private
+	 */
+	ODataUtils._getReadRange = function (aElements, iStart, iLength, iPrefetchLength) {
+		// Checks whether aElements contains at least one <code>undefined</code> entry within the
+		// given start (inclusive) and end (exclusive).
+		function isDataMissing(iStart, iEnd) {
+			var i;
+			for (i = iStart; i < iEnd; i += 1) {
+				if (aElements[i] === undefined) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		if (isDataMissing(iStart + iLength, iStart + iLength + iPrefetchLength / 2)) {
+			iLength += iPrefetchLength;
+		}
+		if (isDataMissing(Math.max(iStart - iPrefetchLength / 2, 0), iStart)) {
+			iLength += iPrefetchLength;
+			iStart -= iPrefetchLength;
+			if (iStart < 0) {
+				iLength += iStart; // Note: Infinity + -Infinity === NaN
+				if (isNaN(iLength)) {
+					iLength = Infinity;
+				}
+				iStart = 0;
+			}
+		}
+
+		return {length : iLength, start : iStart};
 	};
 
 	return ODataUtils;

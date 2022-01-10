@@ -3,4 +3,4 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";var e={apiVersion:2};e.render=function(e,t){e.openStart("div",t).class("sapUiLayoutCSSGrid");if(t.getWidth()){e.style("width",t.getWidth())}t.getGridLayoutConfiguration().renderSingleGridLayout(e);e.openEnd();t.getItems().forEach(e.renderControl,e);e.close("div")};return e});
+sap.ui.define([],function(){"use strict";var t={apiVersion:2};t.render=function(t,e){t.openStart("div",e).class("sapUiLayoutCSSGrid");if(e.getWidth()){t.style("width",e.getWidth())}e.getGridLayoutConfiguration().addGridStyles(t);t.openEnd();e.getItems().forEach(t.renderControl,t);t.close("div")};return t});

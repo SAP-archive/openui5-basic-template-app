@@ -16,7 +16,7 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 	 * @class Central Class for the Debug Environment
 	 *
 	 * @author Martin Schaus, Frank Weigel
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @private
 	 * @alias sap.ui.debug.DebugEnv
 	 */
@@ -40,7 +40,7 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 		 * @private
 		 */
 		try {
-			this.bRunsEmbedded = typeof window.top.testfwk == "undefined"; // window || !top.frames["sap-ui-TraceWindow"]; // check only with ==, not === as the test otherwise fails on IE8
+			this.bRunsEmbedded = typeof window.top.testfwk === "undefined"; // window || !top.frames["sap-ui-TraceWindow"];
 
 			Log.info("Starting DebugEnv plugin (" + (this.bRunsEmbedded ? "embedded" : "testsuite") + ")");
 
@@ -88,7 +88,6 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 			div.style.backgroundImage = "url(" + sap.ui.global.resourceRoot + "testsuite/images/full.png)";
 			div.style.zIndex = 5;
 			div.style.opacity = '0.2';
-			div.style.filter = 'progid:DXImageTransform.Microsoft.Alpha(opacity=20)';
 			jQuery(div).on("click",function(evt) {
 				alert("click!");
 			});
@@ -103,8 +102,8 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 		}
 		*/
 
-		var oControlTreeRoot = this.oControlTreeWindow.querySelector("#sap-ui-ControlTreeRoot"),
-			oPropertyWindowRoot = this.oPropertyListWindow.querySelector("#sap-ui-PropertyWindowRoot");
+		var oControlTreeRoot = (this.oControlTreeWindow.document || this.oControlTreeWindow).querySelector("#sap-ui-ControlTreeRoot"),
+			oPropertyWindowRoot = (this.oPropertyListWindow.document || this.oPropertyListWindow).querySelector("#sap-ui-PropertyWindowRoot");
 
 		if ( !oControlTreeRoot ) {
 			oControlTreeRoot = this.oControlTreeWindow.document.createElement("DIV");
@@ -199,8 +198,7 @@ sap.ui.define('sap/ui/debug/DebugEnv', ['sap/ui/base/Interface', './ControlTree'
 		this.oLogger.addLogListener(this.oTraceViewer);
 
 		// When debug.js is injected (testsuite), it is not initialized during Core.init() but later.
-		// In IE the startPlugin happens before rendering, in Chrome and others after rendering
-		// Therefore the first 'UIUpdated' is missed in browsers other than IE.
+		// In Chrome the startPlugin happens after rendering, therefore the first 'UIUpdated' is missed.
 		// To compensate this, we register for both, the UIUpdated and for a timer (if we are not called during Core.init)
 		// Whatever happens first.
 		// TODO should be part of core

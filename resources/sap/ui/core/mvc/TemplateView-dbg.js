@@ -6,20 +6,20 @@
 
 // Provides control sap.ui.core.mvc.TemplateView.
 sap.ui.define([
-	'sap/ui/core/library',
-	'./View',
+	"./View",
 	"./TemplateViewRenderer",
+	"./ViewType",
 	"sap/base/Log"
 ],
-function(library, View, TemplateViewRenderer, Log) {
+function(View, TemplateViewRenderer, ViewType, Log) {
 "use strict";
-
-
-	// shortcut for enum(s)
-	var ViewType = library.mvc.ViewType;
 
 	/**
 	 * Constructor for a new mvc/TemplateView.
+	 *
+	 * <strong>Note:</strong> Application code shouldn't call the constructor directly, but rather use the
+	 * factory {@link sap.ui.templateview} or {@link sap.ui.core.mvc.View.create View.create} with type
+	 * {@link sap.ui.core.mvc.ViewType.Template Template}.
 	 *
 	 * @param {string} [sId] id for the new control, generated automatically if no id is given
 	 * @param {object} [mSettings] initial settings for the new control
@@ -29,7 +29,7 @@ function(library, View, TemplateViewRenderer, Log) {
 	 * @extends sap.ui.core.mvc.View
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @deprecated Since version 1.56.0, use {@link sap.ui.core.mvc.XMLView} in combination with
@@ -37,10 +37,12 @@ function(library, View, TemplateViewRenderer, Log) {
 	 * @alias sap.ui.core.mvc.TemplateView
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var TemplateView = View.extend("sap.ui.core.mvc.TemplateView", /** @lends sap.ui.core.mvc.TemplateView.prototype */ { metadata : {
-
-		library : "sap.ui.core"
-	}});
+	var TemplateView = View.extend("sap.ui.core.mvc.TemplateView", /** @lends sap.ui.core.mvc.TemplateView.prototype */ {
+		metadata : {
+			library : "sap.ui.core"
+		},
+		renderer: TemplateViewRenderer
+	});
 
 	(function(){
 
@@ -69,7 +71,7 @@ function(library, View, TemplateViewRenderer, Log) {
 		 */
 		sap.ui.templateview = function(sId, vView) {
 			Log.warning("sap.ui.core.mvc.TemplateView is deprecated. Use XMLView or JSView instead.");
-			return sap.ui.view(sId, vView, ViewType.Template);
+			return sap.ui.view(sId, vView, ViewType.Template); // legacy-relevant
 		};
 
 		/**
@@ -105,6 +107,10 @@ function(library, View, TemplateViewRenderer, Log) {
 		/**
 		 * Abstract method implementation.
 		 *
+		 * @param {object} mSettings settings for the view
+		 * @param {object.string} mSettings.viewData view data
+		 * @param {object.string} mSettings.viewName view name
+		 * @param {object.boolean} [mSettings.async] set the view to load a view resource asynchronously
 		 * @see sap.ui.core.mvc.View#initViewSettings
 		 *
 		 * @private

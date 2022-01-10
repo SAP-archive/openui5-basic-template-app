@@ -15,7 +15,6 @@ sap.ui.define([
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/IntervalTrigger',
 	'sap/ui/Device',
-	'sap/ui/base/ManagedObject',
 	'sap/ui/core/Icon',
 	'sap/ui/model/Filter',
 	'sap/ui/model/FilterOperator',
@@ -56,7 +55,6 @@ sap.ui.define([
 		InvisibleText,
 		IntervalTrigger,
 		Device,
-		ManagedObject,
 		Icon,
 		Filter,
 		FilterOperator,
@@ -106,7 +104,7 @@ sap.ui.define([
 	// shortcut for sap.m.FacetFilterType
 	var FacetFilterType = library.FacetFilterType;
 
-
+	var SCROLL_DURATION = 500;
 
 	/**
 	 * Constructor for a new <code>FacetFilter</code>.
@@ -168,11 +166,11 @@ sap.ui.define([
 	 * <h3>Additional Information</h3>
 	 *
 	 * For more information, go to <b>Developer Guide</b> section in the Demo Kit and navigate to
-	 * <b>More&nbsp;About&nbsp;Controls</b>&nbsp;>&nbsp;<b>sap.m</b>&nbsp;>&nbsp;<b>Facet&nbsp;Filter</b>
+	 * <b>More About Controls</b> &gt; <b>sap.m</b> &gt; <b>Facet Filter</b>
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IShrinkable
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -297,7 +295,7 @@ sap.ui.define([
 	/*
 	 * Loads the appropriate type of FacetFilter according to device.
 	 * @param {object} oType Type of FacetFilter to render depending on device
-	 * @returns {sap.m.FacetFilter} this for chaining
+	 * @returns {this} this for chaining
 	 */
 	FacetFilter.prototype.setType = function(oType) {
 
@@ -332,7 +330,7 @@ sap.ui.define([
 	/*
 	 * Sets whether or not to display Reset button to reset values.
 	 * @param {boolean} bVal Boolean to set Reset button to true or false
-	 * @returns {sap.m.FacetFilter} this for chaining
+	 * @returns {this} this for chaining
 	 */
 	FacetFilter.prototype.setShowReset = function(bVal) {
 
@@ -358,7 +356,7 @@ sap.ui.define([
 	/*
 	 * Sets whether or not to display summary bar.
 	 * @param {boolean} bVal Boolean to set summary bar to <code>true</code> or <code>false</code>
-	 * @returns {sap.m.FacetFilter} this for chaining
+	 * @returns {this} this for chaining
 	 */
 	FacetFilter.prototype.setShowSummaryBar = function(bVal) {
 
@@ -383,7 +381,7 @@ sap.ui.define([
 	/*
 	 * Sets whether or not to display live search bar.
 	 * @param {boolean} bVal Boolean to set live search bar to <code>true</code> or <code>false</code>
-	 * @returns {sap.m.FacetFilter} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 */
 	FacetFilter.prototype.setLiveSearch = function(bVal) {
 
@@ -441,26 +439,13 @@ sap.ui.define([
 		}
 	}
 
-	/*
-	 * Removes the specified FacetFilterList by cleaning up facet buttons.
-	 * Removes facet icons for the given FacetFilterList.
-	 * @param {object} vObject List that is to be removed
-	 * @returns {sap.m.FacetFilterList} oList that is removed and passed to private method
-	 */
-	FacetFilter.prototype.removeList = function(vObject) {
-
-			var oList = ManagedObject.prototype.removeAggregation.call(this, "lists", vObject);
-			this._removeList(oList);
-			return oList;
-	};
-
 	/**
 	 * Removes the aggregation from the FacetFilterList.
 	 * @returns {sap.m.FacetFilterList} oList that is to be removed
 	 */
 	FacetFilter.prototype.removeAggregation = function() {
 
-		var oList = ManagedObject.prototype.removeAggregation.apply(this, arguments);
+		var oList = Control.prototype.removeAggregation.apply(this, arguments);
 		if (arguments[0] === "lists") {
 			this._removeList(oList);
 		}
@@ -473,7 +458,7 @@ sap.ui.define([
 	/**
 	 * Opens the FacetFilter dialog.
 	 *
-	 * @returns {sap.m.FacetFilter} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
@@ -501,7 +486,6 @@ sap.ui.define([
 	FacetFilter.prototype.init = function() {
 
 		this._pageSize = 5;
-		this._addDelegateFlag = false;
 		this._invalidateFlag = false;
 		this._lastCategoryFocusIndex = 0;
 		this._aDomRefs = null;
@@ -612,6 +596,7 @@ sap.ui.define([
 
 		if (sType !== FacetFilterType.Light) {
 			this._startItemNavigation();
+			this.addDelegate(this.oItemNavigation);
 		}
 
 		if (sType === FacetFilterType.Light) {
@@ -649,10 +634,8 @@ sap.ui.define([
 		}
 
 		//initialize the delegate add apply it to the control (only once)
-		if ((!this.oItemNavigation) || this._addDelegateFlag == true) {
+		if (!this.oItemNavigation) {
 			this.oItemNavigation = new ItemNavigation();
-			this.addDelegate(this.oItemNavigation);
-			this._addDelegateFlag = false;
 		}
 		this._aRows = aRows;
 		for (var i = 0; i < this.$().find(":sapTabbable").length; i++) {
@@ -663,6 +646,11 @@ sap.ui.define([
 		}
 		// After each rendering the delegate needs to be initialized as well.
 		this.oItemNavigation.setRootDomRef(oFocusRef);
+		if (this._invalidateFlag == true) {
+			this.oItemNavigation.setFocusedIndex(-1);
+			this.focus();
+			this._invalidateFlag = false;
+		}
 
 		//set the array of dom nodes representing the items.
 		this.oItemNavigation.setItemDomRefs(aDomRefs);
@@ -1018,6 +1006,14 @@ sap.ui.define([
 			oEvent.preventDefault();
 			oEvent.setMarked();
 		}
+
+		var oItems = this.oItemNavigation.aItemDomRefs,
+			iCurrentFocusIndex = this.oItemNavigation.getFocusedIndex(),
+			iNexFucusIndex = iCurrentFocusIndex - 1 >= 0 ? iCurrentFocusIndex - 1 : iCurrentFocusIndex,
+			oNextTarget = jQuery(oItems[iNexFucusIndex]).control(0),
+			iScrollOffset = this._calculateScrollIntoView(oNextTarget);
+
+		this._scroll(iScrollOffset, SCROLL_DURATION);
 	};
 
 	/**
@@ -1036,6 +1032,14 @@ sap.ui.define([
 			oEvent.preventDefault();
 			oEvent.setMarked();
 		}
+
+		var oItems = this.oItemNavigation.aItemDomRefs,
+			iCurrentFocusIndex = this.oItemNavigation.getFocusedIndex(),
+			iNexFucusIndex = oItems.length > iCurrentFocusIndex + 1 ? iCurrentFocusIndex + 1 : iCurrentFocusIndex,
+			oNextTarget = jQuery(oItems[iNexFucusIndex]).control(0),
+			iScrollToPosition = this._calculateScrollIntoView(oNextTarget);
+
+		this._scroll(iScrollToPosition, SCROLL_DURATION);
 	};
 
 	/**
@@ -1090,8 +1094,6 @@ sap.ui.define([
 					that._popoverClosing = true;
 				},
 				afterClose: function(oEvent) {
-
-					that._addDelegateFlag = true;
 
 					this._popoverClosing = false;
 
@@ -1197,7 +1199,7 @@ sap.ui.define([
 	 *
 	 * @param {sap.m.Popover} oPopover the Popover to be opened
 	 * @param {sap.m.Control} oControl The control the popover will be opened "by"
-	 * @returns {sap.m.FacetFilter} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @private
 	 */
 	FacetFilter.prototype._openPopover = function(oPopover, oControl) {
@@ -1452,6 +1454,8 @@ sap.ui.define([
 				var oFirstItem = (this._displayedList.getMode() === ListMode.MultiSelect) ? oToPage.getContent(0)[1].getItems()[0] : oToPage.getContent(0)[0].getItems()[0];
 				if (oFirstItem) {
 					oFirstItem.focus();
+				} else if (oToPage.getContent()[1]) {
+					oToPage.getContent()[1].focus();
 				}
 			}
 			if (oToPage === oFacetPage) {
@@ -1600,7 +1604,6 @@ sap.ui.define([
 				stretch: Device.system.phone ? true : false,
 				afterClose : function() {
 
-					that._addDelegateFlag = true;
 					that._invalidateFlag = true;
 
 					// Make sure we restore the FacetFilterList back to the lists aggregation and update its active state
@@ -1743,7 +1746,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @ui5-restricted hpa.cei.mkt.cal -> FacetFilter.controller -> OnDisplayRefreshed
-	 * @returns {sap.m.FacetFilter}
+	 * @returns {this}
 	 */
 	FacetFilter.prototype.refreshFacetList = function () {
 		this._oFacetList.getModel().setData({ items: this._getMapFacetLists() });
@@ -1893,7 +1896,7 @@ sap.ui.define([
 		this._listAggrIndex = this.indexOfAggregation("lists", oList);
 		assert(this._listAggrIndex > -1, "The lists index should be valid.");
 		// Suppress invalidate when removing the list from the FacetFilter since this will cause the Popover to close
-		ManagedObject.prototype.removeAggregation.call(this, "lists", oList, true);
+		Control.prototype.removeAggregation.call(this, "lists", oList, true);
 		oContainer.addAggregation("content", oList, false);
 
 		// Make the FacetFilter available from the list even after it is moved. This is actually no longer
@@ -2007,6 +2010,12 @@ sap.ui.define([
 		return oSummaryBar;
 	};
 
+	// Make sure we update selection texts when reset button is pressed
+	FacetFilter.prototype._handleReset = function () {
+		this.fireReset();
+		this.invalidate();
+	};
+
 	/**
 	 * @returns {sap.m.Button} The created reset button
 	 * @private
@@ -2018,15 +2027,14 @@ sap.ui.define([
 			icon: IconPool.getIconURI("undo"),
 			tooltip: this._bundle.getText("FACETFILTER_RESET"),
 			press: function(oEvent) {
-				this._addDelegateFlag = true;
 				this._invalidateFlag = true;
 
 				if (this._popoverClosing) {
 					// We wait for the closing popover animation to finish before firing "reset" event,
 					// so "listClose" event is fired before "reset" event in all cases.
-					setTimeout(this.fireReset.bind(this), Popover.prototype._getAnimationDuration());
+					setTimeout(this._handleReset.bind(this), Popover.prototype._getAnimationDuration());
 				} else {
-					this.fireReset();
+					this._handleReset();
 				}
 
 				//clear search value when 'reset' button clicked
@@ -2039,9 +2047,6 @@ sap.ui.define([
 						oFirstItemInList.focus();
 					}
 				}
-				// Make sure we update selection texts
-				this.invalidate();
-
 			}.bind(this)
 		});
 		return oButton;
@@ -2208,6 +2213,26 @@ sap.ui.define([
 
 	// ---------------- Carousel Support ----------------
 
+	FacetFilter.prototype._calculateScrollIntoView = function (oItem) {
+		var iContainerWidth = this.$("head").width(),
+			iScrollOffset = 0;
+		if (!iContainerWidth || !oItem) {
+			return iScrollOffset;
+		}
+		var $item = oItem.$(),
+			iItemWidth = $item.outerWidth(true),
+			iItemPosLeft = $item.position().left,
+			iItemPosRight = iItemPosLeft + iItemWidth;
+
+		if (iItemPosRight > iContainerWidth) {
+			iScrollOffset = iItemPosRight - iContainerWidth;
+		} else if (iItemPosLeft < 0) {
+			iScrollOffset = iItemPosLeft;
+		}
+
+		return iScrollOffset;
+	};
+
 	/**
 	 * Returns arrows for the carousel.
 	 */
@@ -2220,7 +2245,7 @@ sap.ui.define([
 
 		if (sName === "left") {
 			oArrowIcon = this.getAggregation("arrowLeft");
-				if (!oArrowIcon) {
+			if (!oArrowIcon) {
 				mProperties.id = this.getId() + "-arrowScrollLeft";
 				oArrowIcon = IconPool.createControlByURI(mProperties);
 				var aCssClassesToAddLeft = [ "sapMPointer", "sapMFFArrowScroll", "sapMFFArrowScrollLeft" ];
@@ -2316,12 +2341,12 @@ sap.ui.define([
 				// scroll back/left button
 				oTarget.tabIndex = -1;
 				oTarget.focus();
-				this._scroll(-FacetFilter.SCROLL_STEP, 500);
+				this._scroll(-FacetFilter.SCROLL_STEP, SCROLL_DURATION);
 			} else if (sTargetId == sId + "-arrowScrollRight") {
 				// scroll forward/right button
 				oTarget.tabIndex = -1;
 				oTarget.focus();
-				this._scroll(FacetFilter.SCROLL_STEP, 500);
+				this._scroll(FacetFilter.SCROLL_STEP, SCROLL_DURATION);
 			}
 		}
 	};
@@ -2337,9 +2362,10 @@ sap.ui.define([
 	 */
 	FacetFilter.prototype._scroll = function(iDelta, iDuration) {
 
-		   var oDomRef = this.getDomRef("head");
-		   var iScrollLeft = oDomRef.scrollLeft;
-		if (!Device.browser.internet_explorer && this._bRtl) {
+		var oDomRef = this.getDomRef("head");
+		var iScrollLeft = oDomRef.scrollLeft;
+
+		if (this._bRtl) {
 			iDelta = -iDelta;
 		} // RTL lives in the negative space
 
@@ -2428,7 +2454,7 @@ sap.ui.define([
 						window.clearInterval(this._iInertiaIntervalId);
 						this._iInertiaIntervalId = undefined;
 					}
-				}, dt);
+				}.bind(this), dt);
 
 			} else if (this._bTouchNotMoved === true) { // touchstart and touchend without move is a click; trigger it directly to avoid the usual delay
 				this.onclick(evt);

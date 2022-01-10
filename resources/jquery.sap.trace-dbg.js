@@ -15,8 +15,8 @@
  * All measurement activities get recorded by jquery.sap.measure, which is located in jquery.sap.global. As the initial
  * interaction is the app startup, we need the measuring capability already before this module is loaded.
  */
-sap.ui.define(['jquery.sap.global', 'sap/ui/thirdparty/URI', 'sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/ui/performance/trace/Interaction', 'sap/ui/performance/trace/FESR', 'sap/base/Log', 'sap/ui/Global'],
-function(jQuery, URI, Device, Passport, Interaction, FESR, Log) {
+sap.ui.define(['jquery.sap.global', 'sap/ui/performance/trace/Passport', 'sap/ui/performance/trace/Interaction', 'sap/ui/performance/trace/FESR', 'sap/base/Log', 'sap/ui/Global'],
+function(jQuery, Passport, Interaction, FESR, Log) {
 	"use strict";
 
 
@@ -237,7 +237,8 @@ function(jQuery, URI, Device, Passport, Interaction, FESR, Log) {
 
 	// *********** Include E2E-Trace Scripts *************
 	if (/sap-ui-xx-e2e-trace=(true|x|X)/.test(location.search)) {
-		sap.ui.requireSync("sap/ui/core/support/trace/E2eTraceLib");
+		// jquery.sap.trace.js module gets loaded synchronous via stubbing layer
+		sap.ui.requireSync("sap/ui/core/support/trace/E2eTraceLib"); // legacy-relevant
 	}
 
 	return jQuery;

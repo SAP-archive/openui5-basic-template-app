@@ -66,7 +66,7 @@ function(
 	 * @extends sap.m.NotificationListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -170,6 +170,8 @@ function(
 					var isCollapsed = !this.getCollapsed();
 					this.setCollapsed(isCollapsed);
 					this.fireOnCollapse({collapsed: isCollapsed});
+
+					this.getAggregation("_collapseButton").focus();
 				}.bind(this)
 			});
 

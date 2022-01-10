@@ -47,13 +47,6 @@ sap.ui.define(['sap/ui/base/Object', 'sap/ui/core/LocaleData', './_Calendars'],
 			case 0: return new clDate();
 			// new Date(new Date()) is officially not supported
 			// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/Date
-			// IE 11 loses milliseconds when using new Date(new Date())
-			// var oDateWithMs = new Date(1985, 9, 9, 13, 37, 13, 370);
-			// new Date(oDateWithMs).getMilliseconds();
-			// ie11: 0
-			// chrome/edge/safari/ff: 370
-			// -> Date#getTime to circumvent this problem
-			// this is e.g. executed when calling <code>new UniversalDate(oDateWithMs)</code>
 			case 1: return new clDate(aArgs[0] instanceof Date ? aArgs[0].getTime() : aArgs[0]);
 			case 2: return new clDate(aArgs[0], aArgs[1]);
 			case 3: return new clDate(aArgs[0], aArgs[1], aArgs[2]);
@@ -70,7 +63,7 @@ sap.ui.define(['sap/ui/base/Object', 'sap/ui/core/LocaleData', './_Calendars'],
 	 *
 	 * Note: Prefer this method over calling <code>new UniversalDate</code> with an instance of <code>Date</code>
 	 *
-	 * @param {Date|UniversalDate} [oDate] JavaScript date object, defaults to <code>new Date()</code>
+	 * @param {Date|sap.ui.core.date.UniversalDate} [oDate] JavaScript date object, defaults to <code>new Date()</code>
 	 * @param {sap.ui.core.CalendarType} [sCalendarType] The calendar type, defaults to <code>sap.ui.getCore().getConfiguration().getCalendarType()</code>
 	 * @returns {sap.ui.core.date.UniversalDate} The date instance
 	 * @public
@@ -211,13 +204,14 @@ sap.ui.define(['sap/ui/base/Object', 'sap/ui/core/LocaleData', './_Calendars'],
 
 	UniversalDate.getWeekByDate = function(sCalendarType, iYear, iMonth, iDay) {
 		var oLocale = sap.ui.getCore().getConfiguration().getFormatSettings().getFormatLocale(),
+			oLocaleData = LocaleData.getInstance(oLocale),
 			clDate = this.getClass(sCalendarType),
 			oFirstDay = getFirstDayOfFirstWeek(clDate, iYear),
 			oDate = new clDate(clDate.UTC(iYear, iMonth, iDay)),
 			iWeek, iLastYear, iNextYear, oLastFirstDay, oNextFirstDay;
 		// If region is US, always calculate the week for the current year, otherwise
 		// the week might be the last week of the previous year or first week of next year
-		if (oLocale.getRegion() === "US") {
+		if (oLocaleData.firstDayStartsFirstWeek()) {
 			iWeek = calculateWeeks(oFirstDay, oDate);
 		} else {
 			iLastYear = iYear - 1;
@@ -242,12 +236,15 @@ sap.ui.define(['sap/ui/base/Object', 'sap/ui/core/LocaleData', './_Calendars'],
 
 	UniversalDate.getFirstDateOfWeek = function(sCalendarType, iYear, iWeek) {
 		var oLocale = sap.ui.getCore().getConfiguration().getFormatSettings().getFormatLocale(),
+			oLocaleData = LocaleData.getInstance(oLocale),
 			clDate = this.getClass(sCalendarType),
 			oFirstDay = getFirstDayOfFirstWeek(clDate, iYear),
-			oDate = new clDate(oFirstDay.valueOf() + iWeek * iMillisecondsInWeek);
+			oDate = new clDate(oFirstDay.valueOf() + iWeek * iMillisecondsInWeek),
+			bIsRegionUS = oLocaleData.firstDayStartsFirstWeek();
 		//If first day of week is in last year and region is US, return the
 		//1st of January instead for symmetric behaviour
-		if (oLocale.getRegion() === "US" && iWeek === 0 && oFirstDay.getUTCFullYear() < iYear) {
+
+		if (bIsRegionUS && iWeek === 0 && oFirstDay.getUTCFullYear() < iYear) {
 			return {
 				year: iYear,
 				month: 0,

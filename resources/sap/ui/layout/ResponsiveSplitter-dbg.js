@@ -70,7 +70,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -157,6 +157,7 @@ sap.ui.define([
 		var oRootContainer = this.getRootPaneContainer();
 		if (oRootContainer) {
 			this._onParentResize();
+			this._updatePaginatorButtonsTooltips();
 		}
 
 		this._setItemNavigation();
@@ -411,10 +412,13 @@ sap.ui.define([
 			$NavButtons = this.$().find(".sapUiResponsiveSplitterPaginatorNavButton"),
 			$Paginator = this.$().find(".sapUiResponsiveSplitterPaginator"),
 			iPageCount = (this._getHiddenPanes().length + 1),
+			iMaxPageCount = this._getMaxPageCount(),
 			bShowNavButtons = iPageCount < CONSTANTS.MAX_VISIBLE_BUTTONS;
 
 		$Buttons.addClass("sapUiResponsiveSplitterHiddenElement");
-		if (iPageCount > 1) {
+
+		// Show paginator when there are more than one hidden panes.
+		if (iMaxPageCount > 1 && iPageCount > 1) {
 			this.addStyleClass("sapUiRSVisiblePaginator");
 			$Buttons = $Buttons.slice(0, bShowNavButtons ? iPageCount : CONSTANTS.MAX_VISIBLE_BUTTONS);
 			$Buttons.removeClass("sapUiResponsiveSplitterHiddenElement");

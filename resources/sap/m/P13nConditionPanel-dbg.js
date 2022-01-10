@@ -23,6 +23,10 @@ sap.ui.define([
 	'sap/ui/model/type/Time',
 	'sap/ui/model/odata/type/DateTime',
 	'sap/ui/model/type/Float',
+	'sap/ui/layout/library',
+	'sap/ui/layout/Grid',
+	'sap/ui/layout/GridData',
+	'sap/ui/layout/HorizontalLayout',
 	'./Button',
 	'./OverflowToolbar',
 	'./OverflowToolbarLayoutData',
@@ -58,6 +62,10 @@ sap.ui.define([
 	TimeType,
 	DateTimeOdataType,
 	FloatType,
+	layoutLibrary,
+	Grid,
+	GridData,
+	HorizontalLayout,
 	Button,
 	OverflowToolbar,
 	OverflowToolbarLayoutData,
@@ -97,15 +105,6 @@ sap.ui.define([
 	// shortcut for sap.m.P13nConditionOperation
 	var P13nConditionOperation = library.P13nConditionOperation;
 
-	// lazy dependency to sap.ui.layout.Grid
-	var Grid;
-	// lazy dependency to sap.ui.layout.GridData
-	var GridData;
-	// lazy dependency to sap.ui.layout.HorizontalLayout
-	var HorizontalLayout;
-	// lazy dependency to sap.ui.comp.odata.type.StringDate
-	var StringDateType;
-
 	/**
 	 * Constructor for a new P13nConditionPanel.
 	 *
@@ -113,7 +112,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class The ConditionPanel Control will be used to implement the Sorting, Filtering and Grouping panel of the new Personalization dialog.
 	 * @extends sap.ui.core.Control
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @constructor
 	 * @public
 	 * @since 1.26.0
@@ -572,12 +571,6 @@ sap.ui.define([
 						oType.oFormat.oFormatOptions.UTC = false;
 					}
 					break;
-				case "stringdate":
-					// TODO: Do we really need the COMP library here???
-					sap.ui.getCore().loadLibrary("sap.ui.comp");
-					StringDateType = StringDateType || sap.ui.requireSync("sap/ui/comp/odata/type/StringDate");
-					oKeyField.typeInstance = new StringDateType(Object.assign({}, oKeyField.formatSettings, { strictParsing: true }));
-					break;
 				case "numeric":
 					if (oKeyField.precision || oKeyField.scale) {
 						oConstraints = {};
@@ -643,7 +636,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @param {string} sLayoutMode define the layout mode for the condition row. The value can be Desktop, Tablet or Phone.
-	 * @returns {sap.m.P13nConditionPanel} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 */
 	P13nConditionPanel.prototype.setLayoutMode = function(sLayoutMode) {
 		this.setProperty("layoutMode", sLayoutMode);
@@ -668,7 +661,7 @@ sap.ui.define([
 	 * @private
 	 * @since 1.30.0
 	 * @param {boolean} bEnabled enables or disables the <code>ContainerQuery</code>
-	 * @returns {sap.m.P13nConditionPanel} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 */
 	P13nConditionPanel.prototype.setContainerQuery = function(bEnabled) {
 		this._unregisterResizeHandler();
@@ -717,10 +710,6 @@ sap.ui.define([
 	 * Initialize the control @private
 	 */
 	P13nConditionPanel.prototype.init = function() {
-		// load the required layout lib
-		sap.ui.getCore().loadLibrary("sap.ui.layout");
-		var Grid = P13nConditionPanel._getGridConstructor();
-
 		// init some resources
 		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 		this._sFromLabelText = this._oRb.getText("CONDITIONPANEL_LABELFROM");
@@ -762,13 +751,21 @@ sap.ui.define([
 		this._iConditionPageSize = 10;
 
 		this._oInvisibleTextField = new InvisibleText({
-			text: this._oRb.getText("CONDITIONPANEL_FIELD_LABEL")
+			text: this._oRb.getText("CONDITIONPANEL_FIELD_ARIA_LABEL")
+		});
+		this._oInvisibleTextOperatorInputValue = new InvisibleText({
+			text: this._oRb.getText("CONDITIONPANEL_FIELD_VALUE_ARIA_LABEL")
 		});
 		this._oInvisibleTextOperator = new InvisibleText({
 			text: this._oRb.getText("CONDITIONPANEL_OPERATOR_LABEL")
 		});
+		this._oInvisibleTextOperatorAddButton = new InvisibleText({
+			text: this._oRb.getText("CONDITIONPANEL_ADD_SCREENREADER_DESCRIPTION")
+		});
 		this.addAggregation("content", this._oInvisibleTextField);
+		this.addAggregation("content", this._oInvisibleTextOperatorInputValue);
 		this.addAggregation("content", this._oInvisibleTextOperator);
+		this.addAggregation("content", this._oInvisibleTextOperatorAddButton);
 
 		this.addAggregation("content", this._oConditionsGrid);
 
@@ -827,7 +824,7 @@ sap.ui.define([
 
 		this._oRemoveAllButton = new Button({
 			text: this._oRb.getText("CONDITIONPANEL_REMOVE_ALL"), // "Remove All",
-			//icon: sap.ui.core.IconPool.getIconURI("sys-cancel"),
+			//icon: sap.ui.core.IconPool.getIconURI("decline"),
 			//tooltip: "Remove All",
 			visible: true,
 			press: function(oEvent) {
@@ -853,7 +850,6 @@ sap.ui.define([
 
 		this._oAddButton = new Button({
 			icon: IconPool.getIconURI("add"),
-			tooltip: this._oRb.getText("CONDITIONPANEL_ADD" + (this._sAddRemoveIconTooltipKey ? "_" + this._sAddRemoveIconTooltipKey : "") + "_TOOLTIP"),
 			visible: true,
 			press: function(oEvent) {
 				var oConditionGrid = that._createConditionRow(that._oConditionsGrid, undefined, null, 0);
@@ -868,7 +864,8 @@ sap.ui.define([
 			},
 			layoutData: new OverflowToolbarLayoutData({
 				priority: OverflowToolbarPriority.Low
-			})
+			}),
+			ariaDescribedBy: this._oInvisibleTextOperatorAddButton
 		});
 
 		this._oHeaderText = new Text({
@@ -1178,9 +1175,7 @@ sap.ui.define([
 	 */
 	P13nConditionPanel.prototype._createConditionRow = function(oTargetGrid, oConditionGridData, sKey, iPos, bUseRowFromAbove) {
 		var oGrid,
-			that = this,
-			Grid = P13nConditionPanel._getGridConstructor(),
-			GridData = P13nConditionPanel._getGridDataConstructor();
+			that = this;
 
 		if (iPos === undefined) {
 			iPos = oTargetGrid.getContent().length;
@@ -1567,7 +1562,6 @@ sap.ui.define([
 		var oControl;
 		var sCtrlType;
 		var that = this;
-		var GridData = P13nConditionPanel._getGridDataConstructor();
 
 		var params = {
 			value: oFieldInfo["Value"],
@@ -1779,6 +1773,10 @@ sap.ui.define([
 	 * @param {string} sType the type prefix for resource access
 	 */
 	P13nConditionPanel.prototype._fillOperationListItems = function(oCtrl, aOperations, sType) {
+
+		var sText,
+			sRBText;
+
 		if (sType === "_STRING_") {
 			// ignore the "String" Type when accessing the resource text
 			sType = "";
@@ -1792,11 +1790,16 @@ sap.ui.define([
 
 		oCtrl.destroyItems();
 		aOperations.forEach(function(sOperation){
-			var sText = this._oRb.getText("CONDITIONPANEL_OPTION" + sType + sOperation);
-			if (sText.startsWith("CONDITIONPANEL_OPTION")) {
+
+			sRBText = "CONDITIONPANEL_OPTION" + sType + sOperation;
+
+			if (sType && this._oRb.hasText(sRBText)) {
+				sText = this._oRb.getText(sRBText);
+			} else {
 				// when for the specified type the resource does not exist use the normal string resource text
 				sText = this._oRb.getText("CONDITIONPANEL_OPTION" + sOperation);
 			}
+
 			oCtrl.addItem(new ListItem({
 				key: sOperation,
 				text: sText,
@@ -2925,11 +2928,9 @@ sap.ui.define([
 
 	P13nConditionPanel.prototype._addButtons = function(oConditionGrid, oTargetGrid){
 		var that = this;
-		var GridData = P13nConditionPanel._getGridDataConstructor();
 
 		// create a hLayout container for the remove and add buttons
-		var	HorizontalLayout = P13nConditionPanel._getHorizontalLayoutConstructor(),
-			oButtonContainer = new HorizontalLayout({
+		var	oButtonContainer = new HorizontalLayout({
 			layoutData: new GridData({
 				span: this.getLayoutMode() === "Desktop" ? "L2 M2 S2" : this._oButtonGroupSpan["Span" + this._sConditionType]
 			})
@@ -2940,7 +2941,7 @@ sap.ui.define([
 		// create "Remove button"
 		var oRemoveControl = new Button({
 			type: ButtonType.Transparent,
-			icon: IconPool.getIconURI("sys-cancel"),
+			icon: IconPool.getIconURI("decline"),
 			tooltip: this._oRb.getText("CONDITIONPANEL_REMOVE" + (this._sAddRemoveIconTooltipKey ? "_" + this._sAddRemoveIconTooltipKey : "") + "_TOOLTIP"),
 			press: function() {
 				that._handleRemoveCondition(this.oTargetGrid, oConditionGrid);
@@ -3089,28 +3090,6 @@ sap.ui.define([
 			);
 		}
 		oControl.setVisible(bVisible);
-	};
-
-	P13nConditionPanel._getGridConstructor = function(){
-		if (Grid === undefined) {
-			Grid = sap.ui.requireSync("sap/ui/layout/Grid");
-		}
-
-		return Grid;
-	};
-
-	P13nConditionPanel._getGridDataConstructor = function(){
-		if (GridData === undefined) {
-			GridData = sap.ui.requireSync("sap/ui/layout/GridData");
-		}
-		return GridData;
-	};
-
-	P13nConditionPanel._getHorizontalLayoutConstructor = function(){
-		if (HorizontalLayout === undefined) {
-			HorizontalLayout = sap.ui.requireSync("sap/ui/layout/HorizontalLayout");
-		}
-		return HorizontalLayout;
 	};
 
 	P13nConditionPanel.prototype._mTypes = {

@@ -6,6 +6,7 @@
 
 // Provides control sap.m.OverflowToolbar.
 sap.ui.define([
+	"sap/ui/core/library",
 	"./library",
 	"sap/ui/core/Control",
 	"sap/m/ToggleButton",
@@ -22,8 +23,10 @@ sap.ui.define([
 	"sap/ui/Device",
 	"./OverflowToolbarRenderer",
 	"sap/base/Log",
+	"sap/ui/thirdparty/jquery",
 	"sap/ui/dom/jquery/Focusable" // jQuery Plugin "lastFocusableDomRef"
 ], function(
+	coreLibrary,
 	library,
 	Control,
 	ToggleButton,
@@ -39,7 +42,8 @@ sap.ui.define([
 	DomUnitsRem,
 	Device,
 	OverflowToolbarRenderer,
-	Log
+	Log,
+	jQuery
 ) {
 	"use strict";
 
@@ -49,6 +53,8 @@ sap.ui.define([
 	// shortcut for sap.m.ButtonType
 	var ButtonType = library.ButtonType;
 
+	// shortcut for sap.ui.core.aria.HasPopup
+	var AriaHasPopup = coreLibrary.aria.HasPopup;
 
 	// shortcut for sap.m.OverflowToolbarPriority
 	var OverflowToolbarPriority = library.OverflowToolbarPriority;
@@ -125,7 +131,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -168,7 +174,7 @@ sap.ui.define([
 	/**
 	 * A shorthand for calling Toolbar.prototype methods
 	 * @param {string} sFuncName - the name of the method
-	 * @param aArguments - the arguments to pass in the form of array
+	 * @param {any[]} aArguments - the arguments to pass in the form of array
 	 * @returns {*}
 	 * @private
 	 */
@@ -189,9 +195,6 @@ sap.ui.define([
 
 		// When set to true, the overflow button will be rendered
 		this._bOverflowButtonNeeded = false;
-
-		// When set to true, means that the overflow toolbar is in a popup
-		this._bNestedInAPopover = null;
 
 		// When set to true, changes to the properties of the controls in the toolbar will trigger a recalculation
 		this._bListenForControlPropertyChanges = false;
@@ -225,6 +228,9 @@ sap.ui.define([
 		this._sAriaRoleDescription = sap.ui.getCore()
 			.getLibraryResourceBundle("sap.m")
 			.getText(OverflowToolbar.ARIA_ROLE_DESCRIPTION);
+
+		this._fnMediaChangeRef = this._fnMediaChange.bind(this);
+		Device.media.attachHandler(this._fnMediaChangeRef);
 	};
 
 	OverflowToolbar.prototype.exit = function () {
@@ -241,6 +247,8 @@ sap.ui.define([
 			window.cancelAnimationFrame(this._iFrameRequest);
 			this._iFrameRequest = null;
 		}
+
+		Device.media.detachHandler(this._fnMediaChangeRef);
 	};
 
 	/**
@@ -250,7 +258,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {boolean} bValue
-	 * @return {sap.m.OverflowToolbar} <code>this</code> pointer for chaining
+	 * @return {this} <code>this</code> pointer for chaining
 	 */
 	OverflowToolbar.prototype.setAsyncMode = function(bValue) {
 		// No invalidation is needed
@@ -263,8 +271,6 @@ sap.ui.define([
 	 */
 	OverflowToolbar.prototype.onAfterRendering = function () {
 		this._bInvalidatedAndNotRendered = false;
-		// TODO: refactor with addEventDelegate for onAfterRendering for both overflow button and its label
-		this._getOverflowButton().$().attr("aria-haspopup", "menu");
 
 		if (this._bContentVisibilityChanged) {
 			this._bControlsInfoCached = false;
@@ -366,16 +372,14 @@ sap.ui.define([
 
 	OverflowToolbar.prototype._applyFocus = function () {
 		var oFocusedChildControl,
-			$FocusedChildControl,
 			$LastFocusableChildControl = this.$().lastFocusableDomRef();
 
 		if (this.sFocusedChildControlId) {
 			oFocusedChildControl = sap.ui.getCore().byId(this.sFocusedChildControlId);
-			$FocusedChildControl = oFocusedChildControl && oFocusedChildControl.$();
 		}
 
-		if ($FocusedChildControl && $FocusedChildControl.length){
-			$FocusedChildControl.trigger("focus");
+		if (oFocusedChildControl && oFocusedChildControl.getDomRef()){
+			oFocusedChildControl.focus();
 
 		} else if (this._bControlWasFocused) {
 			// If a control of the toolbar was focused, and we're here, then the focused control overflowed, so set the focus to the overflow button
@@ -445,6 +449,21 @@ sap.ui.define([
 			return;
 		}
 
+		this._callDoLayout();
+	};
+
+	// Media Change Handler
+	OverflowToolbar.prototype._fnMediaChange = function() {
+		// There are some predefined device-dependent CSS classes, which depend on media queries and show/hide controls with CSS.
+		// In some cases, upon device orientation change, some controls (previously hidden) become visible, but their width is cached as 0.
+		// That is why here we reset _bControlsInfoCached property and _iPreviousToolbarWidth, if there is a device change (based on media queries).
+		this._bControlsInfoCached = false;
+		this._iPreviousToolbarWidth = null;
+		this._callDoLayout();
+	};
+
+	// Calls doLayout, depending on the "asyncMode"
+	OverflowToolbar.prototype._callDoLayout = function () {
 		if (this.getAsyncMode()) {
 			this._doLayoutAsync();
 		} else {
@@ -877,7 +896,6 @@ sap.ui.define([
 		this._resetToolbar();
 
 		this._bControlsInfoCached = false;
-		this._bNestedInAPopover = null;
 		this._iPreviousToolbarWidth = null;
 		if (bHardReset) {
 			this._bSkipOptimization = true;
@@ -927,6 +945,7 @@ sap.ui.define([
 
 	OverflowToolbar.prototype._getToggleButton = function (sIdPrefix) {
 		return new ToggleButton({
+				ariaHasPopup: AriaHasPopup.Menu,
 				id: this.getId() + sIdPrefix,
 				icon: IconPool.getIconURI("overflow"),
 				press: this._overflowButtonPressed.bind(this),
@@ -1051,55 +1070,11 @@ sap.ui.define([
 	 * @private
 	 */
 	OverflowToolbar.prototype._popOverClosedHandler = function () {
-		var bWindowsPhone = Device.os.windows_phone || Device.browser.edge && Device.browser.mobile;
-
 		this._getOverflowButton().setPressed(false); // Turn off the toggle button
-		this._getOverflowButton().$().trigger("focus"); // Focus the toggle button so that keyboard handling will work
-
-		if (this._isNestedInsideAPopup() || bWindowsPhone) {
+		if (jQuery(document.activeElement).control(0)) {
 			return;
 		}
-
-		// On IE/sometimes other browsers, if you click the toggle button again to close the popover, onAfterClose is triggered first, which closes the popup, and then the click event on the toggle button reopens it
-		// To prevent this behaviour, disable the overflow button till the end of the current javascript engine's "tick"
-		this._getOverflowButton().setEnabled(false);
-		setTimeout(function () {
-			this._getOverflowButton().setEnabled(true);
-
-			// In order to restore focus, we must wait another tick here to let the renderer enable it first
-			setTimeout(function () {
-				this._getOverflowButton().$().trigger("focus");
-			}.bind(this), 0);
-		}.bind(this), 0);
-	};
-
-	/**
-	 * Checks if the overflowToolbar is nested in a popup
-	 * @returns {boolean}
-	 * @private
-	 */
-	OverflowToolbar.prototype._isNestedInsideAPopup = function () {
-		var fnScanForPopup;
-
-		if (this._bNestedInAPopover !== null) {
-			return this._bNestedInAPopover;
-		}
-
-		fnScanForPopup = function (oControl) {
-			if (!oControl) {
-				return false;
-			}
-
-			if (oControl.getMetadata().isInstanceOf("sap.ui.core.PopupInterface")) {
-				return true;
-			}
-
-			return fnScanForPopup(oControl.getParent());
-		};
-
-		this._bNestedInAPopover = fnScanForPopup(this);
-
-		return this._bNestedInAPopover;
+		this._getOverflowButton().focus();
 	};
 
 	/**
@@ -1581,7 +1556,7 @@ sap.ui.define([
 	OverflowToolbar._getControlWidth = function (oControl) {
 		var oDomRef = oControl && oControl.getDomRef();
 
-		if (oDomRef) {
+		if (oDomRef && oControl.$().is(":visible")) {
 			// Getting the precise width of the control, as sometimes JQuery's .outerWidth() returns different values
 			// for the same element.
 			return Math.round(oDomRef.getBoundingClientRect().width + OverflowToolbar._getControlMargins(oControl));

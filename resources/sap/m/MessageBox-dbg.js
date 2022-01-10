@@ -17,8 +17,7 @@ sap.ui.define([
 	'sap/ui/core/library',
 	'sap/ui/core/Control',
 	'sap/m/library',
-	"sap/ui/thirdparty/jquery",
-	'sap/ui/core/theming/Parameters'
+	"sap/ui/thirdparty/jquery"
 ],
 		function(
 			Button,
@@ -32,8 +31,7 @@ sap.ui.define([
 			coreLibrary,
 			Control,
 			library,
-			jQuery,
-			Parameters
+			jQuery
 		) {
 			"use strict";
 
@@ -56,13 +54,12 @@ sap.ui.define([
 			 * Provides easier methods to create sap.m.Dialog with type sap.m.DialogType.Message, such as standard alerts,
 			 * confirmation dialogs, or arbitrary message dialogs.
 			 *
-			 * As <code>MessageBox</code> is a static class, a <code>sap.ui.require("sap/m/MessageBox");</code> statement
-			 * must be explicitly executed before the class can be used.
-			 * MessageBox provides several functions.
+			 * Because the <code>MessageBox</code> is a static class, a <code>sap.ui.require("sap/m/MessageBox");</code> statement
+			 * must be explicitly executed prior using the class.
+			 * MessageBox provides several functions:
 			 * <ul>
-			 * <li>show() - open a generic MessageBox. You can customize its contents thought the options described below in function option section.</li>
-			 * <li>alert(), confirm(), error(), information(), success() and warning() - predefined templates of MessageBoxes of the corresponding type with predefined action buttons and icon.
-			 * Only the recommended options are documented for those functions.
+			 * <li><code>show()</code> - This is the generic way to open a message dialog. You can customize its contents through the <code>mOptions</code> parameter described below.</li>
+			 * <li><code>alert()</code>, <code>confirm()</code>, <code>error()</code>, <code>information()</code>, <code>success()</code> and <code>warning()</code> - predefined templates of message dialogs. Each value type is coming with action buttons and an icon that are corresponding to its semantic. Although the full set of <code>mOptions</code> (applicable to <code>show()</code>) are available to them, it is recommended to only use the documented options.</li>
 			 * </ul>
 			 *
 			 * <b>NOTE:</b> All options of show() are available for the other template functions as well, but it is recommended to use show() only in more specific scenarios.<br />
@@ -245,7 +242,7 @@ sap.ui.define([
 				 *   function (oAction);
 				 *
 				 * where <code>oAction</code> is the button that the user has tapped. For example, when the user has pressed the close button,
-				 * an sap.m.MessageBox.Action.Close is returned.
+				 * an sap.m.MessageBox.Action.CLOSE is returned.
 				 *
 				 * @param {string} vMessage Message to be displayed in the alert dialog. The usage of sap.core.Control as vMessage is deprecated since version 1.30.4.
 				 * @param {object} [mOptions] Other options (optional)
@@ -264,7 +261,7 @@ sap.ui.define([
 				 * @param {sap.ui.core.TextDirection} [mOptions.textDirection] Added since version 1.28. Specifies the element's text directionality with enumerated options. By default, the control inherits text direction from the DOM.
 				 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 				 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
-				 * @param {string} [mOptions.details] Added since version 1.28.0. If 'details' is set in the MessageBox, a 'Show detail' link is added. When you click the link, the text area containing 'details' information is then displayed. The initial visibility is not configurable and the details are hidden by default.
+				 * @param {string} [mOptions.details] Added since version 1.28.0. If 'details' is set in the MessageBox, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed. The initial visibility is not configurable and the details are hidden by default.
 				 * @param {sap.ui.core.CSSSize} [mOptions.contentWidth] The width of the MessageBox
 				 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 				 * @public
@@ -282,9 +279,6 @@ sap.ui.define([
 								details: "",
 								contentWidth: null
 							},
-							//set the information icon according to the used theme
-							bInformationIconUsed = Parameters.get("_sap_m_Message_Box_Information_Icon") === "true",
-							sSrcIcon = bInformationIconUsed ? "message-information" : "hint",
 							mClasses = {
 								"INFORMATION": "sapMMessageBoxInfo",
 								"WARNING": "sapMMessageBoxWarning",
@@ -294,11 +288,11 @@ sap.ui.define([
 								"STANDARD":  "sapMMessageBoxStandard"
 							},
 							mIcons = {
-								"INFORMATION": IconPool.getIconURI(sSrcIcon),
-								"WARNING": IconPool.getIconURI("message-warning"),
-								"ERROR": IconPool.getIconURI("message-error"),
-								"SUCCESS": IconPool.getIconURI("message-success"),
-								"QUESTION": IconPool.getIconURI("question-mark")
+								"INFORMATION": IconPool.getIconURI("information"),
+								"WARNING": IconPool.getIconURI("alert"),
+								"ERROR": IconPool.getIconURI("error"),
+								"SUCCESS": IconPool.getIconURI("sys-enter-2"),
+								"QUESTION": IconPool.getIconURI("sys-help-2")
 							};
 
 					_verifyBundle();
@@ -389,7 +383,7 @@ sap.ui.define([
 							//covers JSON case
 							//Using stringify() with "tab" as space argument and escaping the JSON to prevent binding
 							mOptions.details = "<pre>" + JSON.stringify(mOptions.details, null, '\t')
-							.replace(/{/gi, "\\{") + "</pre>";
+							.replace(/{/gi, "&#x007B;") + "</pre>";
 						}
 						// html text is set by purpose with setter. If is set in the constructor there are issues with binding
 						oFT = new FormattedText().setVisible(false).setHtmlText(mOptions.details);
@@ -540,6 +534,11 @@ sap.ui.define([
 				 * @param {object} [mOptions] Other options (optional)
 				 * @param {function} [mOptions.onClose] callback function to be called when the user closes the dialog
 				 * @param {string} [mOptions.title='Alert'] Title to be displayed in the alert dialog
+				 * @param {sap.m.MessageBox.Action|sap.m.MessageBox.Action[]|string|string[]} [mOptions.actions=sap.m.MessageBox.Action.OK] Either a single action, or an array of actions.
+				 *      If no action(s) are given, the single action MessageBox.Action.OK is taken as a default for the parameter.
+				 *      Custom action(s) string or an array can be provided, and then the translation
+				 *      of custom actions needs to be done by the application.
+				 * @param {sap.m.MessageBox.Action|string} [mOptions.emphasizedAction=sap.m.MessageBox.Action.OK] Added since version 1.75.0. Specifies which action of the created dialog will be emphasized. EmphasizedAction will apply only if the property <code>actions</code> is provided.
 				 * @param {string} [mOptions.id] ID to be used for the alert dialog. Intended for test scenarios, not recommended for productive apps
 				 * @param {string} [mOptions.styleClass] Added since version 1.21.2. CSS style class which is added to the alert dialog's root DOM node. The compact design can be activated by setting this to "sapUiSizeCompact"
 				 * @param {string|sap.m.MessageBox.Action} [mOptions.initialFocus] Added since version 1.28.0. initialFocus, this option sets the action name, the text of the button or the control that gets the focus as first focusable element after the MessageBox is opened.
@@ -547,6 +546,7 @@ sap.ui.define([
 				 * @param {sap.ui.core.TextDirection} [mOptions.textDirection] Added since version 1.28. Specifies the element's text directionality with enumerated options. By default, the control inherits text direction from the DOM.
 				 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 				 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
+				 * @param {string} [mOptions.details] Added since version 1.28.0. If 'details' is set in the MessageBox, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed. The initial visibility is not configurable and the details are hidden by default.
 				 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 				 * @public
 				 * @static
@@ -594,7 +594,7 @@ sap.ui.define([
 				 *     onClose: null,                                       // default
 				 *     styleClass: "",                                      // default
 				 *     actions: [ sap.m.MessageBox.Action.OK,
-				 *                sap.m.MessageBox.Action.Cancel ],         // default
+				 *                sap.m.MessageBox.Action.CANCEL ],         // default
 				 *     emphasizedAction: sap.m.MessageBox.Action.OK,        // default
 				 *     initialFocus: null,                                  // default
 				 *     textDirection: sap.ui.core.TextDirection.Inherit     // default
@@ -609,7 +609,7 @@ sap.ui.define([
 				 *
 				 * where oAction is set by one of the following three values:
 				 * 1. sap.m.MessageBox.Action.OK: OK (confirmed) button is tapped.
-				 * 2. sap.m.MessageBox.Action.Cancel: Cancel (unconfirmed) button is tapped.
+				 * 2. sap.m.MessageBox.Action.CANCEL: Cancel (unconfirmed) button is tapped.
 				 * 3. null: Confirm dialog is closed by calling <code>sap.m.InstanceManager.closeAllDialogs()</code>
 				 *
 				 * The confirmation dialog opened by this method is processed asynchronously.
@@ -620,6 +620,11 @@ sap.ui.define([
 				 * @param {object} [mOptions] Other options (optional)
 				 * @param {function} [mOptions.onClose] Callback to be called when the user closes the dialog
 				 * @param {string} [mOptions.title='Confirmation'] Title to display in the confirmation dialog
+				 * @param {sap.m.MessageBox.Action|sap.m.MessageBox.Action[]|string|string[]} [mOptions.actions=sap.m.MessageBox.Action.OK] Either a single action, or an array of actions.
+				 *      If no action(s) are given, the single action MessageBox.Action.OK is taken as a default for the parameter.
+				 *      Custom action(s) string or an array can be provided, and then the translation
+				 *      of custom actions needs to be done by the application.
+				 * @param {sap.m.MessageBox.Action|string} [mOptions.emphasizedAction=sap.m.MessageBox.Action.OK] Added since version 1.75.0. Specifies which action of the created dialog will be emphasized. EmphasizedAction will apply only if the property <code>actions</code> is provided.
 				 * @param {string} [mOptions.id] ID to be used for the confirmation dialog. Intended for test scenarios, not recommended for productive apps
 				 * @param {string} [mOptions.styleClass] Added since version 1.21.2. CSS style class which is added to the confirmation dialog's root DOM node. The compact design can be activated by setting this to "sapUiSizeCompact"
 				 * @param {string|sap.m.MessageBox.Action} [mOptions.initialFocus] Added since version 1.28.0. initialFocus, this option sets the action name, the text of the button or the control that gets the focus as first focusable element after the MessageBox is opened.
@@ -627,6 +632,7 @@ sap.ui.define([
 				 * @param {sap.ui.core.TextDirection} [mOptions.textDirection] Added since version 1.28. Specifies the element's text directionality with enumerated options. By default, the control inherits text direction from the DOM.
 				 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 				 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
+				 * @param {string} [mOptions.details] Added since version 1.28.0. If 'details' is set in the MessageBox, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed. The initial visibility is not configurable and the details are hidden by default.
 				 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 				 * @public
 				 * @static
@@ -673,7 +679,7 @@ sap.ui.define([
 				 *     title: "Error",                                      // default
 				 *     onClose: null,                                       // default
 				 *     styleClass: "",                                      // default
-				 *     actions: sap.m.MessageBox.Action.Close,              // default
+				 *     actions: sap.m.MessageBox.Action.CLOSE,              // default
 				 *     emphasizedAction: null,                              // default
 				 *     initialFocus: null,                                  // default
 				 *     textDirection: sap.ui.core.TextDirection.Inherit     // default
@@ -695,6 +701,11 @@ sap.ui.define([
 				 * @param {object} [mOptions] Other options (optional)
 				 * @param {function} [mOptions.onClose] Callback when the user closes the dialog
 				 * @param {string} [mOptions.title='Error'] Title of the error dialog
+				 * @param {sap.m.MessageBox.Action|sap.m.MessageBox.Action[]|string|string[]} [mOptions.actions=sap.m.MessageBox.Action.OK] Either a single action, or an array of actions.
+				 *      If no action(s) are given, the single action MessageBox.Action.OK is taken as a default for the parameter.
+				 *      Custom action(s) string or an array can be provided, and then the translation
+				 *      of custom actions needs to be done by the application.
+				 * @param {sap.m.MessageBox.Action|string} [mOptions.emphasizedAction=sap.m.MessageBox.Action.OK] Added since version 1.75.0. Specifies which action of the created dialog will be emphasized. EmphasizedAction will apply only if the property <code>actions</code> is provided.
 				 * @param {string} [mOptions.id] ID for the error dialog. Intended for test scenarios, not recommended for productive apps
 				 * @param {string} [mOptions.styleClass] CSS style class which is added to the error dialog's root DOM node. The compact design can be activated by setting this to "sapUiSizeCompact"
 				 * @param {string|sap.m.MessageBox.Action} [mOptions.initialFocus] This option sets the action name, the text of the button or the control that gets the focus as first focusable element after the MessageBox is opened.
@@ -702,6 +713,7 @@ sap.ui.define([
 				 * @param {sap.ui.core.TextDirection} [mOptions.textDirection] Specifies the element's text directionality with enumerated options. By default, the control inherits text direction from the DOM.
 				 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 				 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
+				 * @param {string} [mOptions.details] Added since version 1.28.0. If 'details' is set in the MessageBox, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed. The initial visibility is not configurable and the details are hidden by default.
 				 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 				 * @public
 				 * @since 1.30
@@ -755,6 +767,11 @@ sap.ui.define([
 				 * @param {object} [mOptions] Other options (optional)
 				 * @param {function} [mOptions.onClose] Callback when the user closes the dialog
 				 * @param {string} [mOptions.title='Information'] Title of the information dialog
+				 * @param {sap.m.MessageBox.Action|sap.m.MessageBox.Action[]|string|string[]} [mOptions.actions=sap.m.MessageBox.Action.OK] Either a single action, or an array of actions.
+				 *      If no action(s) are given, the single action MessageBox.Action.OK is taken as a default for the parameter.
+				 *      Custom action(s) string or an array can be provided, and then the translation
+				 *      of custom actions needs to be done by the application.
+				 * @param {sap.m.MessageBox.Action|string} [mOptions.emphasizedAction=sap.m.MessageBox.Action.OK] Added since version 1.75.0. Specifies which action of the created dialog will be emphasized. EmphasizedAction will apply only if the property <code>actions</code> is provided.
 				 * @param {string} [mOptions.id] ID for the information dialog. Intended for test scenarios, not recommended for productive apps
 				 * @param {string} [mOptions.styleClass] CSS style class which is added to the information dialog's root DOM node. The compact design can be activated by setting this to "sapUiSizeCompact"
 				 * @param {string|sap.m.MessageBox.Action} [mOptions.initialFocus] This option sets the action name, the text of the button or the control that gets the focus as first focusable element after the MessageBox is opened.
@@ -762,6 +779,7 @@ sap.ui.define([
 				 * @param {sap.ui.core.TextDirection} [mOptions.textDirection] Specifies the element's text directionality with enumerated options. By default, the control inherits text direction from the DOM.
 				 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 				 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
+				 * @param {string} [mOptions.details] Added since version 1.28.0. If 'details' is set in the MessageBox, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed. The initial visibility is not configurable and the details are hidden by default.
 				 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 				 * @public
 				 * @since 1.30
@@ -815,6 +833,11 @@ sap.ui.define([
 				 * @param {object} [mOptions] Other options (optional)
 				 * @param {function} [mOptions.onClose] Callback when the user closes the dialog
 				 * @param {string} [mOptions.title='Warning'] Title of the warning dialog
+				 * @param {sap.m.MessageBox.Action|sap.m.MessageBox.Action[]|string|string[]} [mOptions.actions=sap.m.MessageBox.Action.OK] Either a single action, or an array of actions.
+				 *      If no action(s) are given, the single action MessageBox.Action.OK is taken as a default for the parameter.
+				 *      Custom action(s) string or an array can be provided, and then the translation
+				 *      of custom actions needs to be done by the application.
+				 * @param {sap.m.MessageBox.Action|string} [mOptions.emphasizedAction=sap.m.MessageBox.Action.OK] Added since version 1.75.0. Specifies which action of the created dialog will be emphasized. EmphasizedAction will apply only if the property <code>actions</code> is provided.
 				 * @param {string} [mOptions.id] ID to for the warning dialog. Intended for test scenarios, not recommended for productive apps
 				 * @param {string} [mOptions.styleClass] CSS style class which is added to the warning dialog's root DOM node. The compact design can be activated by setting this to "sapUiSizeCompact"
 				 * @param {string|sap.m.MessageBox.Action} [mOptions.initialFocus] This option sets the action name, the text of the button or the control that gets the focus as first focusable element after the MessageBox is opened.
@@ -822,6 +845,7 @@ sap.ui.define([
 				 * @param {sap.ui.core.TextDirection} [mOptions.textDirection] Specifies the element's text directionality with enumerated options. By default, the control inherits text direction from the DOM.
 				 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 				 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
+				 * @param {string} [mOptions.details] Added since version 1.28.0. If 'details' is set in the MessageBox, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed. The initial visibility is not configurable and the details are hidden by default.
 				 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 				 * @public
 				 * @since 1.30
@@ -875,6 +899,11 @@ sap.ui.define([
 				 * @param {object} [mOptions] Other options (optional)
 				 * @param {function} [mOptions.onClose] Callback when the user closes the dialog
 				 * @param {string} [mOptions.title='Success'] Title of the success dialog
+				 * @param {sap.m.MessageBox.Action|sap.m.MessageBox.Action[]|string|string[]} [mOptions.actions=sap.m.MessageBox.Action.OK] Either a single action, or an array of actions.
+				 *      If no action(s) are given, the single action MessageBox.Action.OK is taken as a default for the parameter.
+				 *      Custom action(s) string or an array can be provided, and then the translation
+				 *      of custom actions needs to be done by the application.
+				 * @param {sap.m.MessageBox.Action|string} [mOptions.emphasizedAction=sap.m.MessageBox.Action.OK] Added since version 1.75.0. Specifies which action of the created dialog will be emphasized. EmphasizedAction will apply only if the property <code>actions</code> is provided.
 				 * @param {string} [mOptions.id] ID for the success dialog. Intended for test scenarios, not recommended for productive apps
 				 * @param {string} [mOptions.styleClass] CSS style class which is added to the success dialog's root DOM node. The compact design can be activated by setting this to "sapUiSizeCompact"
 				 * @param {string|sap.m.MessageBox.Action} [mOptions.initialFocus] This option sets the action name, the text of the button or the control that gets the focus as first focusable element after the MessageBox is opened.
@@ -882,6 +911,7 @@ sap.ui.define([
 				 * @param {sap.ui.core.TextDirection} [mOptions.textDirection] Specifies the element's text directionality with enumerated options. By default, the control inherits text direction from the DOM.
 				 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 				 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
+				 * @param {string} [mOptions.details] Added since version 1.28.0. If 'details' is set in the MessageBox, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed. The initial visibility is not configurable and the details are hidden by default.
 				 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 				 * @public
 				 * @since 1.30

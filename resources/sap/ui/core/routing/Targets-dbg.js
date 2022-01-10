@@ -348,7 +348,7 @@ sap.ui.define([
 			 * this function is ignored
 			 *
 			 * @param {sap.ui.core.routing.Router} oRouter The router instance
-			 * @return {sap.ui.core.routing.Targets} The Targets itself
+			 * @returns {this} The Targets itself
 			 * @private
 			 */
 			_setRouter: function(oRouter) {
@@ -363,7 +363,7 @@ sap.ui.define([
 			/**
 			 * Destroys the targets instance and all created targets. Does not destroy the views instance passed to the constructor. It has to be destroyed separately.
 			 * @public
-			 * @returns { sap.ui.core.routing.Targets } this for chaining.
+			 * @returns {this} this for method chaining.
 			 */
 			destroy : function () {
 				var sTargetName;
@@ -392,6 +392,9 @@ sap.ui.define([
 			 * @property {boolean} [propagateTitle=false] Whether the titleChanged event from this target should be propagated to the parent or not
 			 * @property {boolean} [routeRelevant=false] Whether the target is relevant to the current matched route or not. If 'true', then the dynamic target is linked to the route's life cycle.
 			 *     When switching to a different route, then the dynamic target will be suspended.
+			 * @property {boolean} [ignoreInitialHash=false] Since 1.90. Whether the router of the "Component" target ignores the browser hash when it's re-initialized.
+			 *     This parameter only has effect when the target is of type "Component" and its router is currently stopped. It has no effect on the first call of
+			 *     {link sap.ui.core.routing.Router#initialize}, because this is done by the application and not by the UI5 routing.
 			 * @protected
 			 * @since 1.84.0
 			 */
@@ -464,7 +467,7 @@ sap.ui.define([
 			 *
 			 * @param {string} sName Name of a target
 			 * @param {object} oTargetOptions Options of a target. The option names are the same as the ones in "oOptions.targets.anyName" of {@link #constructor}.
-			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 *
 			 */
@@ -509,6 +512,32 @@ sap.ui.define([
 			},
 
 			/**
+			 * Resumes the targets which are specified by the parameter
+			 *
+			 * @param {string|string[]|object|object[]} vTargets The key of the target
+			 *  or an object which has the key of the target under property 'name' as
+			 *  specified in the {@link #constructor}. To suspend multiple targets you
+			 *  may also pass an array of keys or objects which have the key saved
+			 *  under the 'name' property
+			 * @return {sap.ui.core.routing.Targets} The 'this' for call chaining
+			 * @private
+			 */
+			resume : function (vTargets) {
+				var aTargetsInfo = this._alignTargetsInfo(vTargets);
+
+				aTargetsInfo.forEach(function(oTargetInfo) {
+					var sTargetName = oTargetInfo.name;
+					var oTarget = this.getTarget(sTargetName);
+
+					if (oTarget) {
+						oTarget.resume();
+					}
+				}.bind(this));
+
+				return this;
+			},
+
+			/**
 			 * Will be fired when a target is displayed.
 			 *
 			 * Could be triggered by calling the display function or by the {@link sap.ui.core.routing.Router} when a target is referenced in a matching route.
@@ -543,7 +572,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with. Defaults to this
 			 *            <code>sap.ui.core.routing.Targets</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			attachDisplay : function(oData, fnFunction, oListener) {
@@ -558,7 +587,7 @@ sap.ui.define([
 			 *
 			 * @param {function} fnFunction The function to be called, when the event occurs
 			 * @param {object} [oListener] Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			detachDisplay : function(fnFunction, oListener) {
@@ -569,7 +598,7 @@ sap.ui.define([
 			 * Fires event {@link #event:created created} to attached listeners.
 			 *
 			 * @param {object} [oParameters] Parameters to pass along with the event
-			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			fireDisplay : function(oParameters) {
@@ -617,7 +646,7 @@ sap.ui.define([
  			 *            [oListener] Context object to call the event handler with. Defaults to this
  			 *            <code>sap.ui.core.routing.Targets</code> itself
  			 *
- 			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
+ 			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
  			 * @public
  			 */
 			attachTitleChanged : function(oData, fnFunction, oListener) {
@@ -633,7 +662,7 @@ sap.ui.define([
 			 *
 			 * @param {function} fnFunction The function to be called, when the event occurs
 			 * @param {object} [oListener] Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Targets} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			detachTitleChanged : function(fnFunction, oListener) {
@@ -698,9 +727,17 @@ sap.ui.define([
 			 */
 			_createTarget : function (sName, oTargetOptions) {
 				var oTarget,
-					oOptions;
+					oOptions,
+					oDefaults = {
+						_name: sName
+					};
 
-				oOptions = deepExtend({ _name: sName }, this._oConfig, oTargetOptions);
+				if (this._vRootViewId) {
+					oDefaults.rootView = this._vRootViewId;
+				}
+
+				oOptions = deepExtend(oDefaults, this._oConfig, oTargetOptions);
+
 				oTarget = this._constructTarget(oOptions);
 				oTarget.attachDisplay(function (oEvent) {
 					var oParameters = oEvent.getParameters();
@@ -773,10 +810,10 @@ sap.ui.define([
 			/**
 			 * Called by the UIComponent since the rootView id is not known in the constructor
 			 *
-			 * @param {string} sId The id of the root view
+			 * @param {string|Promise} vId The id of the root view or a promise which resolves with the id of the root view
 			 * @private
 			 */
-			_setRootViewId: function (sId) {
+			_setRootViewId: function (vId) {
 				var sTargetName,
 					oTargetOptions;
 
@@ -784,10 +821,13 @@ sap.ui.define([
 					if (this._mTargets.hasOwnProperty(sTargetName)) {
 						oTargetOptions = this._mTargets[sTargetName]._oOptions;
 						if (oTargetOptions.rootView === undefined) {
-							oTargetOptions.rootView = sId;
+							oTargetOptions.rootView = vId;
 						}
 					}
 				}
+
+				// save the root view id for later added target
+				this._vRootViewId = vId;
 			},
 
 			/*

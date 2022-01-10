@@ -59,13 +59,13 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarDate', 'sap/ui/core/date/Univers
 
 	YearPickerRenderer.renderCells = function(oRm, oYP) {
 
-		var oCurrentDate = new CalendarDate(oYP._getDate(), oYP.getPrimaryCalendarType()),
+		var oDate = oYP.getProperty("_middleDate") ? oYP.getProperty("_middleDate") : oYP._getDate(),
+			oCurrentDate = new CalendarDate(oDate, oYP.getPrimaryCalendarType()),
 			iYears = oYP.getYears(),
 			sId = oYP.getId(),
 			iColumns = oYP.getColumns(),
 			sWidth = "",
 			bEnabled = false,
-			bEnabledCheck = false, // check for disabled years only needed if borders touched
 			oCurrentValidatedDate,
 			bApplySelection,
 			bApplySelectionBetween,
@@ -76,7 +76,6 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarDate', 'sap/ui/core/date/Univers
 
 		if (!oCurrentValidatedDate.isSame(oCurrentDate)) {
 			oCurrentDate = oCurrentValidatedDate;
-			bEnabledCheck = true;
 		}
 
 		if (iColumns > 0) {
@@ -90,11 +89,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarDate', 'sap/ui/core/date/Univers
 			mAccProps = {
 				role: "gridcell"
 			};
-			bEnabled = true;
-
-			if (bEnabledCheck) {
-				bEnabled = oYP._checkDateEnabled(oCurrentDate);
-			}
+			bEnabled = oYP._checkDateEnabled(oCurrentDate);
 
 			if (iColumns > 0 && i % iColumns == 0) {
 				// begin of row
@@ -133,9 +128,8 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarDate', 'sap/ui/core/date/Univers
 			oRm.style("width", sWidth);
 			oRm.accessibilityState(null, mAccProps);
 			oRm.openEnd(); // div element
-
 			// to render era in Japanese, UniversalDate is used, since CalendarDate.toUTCJSDate() will convert the date in Gregorian
-			oRm.text(oYP._oYearFormat.format(UniversalDate.getInstance(oCurrentDate.toUTCJSDate(), oCurrentDate.getCalendarType()))); // to render era in Japanese
+			oRm.text(oYP._oYearFormat.format(UniversalDate.getInstance(oCurrentDate.toUTCJSDate(), oCurrentDate.getCalendarType()), true)); // to render era in Japanese
 			oRm.close("div");
 
 			oCurrentDate.setYear(oCurrentDate.getYear() + 1);

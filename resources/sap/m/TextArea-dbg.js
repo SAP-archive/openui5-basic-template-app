@@ -82,7 +82,7 @@ function(
 	 * @extends sap.m.InputBase
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -142,7 +142,7 @@ function(
 
 			/**
 			 * Indicates the ability of the control to automatically grow and shrink dynamically with its content.
-			 * <b>Note:</b> The <code>height</code> property is ignored, if this property set to <code>true</code>.
+			 * <b>Note:</b> This property should not be used when the <code>height</code> property is set.
 			 * @since 1.38.0
 			 */
 			growing : {type : "boolean", group : "Behavior", defaultValue : false},

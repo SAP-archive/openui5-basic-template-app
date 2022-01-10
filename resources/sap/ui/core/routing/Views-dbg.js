@@ -80,7 +80,7 @@ sap.ui.define([
 			 *
 			 * @param {string} sViewName Name of the view, may differ from the actual viewName of the oView parameter provided, since you can retrieve this view per {@link #.getView}.
 			 * @param {sap.ui.core.mvc.View|null|undefined} oView the view instance
-			 * @return {sap.ui.core.routing.Views} this for chaining.
+			 * @return {this} this for chaining.
 			 * @public
 			 */
 			setView: function (sViewName, oView) {
@@ -117,7 +117,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with. Defaults to this
 			 *            <code>sap.ui.core.routing.Views</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Views} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 
@@ -129,7 +129,7 @@ sap.ui.define([
 			 *
 			 * @param {function} fnFunction The function to be called, when the event occurs
 			 * @param {object} [oListener] Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Views} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 
@@ -137,7 +137,7 @@ sap.ui.define([
 			 * Fires event {@link #event:created created} to attached listeners.
 			 *
 			 * @param {object} [oParameters] Parameters to pass along with the event
-			 * @returns {sap.ui.core.routing.Views} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @protected
 			 */
 			fireCreated: function (oParameters) {

@@ -77,7 +77,6 @@
 .sapUiHyphenation {
 	-webkit-hyphens: auto;
 	-moz-hyphens: auto;
-	-ms-hyphens: auto;
 	hyphens: auto;
 }
 
@@ -256,26 +255,33 @@
 	content: attr(data-badge);
 }
 
+.sapMBadgeIndicator.sapMBadgeDefault[data-badge=""]:after {
+	display: none;
+}
+
 html[data-sap-ui-animation='on'] {
-	.sapMBadgeDefault.sapMBadgeAnimationAdd:after {
-		animation: sapMBadgeAppearBounce .1s;
-	}
+	.sapMBadge.sapMBadgeAnimationTypeFull {
+		.sapMBadgeDefault.sapMBadgeAnimationAdd:after {
+			animation: sapMBadgeAppearBounce .1s;
+		}
 
-	.sapMBadgeDefault.sapMBadgeAnimationAdd:before {
-		content: attr(data-badge);
-		animation: sapMBadgeAppearPulse .2s;
-	}
+		.sapMBadgeDefault.sapMBadgeAnimationAdd:before {
+			content: attr(data-badge);
+			animation: sapMBadgeAppearPulse .2s;
+		}
 
-	.sapMBadgeAttention.sapMBadgeAnimationRemove,
-	.sapMBadgeDefault.sapMBadgeAnimationRemove:after {
-		animation: sapMBadgeDisappear .1s;
-		animation-fill-mode: forwards;
-		transform-origin: center;
+		.sapMBadgeAttention.sapMBadgeAnimationRemove,
+		.sapMBadgeDefault.sapMBadgeAnimationRemove:after {
+			animation: sapMBadgeDisappear .1s;
+			animation-fill-mode: forwards;
+			transform-origin: center;
+		}
 	}
-
-	.sapMBadgeDefault.sapMBadgeAnimationUpdate:after {
-		animation: sapMBadgeUpdate .1s;
-		animation-fill-mode: forwards;
+	.sapMBadge:not(.sapMBadgeAnimationTypeNone) {
+		.sapMBadgeDefault.sapMBadgeAnimationUpdate:after {
+			animation: sapMBadgeUpdate .1s;
+			animation-fill-mode: forwards;
+		}
 	}
 }
 
@@ -284,6 +290,17 @@ html[data-sap-ui-animation='off'] {
 	.sapMBadgeDefault.sapMBadgeAnimationRemove:after {
 		scale: 0;
 		opacity: 0;
+		display: none;
+	}
+}
+
+.sapMBadgeAnimationTypeUpdate,
+.sapMBadgeAnimationTypeNone {
+	.sapMBadgeAttention.sapMBadgeAnimationRemove,
+	.sapMBadgeDefault.sapMBadgeAnimationRemove:after {
+		scale: 0;
+		opacity: 0;
+		display: none;
 	}
 }
 

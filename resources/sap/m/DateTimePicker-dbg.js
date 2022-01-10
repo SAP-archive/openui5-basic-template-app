@@ -4,11 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
-
 //Provides control sap.m.DateTimePicker.
 sap.ui.define([
 	"sap/ui/thirdparty/jquery",
@@ -71,13 +66,15 @@ sap.ui.define([
 	 * The <code>DateTimePicker</code> control consists of two parts: the input field and the
 	 * date/time picker.
 	 *
-	 * <b>Note:</b> The {@link sap.ui.unified.Calendar} is used internally only if the
+	 * <b>Note:</b> The application developer should add dependency to <code>sap.ui.unified</code> library
+	 * on application level to ensure that the library is loaded before the module dependencies will be required.
+	 * The {@link sap.ui.unified.Calendar} is used internally only if the
 	 * <code>DateTimePicker</code> is opened (not used for the initial rendering). If
 	 * the <code>sap.ui.unified</code> library is not loaded before the
 	 * <code>DateTimePicker</code> is opened, it will be loaded upon opening. This
-	 * could lead to a waiting time when the <code>DateTimePicker</code> is opened for
+	 * could lead to CSP compliance issues and adds an additional waiting time when the <code>DateTimePicker</code> is opened for
 	 * the first time. To prevent this, apps using the <code>DateTimePicker</code>
-	 * should also load the <code>sap.ui.unified</code> library.
+	 * should also load the <code>sap.ui.unified</code> library in advance.
 	 *
 	 * <h3>Usage</h3>
 	 *
@@ -139,7 +136,7 @@ sap.ui.define([
 	 * mobile devices, it opens in full screen.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -262,7 +259,9 @@ sap.ui.define([
 		},
 
 		onAfterRendering: function() {
-
+			if (this.getAggregation('timeSliders') && this.getAggregation('timeSliders').getAggregation("_columns")) {
+				this.getAggregation('timeSliders').getAggregation("_columns")[0].setIsExpanded(false);
+			}
 			if (Device.system.phone || jQuery('html').hasClass("sapUiMedia-Std-Phone")) {
 				var oSwitcher = this.getAggregation("_switcher");
 				var sKey = oSwitcher.getSelectedKey();
@@ -525,15 +524,20 @@ sap.ui.define([
 				type: ButtonType.Emphasized,
 				press: _handleOkPress.bind(this)
 			});
+			var oHeader = this._getValueStateHeader();
 			this._oPopup = new ResponsivePopover(this.getId() + "-RP", {
 				showCloseButton: false,
 				showHeader: false,
 				placement: PlacementType.VerticalPreferedBottom,
 				beginButton: this._oOKButton,
-				content: this._oPopupContent,
+				content: [
+					oHeader,
+					this._oPopupContent
+				],
 				afterOpen: _handleAfterOpen.bind(this),
 				afterClose: _handleAfterClose.bind(this)
 			});
+			oHeader.setPopup(this._oPopup._oControl);
 
 
 			if (Device.system.phone) {
@@ -543,6 +547,9 @@ sap.ui.define([
 				this._oPopup.setShowHeader(true);
 				this._oPopup.setShowCloseButton(true);
 			} else {
+				// We add time in miliseconds for opening and closing animations of the popup,
+				// so the opening and closing event handlers are properly ordered in the event queue
+				this._oPopup._getPopup().setDurations(0, 0);
 				this._oPopup.setEndButton(new Button(this.getId() + "-Cancel", {
 					text: sCancelButtonText,
 					press: _handleCancelPress.bind(this)
@@ -570,14 +577,13 @@ sap.ui.define([
 			return;
 		}
 		this.addStyleClass(InputBase.ICON_PRESSED_CSS_CLASS);
-		this._storeInputSelection(this._$input.get(0));
 
 		var oPopover = this._oPopup.getAggregation("_popup");
 		oPopover.oPopup.setAutoCloseAreas([this.getDomRef()]);
 
 		this._oPopup.openBy(this);
 
-		var oSliders = this._oPopup.getContent()[0] && this._oPopup.getContent()[0].getTimeSliders();
+		var oSliders = this._oPopup.getContent()[1] && this._oPopup.getContent()[1].getTimeSliders();
 		if (oSliders) {//Sliders values need to be updated after a popup is (especially sliders) is really visible
 			setTimeout(oSliders._updateSlidersValues.bind(oSliders), 0);
 		}
@@ -669,7 +675,7 @@ sap.ui.define([
 
 			if (oDate.getTime() < this._oMinDate.getTime()) {
 				oDate = new Date(this._oMinDate.getTime());
-			}else if (oDate.getTime() > this._oMaxDate.getTime()){
+			} else if (oDate.getTime() > this._oMaxDate.getTime()){
 				oDate = new Date(this._oMaxDate.getTime());
 			}
 		}
@@ -686,7 +692,7 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {Object} Current accessibility state of the control
+	 * @returns {object} Current accessibility state of the control
 	 * @protected
 	 */
 	DateTimePicker.prototype.getAccessibilityInfo = function() {
@@ -710,14 +716,14 @@ sap.ui.define([
 	 * @private
 	 */
 	DateTimePicker.prototype._handleWindowResize = function(mParams) {
-		var oSwitcher = this.getAggregation("_popup").getContent()[0].getAggregation("_switcher"),
-			oCalendar = this.getAggregation("_popup").getContent()[0].getCalendar(),
-			oSliders = this.getAggregation("_popup").getContent()[0].getTimeSliders();
+		var oSwitcher = this.getAggregation("_popup").getContent()[1].getAggregation("_switcher"),
+			oCalendar = this.getAggregation("_popup").getContent()[1].getCalendar(),
+			oSliders = this.getAggregation("_popup").getContent()[1].getTimeSliders();
 
 		if (mParams.name === STANDART_PHONE_RANGESET) {
 			oSwitcher.setVisible(true);
 			// Getting "sap.m.internal.DateTimePickerPopup" instance in order to call "_switchVisibility(sKey)" method
-			this.getAggregation("_popup").getContent()[0]._switchVisibility(oSwitcher.getSelectedKey());
+			this.getAggregation("_popup").getContent()[1]._switchVisibility(oSwitcher.getSelectedKey());
 		} else {
 			oSwitcher.setVisible(false);
 			oSliders.$().css("display", "");
@@ -736,9 +742,8 @@ sap.ui.define([
 	function _handleAfterClose(){
 		this.removeStyleClass(InputBase.ICON_PRESSED_CSS_CLASS);
 		this.$("inner").attr("aria-expanded", false);
-		this._restoreInputSelection(this._$input.get(0));
 
-		this._oCalendar._closedPickers();
+		this._oCalendar._closePickers();
 		Device.media.detachHandler(this._handleWindowResize, this);
 	}
 

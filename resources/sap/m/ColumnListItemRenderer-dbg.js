@@ -22,9 +22,6 @@ sap.ui.define([
 	// shortcut for sap.ui.core.VerticalAlign
 	var VerticalAlign = coreLibrary.VerticalAlign;
 
-	// shortcut for sap.m.PopinLayout
-	var PopinLayout = library.PopinLayout;
-
 	/**
 	 * ColumnListItem renderer.
 	 * @namespace
@@ -134,10 +131,6 @@ sap.ui.define([
 				rm.class("sapMListTblRowAlternate");
 			}
 		}
-
-		if (oTable && oTable.shouldRenderDummyColumn()) {
-			rm.class("sapMListTblRowHasDummyCell");
-		}
 	};
 
 
@@ -166,7 +159,7 @@ sap.ui.define([
 				bRenderCell = true,
 				oCell = aCells[oColumn.getInitialOrder()];
 
-			if (!oCell || !oColumn.getVisible() || oColumn.isPopin()) {
+			if (!oColumn.getVisible() || !oCell || oColumn.isPopin()) {
 				// update the visible index of the column
 				oColumn.setIndex(-1);
 				return;
@@ -235,7 +228,7 @@ sap.ui.define([
 		}, this);
 	};
 
-	ColumnListItemRenderer.renderDummyCell = function(rm, oLI) {
+	ColumnListItemRenderer.renderDummyCell = function(rm, oTable) {
 		rm.openStart("td");
 		rm.class("sapMListTblDummyCell");
 		rm.attr("role", "presentation");
@@ -288,11 +281,6 @@ sap.ui.define([
 		rm.attr("colspan", oTable.shouldRenderDummyColumn() ? oTable.getColSpan() + 1 : oTable.getColSpan());
 
 		var sPopinLayout = oTable.getPopinLayout();
-		// overwrite sPopinLayout=Block to avoid additional margin-top in IE and Edge
-		if (Device.browser.msie || (Device.browser.edge && Device.browser.version < 16)) {
-			sPopinLayout = PopinLayout.Block;
-		}
-
 		rm.attr("aria-labelledby", this.getAriaAnnouncement(null, "TABLE_POPIN_ROLE_DESCRIPTION"));
 		rm.openEnd();
 
@@ -372,6 +360,10 @@ sap.ui.define([
 	 * @param {sap.m.ListItemBase} [oLI] List item
 	 */
 	ColumnListItemRenderer.addLegacyOutlineClass = function(rm, oLI) {
+		var oTable = oLI.isA("sap.m.Table") ? oLI : oLI.getTable();
+		if (oTable && !oTable.hasPopin() && oTable.shouldRenderDummyColumn()) {
+			rm.class("sapMTableRowCustomFocus");
+		}
 	};
 
 	ColumnListItemRenderer.renderContentLatter = function(rm, oLI) {
@@ -380,9 +372,9 @@ sap.ui.define([
 		if (oTable && oTable.shouldRenderDummyColumn()) {
 			if (!oTable.hasPopin()) {
 				ListItemBaseRenderer.renderContentLatter.apply(this, arguments);
-				this.renderDummyCell(rm, oLI);
+				ColumnListItemRenderer.renderDummyCell(rm, oTable);
 			} else {
-				this.renderDummyCell(rm, oLI);
+				ColumnListItemRenderer.renderDummyCell(rm, oTable);
 				ListItemBaseRenderer.renderContentLatter.apply(this, arguments);
 			}
 		} else {

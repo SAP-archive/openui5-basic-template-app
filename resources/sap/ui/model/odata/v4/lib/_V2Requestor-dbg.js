@@ -33,8 +33,8 @@ sap.ui.define([
 	 * A mixin for a requestor using an OData V2 service.
 	 *
 	 * @alias sap.ui.model.odata.v4.lib._V2Requestor
+	 * @constructor
 	 * @mixin
-	 *
 	 * @private
 	 */
 	function _V2Requestor() {}
@@ -167,7 +167,7 @@ sap.ui.define([
 		if (!mPattern2Formatter[sPattern]) {
 			mPattern2Formatter[sPattern] = DateFormat.getDateTimeInstance({
 				calendarType : CalendarType.Gregorian,
-				pattern: sPattern,
+				pattern : sPattern,
 				UTC : true
 			});
 		}
@@ -367,7 +367,7 @@ sap.ui.define([
 			sResourcePath = sResourcePath.slice(0, iIndex);
 		}
 		aSegments = sResourcePath.split("/");
-		return aSegments.map(function (sSegment, i) {
+		return aSegments.map(function (sSegment) {
 			var aMatches = rSegmentWithPredicate.exec(sSegment);
 
 			iSubPathLength += sSegment.length + 1;
@@ -523,7 +523,7 @@ sap.ui.define([
 	 *   search by header name
 	 * @param {string} sResourcePath
 	 *   The resource path of the request
-	 * @param {boolean} [bVersionOptional=false]
+	 * @param {boolean} [_bVersionOptional]
 	 *   Indicates whether the OData service version is optional, which is the case for all OData V2
 	 *   responses. So this parameter is ignored.
 	 * @throws {Error} If the "DataServiceVersion" header is neither "1.0" nor "2.0" nor not set at
@@ -533,7 +533,7 @@ sap.ui.define([
 	 */
 	// @override sap.ui.model.odata.v4.lib._Requestor#doCheckVersionHeader
 	_V2Requestor.prototype.doCheckVersionHeader = function (fnGetHeader, sResourcePath,
-			bVersionOptional) {
+			_bVersionOptional) {
 		var sDataServiceVersion = fnGetHeader("DataServiceVersion"),
 			vODataVersion = !sDataServiceVersion && fnGetHeader("OData-Version");
 
@@ -636,9 +636,9 @@ sap.ui.define([
 	 * @param {object} mQueryOptions The query options
 	 * @param {function (string,any)} fnResultHandler
 	 *   The function to process the converted options getting the name and the value
-	 * @param {boolean} [bDropSystemQueryOptions=false]
+	 * @param {boolean} [bDropSystemQueryOptions]
 	 *   Whether all system query options are dropped (useful for non-GET requests)
-	 * @param {boolean} [bSortExpandSelect=false]
+	 * @param {boolean} [bSortExpandSelect]
 	 *   Whether the paths in $expand and $select shall be sorted in the query string
 	 * @throws {Error}
 	 *   If a system query option other than $expand and $select is used or if any $expand value is
@@ -653,7 +653,7 @@ sap.ui.define([
 			mSelects = {},
 			that = this;
 
-		/**
+		/*
 		 * Strips all selects to their first segment and adds them to mSelects.
 		 *
 		 * @param {string|string[]} vSelects The selects for the given expand path as
@@ -667,7 +667,7 @@ sap.ui.define([
 			vSelects.forEach(function (sSelect) {
 				var iIndex = sSelect.indexOf("/");
 
-				if (iIndex >= 0 && sSelect.indexOf(".") < 0) {
+				if (iIndex >= 0 && !sSelect.includes(".")) {
 					// only strip if there is no type cast and no bound action (avoid "correcting"
 					// unsupported selects in V2)
 					sSelect = sSelect.slice(0, iIndex);
@@ -676,7 +676,7 @@ sap.ui.define([
 			});
 		}
 
-		/**
+		/*
 		 * Converts the V4 $expand options to flat V2 $expand and $select structure.
 		 *
 		 * @param {string[]} aExpands The resulting list of $expand paths
@@ -970,8 +970,8 @@ sap.ui.define([
 	//*********************************************************************************************
 	function asV2Requestor(oRequestor) {
 		Object.assign(oRequestor, _V2Requestor.prototype);
-		oRequestor.oModelInterface.reportBoundMessages = function () {};
-		oRequestor.oModelInterface.reportUnboundMessages = function () {};
+		oRequestor.oModelInterface.reportStateMessages = function () {};
+		oRequestor.oModelInterface.reportTransitionMessages = function () {};
 	}
 
 	/**
@@ -982,16 +982,16 @@ sap.ui.define([
 	asV2Requestor._setDateTimeFormatter = function () {
 		oDateFormatter = DateFormat.getDateInstance({
 			calendarType : CalendarType.Gregorian,
-			pattern: "yyyy-MM-dd",
+			pattern : "yyyy-MM-dd",
 			UTC : true
 		});
 		oDateTimeOffsetFormatter = DateFormat.getDateTimeInstance({
 			calendarType : CalendarType.Gregorian,
-			pattern: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+			pattern : "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
 		});
 		oTimeFormatter = DateFormat.getTimeInstance({
 			calendarType : CalendarType.Gregorian,
-			pattern: "HH:mm:ss",
+			pattern : "HH:mm:ss",
 			UTC : true
 		});
 	};

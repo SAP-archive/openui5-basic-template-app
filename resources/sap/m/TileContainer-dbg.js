@@ -44,7 +44,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -56,6 +56,7 @@ function(
 	var TileContainer = Control.extend("sap.m.TileContainer", /** @lends sap.m.TileContainer.prototype */ { metadata : {
 
 		library : "sap.m",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -182,7 +183,7 @@ function(
 
 					var oFirstTile = this._getVisibleTiles()[iTargetTileIndex];
 
-					if (!!oFirstTile) {
+					if (oFirstTile) {
 						this._findTile(oFirstTile.$()).trigger("focus");
 						// event should not trigger any further actions
 						oEvent.stopPropagation();
@@ -219,7 +220,7 @@ function(
 
 					var oNextTile = aTiles[iNextIndex];
 
-					if (!!oNextTile) {
+					if (oNextTile) {
 						this._renderTilesInTheSamePage(iNextIndex, aTiles);
 						this._findTile(oNextTile.$()).trigger("focus");
 						// event should not trigger any further actions
@@ -238,7 +239,7 @@ function(
 
 					var oNextTile = aTiles[iNextIndex];
 
-					if (!!oNextTile) {
+					if (oNextTile) {
 						this._renderTilesInTheSamePage(iNextIndex, aTiles);
 						this._findTile(oNextTile.$()).trigger("focus");
 						// event should not trigger any further actions
@@ -256,7 +257,7 @@ function(
 					if (!oEvent.ctrlKey) {
 						var oNextTile = aTiles[iNextIndex];
 
-						if (!!oNextTile) {
+						if (oNextTile) {
 							if (iNextIndex < this._iCurrentTileStartIndex + this._iMaxTiles) { // tile on same page?
 								this._findTile(oNextTile.$()).trigger("focus");
 							} else {
@@ -288,7 +289,7 @@ function(
 					if (!oEvent.ctrlKey) {
 						var oNextTile = aTiles[iNextIndex];
 
-						if (!!oNextTile) {
+						if (oNextTile) {
 							if (iNextIndex >= this._iCurrentTileStartIndex) { // tile on same page?
 								this._findTile(oNextTile.$()).trigger("focus");
 							} else {
@@ -322,7 +323,7 @@ function(
 					if (!oEvent.ctrlKey) {
 						var oNextTile = oTiles[iNextIndex];
 
-						if ((iModNext > iModCurr) && !!oNextTile) {
+						if ((iModNext > iModCurr) && oNextTile) {
 							// '(iModNext > iModCurr)' means: still on same page
 							this._findTile(oNextTile.$()).trigger("focus");
 						}
@@ -347,7 +348,7 @@ function(
 
 					if (!oEvent.ctrlKey) {
 						var oNextTile = oTiles[iNextIndex];
-						if ((iModNext < iModCurr) && !!oNextTile) {
+						if ((iModNext < iModCurr) && oNextTile) {
 							// '(iModNext < iModCurr)' means: still on same page
 							this._findTile(oNextTile.$()).trigger("focus");
 						}
@@ -598,7 +599,7 @@ function(
 	 * This is currently also set with a long tap.
 	 *
 	 * @param {boolean} bValue Whether the container is in edit mode or not
-	 * @returns {sap.m.TileContainer} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 * @public
 	 */
 	TileContainer.prototype.setEditable = function(bValue) {
@@ -784,7 +785,7 @@ function(
 	 *
 	 * @param {sap.m.Tile} vTile The tile to move
 	 * @param {int} iNewIndex The new Tile position in the tiles aggregation
-	 * @returns {sap.m.TileContainer} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
@@ -808,7 +809,7 @@ function(
 	 * Adds a Tile to the end of the tiles collection.
 	 *
 	 * @param {sap.m.Tile} oTile The tile to add
-	 * @returns {sap.m.TileContainer} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 * @override
 	 * @public
 	 */
@@ -822,7 +823,7 @@ function(
 	 *
 	 * @param {sap.m.Tile} oTile The Tile to insert
 	 * @param {int} iIndex The new Tile position in the tiles aggregation
-	 * @returns {sap.m.TileContainer} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 * @override
 	 * @public
 	 */
@@ -931,7 +932,7 @@ function(
 	 * To be used within jQuery.filter function.
 	 * @param {int} index Index of the element within an array
 	 * @param {Element} element DOM element to check
-	 * @returns {Boolean} If a DOM element is focusable
+	 * @returns {boolean} If a DOM element is focusable
 	 * @private
 	 */
 	TileContainer.prototype._isFocusable = function(index, element) {
@@ -960,7 +961,7 @@ function(
 	 * Deletes a Tile.
 	 *
 	 * @param {sap.m.Tile} oTile The tile to move
-	 * @returns {sap.m.TileContainer} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 * @override
 	 * @public
 	 */

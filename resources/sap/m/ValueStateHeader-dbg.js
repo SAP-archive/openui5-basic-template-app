@@ -23,7 +23,7 @@ sap.ui.define(
 		 *
 		 * @extends sap.ui.core.Control
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @private
@@ -152,8 +152,6 @@ sap.ui.define(
 			var oPopup = this._getAssociatedPopupObject();
 
 			if (oPopup) {
-				this.getDomRef().style.width = oPopup.getDomRef().getBoundingClientRect().width + "px";
-
 				// schedule reposition after header rendering
 				if (oPopup.isA("sap.m.Popover")) {
 					setTimeout(function () {

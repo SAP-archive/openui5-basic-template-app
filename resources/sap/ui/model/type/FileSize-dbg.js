@@ -3,26 +3,17 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides class sap.ui.model.type.FileSize
 sap.ui.define([
-	'sap/ui/core/format/FileSizeFormat',
-	'sap/ui/model/SimpleType',
-	'sap/ui/model/FormatException',
-	'sap/ui/model/ParseException',
-	'sap/ui/model/ValidateException',
-	"sap/ui/thirdparty/jquery"
-],
-	function(
-		FileSizeFormat,
-		SimpleType,
-		FormatException,
-		ParseException,
-		ValidateException,
-		jQuery
-	) {
+	"sap/base/util/each",
+	"sap/ui/core/format/FileSizeFormat",
+	"sap/ui/model/FormatException",
+	"sap/ui/model/ParseException",
+	"sap/ui/model/SimpleType",
+	"sap/ui/model/ValidateException"
+], function(each, FileSizeFormat, FormatException, ParseException, SimpleType, ValidateException) {
 	"use strict";
-
 
 	/**
 	 * Constructor for a FileSize type.
@@ -33,7 +24,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions] formatting options. Supports the same options as {@link sap.ui.core.format.FileSizeFormat.getInstance FileSizeFormat.getInstance}
@@ -136,7 +127,7 @@ sap.ui.define([
 				throw new Error("No Validation possible: '" + vValue + "' is of type string but not input/source format specified.");
 			}
 
-			jQuery.each(this.oConstraints, function(sName, oContent) {
+			each(this.oConstraints, function(sName, oContent) {
 				if (oInputFormat && typeof oContent === "string") {
 					oContent = oInputFormat.parse(oContent);
 				} else if (!oInputFormat && typeof oContent === "string") {
@@ -154,6 +145,8 @@ sap.ui.define([
 							aViolatedConstraints.push("maximum");
 							aMessages.push(oBundle.getText("FileSize.Maximum", [oContent]));
 						}
+						break;
+					default: break;
 				}
 			});
 			if (aViolatedConstraints.length > 0) {

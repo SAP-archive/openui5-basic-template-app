@@ -18,25 +18,6 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 	 */
 	var Mobile = {};
 
-	// Windows Phone specific handling
-	if (Device.os.windows_phone) {
-		var oTag;
-		// Disable grey highlights over tapped areas.
-		// This meta tag works since Windows 8.1.
-		// Write in-place, otherwise IE ignores it:
-		oTag = document.createElement("meta");
-		oTag.setAttribute("name", "msapplication-tap-highlight");
-		oTag.setAttribute("content", "no");
-		document.head.appendChild(oTag);
-
-		// Style for correct viewport size and scale definition.
-		// It works correctly since Windows 8.1.
-		// Older 8.0 patches return wrong device-width:
-		oTag = document.createElement("style");
-		oTag.appendChild(document.createTextNode('@-ms-viewport{width:device-width;}'));
-		document.head.appendChild(oTag);
-	}
-
 	var _bInitTriggered = false;
 
 	/**
@@ -110,39 +91,18 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 			// en-/disable automatic link generation for phone numbers
 			if (Device.os.ios && options.preventPhoneNumberDetection) {
 				$head.append(jQuery('<meta name="format-detection" content="telephone=no">')); // this only works
-			                                                                                   // for all DOM
-			                                                                                   // created
-			                                                                                   // afterwards
-			} else if (Device.browser.msie) {
-				$head.append(jQuery('<meta http-equiv="cleartype" content="on">'));
-				$head.append(jQuery('<meta name="msapplication-tap-highlight" content="no">'));
+																							   // for all DOM
+																							   // created
+																							   // afterwards
 			}
 
-			var bIsIOS7Safari = Device.os.ios && Device.os.version >= 7 && Device.os.version < 8 && Device.browser.name === "sf";
 			// initialize viewport
 			if (options.viewport) {
 				var sMeta;
 				var iInnerHeightBefore = Device.resize.height;
 				var iInnerWidthBefore = Device.resize.width;
-				if (bIsIOS7Safari && Device.system.phone) {
-					//if the softkeyboard is open in orientation change, we have to do this to solve the zoom bug
-					// on the phone - the phone zooms into the view although it shouldn't so these two lines will
-					// zoom out again see orientation change below the important part seems to be removing the
-					// device width
-					sMeta = 'minimal-ui, initial-scale=1.0, maximum-scale=1.0, user-scalable=0';
-				} else if (bIsIOS7Safari && Device.system.tablet) {
-					//remove the width = device width since it will not work correctly if the webside is embedded
-					// in a webview
-					sMeta = 'initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-				} else if ((Device.os.ios && Device.system.phone) && (Math.max(window.screen.height, window.screen.width) === 568)) {
-					// iPhone 5
-					sMeta = "user-scalable=0, initial-scale=1.0";
-				} else if (Device.os.android && Device.os.version < 3) {
-					sMeta = "width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
-				} else {
-					// all other devices
-					sMeta = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
-				}
+
+				sMeta = "width=device-width, initial-scale=1.0";
 				$head.append(jQuery('<meta name="viewport" content="' + sMeta + '">'));
 
 				// Update Device API resize info, which is necessary in some scenarios after setting the viewport info
@@ -157,7 +117,7 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 					// keep the old behavior for compatibility
 					// enable fullscreen mode only when runs on iOS devices
 					$head.append(jQuery('<meta name="apple-mobile-web-app-capable" content="yes">')); // since iOS
-				                                                                                      // 2.1
+																									  // 2.1
 				}
 			}
 
@@ -189,14 +149,18 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 			var oIcons;
 
 			if (typeof options.homeIcon === "string") {
-				oIcons = {phone: options.homeIcon};
+				oIcons = {
+					phone: options.homeIcon,
+					favicon: options.homeIcon
+				};
 			} else {
 				oIcons = jQuery.extend({}, options.homeIcon);
+				oIcons.phone = options.homeIcon.phone || options.homeIcon.icon || oIcons.favicon;
+				oIcons.favicon = oIcons.favicon || options.homeIcon.icon || options.homeIcon.phone;
+				oIcons.icon = undefined;
 			}
 
 			oIcons.precomposed = options.homeIconPrecomposed || oIcons.precomposed;
-			oIcons.favicon = options.homeIcon.icon || oIcons.favicon;
-			oIcons.icon = undefined;
 			Mobile.setIcons(oIcons);
 		}
 
@@ -217,8 +181,8 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 	 *
 	 * The home icons must be in PNG format and given in different sizes for iPad/iPhone with and without retina
 	 * display. The favicon is used in the browser and for desktop shortcuts and should optimally be in ICO format:
-	 * PNG does not seem to be supported by Internet Explorer and ICO files can contain different image sizes for
-	 * different usage locations. E.g. a 16x16px version is used inside browsers.
+	 * ICO files can contain different image sizes for different usage locations. E.g. a 16x16px version is used
+	 * inside browsers.
 	 *
 	 * All icons are given in an an object holding icon URLs and other settings. The properties of this object are:
 	 * <ul>
@@ -274,28 +238,16 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', "sap/ui/thirdparty/jquery"], fun
 
 		// desktop icon
 		if (oIcons["favicon"]) {
-
 			// remove any other favicons
-			var $fav = $head.find("[rel^=shortcut]"); // cannot search for "shortcut icon"
-
+			var $fav = $head.find("[rel=icon]");
 			$fav.each(function() {
-				if (this.rel === "shortcut icon") {
+				if (this.rel === "icon") {
 					jQuery(this).remove();
 				}
 			});
 
-			// for IE two DOM updates are necessary to render the favicon properly
-			if (Device.browser.msie) {
-				// create favicon w/o an href attribute for a first DOM update
-				var $link = jQuery('<link rel="shortcut icon">');
-				$head.append($link);
-
-				// add href attribute to force a second DOM
-				$link.attr("href", oIcons["favicon"]);
-			} else {
-				// create favicon
-				$head.append(jQuery('<link rel="shortcut icon" href="' + oIcons["favicon"] + '">'));
-			}
+			// create favicon
+			$head.append(jQuery('<link rel="icon" href="' + oIcons["favicon"] + '">'));
 		}
 
 		// mobile home screen icons

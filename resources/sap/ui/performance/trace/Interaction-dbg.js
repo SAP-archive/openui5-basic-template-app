@@ -20,6 +20,7 @@ sap.ui.define([
 
 	var HOST = window.location.host, // static per session
 		INTERACTION = "INTERACTION",
+		isNavigation = false,
 		aInteractions = [],
 		oPendingInteraction = createMeasurement(),
 		mCompressedMimeTypes = {
@@ -170,15 +171,21 @@ sap.ui.define([
 
 			oPendingInteraction.completed = true;
 			Object.freeze(oPendingInteraction);
-			aInteractions.push(oPendingInteraction);
-			var oFinshedInteraction = aInteractions[aInteractions.length - 1];
-			if (Interaction.onInteractionFinished && oFinshedInteraction) {
-				Interaction.onInteractionFinished(oFinshedInteraction);
-			}
-			if (Log.isLoggable()) {
-				Log.debug("Interaction step finished: trigger: " + oPendingInteraction.trigger + "; duration: " + oPendingInteraction.duration + "; requests: " + oPendingInteraction.requests.length, "Interaction.js");
+
+			if (oPendingInteraction.duration !== 0 || oPendingInteraction.requests.length > 0 || isNavigation) {
+				aInteractions.push(oPendingInteraction);
+				var oFinshedInteraction = aInteractions[aInteractions.length - 1];
+				if (Interaction.onInteractionFinished && oFinshedInteraction) {
+					Interaction.onInteractionFinished(oFinshedInteraction);
+				}
+				if (Log.isLoggable()) {
+					Log.debug("Interaction step finished: trigger: " + oPendingInteraction.trigger + "; duration: " + oPendingInteraction.duration + "; requests: " + oPendingInteraction.requests.length, "Interaction.js");
+				}
 			}
 			oPendingInteraction = null;
+			oCurrentBrowserEvent = null;
+			isNavigation = false;
+			bMatched = false;
 		}
 	}
 
@@ -188,16 +195,18 @@ sap.ui.define([
 		if (oSrcElement) {
 			var Component, oComponent;
 			Component = sap.ui.require("sap/ui/core/Component");
-			while (Component && oSrcElement && oSrcElement.getParent) {
-				oComponent = Component.getOwnerComponentFor(oSrcElement);
-				if (oComponent || oSrcElement instanceof Component) {
-					oComponent = oComponent || oSrcElement;
-					var oApp = oComponent.getManifestEntry("sap.app");
-					// get app id or module name for FESR
-					sId = oApp && oApp.id || oComponent.getMetadata().getName();
-					sVersion = oApp && oApp.applicationVersion && oApp.applicationVersion.version;
+			if (Component) {
+				while (oSrcElement && oSrcElement.getParent) {
+					oComponent = Component.getOwnerComponentFor(oSrcElement);
+					if (oComponent || oSrcElement instanceof Component) {
+						oComponent = oComponent || oSrcElement;
+						var oApp = oComponent.getManifestEntry("sap.app");
+						// get app id or module name for FESR
+						sId = oApp && oApp.id || oComponent.getMetadata().getName();
+						sVersion = oApp && oApp.applicationVersion && oApp.applicationVersion.version;
+					}
+					oSrcElement = oSrcElement.getParent();
 				}
-				oSrcElement = oSrcElement.getParent();
 			}
 		}
 		return {
@@ -209,11 +218,12 @@ sap.ui.define([
 	var bInteractionActive = false,
 		bInteractionProcessed = false,
 		oCurrentBrowserEvent,
+		oBrowserElement,
+		bMatched = false,
 		iInteractionStepTimer,
 		bIdle = false,
 		bSuspended = false,
 		iInteractionCounter = 0,
-		iScrollEventDelayId = 0,
 		descScriptSrc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, "src");
 
 	/* As UI5 resources gets also loaded via script tags we need to
@@ -293,8 +303,6 @@ sap.ui.define([
 				this.addEventListener("readystatechange", handleInteraction.bind(this, Interaction.notifyAsyncStep()));
 				// assign the current interaction to the xhr for later response header retrieval.
 				this.pendingInteraction = oPendingInteraction;
-				// forward request url as fallback for compression check as IE11 does not support responseUrl on a XHR
-				this._ui5RequestUrl = arguments[1] || "";
 			}
 		});
 
@@ -322,7 +330,7 @@ sap.ui.define([
 			if (this.pendingInteraction && !this.pendingInteraction.completed && oPendingInteraction.id === sId) {
 				// enrich interaction with information
 				var sContentLength = this.getResponseHeader("content-length"),
-					bCompressed = checkCompression(this.responseURL || this._ui5RequestUrl, this.getResponseHeader("content-encoding"), this.getResponseHeader("content-type"), sContentLength),
+					bCompressed = checkCompression(this.responseURL, this.getResponseHeader("content-encoding"), this.getResponseHeader("content-type"), sContentLength),
 					sFesrec = this.getResponseHeader("sap-perf-fesrec");
 				this.pendingInteraction.bytesReceived += sContentLength ? parseInt(sContentLength) : 0;
 				this.pendingInteraction.bytesReceived += this.getAllResponseHeaders().length;
@@ -539,6 +547,14 @@ sap.ui.define([
 		},
 
 		/**
+		 * Mark interaction as navigation related
+		 * @private
+		 */
+		notifyNavigation: function() {
+			isNavigation = true;
+		},
+
+		/**
 		 * Start tracking busy time for a Control
 		 * @param {sap.ui.core.Control} oControl
 		 * @private
@@ -567,23 +583,21 @@ sap.ui.define([
 		 * for the new interaction, the creation of the FESR headers for the last interaction is triggered here, so that
 		 * the headers can be sent with the first request of the current interaction.<br>
 		 *
+		 * @param {string} sEventId The control event name
 		 * @param {sap.ui.core.Element} oElement Element on which the interaction has been triggered
 		 * @param {boolean} bForce Forces the interaction to start independently from a currently active browser event
 		 * @static
 		 * @private
 		 */
-		notifyStepStart : function(oElement, bForce) {
+		notifyStepStart : function(sEventId, oElement, bForce) {
 			if (bInteractionActive) {
 				if ((!oPendingInteraction && oCurrentBrowserEvent && !bInteractionProcessed) || bForce) {
 					var sType;
 					if (bForce) {
 						sType = "startup";
-					} else if (oCurrentBrowserEvent.originalEvent) {
-						sType = oCurrentBrowserEvent.originalEvent.type;
 					} else {
-						sType = oCurrentBrowserEvent.type;
+						sType = sEventId;
 					}
-
 					Interaction.start(sType, oElement);
 					oPendingInteraction = Interaction.getPending();
 
@@ -591,15 +605,42 @@ sap.ui.define([
 					if (oPendingInteraction && !oPendingInteraction.completed && Interaction.onInteractionStarted) {
 						oPendingInteraction.passportAction = Interaction.onInteractionStarted(oPendingInteraction, bForce);
 					}
+					if (oCurrentBrowserEvent) {
+						oBrowserElement = oCurrentBrowserEvent.srcControl;
+					}
+					// if browser event matches the first control event we take it for trigger/event determination (step name)
+					if (oElement && oElement.getId && oBrowserElement && oElement.getId() === oBrowserElement.getId()) {
+						bMatched = true;
+					}
 					oCurrentBrowserEvent = null;
 					//only handle the first browser event within a call stack. Ignore virtual/harmonization events.
 					bInteractionProcessed = true;
+					isNavigation = false;
 					setTimeout(function() {
 						//cleanup internal registry after actual call stack.
 						oCurrentBrowserEvent = null;
 						bInteractionProcessed = false;
 					}, 0);
+				} else if (oPendingInteraction && oBrowserElement && !bMatched) {
+					// if browser event matches one of the next control events we take it for trigger/event determination (step name)
+					var elem = oBrowserElement;
+					if (elem && oElement.getId() === elem.getId()) {
+						oPendingInteraction.trigger = oElement.getId();
+						oPendingInteraction.event = sEventId;
+					    bMatched = true;
+					} else {
+						while (elem && elem.getParent()) {
+							elem = elem.getParent();
+							if (oElement.getId() === elem.getId()) {
+								oPendingInteraction.trigger = oElement.getId();
+								oPendingInteraction.event = sEventId;
+								//if we find no direct match we consider the last control event for the trigger/event (step name)
+								break;
+							}
+						}
+					}
 				}
+
 			}
 		},
 
@@ -714,19 +755,7 @@ sap.ui.define([
 		 * @private
 		 */
 		notifyScrollEvent : function(oEvent) {
-			if (bInteractionActive) {
-				// notify for a newly started interaction, but not more often than every 250ms.
-				if (!iScrollEventDelayId) {
-					Interaction.notifyEventStart(oEvent);
-				} else {
-					clearTimeout(iScrollEventDelayId);
-				}
-				iScrollEventDelayId = setTimeout(function(){
-					Interaction.notifyStepStart(oEvent.sourceElement);
-					iScrollEventDelayId = 0;
-					Interaction.notifyStepEnd();
-				}, 250);
-			}
+			/* Scrolling is disabled as it does not work properly for non user triggered scrolling */
 		},
 
 		/**

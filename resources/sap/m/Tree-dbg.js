@@ -39,7 +39,7 @@ function(
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -214,7 +214,7 @@ function(
 	 * The <code>growing</code> property is not supported for control <code>Tree</code>.
 	 * @public
 	 * @param {boolean} bValue New value for the <code>growing</code> property, ignored.
-	 * @returns {sap.m.Tree} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @deprecated As of version 1.46.
 	 */
 	Tree.prototype.setGrowing = function(bValue) {
@@ -226,7 +226,7 @@ function(
 	 * The <code>growingThreshold</code> property is not supported for control <code>Tree</code>.
 	 * @public
 	 * @param {int} iValue New value for the <code>growingThreshold</code> property, ignored.
-	 * @returns {sap.m.Tree} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @deprecated As of version 1.46.
 	 */
 	Tree.prototype.setGrowingThreshold = function(iValue) {
@@ -238,7 +238,7 @@ function(
 	 * The <code>growingTriggerText</code> property is not supported for control <code>Tree</code>.
 	 * @public
 	 * @param {string} sValue New value for the <code>growingTriggerText</code> property, ignored.
-	 * @returns {sap.m.Tree} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @deprecated As of version 1.46.
 	 */
 	Tree.prototype.setGrowingTriggerText = function(sValue) {
@@ -249,8 +249,8 @@ function(
 	/**
 	 * The <code>growingScrollToLoad</code> property is not supported for control <code>Tree</code>.
 	 * @public
-	 * @param {int} bValue New value for the <code>growingScrollToLoad</code> property, ignored.
-	 * @returns {sap.m.Tree} Returns <code>this</code> to allow method chaining
+	 * @param {boolean} bValue New value for the <code>growingScrollToLoad</code> property, ignored.
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @deprecated As of version 1.46.
 	 */
 	Tree.prototype.setGrowingScrollToLoad = function(bValue) {
@@ -262,7 +262,7 @@ function(
 	 * The <code>growingDirection</code> property is not supported for control <code>Tree</code>.
 	 * @public
 	 * @param {sap.m.ListGrowingDirection} sValue New value for the <code>growingDirection</code> property, ignored.
-	 * @returns {sap.m.Tree} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @deprecated As of version 1.46.
 	 */
 	Tree.prototype.setGrowingDirection = function(sValue) {
@@ -283,7 +283,7 @@ function(
 	 *      }
 	 *   });
 	 * </pre>
-	 * @returns {sap.m.Tree} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @param {int} iLevel The level to which the data is expanded
 	 * @since 1.48.0
@@ -318,7 +318,7 @@ function(
 	/**
 	 * Collapses all nodes.
 	 *
-	 * @return {sap.m.Tree} A reference to the Tree control
+	 * @returns {this} A reference to the Tree control
 	 * @public
 	 * @since 1.48.0
 	 */
@@ -377,7 +377,7 @@ function(
 	 *
 	 * Expands one or multiple items. Note that items that are hidden at the time of calling this API can't be expanded.
 	 *
-	 * @return {sap.m.Tree} A reference to the Tree control
+	 * @returns {this} A reference to the Tree control
 	 * @public
 	 * @param {int|int[]} vParam The index or indices of the item to be expanded
 	 * @since 1.56.0
@@ -411,7 +411,7 @@ function(
 	 *
 	 * Collapses one or multiple items.
 	 *
-	 * @return {sap.m.Tree} A reference to the Tree control
+	 * @returns {this} A reference to the Tree control
 	 * @public
 	 * @param {int|int[]} vParam The index or indices of the tree items to be collapsed
 	 * @since 1.56.0

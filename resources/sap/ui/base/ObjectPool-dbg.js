@@ -59,7 +59,7 @@ sap.ui.define(['./Object'],
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @alias sap.ui.base.ObjectPool
 	 * @public
 	 */
@@ -80,7 +80,7 @@ sap.ui.define(['./Object'],
 	 * Borrows a free object from the pool. Any arguments to this method
 	 * are forwarded to the init method of the borrowed object.
 	 *
-	 * @param {any} [arg] optional initialization parameters for the borrowed object
+	 * @param {...any} [args] optional initialization parameters for the borrowed object
 	 * @return {object} The borrowed object of the same type that has been specified for this pool
 	 * @public
 	 */
@@ -139,8 +139,9 @@ sap.ui.define(['./Object'],
 	 * all arguments will be propagated to this method.
 	 *
 	 * @name sap.ui.base.Poolable.prototype.init
+	 * @param {...any} [args] the arguments which were given to {@link sap.ui.base.ObjectPool#borrowObject}
 	 * @function
-	 * @public
+	 * @protected
 	 */
 
 	/**
@@ -152,7 +153,7 @@ sap.ui.define(['./Object'],
 	 *
 	 * @name sap.ui.base.Poolable.prototype.reset
 	 * @function
-	 * @public
+	 * @protected
 	 */
 
 	return ObjectPool;

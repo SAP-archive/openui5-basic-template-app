@@ -38,7 +38,7 @@ sap.ui.define(['./ExportType'],
 	 * @extends sap.ui.core.util.ExportType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @since 1.22.0
 	 *
 	 * @public
@@ -81,7 +81,7 @@ sap.ui.define(['./ExportType'],
 	 * Value needs to be exactly one character or empty for default. Default value is ','.
 	 *
 	 * @param {string} sSeparatorChar  new value for property <code>separatorChar</code>
-	 * @return {sap.ui.core.util.ExportTypeCSV} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	CSV.prototype.setSeparatorChar = function(sSeparatorChar) {

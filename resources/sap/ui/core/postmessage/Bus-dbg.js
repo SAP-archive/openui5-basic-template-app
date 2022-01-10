@@ -38,7 +38,7 @@ function (
 	 * @alias sap.ui.core.postmessage.Bus
 	 * @author SAP SE
 	 * @since 1.56.0
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @private
 	 * @ui5-restricted sap.ui.core.support, sap.ui.support, sap.ui.rta
 	 */
@@ -81,8 +81,8 @@ function (
 	};
 
 	/**
-	 * Returns an instance of the class
-	 * @return {sap.ui.core.postmessage.Bus}
+	 * Returns an instance of the class.
+	 * @returns {sap.ui.core.postmessage.Bus} An instance of the class.
 	 * @static
 	 * @public
 	 */
@@ -201,7 +201,7 @@ function (
 	 * @param {object}
 	 *            [oListener] Object that wants to be notified when the event occurs (<code>this</code> context within the
 	 *                        handler function). If it is not specified, the handler function is called in the context of the event bus.
-	 * @return {sap.ui.core.postmessage.Bus} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 

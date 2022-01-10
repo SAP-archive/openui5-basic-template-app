@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-/*global ActiveXObject, XMLHttpRequest, localStorage, alert, confirm, console, document, Promise */
+/*global XMLHttpRequest, localStorage, alert, document */
 
 /**
  * Provides base functionality of the SAP jQuery plugin as extension of the jQuery framework.<br/>
@@ -26,31 +26,30 @@ sap.ui.define([
 	"sap/base/util/now", "sap/base/util/Version", "sap/base/assert", "sap/base/Log",
 
 	// new sap/ui/* modules
-	"sap/ui/dom/getComputedStyleFix", "sap/ui/dom/activeElementFix", "sap/ui/dom/includeScript",
+	"sap/ui/dom/getComputedStyleFix", "sap/ui/dom/includeScript",
 	"sap/ui/dom/includeStylesheet", "sap/ui/core/support/Hotkeys", "sap/ui/test/RecorderHotkeyListener",
 	"sap/ui/security/FrameOptions", "sap/ui/performance/Measurement", "sap/ui/performance/trace/Interaction",
 	"sap/ui/base/syncXHRFix", "sap/base/util/LoaderExtensions",
-	'sap/ui/events/PasteEventFix',
 
 	// former sap-ui-core.js dependencies
-	"sap/ui/Device", "sap/ui/thirdparty/URI",
+	"sap/ui/Device",
 
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/thirdparty/jqueryui/jquery-ui-position",
 	"ui5loader-autoconfig",
-	"jquery.sap.stubs"
+	"jquery.sap.stubs",
+	"sap/ui/thirdparty/URI", // side effect: make global URI available
+	"sap/ui/events/PasteEventFix" // side effect: activates paste event fix
 ], function(now, Version, assert, Log,
 
-	getComputedStyleFix, activeElementFix, includeScript,
+	getComputedStyleFix, includeScript,
 	includeStylesheet, SupportHotkeys, TestRecorderHotkeyListener,
 	FrameOptions, Measurement, Interaction,
 	syncXHRFix, LoaderExtensions,
-	PasteEventFix,
 
-	Device, URI,
+	Device,
 
-	jQuery /*, jqueryUiPosition, ui5loaderAutoconfig, jquerySapStubs */) {
-
+	jQuery /*, jqueryUiPosition, ui5loaderAutoconfig, jquerySapStubs, URI, PasteEventFix */) {
 	"use strict";
 
 	if ( !jQuery ) {
@@ -88,7 +87,7 @@ sap.ui.define([
 		 * @name jQuery.support
 		 * @namespace
 		 * @private
-	 	 * @deprecated since 1.58 use {@link sap.ui.Device} instead
+		 * @deprecated since 1.58 use {@link sap.ui.Device} instead
 		 */
 		jQuery.support = jQuery.support || {};
 
@@ -168,14 +167,6 @@ sap.ui.define([
 		jQuery.support.newFlexBoxLayout = true;
 
 		/**
-		 * Whether the current browser supports the IE10 CSS3 Flexible Box Layout directly or via vendor prefixes
-		 * @type {boolean}
-		 * @private
-		 * @name jQuery.support.ie10FlexBoxLayout
-		 */
-		jQuery.support.ie10FlexBoxLayout = false;
-
-		/**
 		 * Whether the current browser supports any kind of Flexible Box Layout directly or via vendor prefixes
 		 * @type {boolean}
 		 * @private
@@ -184,52 +175,9 @@ sap.ui.define([
 		jQuery.support.hasFlexBoxSupport = true;
 	}());
 
-	// XHR overrides for IE
-	if ( Device.browser.msie ) {
-
-		// Fixes the CORS issue (introduced by jQuery 1.7) when loading resources
-		// (e.g. SAPUI5 script) from other domains for IE browsers.
-		// The CORS check in jQuery filters out such browsers who do not have the
-		// property "withCredentials" which is the IE and Opera and prevents those
-		// browsers to request data from other domains with jQuery.ajax. The CORS
-		// requests are simply forbidden nevertheless if it works. In our case we
-		// simply load our script resources from another domain when using the CDN
-		// variant of SAPUI5. The following fix is also recommended by jQuery:
-
-		jQuery.support.cors = true;
-
-		// Fixes XHR factory issue (introduced by jQuery 1.11). In case of IE
-		// it uses by mistake the ActiveXObject XHR. In the list of XHR supported
-		// HTTP methods PATCH and MERGE are missing which are required for OData.
-		// The related ticket is: #2068 (no downported to jQuery 1.x planned)
-		// the fix will only be applied to jQuery >= 1.11.0 (only for jQuery 1.x)
-		if ( window.ActiveXObject !== undefined && oJQVersion.inRange("1.11", "2") ) {
-			var fnCreateStandardXHR = function() {
-				try {
-					return new XMLHttpRequest();
-				} catch (e) { /* ignore */ }
-			};
-			var fnCreateActiveXHR = function() {
-				try {
-					return new ActiveXObject("Microsoft.XMLHTTP");
-				} catch (e) { /* ignore */ }
-			};
-			jQuery.ajaxSettings = jQuery.ajaxSettings || {};
-			jQuery.ajaxSettings.xhr = function() {
-				return !this.isLocal ? fnCreateStandardXHR() : fnCreateActiveXHR();
-			};
-		}
-
-	}
-
 	// getComputedStyle polyfill for firefox
 	if ( Device.browser.firefox ) {
 		getComputedStyleFix();
-	}
-
-	// document.activeElement iframe fix
-	if (Device.browser.msie || Device.browser.edge) {
-		activeElementFix();
 	}
 
 	// XHR proxy for Firefox
@@ -420,7 +368,7 @@ sap.ui.define([
 	/**
 	 * Root Namespace for the jQuery plug-in provided by SAP SE.
 	 *
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @namespace
 	 * @public
 	 * @static
@@ -1737,6 +1685,7 @@ sap.ui.define([
 		 * @static
 		 * @deprecated since 1.58 set path mappings via {@link sap.ui.loader.config} instead.
 		 * @SecSink {1|PATH} Parameter is used for future HTTP requests
+		 * @function
 		 */
 		jQuery.sap.registerResourcePath = LoaderExtensions.registerResourcePath;
 
@@ -1759,8 +1708,9 @@ sap.ui.define([
 		 *              The modules will be loaded first before loading the module itself.
 		 *
 		 * @private
-		 * @ui5-restricted sap.ui.core sap.ui.export sap.ui.vk
-	  	 * @deprecated Since 1.58, use {@link sap.ui.loader.config} instead
+		 * @ui5-restricted sap.ui.core, sap.ui.export, sap.ui.vk
+		 * @deprecated Since 1.58, use {@link sap.ui.loader.config} instead
+		 * @function
 		 */
 		jQuery.sap.registerModuleShims = function(mShims) {
 			jQuery.sap.assert( typeof mShims === 'object', "mShims must be an object");
@@ -1818,6 +1768,7 @@ sap.ui.define([
 		 * @public
 		 * @static
 		 * @deprecated since 1.58
+		 * @function
 		 */
 		jQuery.sap.getAllDeclaredModules = LoaderExtensions.getAllRequiredModules;
 
@@ -1930,7 +1881,7 @@ sap.ui.define([
 				vModuleName = ui5ToRJS(vModuleName);
 			}
 
-			sap.ui.requireSync(vModuleName);
+			sap.ui.requireSync(vModuleName); // legacy-relevant: deprecated jquery.sap.require
 
 		};
 
@@ -1966,7 +1917,7 @@ sap.ui.define([
 		 *
 		 * @private
 		 * @ui5-restricted sap.ui.core,preloadfiles
-	  	 * @deprecated since 1.58
+		 * @deprecated since 1.58
 		 */
 		jQuery.sap.registerPreloadedModules = function(oData) {
 
@@ -1991,7 +1942,7 @@ sap.ui.define([
 		 * @experimental Since 1.16.3 API might change completely, apps must not develop against it.
 		 * @private
 		 * @function
-	  	 * @deprecated since 1.58
+		 * @deprecated since 1.58
 		 */
 		jQuery.sap.unloadResources = _ui5loader.unloadResources;
 
@@ -2008,7 +1959,7 @@ sap.ui.define([
 		 * @param {string} [sSuffix='.js'] Suffix to add to the final resource name
 		 * @private
 		 * @ui5-restricted sap.ui.core
-	  	 * @deprecated since 1.58
+		 * @deprecated since 1.58
 		 */
 		jQuery.sap.getResourceName = function(sModuleName, sSuffix) {
 			return ui5ToRJS(sModuleName) + (sSuffix == null ? ".js" : sSuffix);
@@ -2055,7 +2006,7 @@ sap.ui.define([
 		 * @private
 		 * @experimental API is not yet fully mature and may change in future.
 		 * @since 1.15.1
-	  	 * @deprecated since 1.58
+		 * @deprecated since 1.58
 		 */
 		jQuery.sap.loadResource = LoaderExtensions.loadResource;
 
@@ -2092,7 +2043,8 @@ sap.ui.define([
 		 * @experimental
 		 * @private
 		 * @ui5-restricted sap.ui.core,sap.ushell
-	  	 * @deprecated since 1.58
+		 * @deprecated since 1.58
+		 * @function
 		 */
 		jQuery.sap._loadJSResourceAsync = _ui5loader.loadJSResourceAsync;
 
@@ -2159,10 +2111,6 @@ sap.ui.define([
 	 *          [fnLoadCallback] callback function to get notified once the stylesheet has been loaded
 	 * @param {function}
 	 *          [fnErrorCallback] callback function to get notified once the stylesheet loading failed.
-	 *            In case of usage in IE the error callback will also be executed if an empty stylesheet
-	 *            is loaded. This is the only option how to determine in IE if the load was successful
-	 *            or not since the native onerror callback for link elements doesn't work in IE. The IE
-	 *            always calls the onload callback of the link element.
 	 * @return {void|Promise}
 	 *            When using the configuration object a <code>Promise</code> will be returned. The
 	 *            documentation for the <code>fnLoadCallback</code> applies to the <code>resolve</code>
@@ -2187,10 +2135,10 @@ sap.ui.define([
 
 	// -----------------------------------------------------------------------
 
-	if ( oJQVersion.compareTo("3.5.1") != 0 ) {
+	if ( oJQVersion.compareTo("3.6.0") != 0 ) {
 		// if the loaded jQuery version isn't SAPUI5's default version -> notify
 		// the application
-		Log.warning("SAPUI5's default jQuery version is 3.5.1; current version is " + jQuery.fn.jquery + ". Please note that we only support version 3.5.1.");
+		Log.warning("SAPUI5's default jQuery version is 3.6.0; current version is " + jQuery.fn.jquery + ". Please note that we only support version 3.6.0.");
 	}
 
 	// --------------------- frame protection -------------------------------------------------------
@@ -2205,6 +2153,9 @@ sap.ui.define([
 	 *
 	 * This is a synchronous replacement for <code>jQuery.globalEval</code> which in some
 	 * browsers (e.g. FireFox) behaves asynchronously.
+	 *
+	 * <b>Note:</b>
+	 * To avoid potential violations of your content security policy (CSP), this API should not be used.
 	 *
 	 * @type void
 	 * @public
@@ -2231,12 +2182,10 @@ sap.ui.define([
 
 				var rwebkit = /(webkit)[ \/]([\w.]+)/,
 					ropera = /(opera)(?:.*version)?[ \/]([\w.]+)/,
-					rmsie = /(msie) ([\w.]+)/,
 					rmozilla = /(mozilla)(?:.*? rv:([\w.]+))?/,
 					ua = ua.toLowerCase(),
 					match = rwebkit.exec(ua) ||
 						ropera.exec(ua) ||
-						rmsie.exec(ua) ||
 						ua.indexOf("compatible") < 0 && rmozilla.exec(ua) ||
 						[],
 					browser = {};
@@ -2270,5 +2219,4 @@ sap.ui.define([
 	}());
 
 	return jQuery;
-
 });

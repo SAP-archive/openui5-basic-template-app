@@ -6,10 +6,9 @@
 
 sap.ui.define([
 	'sap/ui/core/library',
-	'sap/m/library',
-	'sap/ui/Device'
+	'sap/m/library'
 ],
-function(coreLibrary, library, Device) {
+function(coreLibrary, library) {
 	"use strict";
 
 
@@ -83,7 +82,7 @@ function(coreLibrary, library, Device) {
 		rm.openEnd();
 		rm.close("div");
 		// logo
-		ShellRenderer.getLogoImageHtml(rm, oControl);
+		ShellRenderer.renderLogoImage(rm, oControl);
 
 		// header title
 		if (oControl.getTitle()) {
@@ -136,30 +135,14 @@ function(coreLibrary, library, Device) {
 		rm.close("div");
 	};
 
-	ShellRenderer.getLogoImageHtml = function(rm, oControl) {
-		var sImage = oControl.getLogo(); // configured logo
-		if (!sImage) {
-			//TODO: global jquery call found
-			jQuery.sap.require("sap.ui.core.theming.Parameters");
-			sImage = sap.ui.require("sap/ui/core/theming/Parameters")._getThemeImage(); // theme logo
-		}
-
-		if (sImage) {
-			var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+	ShellRenderer.renderLogoImage = function(rm, oControl) {
+		if (oControl._getImageSrc()) {
 			rm.openStart("div");
 			rm.class("sapMShellLogo");
 			rm.openEnd();
-			if (Device.browser.msie) {
-				rm.openStart("span");
-				rm.class("sapMShellLogoImgAligner");
-				rm.openEnd();
-				rm.close("span");
-			}
-			rm.voidStart("img", oControl.getId() + "-logo");
-			rm.class("sapMShellLogoImg");
-			rm.attr("src", sImage);
-			rm.attr("alt", oRb.getText("SHELL_ARIA_LOGO"));
-			rm.voidEnd();
+
+			rm.renderControl(oControl._getImage());
+
 			rm.close("div");
 		}
 	};

@@ -4,10 +4,24 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
-	function(Device, InvisibleText) {
+sap.ui.define([
+	"sap/ui/Device",
+	"sap/ui/core/Core",
+	"sap/ui/core/InvisibleText",
+	"sap/ui/core/library"
+],
+	function(
+	Device,
+	Core,
+	InvisibleText,
+	coreLibrary
+) {
 	"use strict";
 
+	/**
+	 * @const Shortcut to sap.ui.core.library.aria.HasPopup
+	 */
+	var HasPopup = coreLibrary.aria.HasPopup;
 
 	/**
 	 * SearchField renderer.
@@ -29,13 +43,18 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 			return;
 		}
 
-		var sPlaceholder = oSF.getPlaceholder(),
+		var sPlaceholder = oSF.getPlaceholder() || Core.getLibraryResourceBundle("sap.m").getText("FACETFILTER_SEARCH", true),
 			sValue = oSF.getValue(),
 			sWidth = oSF.getProperty("width"),
 			sId = oSF.getId(),
 			bShowRefreshButton = oSF.getShowRefreshButton(),
 			bShowSearchBtn = oSF.getShowSearchButton(),
-			oAccAttributes = {}, // additional accessibility attributes
+			oAccAttributes = {
+				describedby: {
+					value: SearchFieldRenderer._getDescribedBy(oSF),
+					append: true
+				}
+			},
 			sToolTipValue,
 			sRefreshToolTip = oSF.getRefreshButtonTooltip(),
 			sResetToolTipValue;
@@ -71,20 +90,14 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 
 			rm.openEnd();
 
-			// self-made placeholder
-			if (!oSF._hasPlaceholder && sPlaceholder) {
-				rm.openStart("label", sId + "-P")
-					.class("sapMSFPlaceholder")
-					.attr("for", sId + "-I")
-					.openEnd()
-					.text(sPlaceholder)
-					.close("label");
-			}
-
-			rm.voidStart('input', oSF.getId() + "-I")
+			rm.voidStart('input', sId + "-I")
 				.class("sapMSFI")
 				.attr("type", "search")
 				.attr("autocomplete", "off");
+
+			if (oSF.getEnableSuggestions()) {
+				rm.attr("aria-haspopup", HasPopup.ListBox.toLowerCase());
+			}
 
 			if (Device.browser.safari) {
 				rm.attr("autocorrect", "off");
@@ -95,14 +108,10 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 				rm.attr("title", sTooltip);
 			}
 
-			if (Device.os.android && Device.os.version >= 4 && Device.os.version < 4.1 ) {
-				rm.class("sapMSFIA4"); // specific CSS layout for Android 4.0x
-			}
-
 			if (oSF.getEnableSuggestions() && Device.system.phone) {
 				// Always open a dialog on a phone if suggestions are on.
-				// To avoid soft keyboard flickering, set the readonly attribute.
-				rm.attr("readonly", "readonly");
+				// avoid soft keyboard flickering
+				rm.attr("inputmode", "none");
 			}
 
 			if (!oSF.getEnabled()) {
@@ -119,17 +128,6 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 
 			rm.attr("value", sValue);
 
-			// ARIA attributes
-			if (oSF.getEnabled() && bShowRefreshButton) {
-				var sAriaF5LabelId = InvisibleText.getStaticId("sap.m", "SEARCHFIELD_ARIA_F5");
-				if (sAriaF5LabelId) {
-					oAccAttributes.describedby = {
-						value: sAriaF5LabelId,
-						append: true
-					};
-				}
-			}
-
 			oAccAttributes.disabled = null;
 
 			rm.accessibilityState(oSF, oAccAttributes);
@@ -138,7 +136,7 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 
 			if (oSF.getEnabled()) {
 				// 2. Reset button
-				rm.openStart("div", oSF.getId() + "-reset")
+				rm.openStart("div", sId + "-reset")
 					.class("sapMSFR") // reset
 					.class("sapMSFB") // button
 					.attr("aria-hidden", true);
@@ -159,7 +157,7 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 
 				// 3. Search/Refresh button
 				if (bShowSearchBtn) {
-					rm.openStart("div", oSF.getId() + "-search")
+					rm.openStart("div", sId + "-search")
 						.class("sapMSFS") // search
 						.class("sapMSFB") // button
 						.attr("aria-hidden", true);
@@ -184,7 +182,7 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 
 			if (oSF.getEnableSuggestions()) {
 
-				rm.openStart("span", oSF.getId() + "-SuggDescr")
+				rm.openStart("span", sId + "-SuggDescr")
 					.class("sapUiPseudoInvisibleText")
 					.attr("role", "status")
 					.attr("aria-live", "polite")
@@ -193,6 +191,16 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/InvisibleText"],
 			}
 
 		rm.close("div");
+	};
+
+	SearchFieldRenderer._getDescribedBy = function (oSF) {
+		var sDescribedBy = InvisibleText.getStaticId("sap.m", "SEARCHFIELD_ARIA_DESCRIBEDBY");
+
+		if (oSF.getEnabled() && oSF.getShowRefreshButton()) {
+			sDescribedBy += " " + InvisibleText.getStaticId("sap.m", "SEARCHFIELD_ARIA_F5");
+		}
+
+		return sDescribedBy;
 	};
 
 	return SearchFieldRenderer;

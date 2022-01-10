@@ -9,7 +9,7 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	"use strict";
 
 	/**
-	 * Constructor for a new Plugin.
+	 * Provides the base class for plugins.
 	 *
 	 * @param {string} [sId] ID for the new plugin, generated automatically if no ID is given
 	 * @param {object} [mSettings] Initial settings for the new plugin
@@ -20,7 +20,7 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @private
 	 * @experimental Since 1.73. This class is experimental and provides only limited functionality. Also the API might be changed in future.
@@ -42,103 +42,158 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	});
 
 	/**
-	 * Internal data store for plugin configurations
+	 * Internal data store for plugin-control configurations
 	 */
 	var mPluginControlConfigs = {};
 
 	/**
-	 * Sets control-related plugin configuration.
+	 * Defines a plugin-related multiple control configuration.
 	 *
-	 * @param {object} mControlConfig The control configuration object where the keys are control names
-	 * @param {string|function} [vPlugin] The name or the constructor of the plugin
+	 * @example
+	 * PluginBase.setConfigs({
+	 *     "sap.m.Table": {
+	 *		    defaultAggregationName: "items"
+	 *     },
+	 *     "sap.ui.table.Table": {
+	 *          defaultAggregationName: "rows"
+	 *     }
+	 * }, TablePluginConstructor);
+	 *
+	 * @param {object} mControlConfigs The configuration object for control types where the first level keys are full control names and values are configuration objects
+	 * @param {string|function} vPlugin The full name or the constructor of the plugin
 	 * @protected
 	 * @static
 	 */
-	PluginBase.setConfig = function(mControlConfig, vPlugin) {
-		var sPluginName = (typeof vPlugin == "function") ? vPlugin.getMetadata().getName() : PluginBase.getMetadata().getName();
-		Object.assign(mPluginControlConfigs[sPluginName] = mPluginControlConfigs[sPluginName] || {}, mControlConfig);
-	};
-
-	PluginBase.prototype.init = function() {
-		this._bIsActive = false;
+	PluginBase.setConfigs = function(mControlConfigs, vPlugin) {
+		var sPluginName = (typeof vPlugin == "function") ? vPlugin.getMetadata().getName() : vPlugin;
+		Object.assign(mPluginControlConfigs[sPluginName] = mPluginControlConfigs[sPluginName] || {}, mControlConfigs);
 	};
 
 	/**
-	 * Indicates whether the plugin is active.
+	 * Sets a control-related plugin configuration.
 	 *
-	 * @returns {boolean} <code>true</code> if the plugin is active; otherwise, <code>false</code>
+	 * @example
+	 * PluginBase.setControlConfig("sap.m.Table", {
+	 *     defaultAggregationName: "items"
+	 * }, "my.table.plugin");
+	 *
+	 * @param {string|function} vControl The full name or the constructor of the control
+	 * @param {object} mControlConfig The configuration object for a control type
+	 * @param {string|function} vPlugin The full name or the constructor of the plugin
 	 * @public
+	 * @static
+	 */
+	PluginBase.setControlConfig = function(vControl, mControlConfig, vPlugin) {
+		var mControlConfigs = {};
+		var sControlName = (typeof vControl == "function") ? vControl.getMetadata().getName() : vControl;
+		mControlConfigs[sControlName] = mControlConfig;
+		this.setConfigs(mControlConfigs, vPlugin);
+	};
+
+	/**
+	 * Returns the first applied plugin for the given control instance and the plugin name.
+	 *
+	 * @param {sap.ui.core.Control} oControl The control instance to check for
+	 * @param {string|function} [vPlugin] The full name or the constructor of the plugin
+	 * @return {undefined|sap.m.plugins.PluginBase} The found plugin instance or undefined if not found
+	 * @public
+	 * @static
+	 */
+	PluginBase.getPlugin = function(oControl, vPlugin) {
+		if (vPlugin == undefined) {
+			vPlugin = this.getMetadata().getName();
+		} else if (typeof vPlugin == "function") {
+			vPlugin = vPlugin.getMetadata().getName();
+		}
+
+		return oControl.findElements(false, function(oElement) {
+			return oElement.isA(vPlugin);
+		})[0];
+	};
+
+
+	/**
+	 * Indicates whether the plugin is added to an applicable control and the <code>enabled</code> property of the plugin is <code>true</code>.
+	 *
+	 * @returns {boolean} <code>true</code> if the plugin is active, otherwise <code>false</code>
+	 * @protected
 	 */
 	PluginBase.prototype.isActive = function() {
-		return this._bIsActive;
+		return !!(this._bActive);
 	};
 
 	/**
-	 * Returns the control where the plugin is defined.
+	 * Returns the parent or the logical owner of the plugin instance.
+	 *
+	 * A composite control can implement the <code>get[PluginName]PluginOwner</code> method to define a logical plugin owner that will be responsible for the plugin.
+	 * In this case, even though the plugin instance is added to the composite control, the return value of <code>get[PluginName]PluginOwner</code> will be the logical owner of the plugin.
+	 * If a composite control instantiates internal controls asynchronously, then the <code>get[PluginName]PluginOwner</code> method must return a promise. After the <code>Promise</code> has been resolved,
+	 * the <code>get[PluginName]PluginOwner</code> method must always return the instance of the internal control.<br>
+	 * If such a <code>get[PluginName]PluginOwner</code> method exists in the control where the plugin is inserted then the <code>getControl</code> method return the logical owner of the plugin.
 	 *
 	 * @returns {sap.ui.core.Control|null}
 	 * @protected
 	 */
 	PluginBase.prototype.getControl = function() {
-		return this.getParent();
+		var oParent = this.getParent();
+		if (oParent) {
+			var sPluginOwnerMethod = "get" + this.getMetadata().getName().split(".").pop() + "PluginOwner";
+			oParent = oParent[sPluginOwnerMethod] ? oParent[sPluginOwnerMethod](this) : oParent;
+		}
+
+		return oParent;
 	};
 
 	/**
 	 * Returns the plugin configuration of the control.
+	 * If the configuration is a type of function, then it gets executed.
 	 *
 	 * @param {string} sKey The configuration key
-	 * @param {string} [vDefaultValue] Default value if the configuration key is not found
-	 * @returns {*}
+	 * @param {any} [vParam1] The first parameter if the sKey configuration is a type of function
+	 * @param {any} [vParam2] The second parameter if the sKey configuration is a type of function
+	 * @returns {*} The plugin configuration of the control, otherwise undefined
 	 * @protected
 	 */
-	PluginBase.prototype.getControlPluginConfig = function(sKey, vDefaultValue) {
+	PluginBase.prototype.getConfig = function(sKey, vParam1, vParam2) {
 		var oControl = this.getControl();
 		if (!oControl) {
-			return vDefaultValue;
+			return;
 		}
 
 		var sPluginName = this.getMetadata().getName();
 		var sControlName = oControl.getMetadata().getName();
 		var mPluginConfig = mPluginControlConfigs[sPluginName] || {};
 		var mControlConfig = mPluginConfig[sControlName] || {};
+		var fnReturn = function(mConfig) {
+			return (typeof mConfig[sKey] == "function") ? mConfig[sKey].call(mConfig, vParam1, vParam2) : mConfig[sKey];
+		};
 
 		if (sKey in mControlConfig) {
-			return mControlConfig[sKey];
+			return fnReturn(mControlConfig);
 		}
 
 		for (var sControlType in mPluginConfig) {
-			if (oControl.isA(sControlType) && sKey in mPluginConfig[sControlType]) {
-				return mPluginConfig[sControlType][sKey];
+			if (oControl.isA(sControlType)) {
+				if (!sKey) {
+					return mPluginConfig[sControlType];
+				}
+				if (sKey in mPluginConfig[sControlType]) {
+					return fnReturn(mPluginConfig[sControlType]);
+				}
 			}
 		}
-
-		var sPluginBaseName = PluginBase.getMetadata().getName();
-		var mGlobalPluginConfig = mPluginControlConfigs[sPluginBaseName] || {};
-		var mGlobalControlConfig = mGlobalPluginConfig[sControlName] || {};
-
-		if (sKey in mGlobalControlConfig) {
-			return mGlobalControlConfig[sKey];
-		}
-
-		for (var sControlType in mGlobalPluginConfig) {
-			if (oControl.isA(sControlType) && sKey in mGlobalPluginConfig[sControlType]) {
-				return mGlobalPluginConfig[sControlType][sKey];
-			}
-		}
-
-		return vDefaultValue;
 	};
-
 
 	/**
 	 * This hook method gets called to determine whether the plugin is applicable for the defined control or not.
+	 * By default, plugins can be applied if a control configuration has been defined for a particular plugin type.
 	 *
 	 * @param {sap.ui.core.Control} oControl The control that is connected to the plugin
-	 * @returns {Boolean} Whether applicable or not
+	 * @returns {boolean} Whether applicable or not
 	 * @virtual
 	 */
 	PluginBase.prototype.isApplicable = function(oControl) {
-		return oControl.isA("sap.ui.core.Control");
+		return Object.keys(this.getConfig() || {}).length > 0;
 	};
 
 	/**
@@ -157,27 +212,18 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	 */
 	PluginBase.prototype.onDeactivate = function(oControl) {};
 
-
 	/**
 	 * Activates or deactivates the plugin when the parent of the plugin is set.
 	 *
 	 * @override
 	 */
-	PluginBase.prototype.setParent = function(oParent) {
-		var bEnabled = this.getEnabled();
-
-		if (bEnabled && this.getControl()) {
-			this._deactivate();
-		}
+	PluginBase.prototype.setParent = function() {
+		this._deactivate();
 
 		Element.prototype.setParent.apply(this, arguments);
 
-		if (oParent && bEnabled) {
-			if (!this.isApplicable(oParent)) {
-				throw new Error(this + " is not applicable to " + oParent);
-			} else {
-				this._activate();
-			}
+		if (this.getEnabled()) {
+			this._activate();
 		}
 
 		return this;
@@ -191,13 +237,12 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	PluginBase.prototype.setEnabled = function(bEnabled) {
 		var bOldEnabled = this.getEnabled();
 		this.setProperty("enabled", bEnabled, true);
-		var bNewEnabled = this.getEnabled();
 
-		if (bNewEnabled != bOldEnabled && this.getControl()) {
-			if (bNewEnabled) {
-				this._activate();
-			} else {
+		if (this.getEnabled() != bOldEnabled) {
+			if (bOldEnabled) {
 				this._deactivate();
+			} else {
+				this._activate();
 			}
 		}
 
@@ -205,7 +250,7 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	};
 
 	/**
-	 * Suppresses the invalidation when the <code>invalidate</code> attribute of the property metadata is set to false.
+	 * Suppresses the invalidation when the <code>invalidate</code> attribute of the property metadata is set to <code>false</code>.
 	 *
 	 * @override
 	 */
@@ -219,20 +264,40 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	 * Internal plugin activation handler
 	 */
 	PluginBase.prototype._activate = function() {
-		if (!this.isActive()) {
-			this.onActivate(this.getControl());
-			this._bIsActive = true;
+		if (this._bActive) {
+			return;
 		}
+
+		var oControl = this.getControl();
+		if (!oControl) {
+			return;
+		}
+
+		if (oControl instanceof Promise) {
+			return oControl.then(this._activate.bind(this));
+		}
+
+		if (!this.isApplicable(oControl)) {
+			throw new Error(this + " is not applicable to " + oControl);
+		}
+
+		this.getConfig("onActivate", oControl, this);
+		this.onActivate(oControl);
+		this._bActive = true;
 	};
 
 	/**
 	 * Internal plugin deactivation handler
 	 */
 	PluginBase.prototype._deactivate = function() {
-		if (this.isActive()) {
-			this.onDeactivate(this.getControl());
-			this._bIsActive = false;
+		if (!this._bActive) {
+			return;
 		}
+
+		var oControl = this.getControl();
+		this.getConfig("onDeactivate", oControl, this);
+		this.onDeactivate(oControl);
+		this._bActive = false;
 	};
 
 	return PluginBase;

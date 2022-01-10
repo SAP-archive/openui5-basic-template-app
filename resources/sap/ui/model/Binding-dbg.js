@@ -3,7 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides an abstraction for model bindings
 sap.ui.define([
 	'sap/ui/base/EventProvider',
@@ -27,10 +27,10 @@ sap.ui.define([
 	 * model for the control, so it is the event provider for changes in the data model
 	 * and provides getters for accessing properties or lists.
 	 *
-	 * @param {sap.ui.model.Model} oModel the model
-	 * @param {string} sPath the path
-	 * @param {sap.ui.model.Context} oContext the context object
-	 * @param {object} [mParameters]
+	 * @param {sap.ui.model.Model} oModel The model
+	 * @param {string} sPath The path
+	 * @param {sap.ui.model.Context} oContext The context object
+	 * @param {object} [mParameters] Additional, implementation-specific parameters
 	 * @abstract
 	 * @public
 	 * @alias sap.ui.model.Binding
@@ -70,13 +70,17 @@ sap.ui.define([
 	/**
 	 * The <code>dataRequested</code> event is fired, when data was requested from a backend.
 	 *
-	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can be omitted.
+	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can
+	 * be omitted.
 	 *
 	 * @name sap.ui.model.Binding#dataRequested
 	 * @event
-	 * @param {sap.ui.base.Event} oEvent The event object
-	 * @param {sap.ui.base.EventProvider} oEvent.getSource The object on which the event initially occurred
-	 * @param {object} oEvent.getParameters Object containing all event parameters
+	 * @param {sap.ui.base.Event} oEvent
+	 *   The event object
+	 * @param {sap.ui.base.EventProvider} oEvent.getSource
+	 *   The object on which the event initially occurred
+	 * @param {object} oEvent.getParameters
+	 *   Object containing all event parameters
 	 * @public
 	 */
 
@@ -85,58 +89,80 @@ sap.ui.define([
 	 *
 	 * This event may also be fired when an error occurred.
 	 *
-	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can be omitted.
+	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can
+	 * be omitted.
 	 *
 	 * @name sap.ui.model.Binding#dataReceived
 	 * @event
-	 * @param {sap.ui.base.Event} oEvent The event object
-	 * @param {sap.ui.base.EventProvider} oEvent.getSource The object on which the event initially occurred
-	 * @param {object} oEvent.getParameters Object containing all event parameters
-	 * @param {string} [oEvent.getParameters.data] The data received. In error cases it will be undefined.
+	 * @param {sap.ui.base.Event} oEvent
+	 *   The event object
+	 * @param {sap.ui.base.EventProvider} oEvent.getSource
+	 *   The object on which the event initially occurred
+	 * @param {object} oEvent.getParameters
+	 *   Object containing all event parameters
+	 * @param {string} [oEvent.getParameters.data]
+	 *   The data received; is <code>undefined</code> in error cases
 	 * @public
 	 */
 
 	/**
-	 * The <code>change</code> event is fired, when the data of the binding is changed from the model.
-	 * The <code>reason</code> parameter of the event provides a hint where the change came from.
+	 * The <code>change</code> event is fired, when the model data are changed. The optional
+	 * <code>reason</code> parameter of the event provides a hint where the change came from.
 	 *
-	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can be omitted.
+	 * Note: Subclasses might add additional parameters to the event object.
 	 *
 	 * @name sap.ui.model.Binding#change
 	 * @event
-	 * @param {sap.ui.base.Event} oEvent The event object
-	 * @param {sap.ui.base.EventProvider} oEvent.getSource The object on which the event initially occurred
-	 * @param {object} oEvent.getParameters Object containing all event parameters
-	 * @param {string} [oEvent.getParameters.reason] A string stating the reason for the data change. Can be any string and new values can be added in the future.
+	 * @param {sap.ui.base.Event} oEvent
+	 *   The event object
+	 * @param {sap.ui.base.EventProvider} oEvent.getSource
+	 *   The object on which the event initially occurred
+	 * @param {object} oEvent.getParameters
+	 *   Object containing all event parameters
+	 * @param {string} [oEvent.getParameters.reason]
+	 *   A string stating the reason for the data change; some change reasons can be found in
+	 *   {@link sap.ui.model.ChangeReason}, but there may be additional reasons specified by a
+	 *   specific model implementation
 	 * @public
 	 */
 
 	/**
-	 * The <code>DataStateChange</code> event is fired, when the <code>DataState</code> of the binding has changed.
+	 * The <code>DataStateChange</code> event is fired when the <code>DataState</code> of the
+	 * binding has changed.
 	 *
-	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can be omitted.
+	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can
+	 * be omitted.
 	 *
 	 * @name sap.ui.model.Binding#DataStateChange
 	 * @event
-	 * @param {sap.ui.base.Event} oEvent The event object
-	 * @param {sap.ui.base.EventProvider} oEvent.getSource The object on which the event initially occurred
-	 * @param {object} oEvent.getParameters Object containing all event parameters
-	 * @param {sap.ui.model.DataState} [oEvent.getParameters.dataState] The <code>DataState</code> object of the binding.
+	 * @param {sap.ui.base.Event} oEvent
+	 *   The event object
+	 * @param {sap.ui.base.EventProvider} oEvent.getSource
+	 *   The object on which the event initially occurred
+	 * @param {object} oEvent.getParameters
+	 *   Object containing all event parameters
+	 * @param {sap.ui.model.DataState} [oEvent.getParameters.dataState]
+	 *   The <code>DataState</code> object of the binding
 	 * @protected
 	 */
 
 	/**
-	 * The <code>AggregatedDataStateChange</code> event is fired asynchronously when all <code>datastateChange</code>s
-	 * within the actual stack are done.
+	 * The <code>AggregatedDataStateChange</code> event is fired asynchronously when all
+	 * <code>datastateChange</code>s within the actual stack are done.
 	 *
-	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can be omitted.
+	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can
+	 * be omitted.
 	 *
 	 * @name sap.ui.model.Binding#AggregatedDataStateChange
 	 * @event
-	 * @param {sap.ui.base.Event} oEvent The event object
-	 * @param {sap.ui.base.EventProvider} oEvent.getSource The object on which the event initially occurred
-	 * @param {object} oEvent.getParameters Object containing all event parameters
-	 * @param {sap.ui.model.DataState} [oEvent.getParameters.dataState] The <code>DataState</code> object of the binding.
+	 * @param {sap.ui.base.Event} oEvent
+	 *   The event object
+	 * @param {sap.ui.base.EventProvider} oEvent.getSource
+	 *   The object on which the event initially occurred
+	 * @param {object} oEvent.getParameters
+	 *   Object containing all event parameters
+	 * @param {sap.ui.model.DataState} [oEvent.getParameters.dataState]
+	 *   The <code>DataState</code> object of the binding
 	 * @protected
 	 */
 
@@ -167,38 +193,45 @@ sap.ui.define([
 	};
 
 	/**
-	 * Setter for context
-	 * @param {Object} oContext the new context object
-	 * @param {string} [sDetailedReason]
+	 * Setter for a new context.
+	 *
+	 * @param {sap.ui.model.Context} oContext
+	 *   The new context object
+	 * @param {Object<string,any>} [mParameters]
+	 *   Additional map of binding specific parameters
+	 * @param {string} [mParameters.detailedReason]
 	 *   A detailed reason for the {@link #event:change change} event
+	 *
+	 * @private
 	 */
-	Binding.prototype.setContext = function (oContext, sDetailedReason) {
-		var mParameters;
+	Binding.prototype.setContext = function (oContext, mParameters) {
+		var mChangeParameters;
 
 		if (this.oContext != oContext) {
 			sap.ui.getCore().getMessageManager()
 				.removeMessages(this.getDataState().getControlMessages(), true);
 			this.oContext = oContext;
-			this.oDataState = null;
-			mParameters = {reason : ChangeReason.Context};
-			if (sDetailedReason) {
-				mParameters.detailedReason = sDetailedReason;
+			this.getDataState().reset();
+			this.checkDataState();
+			mChangeParameters = {reason : ChangeReason.Context};
+			if (mParameters && mParameters.detailedReason) {
+				mChangeParameters.detailedReason = mParameters.detailedReason;
 			}
-			this._fireChange(mParameters);
+			this._fireChange(mChangeParameters);
 		}
 	};
 
 	/**
-	 * Getter for current active messages
-	 * @return {Object} the context object
+	 * Getter for current active messages.
+	 * @return {Object} The context object
 	 */
 	Binding.prototype.getMessages = function() {
 		return this.vMessages;
 	};
 
 	/**
-	 * Returns the data state for this binding
-	 * @return {sap.ui.model.DataState} the data state
+	 * Returns the data state for this binding.
+	 * @return {sap.ui.model.DataState} The data state
 	 */
 	Binding.prototype.getDataState = function() {
 		if (!this.oDataState) {
@@ -215,6 +248,19 @@ sap.ui.define([
 	 */
 	Binding.prototype.getModel = function() {
 		return this.oModel;
+	};
+
+	/**
+	 * Provides the resolved path for this binding's path and context and returns it, or
+	 * <code>undefined</code> if the binding is not resolved or has no model.
+	 *
+	 * @returns {string|undefined} The resolved path
+	 *
+	 * @public
+	 * @since 1.88.0
+	 */
+	Binding.prototype.getResolvedPath = function () {
+		return this.oModel ? this.oModel.resolve(this.sPath, this.oContext) : undefined;
 	};
 
 	/**
@@ -276,15 +322,18 @@ sap.ui.define([
 
 	// Eventing and related
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:change change} event of this
-	 * <code>sap.ui.model.Model</code>.
+	 * Attaches the <code>fnFunction</code> event handler to the {@link #event:change change} event
+	 * of this <code>sap.ui.model.Model</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.Binding</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.Binding</code> itself.
 	 *
-	 * @param {function} fnFunction The function to be called, when the event occurs
-	 * @param {object} [oListener] Context object to call the event handler with,
-	 *            defaults to this <code>sap.ui.model.Binding</code> itself
+	 * @param {function} fnFunction
+	 *   The function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with; defaults to this
+	 *   <code>sap.ui.model.Binding</code> itself
 	 * @public
 	 */
 	Binding.prototype.attachChange = function(fnFunction, oListener) {
@@ -295,10 +344,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:change change} event of this
-	 * <code>sap.ui.model.Binding</code>.
+	 * Detaches event handler <code>fnFunction</code> from the {@link #event:change change} event of
+	 * this <code>sap.ui.model.Binding</code>.
 	 *
-	 * @param {function} fnFunction Function to be called, when the event occurs
+	 * @param {function} fnFunction Function to be called when the event occurs
 	 * @param {object} [oListener] Context object on which the given function had to be called
 	 * @public
 	 */
@@ -310,15 +359,19 @@ sap.ui.define([
 	};
 
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:DataStateChange DataStateChange} event of this
+	 * Attaches the <code>fnFunction</code> event handler to the
+	 * {@link #event:DataStateChange DataStateChange} event of thi
 	 * <code>sap.ui.model.Binding</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.Binding</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.Binding</code> itself.
 	 *
-	 * @param {function} fnFunction Function to be called, when the event occurs
-	 * @param {object} [oListener] Context object to call the event handler with,
-	 *            defaults to this <code>sap.ui.model.Binding</code> itself
+	 * @param {function} fnFunction
+	 *   Function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with; defaults to this
+	 *   <code>sap.ui.model.Binding</code> itself
 	 * @protected
 	 */
 	Binding.prototype.attachDataStateChange = function(fnFunction, oListener) {
@@ -326,10 +379,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:DataStateChange DataStateChange} event of this
+	 * Detaches event handler <code>fnFunction</code> from the
+	 * {@link #event:DataStateChange DataStateChange} event of this
 	 * <code>sap.ui.model.Binding</code>.
 	 *
-	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {function} fnFunction The function to be called when the event occurs
 	 * @param {object} [oListener] Context object on which the given function had to be called
 	 * @protected
 	 */
@@ -338,15 +392,19 @@ sap.ui.define([
 	};
 
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:AggregatedDataStateChange AggregatedDataStateChange}
-	 * event of this <code>sap.ui.model.Binding</code>.
+	 * Attaches event handler <code>fnFunction</code> to the
+	 * {@link #event:AggregatedDataStateChange AggregatedDataStateChange} event of this
+	 * <code>sap.ui.model.Binding</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.Binding</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.Binding</code> itself.
 	 *
-	 * @param {function} fnFunction The function to be called, when the event occurs
-	 * @param {object} [oListener] Context object to call the event handler with,
-	 *            defaults to this <code>sap.ui.model.Binding</code> itself
+	 * @param {function} fnFunction
+	 *   The function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with; defaults to this
+	 *   <code>sap.ui.model.Binding</code> itself
 	 * @protected
 	 */
 	Binding.prototype.attachAggregatedDataStateChange = function(fnFunction, oListener) {
@@ -354,10 +412,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:AggregatedDataStateChange AggregatedDataStateChange}
-	 * event of this <code>sap.ui.model.Binding</code>.
+	 * Detaches event handler <code>fnFunction</code> from the
+	 * {@link #event:AggregatedDataStateChange AggregatedDataStateChange} event of this
+	 * <code>sap.ui.model.Binding</code>.
 	 *
-	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {function} fnFunction The function to be called when the event occurs
 	 * @param {object} [oListener] Context object on which the given function had to be called
 	 * @protected
 	 */
@@ -367,8 +426,8 @@ sap.ui.define([
 
 	/**
 	 * Fires event {@link #event:change change} to attached listeners.
-	 * @param {object}
-	 *         oParameters Parameters to pass along with the event.
+	 *
+	 * @param {object} oParameters Parameters to pass along with the event.
 	 * @private
 	 */
 	Binding.prototype._fireChange = function(oParameters) {
@@ -376,15 +435,18 @@ sap.ui.define([
 	};
 
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:dataRequested dataRequested} event of this
-	 * <code>sap.ui.model.Binding</code>.
+	 * Attaches event handler <code>fnFunction</code> to the
+	 * {@link #event:dataRequested dataRequested} event of this <code>sap.ui.model.Binding</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.Binding</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.Binding</code> itself.
 	 *
-	 * @param {function} fnFunction The function to be called, when the event occurs
-	 * @param {object} [oListener] Context object to call the event handler with,
-	 *            defaults to this <code>sap.ui.model.Binding</code> itself
+	 * @param {function} fnFunction
+	 *   The function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with; defaults to this
+	 *   <code>sap.ui.model.Binding</code> itself
 	 * @public
 	 */
 	Binding.prototype.attachDataRequested = function(fnFunction, oListener) {
@@ -392,10 +454,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:dataRequested dataRequested} event of this
-	 * <code>sap.ui.model.Binding</code>.
+	 * Detaches event handler <code>fnFunction</code> from the
+	 * {@link #event:dataRequested dataRequested} event of this <code>sap.ui.model.Binding</code>.
 	 *
-	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {function} fnFunction The function to be called when the event occurs
 	 * @param {object} [oListener] Context object on which the given function had to be called
 	 * @public
 	 */
@@ -405,7 +467,8 @@ sap.ui.define([
 
 	/**
 	 * Fires event {@link #event:dataRequested dataRequested} to attached listeners.
-	 * @param {object} oParameters Parameters to pass along with the event.
+	 *
+	 * @param {object} oParameters Parameters to pass along with the event
 	 * @protected
 	 */
 	Binding.prototype.fireDataRequested = function(oParameters) {
@@ -413,15 +476,18 @@ sap.ui.define([
 	};
 
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:dataReceived dataReceived} event of this
-	 * <code>sap.ui.model.Binding</code>.
+	 * Attaches event handler <code>fnFunction</code> to the
+	 * {@link #event:dataReceived dataReceived} event of this <code>sap.ui.model.Binding</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.Binding</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.Binding</code> itself.
 	 *
-	 * @param {function} fnFunction Function to be called, when the event occurs
-	 * @param {object} [oListener] Context object to call the event handler with,
-	 *            defaults to this <code>sap.ui.model.Binding</code> itself
+	 * @param {function} fnFunction
+	 *   Function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with; defaults to this
+	 *   <code>sap.ui.model.Binding</code> itself
 	 * @public
 	 */
 	Binding.prototype.attachDataReceived = function(fnFunction, oListener) {
@@ -429,10 +495,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:dataReceived dataReceived} event of this
-	 * <code>sap.ui.model.Binding</code>.
+	 * Detaches event handler <code>fnFunction</code> from the
+	 * {@link #event:dataReceived dataReceived} event of this <code>sap.ui.model.Binding</code>.
 	 *
-	 * @param {function} fnFunction Function to be called, when the event occurs
+	 * @param {function} fnFunction Function to be called when the event occurs
 	 * @param {object} [oListener] Context object on which the given function had to be called
 	 * @public
 	 */
@@ -445,8 +511,8 @@ sap.ui.define([
 	 *
 	 * This event may also be fired when an error occurred.
 	 *
-	 * @param {object} oParameters Parameters to pass along with the event.
-	 * @param {object} [oParameters.data] Data received. In error cases it will be undefined.
+	 * @param {object} oParameters Parameters to pass along with the event
+	 * @param {object} [oParameters.data] Data received; on error cases it will be undefined
 	 * @protected
 	 */
 	Binding.prototype.fireDataReceived = function(oParameters) {
@@ -454,9 +520,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Determines if the binding should be updated by comparing the current model against a specified model.
+	 * Determines if the binding should be updated by comparing the current model against a
+	 * specified model.
+	 *
 	 * @param {object} oModel The model instance to compare against
-	 * @returns {boolean} true if this binding should be updated
+	 * @returns {boolean} Whether this binding should be updated
 	 * @protected
 	 */
 	Binding.prototype.updateRequired = function(oModel) {
@@ -466,7 +534,8 @@ sap.ui.define([
 	/**
 	 * Returns whether this binding validates the values that are set on it.
 	 *
-	 * @returns {boolean} Returns true if the binding throws a validation exception when an invalid value is set on it.
+	 * @returns {boolean}
+	 *   Whether the binding throws a validation exception when an invalid value is set on it.
 	 * @private
 	 */
 	Binding.prototype.hasValidation = function() {
@@ -474,12 +543,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Checks whether an update of this bindings is required. If this is the case the change event of
-	 * the binding is fired.
-	 * The default implementation just fires the change event, if the method is called, the bForceUpdate
-	 * parameter is ignored. Subclasses should implement this, if possible.
+	 * Checks whether an update of this bindings is required. If this is the case the change event
+	 * of the binding is fired. The default implementation just fires the change event when the
+	 * method is called. Subclasses should implement this, if possible.
 	 *
-	 * @param {boolean} bForceUpdate
+	 * @param {boolean} bForceUpdate Whether the event should be fired when the binding is suspended
 	 *
 	 * @private
 	 */
@@ -522,6 +590,8 @@ sap.ui.define([
 
 	/**
 	 * _refresh for compatibility
+	 *
+	 * @param {boolean} bForceUpdate Whether an update should be forced
 	 * @private
 	 */
 	Binding.prototype._refresh = function(bForceUpdate) {
@@ -545,7 +615,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns whether the binding is initial, which means it did not get an initial value yet
+	 * Returns whether the binding is initial, which means it did not get an initial value yet.
+	 *
 	 * @returns {boolean} Whether the binding is initial
 	 * @public
 	 */
@@ -554,7 +625,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns whether the binding is relative, which means its path does not start with a slash ('/')
+	 * Returns whether the binding is relative, which means its path does not start with a slash.
+	 *
 	 * @returns {boolean} Whether the binding is relative
 	 * @public
 	 */
@@ -565,7 +637,8 @@ sap.ui.define([
 	/**
 	 * Attach multiple events.
 	 *
-	 * @param {Object.<string, function>} oEvents
+	 * @param {Object.<string, function>} oEvents Events to attach to this binding
+	 * @returns {sap.ui.model.Binding} A reference to itself
 	 * @protected
 	 */
 	Binding.prototype.attachEvents = function(oEvents) {
@@ -587,7 +660,8 @@ sap.ui.define([
 	/**
 	 * Detach multiple events.
 	 *
-	 * @param {Object.<string, function>} oEvents
+	 * @param {Object.<string, function>} oEvents Events to detach from this binding
+	 * @returns {sap.ui.model.Binding} A reference to itself
 	 * @protected
 	 */
 	Binding.prototype.detachEvents = function(oEvents) {
@@ -607,15 +681,18 @@ sap.ui.define([
 	};
 
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:refresh refresh} event of this
-	 * <code>sap.ui.model.Binding</code>.
+	 * Attaches event handler <code>fnFunction</code> to the {@link #event:refresh refresh} event of
+	 * this <code>sap.ui.model.Binding</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.Binding</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.Binding</code> itself.
 	 *
-	 * @param {function} fnFunction The function to be called, when the event occurs
-	 * @param {object} [oListener] Context object to call the event handler with,
-	 *            defaults to this <code>sap.ui.model.Binding</code> itself
+	 * @param {function} fnFunction
+	 *   The function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with; defaults to this
+	 *   <code>sap.ui.model.Binding</code> itself
 	 * @protected
 	 */
 	Binding.prototype.attachRefresh = function(fnFunction, oListener) {
@@ -623,10 +700,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:refresh refresh} event of this
-	 * <code>sap.ui.model.Binding</code>.
-	 * @param {function} fnFunction The function to be called, when the event occurs
-	 * @param {object} [oListener] object on which to call the given function.
+	 * Detaches event handler <code>fnFunction</code> from the {@link #event:refresh refresh} event
+	 * of this <code>sap.ui.model.Binding</code>.
+	 *
+	 * @param {function} fnFunction The function to be called when the event occurs
+	 * @param {object} [oListener] Object on which to call the given function.
 	 * @protected
 	 */
 	Binding.prototype.detachRefresh = function(fnFunction, oListener) {
@@ -635,7 +713,8 @@ sap.ui.define([
 
 	/**
 	 * Fires event {@link #event:refresh refresh} to attached listeners.
-	 * @param {object} [oParameters] the arguments to pass along with the event.
+	 *
+	 * @param {object} [oParameters] The arguments to pass along with the event
 	 * @private
 	 */
 	Binding.prototype._fireRefresh = function(oParameters) {
@@ -645,9 +724,11 @@ sap.ui.define([
 	/**
 	 * Suspends the binding update. No change events will be fired.
 	 *
-	 * A refresh call with bForceUpdate set to true will also update the binding and fire a change in suspended mode.
-	 * Special operations on bindings, which require updates to work properly (as paging or filtering in list bindings)
-	 * will also update and cause a change event although the binding is suspended.
+	 * A refresh call with bForceUpdate set to true will also update the binding and fire a change
+	 * in suspended mode. Special operations on bindings, which require updates to work properly
+	 * (as paging or filtering in list bindings) will also update and cause a change event although
+	 * the binding is suspended.
+	 *
 	 * @public
 	 */
 	Binding.prototype.suspend = function() {
@@ -667,9 +748,10 @@ sap.ui.define([
 	/**
 	 * Resumes the binding update. Change events will be fired again.
 	 *
-	 * When the binding is resumed, a change event will be fired immediately, if the data has changed while the binding
-	 * was suspended. For server-side models, a request to the server will be triggered, if a refresh was requested
-	 * while the binding was suspended.
+	 * When the binding is resumed, a change event will be fired immediately if the data has
+	 * changed while the binding was suspended. For server-side models, a request to the server will
+	 * be triggered if a refresh was requested while the binding was suspended.
+	 *
 	 * @public
 	 */
 	Binding.prototype.resume = function() {
@@ -678,34 +760,49 @@ sap.ui.define([
 	};
 
 	/**
-	 * Removes all control messages for this binding from the MessageManager in addition to the standard clean-up tasks.
+	 * Removes all control messages for this binding from the MessageManager in addition to the
+	 * standard clean-up tasks.
 	 * @see sap.ui.base.EventProvider#destroy
 	 *
 	 * @public
 	 */
 	Binding.prototype.destroy = function() {
+		var oDataState = this.oDataState;
+
+		if (this.bIsBeingDestroyed) { // avoid endless recursion
+			return;
+		}
 		this.bIsBeingDestroyed = true;
-		sap.ui.getCore().getMessageManager().removeMessages(this.getDataState().getControlMessages(), true);
+
+		if (oDataState) {
+			sap.ui.getCore().getMessageManager()
+				.removeMessages(oDataState.getControlMessages(), true);
+			oDataState.setModelMessages();
+			if (oDataState.changed()) {
+				// notify controls synchronously that data state changed
+				this.fireEvent("DataStateChange", {dataState : oDataState});
+				this.fireEvent("AggregatedDataStateChange", {dataState : oDataState});
+			}
+			delete this.oDataState;
+		}
 		EventProvider.prototype.destroy.apply(this, arguments);
-		this.bIsBeingDestroyed = false;
 	};
 
 	/**
 	 * Checks whether an update of the data state of this binding is required.
 	 *
-	 * @param {map} mPaths A Map of paths to check if update needed
+	 * @param {map} [mPaths] A Map of paths to check if update needed
 	 * @private
 	 */
 	Binding.prototype.checkDataState = function(mPaths) {
-		var sResolvedPath = this.oModel ? this.oModel.resolve(this.sPath, this.oContext) : null;
-		this._checkDataState(sResolvedPath, mPaths);
+		this._checkDataState(this.getResolvedPath(), mPaths);
 	};
 
 	/**
 	 * Checks whether an update of the data state of this binding is required with the given path.
 	 *
 	 * @param {string} sResolvedPath With help of the connected model resolved path
-	 * @param {map} mPaths A Map of paths to check if update needed
+	 * @param {map} [mPaths] A Map of paths to check if update needed
 	 * @private
 	 */
 	Binding.prototype._checkDataState = function(sResolvedPath, mPaths) {
@@ -738,14 +835,18 @@ sap.ui.define([
 	};
 
 	/**
-	 * Check for Messages and set them to the DataState.
+	 * Sets the given data state's model messages to the messages for the given resolved path in the
+	 * binding's model.
 	 *
-	 * @param {sap.ui.model.DataState} oDataState The DataState of the binding.
-	 * @param {string} sResolvedPath The resolved binding path.
+	 * @param {sap.ui.model.DataState} oDataState The binding's data state
+	 * @param {string} [sResolvedPath] The binding's resolved path
+	 * @private
 	 */
 	Binding.prototype._checkDataStateMessages = function(oDataState, sResolvedPath) {
 		if (sResolvedPath) {
 			oDataState.setModelMessages(this.oModel.getMessagesByPath(sResolvedPath));
+		} else {
+			oDataState.setModelMessages([]);
 		}
 	};
 

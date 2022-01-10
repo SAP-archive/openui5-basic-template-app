@@ -18,7 +18,8 @@ sap.ui.define([
 	"sap/ui/events/KeyCodes",
 	"sap/ui/core/LabelEnablement",
 	"sap/m/BadgeEnabler",
-	"sap/ui/core/InvisibleText"
+	"sap/ui/core/InvisibleText",
+	"sap/base/Log"
 ], function(
 	library,
 	Control,
@@ -32,7 +33,8 @@ sap.ui.define([
 	KeyCodes,
 	LabelEnablement,
 	BadgeEnabler,
-	InvisibleText
+	InvisibleText,
+	Log
 ) {
 	"use strict";
 
@@ -87,7 +89,7 @@ sap.ui.define([
 	 * @mixes sap.ui.core.ContextMenuSupport
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -157,6 +159,11 @@ sap.ui.define([
 			 * Specifies the value of the <code>aria-haspopup</code> attribute
 			 *
 			 * If the value is <code>None</code>, the attribute will not be rendered. Otherwise it will be rendered with the selected value.
+			 *
+			 * NOTE: Use this property only when a button is related to a popover/popup. The value needs to be equal to the main/root role of the popup - e.g. dialog,
+			 * menu or list (examples: if you have dialog -> dialog, if you have menu -> menu; if you have list -> list; if you have dialog containing a list -> dialog).
+			 * Do not use it, if you open a standard sap.m.Dialog, MessageBox or other type of dialogs displayed as on overlay over the application.
+			 *
 			 * @since 1.84.0
 			 */
 			ariaHasPopup : {type : "sap.ui.core.aria.HasPopup", group : "Accessibility", defaultValue : AriaHasPopup.None}
@@ -255,32 +262,36 @@ sap.ui.define([
 	 * below which the badge is hidden.
 	 *
 	 * @param {number} iMin minimum visible value of the badge (not less than minimum Badge value - 1)
-	 * @return {sap.m.Button} this to allow method chaining
+	 * @return {this} this to allow method chaining
 	 * @public
 	 */
 	Button.prototype.setBadgeMinValue = function(iMin) {
 		var iValue = this.getBadgeCustomData().getValue();
 
-		if (iMin && !isNaN(iMin) && iMin >= BADGE_MIN_VALUE && iMin != this._badgeMinValue) {
+		if (iMin && !isNaN(iMin) && iMin >= BADGE_MIN_VALUE && iMin != this._badgeMinValue && iMin <= this._badgeMaxValue) {
 			this._badgeMinValue = iMin;
 			this.badgeValueFormatter(iValue);
 			this.invalidate();
+		} else {
+			Log.warning("minValue is not valid (it is is less than minimum allowed badge value [" + BADGE_MIN_VALUE + "] or greater than maximum badge value [" + this._badgeMaxValue + "])", this);
 		}
 		return this;
 	};
 
 	/**
-	 * Badge minimum value setter - called when someone wants to change the value
+	 * Badge maximum value setter - called when someone wants to change the value
 	 * above which the badge value is displayed with + after the value (ex. 999+)
 	 *
 	 * @param {number} iMax maximum visible value of the badge (not greater than maximum Badge value - 9999)
-	 * @return {sap.m.Button} this to allow method chaining
+	 * @return {this} this to allow method chaining
 	 * @public
 	 */
 	Button.prototype.setBadgeMaxValue = function(iMax) {
-		if (iMax && !isNaN(iMax) && iMax <= BADGE_MAX_VALUE && iMax != this._badgeMaxValue) {
+		if (iMax && !isNaN(iMax) && iMax <= BADGE_MAX_VALUE && iMax != this._badgeMaxValue && iMax >= this._badgeMinValue) {
 			this._badgeMaxValue = iMax;
 			this.invalidate();
+		} else {
+			Log.warning("maxValue is not valid (it is is greater than than maximum allowed badge value [" + BADGE_MAX_VALUE + "] or less than minimum badge value [" + this._badgeMinValue + "])", this);
 		}
 		return this;
 	};
@@ -341,7 +352,10 @@ sap.ui.define([
 	 * @private
 	 */
 	Button.prototype._getBadgeInvisibleText = function() {
-		return this._oBadgeInvisibleText || (this._oBadgeInvisibleText = new InvisibleText(this.getId() + "-badge").toStatic());
+		if (!this._oBadgeInvisibleText) {
+			this._oBadgeInvisibleText = new InvisibleText(this.getId() + "-badge").toStatic();
+		}
+		return this._oBadgeInvisibleText;
 	};
 
 	/**
@@ -365,22 +379,33 @@ sap.ui.define([
 			this._oBadgeData = null;
 		}
 
+		this._bFocused = null;
+
 		this.$().off("mouseenter", this._onmouseenter);
 	};
 
 	Button.prototype.setType = function(sButtonType) {
 		this.setProperty("type", sButtonType, false);
 
-		if (sButtonType === ButtonType.Critical) {
-			this._sTypeIconURI = "sap-icon://message-warning";
-		} else if (sButtonType === ButtonType.Negative) {
-			this._sTypeIconURI = "sap-icon://message-error";
-		} else if (sButtonType === ButtonType.Success) {
-			this._sTypeIconURI = "sap-icon://message-success";
-		} else if (sButtonType === ButtonType.Neutral) {
-			this._sTypeIconURI = "sap-icon://message-information";
-		} else {
-			this._sTypeIconURI = null;
+		switch (sButtonType) {
+			case ButtonType.Critical:
+				this._sTypeIconURI = "sap-icon://alert";
+				break;
+			case ButtonType.Negative:
+				this._sTypeIconURI = "sap-icon://error";
+				break;
+			case ButtonType.Success:
+				this._sTypeIconURI = "sap-icon://sys-enter-2";
+				break;
+			case ButtonType.Neutral:
+				this._sTypeIconURI = "sap-icon://information";
+				break;
+			case ButtonType.Back:
+			case ButtonType.Up:
+				this._sTypeIconURI = "sap-icon://nav-back";
+				break;
+			default:
+				this._sTypeIconURI = null;
 		}
 
 		return this;
@@ -403,6 +428,10 @@ sap.ui.define([
 			this._activeButton();
 			// now, this._bActive may be false if the button was disabled
 			this._bRenderActive = this._bActive;
+		}
+
+		if (this._bFocused) {
+			this._toggleLiveChangeAnnouncement("polite");
 		}
 
 		this.$().on("mouseenter", this._onmouseenter);
@@ -435,15 +464,12 @@ sap.ui.define([
 			if ((Device.browser.safari || Device.browser.firefox) && (oEvent.originalEvent && oEvent.originalEvent.type === "mousedown")) {
 				this._setButtonFocus();
 			}
-			if (!Device.browser.msie) {
-				// set the tag ID where the touch event started
-				this._sTouchStartTargetId = oEvent.target.id.replace(this.getId(), '');
-			}
+
+			// set the tag ID where the touch event started
+			this._sTouchStartTargetId = oEvent.target.id.replace(this.getId(), '');
 		} else {
-			if (!Device.browser.msie) {
-				// clear the starting tag ID in case the button is not enabled and visible
-				this._sTouchStartTargetId = '';
-			}
+			// clear the starting tag ID in case the button is not enabled and visible
+			this._sTouchStartTargetId = '';
 		}
 	};
 
@@ -465,17 +491,15 @@ sap.ui.define([
 			this.ontap(oEvent, true);
 		}
 
-		if (!Device.browser.msie) {
-			// get the tag ID where the touch event ended
-			sEndingTagId = oEvent.target.id.replace(this.getId(), '');
-			// there are some cases when tap event won't come. Simulate it:
-			if (this._buttonPressed === 0
-				&& ((this._sTouchStartTargetId === "-BDI-content"
-						&& (sEndingTagId === '-content' || sEndingTagId === '-inner' || sEndingTagId === '-img'))
-					|| (this._sTouchStartTargetId === "-content" && (sEndingTagId === '-inner' || sEndingTagId === '-img'))
-					|| (this._sTouchStartTargetId === '-img' && sEndingTagId !== '-img'))) {
-				this.ontap(oEvent, true);
-			}
+		// get the tag ID where the touch event ended
+		sEndingTagId = oEvent.target.id.replace(this.getId(), '');
+		// there are some cases when tap event won't come. Simulate it:
+		if (this._buttonPressed === 0
+			&& ((this._sTouchStartTargetId === "-BDI-content"
+				&& (sEndingTagId === '-content' || sEndingTagId === '-inner' || sEndingTagId === '-img'))
+				|| (this._sTouchStartTargetId === "-content" && (sEndingTagId === '-inner' || sEndingTagId === '-img'))
+				|| (this._sTouchStartTargetId === '-img' && sEndingTagId !== '-img'))) {
+			this.ontap(oEvent, true);
 		}
 
 		// clear the starting target
@@ -613,15 +637,42 @@ sap.ui.define([
 	};
 
 	/**
+	 * Add aria-live attributes.
+	 *
+	 * @private
+	 */
+	Button.prototype.onfocusin = function() {
+		this._bFocused = true;
+		this._toggleLiveChangeAnnouncement("polite");
+	};
+
+	/**
 	 * Ensure that the active button state is removed by focus loss.
+	 * Disable aria-live attributes.
 	 *
 	 * @private
 	 */
 	Button.prototype.onfocusout = function() {
 		this._buttonPressed = false;
+		this._bFocused = false;
 		this._sTouchStartTargetId = '';
 		// set inactive button state
 		this._inactiveButton();
+		this._toggleLiveChangeAnnouncement("off");
+	};
+
+	/**
+	 * Enables or disables dynamic text or icon change announcmenets
+	 *
+	 * @param {*} sValue aria-live attribute value
+	 * @private
+	 */
+	Button.prototype._toggleLiveChangeAnnouncement = function(sValue) {
+		if (this._getText()) {
+			this.$("BDI-content").attr("aria-live", sValue);
+		} else if (this._getAppliedIcon()) {
+			this.$("tooltip").attr("aria-live", sValue);
+		}
 	};
 
 	/**
@@ -665,7 +716,7 @@ sap.ui.define([
 	/**
 	 * Function to determine if the button is hoverable
 	 *
-	 * @return {sap.m.Button} this to allow method chaining
+	 * @return {boolean} Whether the button is hoverable
 	 * @private
 	 */
 	Button.prototype._isHoverable = function() {
@@ -679,7 +730,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.URI} sSrc - URI indicating the image to use as image source
 	 * @param {sap.ui.core.URI} sActiveSrc - URI indicating the image to use as active image source
 	 * @param {boolean} bIconDensityAware - value for DensityAware attribute of images
-	 * @return {sap.m.Button} this to allow method chaining
+	 * @return {sap.m.Image} The created image
 	 * @private
 	 */
 	Button.prototype._getImage = function(sImgId, sSrc, sActiveSrc, bIconDensityAware) {
@@ -730,7 +781,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sImgId - id to be used for the image
 	 * @param {sap.ui.core.URI} sSrc - URI indicating the image to use as image source
-	 * @return {sap.m.Button} this to allow method chaining
+	 * @return {sap.m.Image} The created icon button
 	 * @private
 	 */
 	Button.prototype._getInternalIconBtn = function(sImgId, sSrc) {
@@ -759,9 +810,9 @@ sap.ui.define([
 	};
 
 	/**
-	 * Function is called to determine if the button is.unstyled
+	 * Function is called to determine if the button is unstyled.
 	 *
-	 * @return {sap.m.Button} this to allow method chaining
+	 * @return {boolean} Whether the button is unstyled
 	 * @private
 	 */
 	Button.prototype._isUnstyled = function() {
@@ -784,7 +835,12 @@ sap.ui.define([
 		return this.getDomRef("inner");
 	};
 
-	// A hook to be used by controls that extend sap.m.Button and want to display the text in a different way
+	/**
+	 * A hook to be used by controls that extend <code>sap.m.Button</code> and display the text in a different way,
+	 * such as <code>sap.uxap.ObjectPageHeaderActionButton</code>, <code>sap.m.OverflowToolbarButton</code>.
+	 *
+	 * @private
+	 */
 	Button.prototype._getText = function() {
 		return this.getText();
 	};
@@ -796,7 +852,7 @@ sap.ui.define([
 
 		sTooltip = this.getTooltip_AsString();
 
-		if (!sTooltip && !this.getText()) {
+		if (!sTooltip && !this._getText()) {
 			// get icon-font info. will return null if the icon is an image
 			oIconInfo = IconPool.getIconInfo(this._getAppliedIcon());
 
@@ -821,11 +877,11 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {Object} Current accessibility state of the control
+	 * @returns {object} Current accessibility state of the control
 	 * @protected
 	 */
 	Button.prototype.getAccessibilityInfo = function() {
-		var sDesc = this.getText() || this.getTooltip_AsString();
+		var sDesc = this._getText() || this.getTooltip_AsString();
 		if (!sDesc && this._getAppliedIcon()) {
 			var oIconInfo = IconPool.getIconInfo(this._getAppliedIcon());
 			if (oIconInfo) {

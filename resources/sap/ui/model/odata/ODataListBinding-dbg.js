@@ -3,39 +3,26 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides class sap.ui.model.odata.ODataListBinding
 sap.ui.define([
-	'sap/ui/model/ChangeReason',
-	'sap/ui/model/Filter',
-	'sap/ui/model/odata/Filter',
-	'sap/ui/model/FilterType',
-	'sap/ui/model/FilterProcessor',
-	'sap/ui/model/ListBinding',
-	'sap/ui/model/Sorter',
-	'./ODataUtils',
-	'./CountMode',
-	'sap/base/util/deepEqual',
-	'sap/base/util/merge',
-	'sap/base/Log',
-	'sap/base/assert',
-	'sap/ui/thirdparty/jquery'
-], function(
-	ChangeReason,
-	Filter,
-	ODataFilter,
-	FilterType,
-	FilterProcessor,
-	ListBinding,
-	Sorter,
-	ODataUtils,
-	CountMode,
-	deepEqual,
-	merge,
-	Log,
-	assert,
-	jQuery
-) {
+	"./CountMode",
+	"./ODataUtils",
+	"sap/base/assert",
+	"sap/base/Log",
+	"sap/base/util/deepEqual",
+	"sap/base/util/each",
+	"sap/base/util/merge",
+	"sap/base/util/array/diff",
+	"sap/ui/model/ChangeReason",
+	"sap/ui/model/Filter",
+	"sap/ui/model/FilterProcessor",
+	"sap/ui/model/FilterType",
+	"sap/ui/model/ListBinding",
+	"sap/ui/model/Sorter",
+	"sap/ui/model/odata/Filter"
+], function(CountMode, ODataUtils, assert, Log, deepEqual, each, merge, arrayDiff, ChangeReason,
+	Filter, FilterProcessor, FilterType, ListBinding, Sorter, ODataFilter) {
 	"use strict";
 
 	/**
@@ -191,13 +178,12 @@ sap.ui.define([
 				//Check diff
 				if (this.aLastContexts && iStartIndex < this.iLastEndIndex) {
 					var that = this;
-					//global jQuery call is left in place to be backward compatible for deprecated V1 model
-					var aDiff = jQuery.sap.arrayDiff(this.aLastContexts, aContexts, function(oOldContext, oNewContext) {
+					var aDiff = arrayDiff(this.aLastContexts, aContexts, function(oOldContext, oNewContext) {
 						return deepEqual(
 								oOldContext && that.oLastContextData && that.oLastContextData[oOldContext.getPath()],
 								oNewContext && oContextData && oContextData[oNewContext.getPath()]
 							);
-					}, true);
+					});
 					aContexts.diff = aDiff;
 				}
 			}
@@ -350,6 +336,7 @@ sap.ui.define([
 					// TODO: what if nested list is not complete, because it was too large?
 					var oRef = this.oModel._getObject(this.sPath, this.oContext);
 					this.aExpandRefs = oRef;
+					// eslint-disable-next-line no-unsafe-negation
 					if (Array.isArray(oRef) && !this.aSorters.length > 0 && !this.aFilters.length > 0) {
 						this.aKeys = oRef;
 						this.iLength = oRef.length;
@@ -442,7 +429,7 @@ sap.ui.define([
 		function fnSuccess(oData) {
 
 			// Collecting contexts
-			jQuery.each(oData.results, function(i, entry) {
+			each(oData.results, function(i, entry) {
 				that.aKeys[iStartIndex + i] = that.oModel._getKey(entry);
 			});
 
@@ -566,7 +553,7 @@ sap.ui.define([
 		// use only custom params for count and not expand,select params
 		if (this.mParameters && this.mParameters.custom) {
 			var oCust = { custom: {}};
-			jQuery.each(this.mParameters.custom, function (sParam, oValue){
+			each(this.mParameters.custom, function (sParam, oValue){
 				oCust.custom[sParam] = oValue;
 			});
 			aParams.push(this.oModel.createCustomParams(oCust));
@@ -622,7 +609,7 @@ sap.ui.define([
 				}
 			}
 			if (mChangedEntities && !bChangeDetected) {
-				jQuery.each(this.aKeys, function(i, sKey) {
+				each(this.aKeys, function(i, sKey) {
 					if (sKey in mChangedEntities) {
 						bChangeDetected = true;
 						return false;
@@ -706,7 +693,7 @@ sap.ui.define([
 					bChangeDetected = true;
 				}
 			} else if (mChangedEntities) {
-				jQuery.each(this.aKeys, function(i, sKey) {
+				each(this.aKeys, function(i, sKey) {
 					if (sKey in mChangedEntities) {
 						bChangeDetected = true;
 						return false;
@@ -724,7 +711,7 @@ sap.ui.define([
 				if (this.aLastContexts.length != aContexts.length) {
 					bChangeDetected = true;
 				} else {
-					jQuery.each(this.aLastContexts, function(iIndex, oContext) {
+					each(this.aLastContexts, function(iIndex, oContext) {
 						oLastData = that.oLastContextData[oContext.getPath()];
 						oCurrentData = aContexts[iIndex].getObject();
 						// Compare whether last data is completely contained in current data
@@ -782,7 +769,7 @@ sap.ui.define([
 	 * Sorts the list.
 	 *
 	 * @param {sap.ui.model.Sorter|Array} aSorters the Sorter or an array of sorter objects object which define the sort order
-	 * @return {sap.ui.model.ListBinding} returns <code>this</code> to facilitate method chaining
+	 * @return {this} returns <code>this</code> to facilitate method chaining
 	 * @public
 	 */
 	ODataListBinding.prototype.sort = function(aSorters, bReturnSuccess) {
@@ -832,9 +819,9 @@ sap.ui.define([
 	 * are combined with OR, while filters on different table columns are combined with AND.
 	 * Please note that a custom filter function is not supported.
 	 *
-	 * @param {sap.ui.model.Filter[]|sap.ui.model.odata.Filter[]} aFilters Array of filter objects
+	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} aFilters Single filter object or an array of filter objects
 	 * @param {sap.ui.model.FilterType} sFilterType Type of the filter which should be adjusted, if it is not given, the standard behaviour applies
-	 * @return {sap.ui.model.ListBinding} returns <code>this</code> to facilitate method chaining
+	 * @return {this} returns <code>this</code> to facilitate method chaining
 	 *
 	 * @public
 	 */

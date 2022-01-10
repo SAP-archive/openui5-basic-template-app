@@ -1,30 +1,12 @@
+/* ============================================= */
+/* CSS for control sap.ui.layout/cssgrid.CSSGrid */
+/* Base theme                                    */
+/* ============================================= */
+
 .sapUiLayoutCSSGrid {
 	box-sizing: border-box;
 }
 
-.sapUiLayoutCSSGridBoxLayoutPolyfill {
-	white-space: normal; // 1980317947
-
-	> .sapUiLayoutCSSGridItem {
-		display: inline-block;
-		vertical-align: top;
-		margin: 0 0.5rem 0.5rem 0;
-
-		.sapUiDnDGridIndicator {
-			display: inline-block;
-			margin: 0 0.5rem 0.5rem 0;
-		}
-	}
-
-	.sapMGHLI {
-		margin-bottom: 0.5rem;
-	}
-
-	.sapUiLayoutCSSGridBoxLayoutGenerateIEBreakpoints(S);
-	.sapUiLayoutCSSGridBoxLayoutGenerateIEBreakpoints(M);
-	.sapUiLayoutCSSGridBoxLayoutGenerateIEBreakpoints(L);
-	.sapUiLayoutCSSGridBoxLayoutGenerateIEBreakpoints(XL);
-}
 .sapUiLayoutCSSGridBoxLayoutContainer {
 	display: grid;
 	grid-auto-rows: 1fr;
@@ -42,34 +24,13 @@
 
 /* Mixins */
 
-/* Mixin to generate breakpoints.
- * Used for all browsers except IE11.
- */
+// Mixin to generate breakpoints. */
 .sapUiLayoutCSSGridBoxLayoutGenerateBreakpoints(@size, @counter: 0, @i: 1) when (@i =< 12) {
 	&.sapUiLayoutCSSGridBoxLayoutSize@{size}.sapUiLayoutCSSGridBoxLayoutSpan@{size}@{i} {
 		grid-template-columns: repeat(auto-fit, minmax(calc(~"(100% - @{counter} * 0.5rem - 1px) / @{i}"), 1fr));
 	}
 
 	.sapUiLayoutCSSGridBoxLayoutGenerateBreakpoints(@size, (@counter + 1), (@i + 1));
-}
-
-/* Mixin to generate IE breakpoints.
- * Adding -0.1px to the calculation to avoid rounding errors.
- */
-.sapUiLayoutCSSGridBoxLayoutGenerateIEBreakpoints(@size, @counter: 0, @i: 1) when (@i =< 12) {
-	&.sapUiLayoutCSSGridBoxLayoutSize@{size}.sapUiLayoutCSSGridBoxLayoutSpan@{size}@{i} {
-		@nselector: ~"@{i}n+1";
-
-			> .sapUiLayoutCSSGridItem {
-				width: calc(~"(100% - @{counter} * 0.5rem - 0.1px) / @{i}");
-			}
-	}
-
-	.sapUiLayoutCSSGridBoxLayoutGenerateIEBreakpoints(@size, (@counter + 1), (@i + 1));
-}
-
-.sapUiLayoutCSSGridItem.sapUiLayoutCSSGridItemLastOnRow {
-	margin-right: 0;
 }
 
 .sapUiLayoutCSSGrid .sapUiBlockLayerTabbable {
@@ -80,29 +41,34 @@
 }
 
 /* ResponsiveColumnLayout */
-.sapUiLayoutCSSResponsiveColumnLayoutGrid {
-	.sapUiLayoutCSSResponsiveColumnLayoutS &,
-	.sapUiLayoutCSSResponsiveColumnLayoutS& {
-		grid-template-columns: repeat(4, minmax(0px, 1fr));
-		grid-gap: 0.5rem 0.5rem;
+@_sap_ui_layout_CSSGrid_RCLColumns:
+	S 4,
+	M 8,
+	ML 12,
+	L 12,
+	XL 16,
+	XXL 20,
+	XXXL 20;
+
+.sapUiLayoutCSSGridRCL {
+
+	.generateBreakpoint(@i: 1) when (@i <= length(@_sap_ui_layout_CSSGrid_RCLColumns)) {
+		@pair: extract(@_sap_ui_layout_CSSGrid_RCLColumns, @i);
+		@rangeName: extract(@pair, 1);
+		@columns: extract(@pair, 2);
+	
+		.sapUiLayoutCSSGridRCL-Layout@{rangeName} &,
+		.sapUiLayoutCSSGridRCL-Layout@{rangeName}& {
+			grid-template-columns: repeat(@columns, minmax(0px, 1fr));
+			grid-gap: 1rem;
+		}
+	
+		.generateBreakpoint(@i + 1); // next iteration
 	}
-	.sapUiLayoutCSSResponsiveColumnLayoutM &,
-	.sapUiLayoutCSSResponsiveColumnLayoutM& {
-		grid-template-columns: repeat(8, minmax(0px, 1fr));
-		grid-gap: 1rem 1rem;
-	}
-	.sapUiLayoutCSSResponsiveColumnLayoutL &,
-	.sapUiLayoutCSSResponsiveColumnLayoutL& {
-		grid-template-columns: repeat(12, minmax(0px, 1fr));
-		grid-gap: 1rem 1rem;
-	}
-	.sapUiLayoutCSSResponsiveColumnLayoutXL &,
-	.sapUiLayoutCSSResponsiveColumnLayoutXL& {
-		grid-template-columns: repeat(16, minmax(0px, 1fr));
-		grid-gap: 1rem 1rem;
-	}
+
+	.generateBreakpoint();
 }
 
-.sapUiLayoutCSSResponsiveColumnLayoutGridPolyfill {
+.sapUiLayoutCSSGridRCL {
 	position: relative;
 }

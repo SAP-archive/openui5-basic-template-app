@@ -6,8 +6,12 @@
 
 // Provides the Design Time Metadata for the sap.ui.layout.form.SimpleForm control
 sap.ui.define([
+	"sap/m/Title",
+	"sap/ui/core/Title",
 	"sap/ui/fl/Utils"
 ], function(
+	MTitle,
+	CoreTitle,
 	FlexUtils
 ) {
 	"use strict";
@@ -120,6 +124,12 @@ sap.ui.define([
 				}
 			}
 		},
+		actions: {
+			localReset: {
+				changeType: "localReset",
+				changeOnRelevantContainer: true
+			}
+		},
 		getStableElements: getStableElements
 	};
 
@@ -187,10 +197,13 @@ sap.ui.define([
 							var aToolbarContent = oRemovedElement.getToolbar().getContent();
 							if (aToolbarContent.length > 1) {
 									bContent = true;
-							} else if ((aToolbarContent.length === 1) &&
-												(!aToolbarContent[0].getMetadata().isInstanceOf("sap.ui.core.Label") &&
-												!aToolbarContent[0] instanceof sap.ui.core.Title && !aToolbarContent[0] instanceof sap.m.Title)) {
-									bContent = true;
+							} else if (
+								aToolbarContent.length === 1
+								&& !aToolbarContent[0].getMetadata().isInstanceOf("sap.ui.core.Label")
+								&& !(aToolbarContent[0] instanceof CoreTitle)
+								&& !(aToolbarContent[0] instanceof MTitle)
+							) {
+								bContent = true;
 							}
 						}
 						if (bContent) {
@@ -219,11 +232,15 @@ sap.ui.define([
 			},
 			remove: {
 				changeType: "hideSimpleFormField",
-				changeOnRelevantContainer: true
+				changeOnRelevantContainer: true,
+				 // SimpleForm field visibility changes could be invalidated by custom field visibility settings
+				jsOnly: true
 			},
 			reveal: {
 				changeType: "unhideSimpleFormField",
-				changeOnRelevantContainer: true
+				changeOnRelevantContainer: true,
+				 // SimpleForm field visibility changes could be invalidated by custom field visibility settings
+				jsOnly: true
 			}
 		},
 		getStableElements: getStableElements

@@ -3,4 +3,4 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["./Item","./library"],function(e,t){"use strict";var a=e.extend("sap.ui.core.ListItem",{metadata:{library:"sap.ui.core",properties:{icon:{type:"string",group:"Appearance",defaultValue:null},additionalText:{type:"string",group:"Data",defaultValue:null}}}});return a});
+sap.ui.define(["./Item","./library"],function(e){"use strict";var t=e.extend("sap.ui.core.ListItem",{metadata:{library:"sap.ui.core",properties:{icon:{type:"string",group:"Appearance",defaultValue:null},additionalText:{type:"string",group:"Data",defaultValue:null}}}});return t});

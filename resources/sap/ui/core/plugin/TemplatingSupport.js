@@ -3,4 +3,4 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/Core","sap/ui/core/tmpl/Template","sap/base/Log"],function(t,i,n){"use strict";var e=function(){};e.prototype.startPlugin=function(t,i){n.info("Starting TemplatingSupport plugin.");this.oCore=t;sap.ui.template()};e.prototype.stopPlugin=function(){n.info("Stopping TemplatingSupport plugin.");this.oCore=null};(function(){var t=new e;sap.ui.getCore().registerPlugin(t)})();return e},true);
+sap.ui.define(["sap/base/Log","sap/ui/core/tmpl/Template","sap/ui/core/Core"],function(t){"use strict";var i=function(){};i.prototype.startPlugin=function(i,e){t.info("Starting TemplatingSupport plugin.");this.oCore=i;sap.ui.template()};i.prototype.stopPlugin=function(){t.info("Stopping TemplatingSupport plugin.");this.oCore=null};sap.ui.getCore().registerPlugin(new i);return i},true);

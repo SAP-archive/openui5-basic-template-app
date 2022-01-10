@@ -40,7 +40,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @private
@@ -221,18 +221,22 @@ sap.ui.define([
 			var oEndItemDomRef,
 				oObserverEntry = aObserverEntries[0],
 				bWidthChangedSignificantly = hasWidthChangedSignificantly(this.fLayoutWidth, oObserverEntry, oDomRef),
-				fNewWidth = oObserverEntry.contentRect.width;
+				fNewWidth = oObserverEntry.contentRect.width,
+				fNewHeight = oObserverEntry.contentRect.height;
 
 			if (bWidthChangedSignificantly) {
 				this.fLayoutWidth = fNewWidth;
+				this.fLayoutHeight = fNewHeight;
 			} else {
 				oEndItemDomRef = this.getDomRef("endItem");
 				bWidthChangedSignificantly = hasWidthChangedSignificantly(this.fEndItemWidth, oObserverEntry, oEndItemDomRef);
 
 				if (bWidthChangedSignificantly) {
 					this.fEndItemWidth = fNewWidth;
+					this.fLayoutHeight = fNewHeight;
+				} else if (this.fLayoutHeight !== fNewHeight) {	// we may still have relevant height changes
+					this.fLayoutHeight = fNewHeight;
 				} else {
-
 					// avoid cyclic dependencies and/or infinite resizing callback loops
 					return;
 				}
@@ -324,7 +328,8 @@ sap.ui.define([
 				iAvailableWidthForEndItem = oDomRef.offsetWidth - iRightBorderOfLastItem;
 			}
 
-			var bEnoughSpaceForEndItem = iAvailableWidthForEndItem >= iEndItemWidth;
+			var iEndItemMarginRight = Number.parseFloat(window.getComputedStyle(oEndItemDomRef).marginRight);
+			var bEnoughSpaceForEndItem = iAvailableWidthForEndItem >= (iEndItemWidth + iEndItemMarginRight);
 
 			// if the end item fits into the line
 			if (bEnoughSpaceForEndItem) {

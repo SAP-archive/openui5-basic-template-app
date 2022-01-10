@@ -3,28 +3,19 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the base implementation for all model implementations
 sap.ui.define([
-	'sap/ui/core/format/NumberFormat',
-	'sap/ui/model/SimpleType',
-	'sap/ui/model/FormatException',
-	'sap/ui/model/ParseException',
-	'sap/ui/model/ValidateException',
-	"sap/ui/thirdparty/jquery",
-	"sap/base/util/isEmptyObject"
-],
-	function(
-		NumberFormat,
-		SimpleType,
-		FormatException,
-		ParseException,
-		ValidateException,
-		jQuery,
-		isEmptyObject
-	) {
+	"sap/base/util/each",
+	"sap/base/util/isEmptyObject",
+	"sap/ui/core/format/NumberFormat",
+	"sap/ui/model/FormatException",
+	"sap/ui/model/ParseException",
+	"sap/ui/model/SimpleType",
+	"sap/ui/model/ValidateException"
+], function(each, isEmptyObject, NumberFormat, FormatException, ParseException, SimpleType,
+		ValidateException) {
 	"use strict";
-
 
 	/**
 	 * Constructor for a Float type.
@@ -35,10 +26,13 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
-	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.NumberFormat#constructor NumberFormat}.
+	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.NumberFormat NumberFormat}.
+	 * @param {boolean} [oFormatOptions.preserveDecimals=true]
+	 *   By default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
+	 *   "short" or "long"; since 1.89.0
 	 * @param {object} [oFormatOptions.source] Additional set of format options to be used if the property in the model is not of type string and needs formatting as well.
 	 * 										   If an empty object is given, the grouping is disabled and a dot is used as decimal separator.
 	 * @param {object} [oConstraints] Value constraints
@@ -112,7 +106,7 @@ sap.ui.define([
 			if (this.oInputFormat) {
 				fValue = this.oInputFormat.parse(vValue);
 			}
-			jQuery.each(this.oConstraints, function(sName, oContent) {
+			each(this.oConstraints, function(sName, oContent) {
 				switch (sName) {
 					case "minimum":
 						if (fValue < oContent) {
@@ -127,6 +121,8 @@ sap.ui.define([
 							aMessages.push(oBundle.getText("Float.Maximum",
 								[that.oOutputFormat.format(oContent)]));
 						}
+						break;
+					default: break;
 				}
 			});
 			if (aViolatedConstraints.length > 0) {
@@ -136,7 +132,11 @@ sap.ui.define([
 	};
 
 	Float.prototype.setFormatOptions = function(oFormatOptions) {
-		this.oFormatOptions = oFormatOptions;
+		this.oFormatOptions = Object.assign(
+			oFormatOptions.style !== "short" && oFormatOptions.style !== "long"
+				? {preserveDecimals : true}
+				: {},
+			oFormatOptions);
 		this._createFormats();
 	};
 

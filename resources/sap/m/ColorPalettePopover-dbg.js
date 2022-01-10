@@ -4,11 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
-
 // Provides control sap.ui.unified.ColorPalettePopover
 sap.ui.define([
 	'sap/ui/core/Control',
@@ -43,7 +38,7 @@ sap.ui.define([
 		 * A thin wrapper over {@link sap.m.ColorPalette} allowing the latter to be used in a popover.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -125,6 +120,60 @@ sap.ui.define([
 							 */
 							"defaultAction": {type: "boolean"}
 						}
+					},
+					/**
+					 * Fired when the value is changed by user interaction in the internal ColorPicker of the ColorPalette
+					 *
+					 * @since 1.85
+					 */
+					liveChange: {
+						parameters : {
+
+							/**
+							 * Parameter containing the RED value (0-255).
+							 */
+							r : {type: "int"},
+
+							/**
+							 * Parameter containing the GREEN value (0-255).
+							 */
+							g : {type: "int"},
+
+							/**
+							 * Parameter containing the BLUE value (0-255).
+							 */
+							b : {type: "int"},
+
+							/**
+							 * Parameter containing the HUE value (0-360).
+							 */
+							h : {type: "int"},
+
+							/**
+							 * Parameter containing the SATURATION value (0-100).
+							 */
+							s : {type: "int"},
+
+							/**
+							 * Parameter containing the VALUE value (0-100).
+							 */
+							v : {type: "int"},
+
+							/**
+							 * Parameter containing the LIGHTNESS value (0-100).
+							 */
+							l : {type: "int"},
+
+							/**
+							 * Parameter containing the Hexadecimal string (#FFFFFF).
+							 */
+							hex : {type: "string"},
+
+							/**
+							 * Parameter containing the alpha value (transparency).
+							 */
+							alpha : {type: "string"}
+						}
 					}
 				}
 			},
@@ -202,7 +251,7 @@ sap.ui.define([
 		 * Sets a selected color for the ColorPicker control.
 		 * @param {sap.ui.core.CSSColor} color the selected color
 		 * @public
-		 * @return {sap.m.ColorPalettePopover} <code>this</code> for method chaining
+		 * @return {this} <code>this</code> for method chaining
 		 */
 		ColorPalettePopover.prototype.setColorPickerSelectedColor = function (color) {
 			this._getPalette().setColorPickerSelectedColor(color);
@@ -304,7 +353,11 @@ sap.ui.define([
 		 */
 
 		ColorPalettePopover.prototype._createColorPalette = function () {
-			var oColorPalette = new ColorPalette(this.getId() + "-palette");
+			var oColorPalette = new ColorPalette(this.getId() + "-palette", {
+				liveChange: function (oEvent) {
+					this.fireLiveChange(oEvent.getParameters());
+				}.bind(this)
+			});
 
 			oColorPalette._setShowDefaultColorButton(this.getShowDefaultColorButton());
 			oColorPalette._setShowMoreColorsButton(this.getShowMoreColorsButton());

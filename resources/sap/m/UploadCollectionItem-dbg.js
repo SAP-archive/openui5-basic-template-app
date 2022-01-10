@@ -28,7 +28,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -50,7 +50,8 @@ sap.ui.define([
 				contributor: {
 					type: "string",
 					group: "Data",
-					defaultValue: null
+					defaultValue: null,
+					deprecated: true
 				},
 
 				/**
@@ -78,7 +79,8 @@ sap.ui.define([
 				fileSize: {
 					type: "float",
 					group: "Misc",
-					defaultValue: null
+					defaultValue: null,
+					deprecated: true
 				},
 
 				/**
@@ -107,7 +109,8 @@ sap.ui.define([
 				uploadedDate: {
 					type: "string",
 					group: "Misc",
-					defaultValue: null
+					defaultValue: null,
+					deprecated: true
 				},
 
 				/**
@@ -381,7 +384,7 @@ sap.ui.define([
 		jQuery.each(aProperties, function(i, sName) {
 			var sValue = this.getProperty(sName),
 				oAttribute = this._mDeprecatedProperties[sName];
-			if (typeof sValue === "number" && !!sValue || !!sValue) {
+			if (sValue) {
 				if (!oAttribute) {
 					oAttribute = new ObjectAttribute({
 						active: false

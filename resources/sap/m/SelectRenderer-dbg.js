@@ -39,15 +39,15 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 		 * @param {sap.m.Select} oSelect An object representation of the control that should be rendered.
 		 */
 		SelectRenderer.render = function(oRm, oSelect) {
-			var	sTooltip = oSelect.getTooltip_AsString(),
-				sType = oSelect.getType(),
+			var	sType = oSelect.getType(),
 				bAutoAdjustWidth = oSelect.getAutoAdjustWidth(),
 				bEditable = oSelect.getEditable(),
 				bEnabled = oSelect.getEnabled(),
 				sCSSWidth = oSelect.getWidth(),
 				bWidthPercentage = sCSSWidth.indexOf("%") > -1,
 				bSelectWithFlexibleWidth = bAutoAdjustWidth || sCSSWidth === "auto" || bWidthPercentage,
-				CSS_CLASS = SelectRenderer.CSS_CLASS;
+				CSS_CLASS = SelectRenderer.CSS_CLASS,
+				bEditabledAndEnabled = bEnabled && bEditable;
 
 			oRm.openStart("div", oSelect);
 			this.addClass(oRm, oSelect);
@@ -74,36 +74,26 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 				oRm.class(CSS_CLASS + "WithIcon");
 			}
 
-			if (bEnabled && bEditable && Device.system.desktop) {
+			if (bEditabledAndEnabled && Device.system.desktop) {
 				oRm.class(CSS_CLASS + "Hoverable");
 			}
 
 			oRm.class(CSS_CLASS + "WithArrow");
 
-			if (oSelect.getValueState() !== ValueState.None) {
+			if (oSelect.getValueState() !== ValueState.None && bEditabledAndEnabled) {
 				this.addValueStateClasses(oRm, oSelect);
 			}
 
 			oRm.style("max-width", oSelect.getMaxWidth());
-
-			if (sTooltip) {
-				oRm.attr("title", sTooltip);
-			} else if (sType === SelectType.IconOnly) {
-				var oIconInfo = IconPool.getIconInfo(oSelect.getIcon());
-
-				if (oIconInfo) {
-					oRm.attr("title", oIconInfo.text);
-				}
-			}
 
 			if (bEnabled) {
 				oRm.attr("tabindex", "-1");
 			}
 
 			oRm.openEnd();
-			// Used to benefit from the div[role="combobox"]. Direct textNode is the value of the div and no other elements should be placed inside.
 			this.renderFocusElement(oRm, oSelect);
 			// Used in case control is in a form submitted by input[type="submit"].
+			// Attribute "value" is holding the selectedKey property value.
 			this.renderHiddenInput(oRm, oSelect);
 			this.renderLabel(oRm, oSelect);
 
@@ -130,15 +120,18 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 		};
 
 		/**
-		 * Renders the element, which receives the focus. This is needed because when using [role="combobox"] we benefit from the direct textNode
-		 * which serves as a VALUE and is read out by screen readers when it changes.
+		 * Renders the element, which receives the focus.
+		 * This element is holding the selectedItem text property in its textContent and it's announced by InvisibleMessage when changed.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
 		 * @param {sap.m.Select} oSelect An object representation of the control that should be rendered.
 		 * @private
 		 */
-		SelectRenderer.renderFocusElement = function (oRm, oSelect) {
-			var oSelectedItem = oSelect.getSelectedItem();
+		 SelectRenderer.renderFocusElement = function (oRm, oSelect) {
+			var oSelectedItem = oSelect.getSelectedItem(),
+				sTooltip = oSelect.getTooltip_AsString(),
+				sType = oSelect.getType();
+
 			oRm.openStart("div", oSelect.getId() + "-hiddenSelect");
 
 			this.writeAccessibilityState(oRm, oSelect);
@@ -150,6 +143,16 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 			// Attributes
 			if (oSelect.getEnabled()) {
 				oRm.attr("tabindex", "0");
+			}
+
+			if (sTooltip) {
+				oRm.attr("title", sTooltip);
+			} else if (sType === SelectType.IconOnly) {
+				var oIconInfo = IconPool.getIconInfo(oSelect.getIcon());
+
+				if (oIconInfo) {
+					oRm.attr("title", oIconInfo.text);
+				}
 			}
 
 			oRm.openEnd();
@@ -179,6 +182,9 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 			oRm.attr("tabindex", "-1");
 			oRm.attr("aria-hidden", "true");
 
+			//The hidden field is not shown to the user, but the data is sent when the form is submitted.
+			oRm.attr("type", "hidden");
+
 			// Classes
 			oRm.class("sapUiPseudoInvisibleText");
 
@@ -196,13 +202,21 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 			var oSelectedItem = oSelect.getSelectedItem(),
 				sTextDir = oSelect.getTextDirection(),
 				sTextAlign = Renderer.getTextAlign(oSelect.getTextAlign(), sTextDir),
-				CSS_CLASS = SelectRenderer.CSS_CLASS;
+				CSS_CLASS = SelectRenderer.CSS_CLASS,
+				bEditabledAndEnabled = oSelect.getEnabled() && oSelect.getEditable(),
+				sTooltip = oSelect.getTooltip_AsString();
 
 			oRm.openStart("span", oSelect.getId() + "-label");
 			oRm.attr("aria-hidden", true);
 			oRm.class(CSS_CLASS + "Label");
 
-			if (oSelect.getValueState() !== ValueState.None) {
+			// since focusable element has sapUiPseudoInvisibleText class
+			// the tooltip is also set to the label element to be visually displayed
+			if (sTooltip) {
+				oRm.attr("title", sTooltip);
+			}
+
+			if (oSelect.getValueState() !== ValueState.None && bEditabledAndEnabled) {
 				oRm.class(CSS_CLASS + "LabelState");
 				oRm.class(CSS_CLASS + "Label" + oSelect.getValueState());
 			}
@@ -243,7 +257,8 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 		 * @private
 		 */
 		SelectRenderer.renderArrow = function(oRm, oSelect) {
-			var CSS_CLASS = SelectRenderer.CSS_CLASS;
+			var CSS_CLASS = SelectRenderer.CSS_CLASS,
+				sTooltip = oSelect.getTooltip_AsString();
 
 			oRm.openStart("span", oSelect.getId() + "-arrow");
 			oRm.attr("aria-hidden", true);
@@ -251,6 +266,10 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 
 			if (oSelect.getValueState() !== ValueState.None) {
 				oRm.class(CSS_CLASS + "ArrowState");
+			}
+
+			if (sTooltip) {
+				oRm.attr("title", sTooltip);
 			}
 
 			oRm.openEnd().close("span");
@@ -264,11 +283,13 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 		 * @private
 		 */
 		SelectRenderer.renderIcon = function(oRm, oSelect) {
-			var sTooltip = oSelect.getTooltip_AsString();
+			var sTooltip = oSelect.getTooltip_AsString(),
+				oIconInfo = IconPool.getIconInfo(oSelect.getIcon()),
+				sIconText = oIconInfo && oIconInfo.text;
 
 			oRm.icon(oSelect.getIcon(), SelectRenderer.CSS_CLASS + "Icon", {
 				id: oSelect.getId() + "-icon",
-				title: sTooltip || null
+				title: sTooltip || sIconText || null
 			});
 		};
 
@@ -295,10 +316,11 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 		 */
 		SelectRenderer.renderShadowItems = function(oRm, oList) {
 			var oListRenderer = oList.getRenderer(),
-				iSize = oList.getItems().length,
+				aItems = oList.getSelectableItems(),
+				iSize = aItems.length,
 				oSelectedItem = oList.getSelectedItem();
 
-			for (var i = 0, aItems = oList.getItems(); i < aItems.length; i++) {
+			for (var i = 0; i < iSize; i++) {
 				oListRenderer.renderItem(oRm, oList, aItems[i], {
 					selected: oSelectedItem === aItems[i],
 					setsize: iSize,
@@ -360,6 +382,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 				oSelectedItem = oSelect.getSelectedItem(),
 				bIconOnly = oSelect.getType() === SelectType.IconOnly,
 				oValueIcon = oSelect._getValueIcon(),
+				bEditabledAndEnabled = oSelect.getEnabled() && oSelect.getEditable(),
 				aLabels = [],
 				aAriaLabelledBy = [],
 				oAriaLabelledBy,
@@ -384,7 +407,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 				}
 			}
 
-			if (sValueState !== ValueState.None) {
+			if (sValueState !== ValueState.None && bEditabledAndEnabled) {
 				sAriaDescribedBy = oSelect.getValueStateMessageId() + "-sr";
 			}
 
@@ -408,11 +431,11 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 				required: oSelect._isRequired() || undefined,
 				disabled: !oSelect.getEnabled() || undefined,
 				expanded: oSelect.isOpen(),
-				invalid: (oSelect.getValueState() === ValueState.Error) ? true : undefined,
+				invalid: (oSelect.getValueState() === ValueState.Error && bEditabledAndEnabled) ? true : undefined,
 				labelledby: (bIconOnly || oAriaLabelledBy.value === "") ? undefined : oAriaLabelledBy,
 				describedby: sAriaDescribedBy,
 				activedescendant: sActiveDescendant,
-				haspopup: "listbox"
+				haspopup: oSelect.getEditable() ? "listbox" : undefined
 			});
 		};
 
@@ -424,14 +447,14 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/IconPool', 'sap/m/library', 
 		 */
 		SelectRenderer.renderAccessibilityDomNodes = function (oRm, oControl) {
 			var sValueState = oControl.getValueState(),
-				sValueStateText;
+				sValueStateText,
+				bEditabledAndEnabled = oControl.getEnabled() && oControl.getEditable();
 
-			if (sValueState === ValueState.None) {
+			if (sValueState === ValueState.None || !bEditabledAndEnabled) {
 				return;
 			}
 
 			sValueStateText = oControl._getValueStateText();
-
 			oRm.openStart("div", oControl.getValueStateMessageId() + "-sr")
 				.class("sapUiPseudoInvisibleText")
 				.attr("aria-hidden", true)

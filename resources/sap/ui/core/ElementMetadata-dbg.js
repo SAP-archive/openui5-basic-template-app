@@ -4,8 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-/*global Promise */
-
 // Provides class sap.ui.core.ElementMetadata
 sap.ui.define([
 	'sap/base/Log',
@@ -21,11 +19,11 @@ sap.ui.define([
 	 * Creates a new metadata object for a UIElement subclass.
 	 *
 	 * @param {string} sClassName fully qualified name of the class that is described by this metadata object
-	 * @param {object} oStaticInfo static info to construct the metadata from
+	 * @param {object} oClassInfo static info to construct the metadata from
 	 *
 	 * @class
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @since 0.8.6
 	 * @alias sap.ui.core.ElementMetadata
 	 * @extends sap.ui.base.ManagedObjectMetadata
@@ -61,6 +59,8 @@ sap.ui.define([
 
 	/**
 	 * Determines the class name of the renderer for the described control class.
+	 *
+	 * @returns {string} The renderer name
 	 */
 	ElementMetadata.prototype.getRendererName = function() {
 		return this._sRendererName;
@@ -68,6 +68,9 @@ sap.ui.define([
 
 	/**
 	 * Retrieves the renderer for the described control class
+	 *
+	 * If no renderer exists <code>undefined</code> is returned
+	 * @returns {object|undefined} The renderer
 	 */
 	ElementMetadata.prototype.getRenderer = function() {
 
@@ -79,7 +82,7 @@ sap.ui.define([
 		var sRendererName = this.getRendererName();
 
 		if ( !sRendererName ) {
-			return;
+			return undefined;
 		}
 
 		// check if renderer class exists already, in case it was passed inplace,
@@ -96,8 +99,10 @@ sap.ui.define([
 				name: sRendererName
 			};
 		});
+
+		// Relevant for all controls that don't maintain the renderer module in their dependencies
 		this._oRenderer =
-			sap.ui.requireSync(sRendererName.replace(/\./g, "/"))
+			sap.ui.requireSync(sRendererName.replace(/\./g, "/")) // legacy-relevant
 			|| ObjectPath.get(sRendererName);
 
 		return this._oRenderer;
@@ -153,7 +158,6 @@ sap.ui.define([
 				vRenderer = { render : vRenderer };
 			}
 
-			var oParent = this.getParent();
 			var oBaseRenderer;
 			if ( oParent instanceof ElementMetadata ) {
 				oBaseRenderer = oParent.getRenderer();

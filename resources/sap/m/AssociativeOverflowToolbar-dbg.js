@@ -5,8 +5,8 @@
  */
 
 // Provides control sap.m.AssociativeOverflowToolbar.
-sap.ui.define(['sap/base/Log', './OverflowToolbar', './OverflowToolbarRenderer', './Toolbar', 'sap/ui/Device'],
-	function (Log, OverflowToolbar, OverflowToolbarRenderer, Toolbar, Device) {
+sap.ui.define(['sap/base/Log', './OverflowToolbar', './OverflowToolbarRenderer', 'sap/ui/Device'],
+	function (Log, OverflowToolbar, OverflowToolbarRenderer, Device) {
 		"use strict";
 
 		/**
@@ -20,7 +20,7 @@ sap.ui.define(['sap/base/Log', './OverflowToolbar', './OverflowToolbarRenderer',
 		 * @extends sap.m.OverflowToolbar
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @private
@@ -124,7 +124,7 @@ sap.ui.define(['sap/base/Log', './OverflowToolbar', './OverflowToolbarRenderer',
 						return sap.ui.getCore().byId(controlId);
 					});
 				default:
-					return Toolbar.prototype[sFuncName].apply(this, aArguments);
+					return OverflowToolbar.prototype._callToolbarMethod.call(this, sFuncName, aArguments);
 			}
 		};
 

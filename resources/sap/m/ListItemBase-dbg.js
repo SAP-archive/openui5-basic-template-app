@@ -76,7 +76,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -142,6 +142,7 @@ function(
 			 * The navigated state of the list item.
 			 *
 			 * If set to <code>true</code>, a navigation indicator is displayed at the end of the list item.
+			 * <b>Note:</b> This property must be set for <b>one</b> list item only.
 			 *
 			 * @since 1.72
 			 */
@@ -236,27 +237,11 @@ function(
 			return null;
 		}
 
-		var Node = window.Node,
+		var aText = [],
+			Node = window.Node,
 			NodeFilter = window.NodeFilter,
-			oTreeWalker = document.createTreeWalker(oDomRef, NodeFilter.SHOW_TEXT + NodeFilter.SHOW_ELEMENT, function(oNode) {
-				if (oNode.type === Node.ELEMENT_NODE) {
-					if (oNode.classList.contains("sapUiInvisibleText")) {
-						return NodeFilter.FILTER_SKIP;
-					}
+			oTreeWalker = document.createTreeWalker(oDomRef, NodeFilter.SHOW_TEXT + NodeFilter.SHOW_ELEMENT);
 
-					if (oNode.getAttribute("aria-hidden") == "true" ||
-						oNode.style.visibility == "hidden" ||
-						oNode.style.display == "none") {
-						return NodeFilter.FILTER_REJECT;
-					}
-
-					return NodeFilter.FILTER_SKIP;
-				}
-
-				return NodeFilter.FILTER_ACCEPT;
-			}, false);
-
-		var aText = [];
 		while (oTreeWalker.nextNode()) {
 			var oNode = oTreeWalker.currentNode;
 			if (oNode.nodeType === Node.TEXT_NODE) {
@@ -449,10 +434,6 @@ function(
 			aOutput.push(sTooltip);
 		}
 
-		if (this.getNavigated()) {
-			aOutput.push(oBundle.getText("LIST_ITEM_NAVIGATED"));
-		}
-
 		if (this._bAnnounceNotSelected && this.isSelectable() && !this.getSelected()) {
 			aOutput.push(oBundle.getText("LIST_ITEM_NOT_SELECTED"));
 		}
@@ -524,7 +505,9 @@ function(
 		}
 
 		if (!this.DeleteIconURI) {
-			ListItemBase.prototype.DeleteIconURI = IconPool.getIconURI(ThemeParameters.get("_sap_m_ListItemBase_DeleteIcon"));
+			ListItemBase.prototype.DeleteIconURI = IconPool.getIconURI(
+				ThemeParameters.get({name: "_sap_m_ListItemBase_DeleteIcon"}) || "decline"
+			);
 		}
 
 		this._oDeleteControl = new Button({
@@ -539,15 +522,15 @@ function(
 		this._oDeleteControl._bExcludeFromTabChain = true;
 
 		// prevent disabling of internal controls by the sap.ui.core.EnabledPropagator
-		this._oDeleteControl.getEnabled = function() {
-			return true;
-		};
+		this._oDeleteControl.useEnabledPropagator(false);
 
 		return this._oDeleteControl;
 	};
 
 	ListItemBase.prototype.onThemeChanged = function() {
-		ListItemBase.prototype.DeleteIconURI = IconPool.getIconURI(ThemeParameters.get("_sap_m_ListItemBase_DeleteIcon"));
+		ListItemBase.prototype.DeleteIconURI = IconPool.getIconURI(
+			ThemeParameters.get({name: "_sap_m_ListItemBase_DeleteIcon"})
+		);
 		if (this._oDeleteControl) {
 			this._oDeleteControl.setIcon(this.DeleteIconURI);
 		}
@@ -577,9 +560,7 @@ function(
 		this._oDetailControl._bExcludeFromTabChain = true;
 
 		// prevent disabling of internal controls by the sap.ui.core.EnabledPropagator
-		this._oDetailControl.getEnabled = function() {
-			return true;
-		};
+		this._oDetailControl.useEnabledPropagator(false);
 
 		return this._oDetailControl;
 	};
@@ -630,9 +611,7 @@ function(
 		}, this);
 
 		// prevent disabling of internal controls by the sap.ui.core.EnabledPropagator
-		this._oSingleSelectControl.getEnabled = function() {
-			return true;
-		};
+		this._oSingleSelectControl.useEnabledPropagator(false);
 
 		return this._oSingleSelectControl;
 	};
@@ -668,9 +647,7 @@ function(
 		}, this);
 
 		// prevent disabling of internal controls by the sap.ui.core.EnabledPropagator
-		this._oMultiSelectControl.getEnabled = function() {
-			return true;
-		};
+		this._oMultiSelectControl.useEnabledPropagator(false);
 
 		return this._oMultiSelectControl;
 	};
@@ -773,7 +750,7 @@ function(
 	 * By default, when item should be in selectable mode
 	 *
 	 * Subclasses can overwrite in case of unselectable item.
-	 * @returns {Boolean}
+	 * @returns {boolean}
 	 * @private
 	 */
 	ListItemBase.prototype.isSelectable = function() {
@@ -792,10 +769,11 @@ function(
 	 * Returns the state of the item selection as a boolean
 	 *
 	 * @public
-	 * @return boolean
+	 * @returns {boolean}
 	 * @deprecated Since version 1.10.2.
-	 * API Change makes this method unnecessary. Use getSelected method instead.
+	 * API Change makes this method unnecessary. Use the {@link #getSelected} method instead.
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
+	 * @function
 	 */
 	ListItemBase.prototype.isSelected = ListItemBase.prototype.getSelected;
 
@@ -852,7 +830,7 @@ function(
 	/**
 	 * Determines whether group header item or not.
 	 *
-	 * @return {Boolean}
+	 * @return {boolean}
 	 */
 	ListItemBase.prototype.isGroupHeader = function() {
 		return this._bGroupHeader;
@@ -862,7 +840,7 @@ function(
 	 * Determines whether item is in SingleSelectMaster mode or
 	 * other selection modes when includeItemInSelection is true
 	 *
-	 * @return {Boolean}
+	 * @return {boolean}
 	 */
 	ListItemBase.prototype.isIncludedIntoSelection = function() {
 		if (!this.isSelectable()) {
@@ -905,7 +883,7 @@ function(
 	/**
 	 * Determines whether item needs icon to render type or not
 	 *
-	 * @return {Boolean}
+	 * @return {boolean}
 	 */
 	ListItemBase.prototype.hasActiveType = function() {
 		var sType = this.getType();
@@ -1018,6 +996,10 @@ function(
 		if (this._eventHandledByControl ||
 			oEvent.touches.length != 1 ||
 			!this.hasActiveType()) {
+			if (this.getListProperty("includeItemInSelection") && this.getList()._mRangeSelection) {
+				// prevet text selection when rangeSelection is detected
+				oEvent.preventDefault();
+			}
 			return;
 		}
 
@@ -1293,6 +1275,7 @@ function(
 		}
 
 		this.informList("FocusIn", oEvent.srcControl);
+		oEvent.setMarked();
 
 		if (oEvent.srcControl === this) {
 			return;
@@ -1305,7 +1288,6 @@ function(
 
 		// inform the list async that this item should be focusable
 		setTimeout(oList["setItemFocusable"].bind(oList, this), 0);
-		oEvent.setMarked();
 	};
 
 	// inform the list for the vertical navigation

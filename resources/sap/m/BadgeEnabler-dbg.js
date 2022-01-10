@@ -27,7 +27,7 @@ sap.ui.define([
 
 		var IBADGE_STYLE = library.BadgeStyle;
 
-		var IBADGE_INVALID_VALUES = ["", "undefined", "null"];
+		var IBADGE_INVALID_VALUES = ["", "undefined", "null", false];
 
 		/**
 		 * @class A helper class for implementing the {@link sap.m.IBadge} interface.
@@ -55,7 +55,7 @@ sap.ui.define([
 		 *
 		 * @since 1.80
 		 * @protected
-		 * @alias sap.m.IBadgeEnabler
+		 * @alias sap.m.BadgeEnabler
 		 */
 		var BadgeEnabler = function () {
 
@@ -103,6 +103,10 @@ sap.ui.define([
 				oBadgeElement.removeClass("sapMBadgeAnimationAdd");
 				oBadgeElement.width();
 				oBadgeElement.addClass("sapMBadgeAnimationRemove");
+				oBadgeElement.on("animationend", function () {
+					oBadgeElement.css("display","none");
+					oBadgeElement.off();
+				});
 				oBadgeElement.removeAttr("aria-label");
 
 				this._isBadgeAttached = false;
@@ -129,9 +133,10 @@ sap.ui.define([
 					oBadgeElement = _getBadgeElement.call(this),
 					fnBadgeValueFormatter =  typeof this.badgeValueFormatter === "function" && this.badgeValueFormatter,
 					sValue = isValidValue(fnBadgeValueFormatter ? fnBadgeValueFormatter.call(this, this.getBadgeCustomData().getValue())
-						: this.getBadgeCustomData().getValue()),
+						: this.getBadgeCustomData().getValue()) || "",
 
-					sStyle = this._oBadgeConfig.style ? this._oBadgeConfig.style : IBADGE_STYLE.Default;
+					sStyle = this._oBadgeConfig.style ? this._oBadgeConfig.style : IBADGE_STYLE.Default,
+					sAnimationType = this.getBadgeCustomData().getAnimation();
 				this._oBadgeContainer = this._oBadgeConfig && this._oBadgeConfig.selector ?
 					_getContainerDomElement(this._oBadgeConfig.selector, this) :
 					this.$();
@@ -160,6 +165,9 @@ sap.ui.define([
 					this._oBadgeContainer.addClass(IBADGE_CSS_CLASS + this._oBadgeConfig.accentColor);
 				}
 
+				this._oBadgeContainer.addClass(this.getBadgeAnimationClass(this.getBadgeCustomData().getAnimation()));
+				this._badgeAnimaionType = sAnimationType;
+
 				callHandler.call(this, sValue, IBADGE_STATE["Appear"]);
 			}
 
@@ -169,7 +177,8 @@ sap.ui.define([
 				var fnBadgeValueFormatter =  typeof this.badgeValueFormatter === "function" && this.badgeValueFormatter,
 					oBadgeElement;
 
-				sValue = isValidValue((fnBadgeValueFormatter ? fnBadgeValueFormatter.call(this, sValue) : sValue) || this.getBadgeCustomData().getValue()) || "";
+				sValue = isValidValue((fnBadgeValueFormatter ? fnBadgeValueFormatter.call(this, sValue) : sValue))
+					|| "";
 
 				if (!this.getBadgeCustomData().getVisible()) { return false; }
 				oBadgeElement = _getBadgeElement.call(this);
@@ -237,6 +246,10 @@ sap.ui.define([
 				return oBadgeCustomData.length ? oBadgeCustomData[0] : undefined;
 			};
 
+			this.getBadgeAnimationClass = function (sAnimationType) {
+				return IBADGE_CSS_CLASS + "AnimationType" + sAnimationType;
+			};
+
 			this.removeBadgeCustomData = function () {
 				var oBadgeCustomData;
 				oBadgeCustomData = this._oBadgeCustomData;
@@ -268,6 +281,16 @@ sap.ui.define([
 
 			this._renderBadge = function () {
 				_renderBadgeDom.call(this);
+			};
+
+			this.updateBadgeAnimation = function (sAnimationType) {
+
+				if (this._oBadgeContainer) {
+					this._badgeAnimaionType && this._oBadgeContainer.removeClass(this.getBadgeAnimationClass(this._badgeAnimaionType));
+					this._oBadgeContainer.addClass(this.getBadgeAnimationClass(sAnimationType));
+				}
+
+				this._badgeAnimaionType = sAnimationType;
 			};
 		};
 	return BadgeEnabler;

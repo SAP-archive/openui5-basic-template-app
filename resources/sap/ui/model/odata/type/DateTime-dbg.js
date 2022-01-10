@@ -25,14 +25,14 @@ sap.ui.define([
 
 		if (oConstraints) {
 			switch (oConstraints.displayFormat) {
-			case "Date":
-				oAdjustedConstraints.isDateOnly = true;
-				break;
-			case undefined:
-				break;
-			default:
-				Log.warning("Illegal displayFormat: " + oConstraints.displayFormat,
-					null, oType.getName());
+				case "Date":
+					oAdjustedConstraints.isDateOnly = true;
+					break;
+				case undefined:
+					break;
+				default:
+					Log.warning("Illegal displayFormat: " + oConstraints.displayFormat,
+						null, oType.getName());
 			}
 			oAdjustedConstraints.nullable = oConstraints.nullable;
 		}
@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.DateTimeBase
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @alias sap.ui.model.odata.type.DateTime
 	 * @param {object} [oFormatOptions]
@@ -81,6 +81,19 @@ sap.ui.define([
 				}
 			}
 		);
+
+	// @override
+	// @see sap.ui.model.SimpleType#getConstraints
+	DateTime.prototype.getConstraints = function () {
+		var oConstraints = DateTimeBase.prototype.getConstraints.call(this);
+
+		if (oConstraints.isDateOnly) {
+			oConstraints.displayFormat = "Date";
+			delete oConstraints.isDateOnly;
+		}
+
+		return oConstraints;
+	};
 
 	/**
 	 * Returns the type's name.

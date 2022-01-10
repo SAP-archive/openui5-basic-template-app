@@ -26,6 +26,7 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 	/**
 	 * Adds control specific class
 	 *
+	 * @protected
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
 	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
 	 */
@@ -40,6 +41,7 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 	/**
 	 * add extra attributes to Input
 	 *
+	 * @protected
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
 	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
 	 */
@@ -53,10 +55,6 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 		}
 		if (oControl.getType() == InputType.Number && sap.ui.getCore().getConfiguration().getRTL()) {
 			oRm.attr("dir", "ltr").style("text-align", "right");
-		}
-
-		if (bShowSuggestions) {
-			oRm.attr("aria-haspopup", "listbox");
 		}
 
 		if (bShowSuggestions || oControl.getShowValueStateMessage()) {
@@ -74,6 +72,7 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 	/**
 	 * Adds inner css classes to the input field
 	 *
+	 * @protected
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
 	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
 	 */
@@ -94,6 +93,13 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 		oRm.close("div");
 	};
 
+	/**
+	 * Write the decorations of the input - description and value-help icon.
+	 *
+	 * @protected
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
+	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
+	 */
 	InputRenderer.writeDecorations = function (oRm, oControl) {
 		if (oControl.getDescription()) {
 			this.writeDescription(oRm, oControl);
@@ -109,25 +115,34 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 		}
 	};
 
+	/**
+	 * Adds extra styles to the wrapper of the input field.
+	 *
+	 * @protected
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
+	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
+	 */
 	InputRenderer.addWrapperStyles = function (oRm, oControl) {
 		oRm.style("width", oControl.getDescription() ? oControl.getFieldWidth() : "100%");
 	};
 
-	InputRenderer.getAriaLabelledBy = function (oControl) {
-		var ariaLabels = InputBaseRenderer.getAriaLabelledBy.call(this, oControl) || "";
-
-		if (oControl.getDescription()) {
-			ariaLabels = ariaLabels + " " + oControl.getId() + "-descr";
-		}
-		return ariaLabels;
-	};
-
+	/**
+	 * Returns the inner aria describedby ids for the accessibility.
+	 *
+	 * @protected
+	 * @param {sap.ui.core.Control} oControl an object representation of the control.
+	 * @returns {String|undefined}
+	 */
 	InputRenderer.getAriaDescribedBy = function (oControl) {
 
 		var sAriaDescribedBy = InputBaseRenderer.getAriaDescribedBy.apply(this, arguments);
 
 		function append(s) {
 			sAriaDescribedBy = sAriaDescribedBy ? sAriaDescribedBy + " " + s : s;
+		}
+
+		if (oControl.getDescription()) {
+			append(oControl.getId() + "-descr");
 		}
 
 		if (oControl.getShowValueHelp() && oControl.getEnabled() && oControl.getEditable()) {
@@ -145,6 +160,7 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 	 * Returns aria accessibility role for the control.
 	 * Hook for the subclasses.
 	 *
+	 * @protected
 	 * @param {sap.ui.core.Control} oControl an object representation of the control
 	 * @returns {String}
 	 */
@@ -153,8 +169,13 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 	};
 
 	InputRenderer.getAccessibilityState = function (oControl) {
+		var bShowSuggestions = oControl.getShowSuggestion();
 
 		var mAccessibilityState = InputBaseRenderer.getAccessibilityState.apply(this, arguments);
+
+		if (bShowSuggestions) {
+			mAccessibilityState["haspopup"] = "listbox";
+		}
 
 
 		return mAccessibilityState;

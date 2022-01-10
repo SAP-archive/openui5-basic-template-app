@@ -132,6 +132,17 @@ html[dir=rtl] .sapMTileCntFtrTxt {
 	}
 }
 
+.Stretch {
+	.sapMTileCnt.News{
+		height: 100%;
+
+
+		.sapMTileCntFtrTxt {
+			font-size: @sapMFontSmallSize;
+		}
+	}
+}
+
 .sapMTileSmallPhone {
 	.sapMTileCnt {
 		height: 5.5rem;
@@ -165,5 +176,14 @@ html[dir=rtl] .sapMTileCntFtrTxt {
 			margin-left: 0.5rem;
 			margin-right: 0.5rem;
 		}
+	}
+
+	.sapMTileSmallPhone.Stretch {
+		.sapMTileCnt.News {
+			height: 100%;
+		}
+		.sapMTileFtrCnt > .sapMTileNavContainer {
+			padding-bottom: 1rem;
+		}	
 	}
 }

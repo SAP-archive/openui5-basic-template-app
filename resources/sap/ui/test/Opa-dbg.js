@@ -338,7 +338,7 @@ sap.ui.define([
 	// I don't have a proper explanation for this.
 	var executionDelayDefault = 0;
 
-	if (Device.browser.msie || Device.browser.edge || Device.browser.safari) {
+	if (Device.browser.safari) {
 		executionDelayDefault = 50;
 	}
 
@@ -616,7 +616,7 @@ sap.ui.define([
 		 * This means that any "thenable" should be acceptable.
 		 * @public
 		 * @param {jQuery.promise|Promise} oPromise promise to schedule on the OPA queue
-		 * @returns {jQuery.promise} promise which is the result of a {@link sap.ui.test.Opa.waitFor}
+		 * @returns {jQuery.promise} promise which is the result of a {@link sap.ui.test.Opa#waitFor}
 		 */
 		iWaitForPromise: function (oPromise) {
 			return this._schedulePromiseOnFlow(oPromise);

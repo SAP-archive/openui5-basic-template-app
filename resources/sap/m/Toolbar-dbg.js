@@ -13,7 +13,8 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/core/EnabledPropagator',
 	"sap/ui/events/KeyCodes",
-	'./ToolbarRenderer'
+	'./ToolbarRenderer',
+	"sap/ui/core/library"
 ],
 function(
 	BarInPageEnabler,
@@ -23,7 +24,8 @@ function(
 	Control,
 	EnabledPropagator,
 	KeyCodes,
-	ToolbarRenderer
+	ToolbarRenderer,
+	coreLibrary
 ) {
 	"use strict";
 
@@ -70,7 +72,7 @@ function(
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -132,9 +134,20 @@ function(
 
 			/**
 			 * Defines the aria-haspopup attribute of the <code>Toolbar</code>. if the active <code>design</code> is true.
+			 *
+			 * <b>Guidance for choosing appropriate value:</b>
+			 * <ul>
+			 * <li> We recommend that you use the {@link sap.ui.core.aria.HasPopup} enumeration.</li>
+			 * <li> If you use controls based on <code>sap.m.Popover</code> or <code>sap.m.Dialog</code>,
+			 * then you must use <code>AriaHasPopup.Dialog</code> (both <code>sap.m.Popover</code> and
+			 * <code>sap.m.Dialog</code> have role "dialog" assigned internally).</li>
+			 * <li> If you use other controls, or directly <code>sap.ui.core.Popup</code>, you need to check
+			 * the container role/type and map the value of <code>ariaHasPopup</code> accordingly.</li>
+			 * </ul>
+			 *
 			 * @since 1.79.0
 			 */
-			ariaHasPopup: {type : "string", group : "Accessibility", defaultValue : null}
+			ariaHasPopup : {type: "string", group : "Accessibility", defaultValue : null}
 		},
 		defaultAggregation : "content",
 		aggregations : {
@@ -413,7 +426,7 @@ function(
 	 *
 	 * @param {sap.m.ToolbarDesign} sDesign The design for the Toolbar.
 	 * @param {boolean} [bSetAutoDesign] Determines auto design context
-	 * @returns {sap.m.Toolbar}
+	 * @returns {this}
 	 */
 	Toolbar.prototype.setDesign = function(sDesign, bSetAutoDesign) {
 		if (!bSetAutoDesign) {
@@ -463,7 +476,7 @@ function(
 	/**
 	 * Returns the first sap.m.Title control id inside the toolbar for the accessibility
 	 *
-	 * @returns {String} The <code>sap.m.Title</code> ID
+	 * @returns {sap.ui.core.ID} The <code>sap.m.Title</code> ID
 	 * @since 1.28
 	 * @protected
 	 */

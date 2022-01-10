@@ -80,7 +80,7 @@ sap.ui.define([
 	 * <code>sapUiResponsivePadding--header</code>.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -595,7 +595,7 @@ sap.ui.define([
 	 * @override
 	 * @public
 	 * @param {boolean} bCondensed the new value
-	 * @returns {sap.m.ObjectHeader} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	ObjectHeader.prototype.setCondensed = function (bCondensed) {
 		this.setProperty("condensed", bCondensed);
@@ -613,7 +613,7 @@ sap.ui.define([
 	 * @override
 	 * @public
 	 * @param {string} sNumber the new value
-	 * @returns {sap.m.ObjectHeader} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	ObjectHeader.prototype.setNumber = function (sNumber) {
 		this.setProperty("number", sNumber);
@@ -626,7 +626,7 @@ sap.ui.define([
 	 * @override
 	 * @public
 	 * @param {string} sUnit the new value
-	 * @returns {sap.m.ObjectHeader} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	ObjectHeader.prototype.setNumberUnit = function (sUnit) {
 		this.setProperty("numberUnit", sUnit);
@@ -639,7 +639,7 @@ sap.ui.define([
 	 * @override
 	 * @public
 	 * @param {sap.ui.core.ValueState} sState the new value
-	 * @returns {sap.m.ObjectHeader} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	ObjectHeader.prototype.setNumberState = function (sState) {
 		this.setProperty("numberState", sState);
@@ -652,7 +652,7 @@ sap.ui.define([
 	 * @override
 	 * @public
 	 * @param {string} sTooltip the tooltip of the title selector
-	 * @returns {sap.m.ObjectHeader} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	ObjectHeader.prototype.setTitleSelectorTooltip = function (sTooltip) {
 		this.setProperty("titleSelectorTooltip", sTooltip);
@@ -665,7 +665,7 @@ sap.ui.define([
 	 * @override
 	 * @public
 	 * @param {boolean} bMarked visibility of the marker
-	 * @returns {sap.m.ObjectHeader} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	ObjectHeader.prototype.setMarkFavorite = function (bMarked) {
 		return this._setOldMarkers(ObjectMarkerType.Favorite, bMarked);
@@ -676,7 +676,7 @@ sap.ui.define([
 	 * @override
 	 * @public
 	 * @param {boolean} bMarked visibility of the marker
-	 * @returns {sap.m.ObjectHeader} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	ObjectHeader.prototype.setMarkFlagged = function (bMarked) {
 		return this._setOldMarkers(ObjectMarkerType.Flagged, bMarked);
@@ -687,7 +687,7 @@ sap.ui.define([
 	 * @override
 	 * @public
 	 * @param {boolean} bMarked visibility of all markers
-	 * @returns {sap.m.ObjectHeader} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	ObjectHeader.prototype.setShowMarkers = function (bMarked) {
 		var sMarkerType,
@@ -712,7 +712,7 @@ sap.ui.define([
 	 * @private
 	 * @param {string} markerType the type of the marker which should be created to updated
 	 * @param {boolean} bMarked visibility of the marker
-	 * @returns {sap.m.ObjectHeader} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	ObjectHeader.prototype._setOldMarkers = function (markerType, bMarked) {
 		var aAllMarkers = this.getMarkers(),
@@ -828,9 +828,9 @@ sap.ui.define([
 					domRef : window.document.getElementById(sSourceId)
 				});
 			}
-		} else if (sSourceId === this.getId() + "-titleArrow") {
+		} else if (oEvent.target.classList.contains("sapUiIconTitle")) {
 			this.fireTitleSelectorPress({
-				domRef : window.document.getElementById(sSourceId)
+				domRef : oEvent.target.parentElement
 			});
 		} else if (sSourceId.indexOf(this.getId()) !== -1) {
 			// we didn't click on any of the active parts of the ObjectHeader

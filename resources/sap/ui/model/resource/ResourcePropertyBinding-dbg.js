@@ -3,7 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the resource model implementation of a property binding
 sap.ui.define(['sap/ui/model/PropertyBinding', 'sap/ui/model/ChangeReason'],
 	function(PropertyBinding, ChangeReason) {

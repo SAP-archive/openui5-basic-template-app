@@ -21,7 +21,7 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/
 	 *
 	 * Applications could inherit from this element to add own fields.
 	 * @extends sap.ui.unified.DateTypeRange
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -78,8 +78,32 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/
 			 * @since 1.46.0
 			 */
 			color: {type : "sap.ui.core.CSSColor", group : "Appearance", defaultValue : null}
+		},
+		aggregations: {
+			/**
+			 * Holds the content of the appointment.
+			 *
+			 * <b>Note </b>, If the <code>customContent</code> aggregation is added then:
+			 *
+			 * <ul>
+			 * <li>The <code>title</code>, <code>text</code>, <code>description</code>, and <code>icon</code> properties
+			 * are ignored.</li>
+			 * <li>The application developer has to ensure, that all the accessibility requirements are met, and that
+			 * the height of the content conforms with the height provided by the appointment.</li>
+			 * <li>Do not use interactive controls as content, as they may trigger unwanted selection of the appointment
+			 * and may lead to unpredictable results.</li>
+			 * </ul>
+			 *
+			 * @since 1.93.0
+			 * @experimental Since 1.93, providing only limited functionality. Also, the API might be changed in the future.
+			 */
+			customContent: { type: "sap.ui.core.Control", multiple: true }
 		}
 	}});
+
+	CalendarAppointment.prototype.init = function () {
+		this._sAppointmentPartSuffix = null;
+	};
 
 	CalendarAppointment.prototype.applyFocusInfo = function (oFocusInfo) {
 
@@ -211,6 +235,22 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/
 				parseInt(sHex.substr(3, 2), 16), // Green
 				parseInt(sHex.substr(5, 2), 16) // Blue
 			].join(",") + ", 0.2)";
+	};
+
+	CalendarAppointment.prototype._setAppointmentPartSuffix = function (sSuffix) {
+		this._sAppointmentPartSuffix = sSuffix;
+		return this;
+	};
+
+	CalendarAppointment.prototype.getDomRef = function (sSuffix) {
+		if (document.getElementById(this.getId())) {
+			return document.getElementById(sSuffix ? this.getId() + "-" + sSuffix : this.getId());
+		} else if (this._sAppointmentPartSuffix) {
+			return document.getElementById(sSuffix ? this.getId() + "-" + this._sAppointmentPartSuffix + "-" + sSuffix : this.getId() + "-" + this._sAppointmentPartSuffix);
+		}
+
+		var oAppointmentParts = document.querySelectorAll(".sapUiCalendarRowApps[id^=" + this. getId() + "]");
+		return oAppointmentParts.length > 0 ? oAppointmentParts[0] : null;
 	};
 
 	return CalendarAppointment;

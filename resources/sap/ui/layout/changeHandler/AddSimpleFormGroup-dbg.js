@@ -6,7 +6,7 @@
 
 sap.ui.define([
 	"sap/ui/fl/changeHandler/Base",
-	"sap/ui/fl/changeHandler/JsControlTreeModifier",
+	"sap/ui/core/util/reflection/JsControlTreeModifier",
 	"sap/base/Log"
 ], function (
 	Base,
@@ -19,7 +19,7 @@ sap.ui.define([
 		* Change handler for adding a simple form group.
 		* @alias sap.ui.layout.changeHandler.AddSimpleFormGroup
 		* @author SAP SE
-		* @version 1.84.11
+		* @version 1.96.2
 		* @experimental Since 1.27.0
 		*/
 	var AddSimpleFormGroup = {};
@@ -27,16 +27,25 @@ sap.ui.define([
 	AddSimpleFormGroup.CONTENT_AGGREGATION = "content";
 
 	var fnFirstGroupWithoutTitle = function(oModifier, aStopToken, aContent) {
-		for (var i = 0; i < aContent.length; i++) {
-			var sType = oModifier.getControlType(aContent[i]);
-			if (aStopToken.indexOf(sType) === -1) {
-				if (oModifier.getVisible(aContent[i])) {
-					return true;
-				}
-			} else {
-				return false;
-			}
-		}
+		return aContent.reduce(function(oPreviousPromise, oContent){
+			return oPreviousPromise
+				.then(function(bReturnValue){
+					if (bReturnValue !== undefined) {
+						return bReturnValue;
+					}
+					var sType = oModifier.getControlType(oContent);
+					if (aStopToken.indexOf(sType) === -1) {
+						return Promise.resolve()
+							.then(oModifier.getVisible.bind(oModifier, oContent))
+							.then(function(bVisible){
+								return bVisible || undefined;
+							});
+					} else {
+						return false;
+					}
+				});
+		}, Promise.resolve());
+
 	};
 
 	var fnMapGroupIndexToContentAggregationIndex = function(oModifier, aStopToken, aContent, iGroupIndex) {
@@ -47,22 +56,24 @@ sap.ui.define([
 		if (iGroupIndex === 0) {
 			return iGroupIndex;
 		}
-
-		if (fnFirstGroupWithoutTitle(oModifier, aStopToken, aContent)) {
-			iCurrentGroupIndex++;
-		}
-
-		for (var i = 0; i < aContent.length; i++) {
-			var sType = oModifier.getControlType(aContent[i]);
-			if (aStopToken.indexOf(sType) > -1) {
-				iCurrentGroupIndex++;
-				if (iCurrentGroupIndex === iGroupIndex) {
-					oResult = aContent[i];
-					return aContent.indexOf(oResult);
+		return fnFirstGroupWithoutTitle(oModifier, aStopToken, aContent)
+			.then(function(bFirstGroupWithoutName){
+				if (bFirstGroupWithoutName) {
+					iCurrentGroupIndex++;
 				}
-			}
-		}
-		return aContent.length;
+
+				for (var i = 0; i < aContent.length; i++) {
+					var sType = oModifier.getControlType(aContent[i]);
+					if (aStopToken.indexOf(sType) > -1) {
+						iCurrentGroupIndex++;
+						if (iCurrentGroupIndex === iGroupIndex) {
+							oResult = aContent[i];
+							return aContent.indexOf(oResult);
+						}
+					}
+				}
+				return aContent.length;
+			});
 	};
 
 	/**
@@ -74,14 +85,14 @@ sap.ui.define([
 	 * @param {object} mPropertyBag.modifier Modifier for the controls
 	 * @param {object} mPropertyBag.appComponent Component in which the change should be applied
 	 * @param {object} mPropertyBag.view Application view
-	 * @return {boolean} True if successful
+	 * @return {Promise} Promise resolving when change is applied successfully
 	 * @public
 	 */
 	AddSimpleFormGroup.applyChange = function (oChangeWrapper, oForm, mPropertyBag) {
 		var oModifier = mPropertyBag.modifier;
 		var oView = mPropertyBag.view;
-		var oAppComponent = mPropertyBag.appComponent,
-			oTitle;
+		var oAppComponent = mPropertyBag.appComponent;
+		var iInsertIndex;
 
 		var oChange = oChangeWrapper.getDefinition();
 		if (oChange.texts && oChange.texts.groupLabel && oChange.texts.groupLabel.value &&
@@ -100,37 +111,39 @@ sap.ui.define([
 			}
 			oChangeWrapper.setRevertData({groupId: sGroupId});
 			var sLabelText = oChange.texts.groupLabel.value;
-
-			var aContent = oModifier.getAggregation(oForm, AddSimpleFormGroup.CONTENT_AGGREGATION);
-
-			var iInsertIndex;
 			var iRelativeIndex;
-
-			if (typeof oChange.content.group.index === "number") {
-				// The old code support
-				iInsertIndex = oChange.content.group.index;
-			} else {
-				iRelativeIndex = oChange.content.group.relativeIndex;
-				iInsertIndex = fnMapGroupIndexToContentAggregationIndex(oModifier,
-					["sap.ui.core.Title", "sap.m.Title", "sap.m.Toolbar", "sap.m.OverflowToolbar"],
-					aContent, iRelativeIndex);
-			}
-
-			// Check if the change is applicable
-			if (oModifier.bySelector(sGroupId, oAppComponent)) {
-				return Base.markAsNotApplicable("Control to be created already exists:" + sGroupId);
-			}
-			oTitle = oModifier.createControl("sap.ui.core.Title", oAppComponent, oView, sGroupId);
-
-			oModifier.setProperty(oTitle, "text", sLabelText);
-			oModifier.insertAggregation(oForm, "content", oTitle, iInsertIndex, oView);
+			return Promise.resolve()
+				.then(function(){
+					return oModifier.getAggregation(oForm, AddSimpleFormGroup.CONTENT_AGGREGATION);
+				})
+				.then(function(aContent){
+					if (typeof oChange.content.group.index === "number") {
+						// The old code support
+						return oChange.content.group.index;
+					} else {
+						iRelativeIndex = oChange.content.group.relativeIndex;
+						return fnMapGroupIndexToContentAggregationIndex(oModifier,
+							["sap.ui.core.Title", "sap.m.Title", "sap.m.Toolbar", "sap.m.OverflowToolbar"],
+							aContent, iRelativeIndex);
+					}
+				})
+				.then(function(iReturnedInsertIndex) {
+					iInsertIndex = iReturnedInsertIndex;
+					// Check if the change is applicable
+					if (oModifier.bySelector(sGroupId, oAppComponent)) {
+						return Base.markAsNotApplicable("Control to be created already exists:" + sGroupId);
+					}
+					return oModifier.createControl("sap.ui.core.Title", oAppComponent, oView, sGroupId);
+				})
+				.then(function(oTitle) {
+					oModifier.setProperty(oTitle, "text", sLabelText);
+					return oModifier.insertAggregation(oForm, "content", oTitle, iInsertIndex, oView);
+				});
 
 		} else {
 			Log.error("Change does not contain sufficient information to be applied: [" + oChange.layer + "]" + oChange.namespace + "/" + oChange.fileName + "." + oChange.fileType);
 			//however subsequent changes should be applied
 		}
-
-		return true;
 	};
 
 	/**
@@ -198,7 +211,7 @@ sap.ui.define([
 	 * @param {object} mPropertyBag.modifier Modifier for the controls
 	 * @param {object} mPropertyBag.appComponent Component in which the change should be applied
 	 * @param {object} mPropertyBag.view Application view
-	 * @return {boolean} True if successful
+	 * @return {Promise} Promise resolving when change is successfully reverted
 	 * @public
 	 */
 	AddSimpleFormGroup.revertChange = function (oChangeWrapper, oForm, mPropertyBag) {
@@ -209,16 +222,21 @@ sap.ui.define([
 
 		var oGroupSelector = oModifier.getSelector(sGroupId, oAppComponent);
 		var oGroup = oModifier.bySelector(oGroupSelector, oAppComponent, oView);
-		oModifier.removeAggregation(oForm, AddSimpleFormGroup.CONTENT_AGGREGATION, oGroup);
-		oModifier.destroy(oGroup);
-		oChangeWrapper.resetRevertData();
-
-		return true;
+		return Promise.resolve()
+			.then(function() {
+				return oModifier.removeAggregation(oForm, AddSimpleFormGroup.CONTENT_AGGREGATION, oGroup);
+			})
+			.then(function() {
+				oModifier.destroy(oGroup);
+				oChangeWrapper.resetRevertData();
+			});
 	};
 
-	AddSimpleFormGroup.getChangeVisualizationInfo = function(oChange) {
+	AddSimpleFormGroup.getChangeVisualizationInfo = function(oChange, oAppComponent) {
+		var oSelector = oChange.getDefinition().content.group.selector;
+		var oAffectedGroup = JsControlTreeModifier.bySelector(oSelector, oAppComponent).getParent().getId();
 		return {
-			affectedControls: [oChange.getDefinition().content.group.selector]
+			affectedControls: [oAffectedGroup]
 		};
 	};
 

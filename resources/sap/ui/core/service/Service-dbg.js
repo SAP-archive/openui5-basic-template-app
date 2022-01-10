@@ -71,7 +71,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert", "sap/base/Log"],
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @alias sap.ui.core.service.Service
 	 * @abstract
 	 * @private
@@ -165,7 +165,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert", "sap/base/Log"],
 	 *
 	 * This function is not available on the service interface.
 	 *
-	 * @return {object} the public interface of the service
+	 * @returns {sap.ui.core.service.Service} the public interface of the service
 	 * @protected
 	 */
 	Service.prototype.getInterface = function() {

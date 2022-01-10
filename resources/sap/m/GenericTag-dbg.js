@@ -53,7 +53,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -125,7 +125,7 @@ sap.ui.define([
 	 *
 	 * Default value is <code>None</code>.
 	 * @param {sap.ui.core.ValueState} sStatus New value for property <code>status</code>.
-	 * @returns {sap.m.GenericTag} <code>this</code> to allow method chaining.
+	 * @returns {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 

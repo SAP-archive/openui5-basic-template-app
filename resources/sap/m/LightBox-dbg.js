@@ -99,7 +99,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -253,8 +253,8 @@ sap.ui.define([
 	 * Invalidates the LightBox.
 	 *
 	 * @public
-	 * @param {object} oOrigin Origin of the invalidation.
-	 * @returns {sap.m.LightBox} this LightBox reference for chaining.
+	 * @param {sap.ui.base.ManagedObject} oOrigin Origin of the invalidation.
+	 * @returns {this} this LightBox reference for chaining.
 	 */
 	LightBox.prototype.invalidate = function (oOrigin) {
 		var oImageContent = this._getImageContent();
@@ -300,7 +300,7 @@ sap.ui.define([
 	 * Opens the LightBox.
 	 *
 	 * @public
-	 * @returns {sap.m.LightBox} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	LightBox.prototype.open = function () {
@@ -335,7 +335,7 @@ sap.ui.define([
 	 * Closes the LightBox.
 	 *
 	 * @public
-	 * @returns {sap.m.LightBox} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	LightBox.prototype.close = function () {
@@ -610,20 +610,9 @@ sap.ui.define([
 	LightBox.prototype._setImageSize = function (oImage, iWidth, iHeight) {
 		var iFooterHeight = this._calculateFooterHeightInPx(),
 			oDimensions = this._getDimensions(iWidth, iHeight, iFooterHeight);
-			// width = oDimensions.width + "px",
-			// height = oDimensions.height + "px",
-			// oImgDomRef = oImage.getDomRef();
 
 		oImage.setWidth(oDimensions.width + "px");
 		oImage.setHeight(oDimensions.height + "px");
-		// oImage.setProperty("width", width, true);
-		// oImage.setProperty("height", height, true);
-
-		// prob causes blinking
-		// if (oImgDomRef) {
-		// 	oImgDomRef.style.width = width;
-		// 	oImgDomRef.style.height = height;
-		// }
 	};
 
 	/**

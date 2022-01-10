@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -157,7 +157,7 @@ sap.ui.define([
 	/**
 	 * Gets the expanding information of the node.
 	 *
-	 * @returns {Boolean}
+	 * @returns {boolean}
 	 * @public
 	 * @since 1.42.0
 	 */
@@ -200,7 +200,7 @@ sap.ui.define([
 	/**
 	 * Gets the expander control for rendering purposes.
 	 *
-	 * @returns {Boolean}
+	 * @returns {sap.ui.core.Control}
 	 * @private
 	 * @since 1.42.0
 	 */
@@ -251,7 +251,7 @@ sap.ui.define([
 	/**
 	 * Gets the indentation of the node for rendering purposes.
 	 *
-	 * @returns {Boolean}
+	 * @returns {float}
 	 * @private
 	 * @since 1.42.0
 	 */

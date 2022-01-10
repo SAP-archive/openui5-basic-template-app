@@ -78,7 +78,7 @@ sap.ui.define(['sap/ui/base/Object', './TargetHandler', './Router', "sap/base/Lo
 	 * Removes the routeMatchedHandler from the Router
 	 *
 	 * @public
-	 * @returns {sap.m.routing.RouteMatchedHandler} for chaining
+	 * @returns {this} for chaining
 	 */
 	RouteMatchedHandler.prototype.destroy = function () {
 		if (this._oRouter) {
@@ -100,7 +100,7 @@ sap.ui.define(['sap/ui/base/Object', './TargetHandler', './Router', "sap/base/Lo
 	 *
 	 * @param {boolean} bCloseDialogs close dialogs if true
 	 * @public
-	 * @returns {sap.m.routing.RouteMatchedHandler} for chaining
+	 * @returns {this} for chaining
 	 */
 	RouteMatchedHandler.prototype.setCloseDialogs = function (bCloseDialogs) {
 		this._oTargetHandler.setCloseDialogs(bCloseDialogs);
@@ -159,6 +159,7 @@ sap.ui.define(['sap/ui/base/Object', './TargetHandler', './Router', "sap/base/Lo
 
 		this._oTargetHandler.addNavigation({
 			targetControl : oParameters.targetControl,
+			aggregationName : oParameters.config.targetAggregation,
 			eventData : oParameters.arguments,
 			view : oParameters.view,
 			navigationIdentifier : oParameters.name,
@@ -179,6 +180,7 @@ sap.ui.define(['sap/ui/base/Object', './TargetHandler', './Router', "sap/base/Lo
 
 		this._oTargetHandler.addNavigation({
 			targetControl : oParameters.control,
+			aggregationName : oConfig.controlAggregation,
 			eventData : oParameters.data,
 			view : oParameters.view,
 			navigationIdentifier : oParameters.name,

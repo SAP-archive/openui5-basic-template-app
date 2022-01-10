@@ -9,6 +9,7 @@ sap.ui.define([
 	"sap/ui/core/Renderer",
 	"sap/ui/unified/Calendar",
 	"sap/ui/unified/CalendarRenderer",
+	"sap/ui/unified/calendar/CalendarDate",
 	"sap/ui/unified/calendar/Header",
 	"sap/ui/unified/DateRange"
 ],
@@ -16,6 +17,7 @@ sap.ui.define([
 		Renderer,
 		Calendar,
 		CalendarRenderer,
+		CalendarDate,
 		Header,
 		DateRange
 	) {
@@ -30,6 +32,47 @@ sap.ui.define([
 		},
 		renderer: CustomYearPickerRenderer
 	});
+
+	/*
+	 * Possible values for the "_currentPicker" aggregation: yearPicker.
+	 */
+
+	CustomYearPicker.prototype.init = function(){
+		Calendar.prototype.init.apply(this, arguments);
+		this.setProperty("_currentPicker", "yearPicker");
+		this._bNamesLengthChecked = true;
+	};
+
+	CustomYearPicker.prototype.onBeforeRendering = function () {
+		var aSelectedDates = this.getSelectedDates(),
+			oFirstSelectedDate = aSelectedDates.length ? aSelectedDates[0].getStartDate() : undefined,
+			oYearPicker = this._getYearPicker(),
+			oCYPSelCalDate,
+			oFocusedCalDate;
+
+		if (oFirstSelectedDate) {
+			oCYPSelCalDate = CalendarDate.fromLocalJSDate(oFirstSelectedDate);
+			oCYPSelCalDate.setMonth(0, 1);
+			oFocusedCalDate = new CalendarDate(this._getFocusedDate());
+			oFocusedCalDate.setMonth(0, 1);
+
+			if (oFocusedCalDate.isSame(oCYPSelCalDate)) {
+				oYearPicker.setDate(oFirstSelectedDate);
+			}
+		} else {
+			oYearPicker.setProperty("_middleDate", this._getFocusedDate());
+			oYearPicker.setDate(this._getFocusedDate().toLocalJSDate());
+		}
+
+		Calendar.prototype.onBeforeRendering.call(this, arguments);
+	};
+
+	CustomYearPicker.prototype.exit = function(){
+		Calendar.prototype.exit.apply(this, arguments);
+		if (this._fnYPDelegate) {
+			this.getAggregation("yearPicker").removeDelegate(this._fnYPDelegate);
+		}
+	};
 
 	CustomYearPicker.prototype._initializeHeader = function() {
 		var oHeader = new Header(this.getId() + "--Head", {
@@ -47,20 +90,10 @@ sap.ui.define([
 		this.setAggregation("header",oHeader);
 	};
 
-	CustomYearPicker.prototype.onBeforeRendering = function () {
-		var oHeader = this.getAggregation("header");
-		Calendar.prototype.onBeforeRendering.call(this, arguments);
-		oHeader.setVisibleButton1(false);
-		oHeader.setVisibleButton2(true);
-	};
+	CustomYearPicker.prototype._closePickers = function(){
+		this.setProperty("_currentPicker", "yearPicker");
 
-	CustomYearPicker.prototype.onAfterRendering = function () {
-		Calendar.prototype.onAfterRendering.apply(this, arguments);
-		this._showYearPicker(); //Opens the calendar picker always at the Year Picker page instead of the default one
-	};
-
-	CustomYearPicker.prototype.onThemeChanged = function () {
-		Calendar.prototype.onThemeChanged.apply(this, arguments);
+		this._togglePrevNexYearPicker();
 	};
 
 	CustomYearPicker.prototype._selectYear = function () {
@@ -81,6 +114,21 @@ sap.ui.define([
 
 	CustomYearPicker.prototype.onsapescape = function(oEvent) {
 		this.fireCancel();
+	};
+
+	/**
+	 * Sets the visibility of the Current date button in the CustomYearPicker.
+	 *
+	 * This functionality is not supported for CustomYearPicker as there is no Day view in the Calendar.
+	 *
+	 * @param {boolean} bShow whether the Today button will be displayed
+	 * @return {this} <code>this</code> for method chaining
+	 * @public
+	 * @deprecated Not supported
+	 * @ui5-not-supported
+	 */
+	CustomYearPicker.prototype.setShowCurrentDateButton = function(bShow){
+		return this;
 	};
 
 	return CustomYearPicker;

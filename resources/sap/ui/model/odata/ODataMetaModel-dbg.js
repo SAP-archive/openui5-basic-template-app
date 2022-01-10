@@ -3,49 +3,41 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 sap.ui.define([
-	'sap/ui/model/BindingMode',
-	'sap/ui/base/BindingParser',
-	'sap/ui/model/Context',
-	'sap/ui/base/ManagedObject',
-	'sap/ui/model/ClientContextBinding',
-	'sap/ui/model/FilterProcessor',
-	'sap/ui/model/json/JSONModel',
-	'sap/ui/model/json/JSONListBinding',
-	'sap/ui/model/json/JSONPropertyBinding',
-	'sap/ui/model/json/JSONTreeBinding',
-	'sap/ui/model/MetaModel',
-	'./_ODataMetaModelUtils',
-	'sap/ui/performance/Measurement',
-	'sap/base/Log',
-	'sap/base/util/extend',
-	'sap/base/util/isEmptyObject'
-], function (
-	BindingMode,
-	BindingParser,
-	Context,
-	ManagedObject,
-	ClientContextBinding,
-	FilterProcessor,
-	JSONModel,
-	JSONListBinding,
-	JSONPropertyBinding,
-	JSONTreeBinding,
-	MetaModel,
-	Utils,
-	Measurement,
-	Log,
-	extend,
-	isEmptyObject
-) {
+	"./_ODataMetaModelUtils",
+	"sap/base/Log",
+	"sap/base/util/extend",
+	"sap/base/util/isEmptyObject",
+	"sap/ui/base/BindingParser",
+	"sap/ui/base/ManagedObject",
+	"sap/ui/base/SyncPromise",
+	"sap/ui/model/BindingMode",
+	"sap/ui/model/ClientContextBinding",
+	"sap/ui/model/Context",
+	"sap/ui/model/FilterProcessor",
+	"sap/ui/model/MetaModel",
+	"sap/ui/model/json/JSONListBinding",
+	"sap/ui/model/json/JSONModel",
+	"sap/ui/model/json/JSONPropertyBinding",
+	"sap/ui/model/json/JSONTreeBinding",
+	"sap/ui/performance/Measurement"
+], function (Utils, Log, extend, isEmptyObject, BindingParser, ManagedObject, SyncPromise,
+		BindingMode, ClientContextBinding, Context, FilterProcessor, MetaModel, JSONListBinding,
+		JSONModel, JSONPropertyBinding, JSONTreeBinding, Measurement) {
 	"use strict";
+	/*global Map */
 
-	var sODataMetaModel = "sap.ui.model.odata.ODataMetaModel",
+	var // maps the metadata URL with query parameters concatenated with the code list collection
+		// path (e.g. /foo/bar/$metadata#SAP__Currencies) to a SyncPromise resolving with the code
+		// list customizing as needed by the OData type
+		mCodeListUrl2Promise = new Map(),
+		sODataMetaModel = "sap.ui.model.odata.ODataMetaModel",
 		aPerformanceCategories = [sODataMetaModel],
 		sPerformanceLoad = sODataMetaModel + "/load",
 		// path to a type's property e.g. ("/dataServices/schema/<i>/entityType/<j>/property/<k>")
-		rPropertyPath = /^((\/dataServices\/schema\/\d+)\/(?:complexType|entityType)\/\d+)\/property\/\d+$/;
+		rPropertyPath =
+			/^((\/dataServices\/schema\/\d+)\/(?:complexType|entityType)\/\d+)\/property\/\d+$/;
 
 	/**
 	 * @class List binding implementation for the OData meta model which supports filtering on
@@ -83,26 +75,21 @@ sap.ui.define([
 
 	/**
 	 * DO NOT CALL this private constructor for a new <code>ODataMetaModel</code>,
-	 * but rather use {@link sap.ui.model.odata.ODataModel#getMetaModel getMetaModel} instead!
+	 * but rather use {@link sap.ui.model.odata.v2.ODataModel#getMetaModel getMetaModel} instead!
 	 *
 	 * @param {sap.ui.model.odata.ODataMetadata} oMetadata
 	 *   the OData model's metadata object
 	 * @param {sap.ui.model.odata.ODataAnnotations} [oAnnotations]
 	 *   the OData model's annotations object
-	 * @param {object} [oODataModelInterface]
-	 *   the private interface object of the OData model which provides friend access to
-	 *   selected methods
-	 * @param {function} [oODataModelInterface.addAnnotationUrl]
-	 *   the {@link sap.ui.model.odata.v2.ODataModel#addAnnotationUrl addAnnotationUrl} method
-	 *   of the OData model, in case this feature is supported
-	 * @param {Promise} [oODataModelInterface.annotationsLoadedPromise]
-	 *   a promise which is resolved by the OData model once metadata and annotations have been
-	 *   fully loaded
+	 * @param {sap.ui.model.odata.v2.ODataModel} oDataModel
+	 *   the data model instance
 	 *
 	 * @class Implementation of an OData meta model which offers a unified access to both OData V2
 	 * metadata and V4 annotations. It uses the existing {@link sap.ui.model.odata.ODataMetadata}
 	 * as a foundation and merges V4 annotations from the existing
 	 * {@link sap.ui.model.odata.ODataAnnotations} directly into the corresponding model element.
+	 *
+	 * This model is not prepared to be inherited from.
 	 *
 	 * Also, annotations from the "http://www.sap.com/Protocols/SAPData" namespace are lifted up
 	 * from the <code>extensions</code> array and transformed from objects into simple properties
@@ -221,15 +208,16 @@ sap.ui.define([
 	 * {@link #loaded loaded} has been resolved!
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @alias sap.ui.model.odata.ODataMetaModel
 	 * @extends sap.ui.model.MetaModel
 	 * @public
 	 * @since 1.27.0
 	 */
 	var ODataMetaModel = MetaModel.extend("sap.ui.model.odata.ODataMetaModel", {
-			constructor : function (oMetadata, oAnnotations, oODataModelInterface) {
-				var that = this;
+			constructor : function (oMetadata, oAnnotations, oDataModel) {
+				var oAnnotationsLoadedPromise = oDataModel.annotationsLoaded(),
+					that = this;
 
 				function load() {
 					var oData;
@@ -245,23 +233,21 @@ sap.ui.define([
 					Measurement.end(sPerformanceLoad);
 				}
 
-				oODataModelInterface = oODataModelInterface || {};
-
 				MetaModel.apply(this); // no arguments to pass!
 				this.oModel = null; // not yet available!
 
 				// map path of property to promise for loading its value list
 				this.mContext2Promise = {};
 				this.sDefaultBindingMode = BindingMode.OneTime;
-				this.oLoadedPromise
-					= oODataModelInterface.annotationsLoadedPromise
-					? oODataModelInterface.annotationsLoadedPromise.then(load)
+				this.oLoadedPromise = oAnnotationsLoadedPromise
+					? oAnnotationsLoadedPromise.then(load)
 					: new Promise(function (fnResolve, fnReject) {
 							load();
 							fnResolve();
 						}); // call load() synchronously!
+				this.oLoadedPromiseSync = SyncPromise.resolve(this.oLoadedPromise);
 				this.oMetadata = oMetadata;
-				this.oODataModelInterface = oODataModelInterface;
+				this.oDataModel = oDataModel;
 				this.mQueryCache = {};
 				// map qualified property name to internal "promise interface" for request bundling
 				this.mQName2PendingRequest = {};
@@ -392,7 +378,36 @@ sap.ui.define([
 	};
 
 	/**
-	 * Merges metadata retrieved via <code>this.oODataModelInterface.addAnnotationUrl</code>.
+	 * Gets an object containing a shared {@link sap.ui.model.odata.v2.ODataModel} instance, which
+	 * is used to load code lists for currencies and units, and
+	 * <code>bFirstCodeListRequested</code>, which is initially <code>false</code> and is used to
+	 * destroy the shared model at the right time. The <code>ODataMetaModel</code> is able to handle
+	 * two code lists, one for currencies and one for units. As soon as the first code list is
+	 * processed, whether successfully or not, <code>bFirstCodeListRequested</code> is set to
+	 * <code>true</code>. Once a second code list has been processed, the shared model is not needed
+	 * any more and is destroyed. The shared model is also destroyed when this instance of the
+	 * <code>ODataMetaModel</code> gets destroyed.
+	 *
+	 * @returns {object}
+	 *   An object containing an OData model and <code>bFirstCodeListRequested</code>
+	 *
+	 * @private
+	 */
+	ODataMetaModel.prototype._getOrCreateSharedModelCache = function () {
+		var oDataModel = this.oDataModel;
+
+		if (!this.oSharedModelCache) {
+			this.oSharedModelCache = {
+				bFirstCodeListRequested : false,
+				oModel : new oDataModel.constructor(oDataModel.getCodeListModelParameters())
+			};
+		}
+
+		return this.oSharedModelCache;
+	};
+
+	/**
+	 * Merges metadata retrieved via <code>this.oDataModel.addAnnotationUrl</code>.
 	 *
 	 * @param {object} oResponse response from addAnnotationUrl.
 	 *
@@ -459,7 +474,7 @@ sap.ui.define([
 			aQualifiedPropertyNames[i] = encodeURIComponent(sQualifiedPropertyName);
 		});
 
-		this.oODataModelInterface
+		this.oDataModel
 			.addAnnotationUrl("$metadata?sap-value-list=" + aQualifiedPropertyNames.join(","))
 			.then(
 				function (oResponse) {
@@ -501,7 +516,144 @@ sap.ui.define([
 
 	ODataMetaModel.prototype.destroy = function () {
 		MetaModel.prototype.destroy.apply(this, arguments);
+		if (this.oSharedModelCache) {
+			this.oSharedModelCache.oModel.destroy();
+			delete this.oSharedModelCache;
+		}
 		return this.oModel && this.oModel.destroy.apply(this.oModel, arguments);
+	};
+
+	/**
+	 * Requests the customizing based on the code list reference given in the entity container's
+	 * <code>com.sap.vocabularies.CodeList.v1.*</code> annotation for the term specified in the
+	 * <code>sTerm</code> parameter. Once a code list has been requested, the promise is cached.
+	 *
+	 * @param {string} sTerm
+	 *   The unqualified name of the term from the <code>com.sap.vocabularies.CodeList.v1</code>
+	 *   vocabulary used to annotate the entity container, e.g. "CurrencyCodes" or "UnitsOfMeasure"
+	 * @returns {SyncPromise}
+	 *   A promise resolving with the customizing, which is a map from the code key to an object
+	 *   with the following properties:
+	 *   <ul>
+	 *     <li>StandardCode: The language-independent standard code (e.g. ISO) for the code as
+	 *       referred to via the <code>com.sap.vocabularies.CodeList.v1.StandardCode</code>
+	 *       annotation on the code's key, if present
+	 *     <li>Text: The language-dependent text for the code as referred to via the
+	 *       <code>com.sap.vocabularies.Common.v1.Text</code> annotation on the code's key
+	 *     <li>UnitSpecificScale: The decimals for the code as referred to via the
+	 *       <code>com.sap.vocabularies.Common.v1.UnitSpecificScale</code> annotation on the code's
+	 *       key; entries where this would be <code>null</code> are ignored, and an error is logged
+	 *   </ul>
+	 *   It resolves with <code>null</code> if no given
+	 *   <code>com.sap.vocabularies.CodeList.v1.*</code> annotation is found.
+	 *   It is rejected if the code list URL is not "./$metadata", there is not exactly one code
+	 *   key, or if the customizing cannot be loaded.
+	 *
+	 * @private
+	 * @see #requestCurrencyCodes
+	 * @see #requestUnitsOfMeasure
+	 */
+	ODataMetaModel.prototype.fetchCodeList = function (sTerm) {
+		var that = this;
+
+		return this.oLoadedPromiseSync.then(function () {
+			var sCacheKey, oCodeListModel, oCodeListModelCache, sCollectionPath, oMappingPromise,
+				sMetaDataUrl, oPromise, oReadPromise,
+				sCodeListAnnotation = "com.sap.vocabularies.CodeList.v1." + sTerm,
+				oCodeListAnnotation = that.getODataEntityContainer()[sCodeListAnnotation];
+
+			if (!oCodeListAnnotation
+				// for backend backward compatibility it may happen that a code list annotation is
+				// available but the "Url" property has no "String" value -> treat it as if no code
+				// list is available
+				|| !oCodeListAnnotation.Url.String) {
+				return null;
+			}
+
+			if (oCodeListAnnotation.Url.String !== "./$metadata") {
+				throw new Error(sCodeListAnnotation
+					+ "/Url/String has to be './$metadata' for the service "
+					+ that.oDataModel.getCodeListModelParameters().serviceUrl);
+			}
+
+			sCollectionPath = oCodeListAnnotation.CollectionPath.String;
+			sMetaDataUrl = that.oDataModel.getMetadataUrl();
+			sCacheKey = sMetaDataUrl + "#" + sCollectionPath;
+			oPromise = mCodeListUrl2Promise.get(sCacheKey);
+			if (oPromise) {
+				return oPromise;
+			}
+
+			oCodeListModelCache = that._getOrCreateSharedModelCache();
+			oCodeListModel = oCodeListModelCache.oModel;
+
+			oReadPromise = new SyncPromise(function (fnResolve, fnReject) {
+				oCodeListModel.read("/" + sCollectionPath, {
+					error : fnReject,
+					success : fnResolve,
+					urlParameters : {$skip : 0, $top : 5000} // avoid server-driven paging
+				});
+			});
+			oMappingPromise = new SyncPromise(function (fnResolve, fnReject) {
+				try {
+					fnResolve(that._getPropertyNamesForCodeListCustomizing(sCollectionPath));
+				} catch (oError) {
+					// ensure that oPromise gets a value and is cached even if there is an error
+					// when calling _getPropertyNamesForCodeListCustomizing
+					fnReject(oError);
+				}
+			});
+
+			oPromise = SyncPromise.all([oReadPromise, oMappingPromise]).then(function (aResults) {
+				var aData = aResults[0].results,
+					mMapping = aResults[1];
+
+				return aData.reduce(function (mCode2Customizing, oEntity) {
+					var sCode = oEntity[mMapping.code],
+						oCustomizing = {
+							Text : oEntity[mMapping.text],
+							UnitSpecificScale : oEntity[mMapping.unitSpecificScale]
+						};
+
+					if (mMapping.standardCode) {
+						oCustomizing.StandardCode = oEntity[mMapping.standardCode];
+					}
+					// ignore customizing where the unit-specific scale is missing; log an error
+					if (oCustomizing.UnitSpecificScale === null) {
+						Log.error("Ignoring customizing w/o unit-specific scale for code "
+								+ sCode + " from " + sCollectionPath,
+							that.oDataModel.getCodeListModelParameters().serviceUrl,
+							sODataMetaModel);
+					} else {
+						mCode2Customizing[sCode] = oCustomizing;
+					}
+
+					return mCode2Customizing;
+				}, {});
+			}).catch(function (oError) {
+				if (oCodeListModel.bDestroyed) {
+					// do not cache rejected Promise caused by a destroyed code list model
+					mCodeListUrl2Promise.delete(sCacheKey);
+				} else {
+					Log.error("Couldn't load code list: " + sCollectionPath + " for "
+							+ that.oDataModel.getCodeListModelParameters().serviceUrl,
+						oError, sODataMetaModel);
+				}
+				throw oError;
+			}).finally(function () {
+				if (oCodeListModelCache.bFirstCodeListRequested) {
+					if (!oCodeListModel.bDestroyed) {
+						oCodeListModel.destroy();
+					}
+					delete that.oSharedModelCache;
+				} else {
+					oCodeListModelCache.bFirstCodeListRequested = true;
+				}
+			});
+			mCodeListUrl2Promise.set(sCacheKey, oPromise);
+
+			return oPromise;
+		});
 	};
 
 	/**
@@ -899,8 +1051,7 @@ sap.ui.define([
 				sQualifiedTypeName,
 				mValueLists = Utils.getValueLists(oProperty);
 
-			if (!("" in mValueLists) && oProperty["sap:value-list"]
-				&& that.oODataModelInterface.addAnnotationUrl) {
+			if (!("" in mValueLists) && oProperty["sap:value-list"]) {
 				// property with value list which is not yet (fully) loaded
 				bCachePromise = true;
 				sQualifiedTypeName = that.oModel.getObject(aMatches[2]).namespace
@@ -964,6 +1115,71 @@ sap.ui.define([
 	};
 
 	/**
+	 * Requests the currency customizing based on the code list reference given in the entity
+	 * container's <code>com.sap.vocabularies.CodeList.v1.CurrencyCodes</code> annotation. The
+	 * corresponding HTTP request uses the HTTP headers obtained via
+	 * {@link sap.ui.model.odata.v2.ODataModel#getHttpHeaders} from this meta model's data model.
+	 *
+	 * @returns {Promise}
+	 *   A promise resolving with the currency customizing, which is a map from the currency key to
+	 *   an object with the following properties:
+	 *   <ul>
+	 *     <li>StandardCode: The language-independent standard code (e.g. ISO) for the currency as
+	 *       referred to via the <code>com.sap.vocabularies.CodeList.v1.StandardCode</code>
+	 *       annotation on the currency's key, if present
+	 *     <li>Text: The language-dependent text for the currency as referred to via the
+	 *       <code>com.sap.vocabularies.Common.v1.Text</code> annotation on the currency's key
+	 *     <li>UnitSpecificScale: The decimals for the currency as referred to via the
+	 *       <code>com.sap.vocabularies.Common.v1.UnitSpecificScale</code> annotation on the
+	 *       currency's key; entries where this would be <code>null</code> are ignored, and an error
+	 *       is logged
+	 *   </ul>
+	 *   It resolves with <code>null</code> if no
+	 *   <code>com.sap.vocabularies.CodeList.v1.CurrencyCodes</code> annotation is found.
+	 *   It is rejected if the code list URL is not "./$metadata", there is not exactly one code
+	 *   key, or if the customizing cannot be loaded.
+	 *
+	 * @ui5-restricted sap.ui.table, sap.ui.export.Spreadsheet, sap.ui.comp
+	 * @see #requestUnitsOfMeasure
+	 * @since 1.88.0
+	 */
+	ODataMetaModel.prototype.requestCurrencyCodes = function () {
+		return Promise.resolve(this.fetchCodeList("CurrencyCodes"));
+	};
+
+	/**
+	 * Requests the unit customizing based on the code list reference given in the entity
+	 * container's <code>com.sap.vocabularies.CodeList.v1.UnitOfMeasure</code> annotation. The
+	 * corresponding HTTP request uses the HTTP headers obtained via
+	 * {@link sap.ui.model.odata.v2.ODataModel#getHttpHeaders} from this meta model's data model.
+	 *
+	 * @returns {Promise}
+	 *   A promise resolving with the unit customizing, which is a map from the unit key to an
+	 *   object with the following properties:
+	 *   <ul>
+	 *     <li>StandardCode: The language-independent standard code (e.g. ISO) for the unit as
+	 *       referred to via the <code>com.sap.vocabularies.CodeList.v1.StandardCode</code>
+	 *       annotation on the unit's key, if present
+	 *     <li>Text: The language-dependent text for the unit as referred to via the
+	 *       <code>com.sap.vocabularies.Common.v1.Text</code> annotation on the unit's key
+	 *     <li>UnitSpecificScale: The decimals for the unit as referred to via the
+	 *       <code>com.sap.vocabularies.Common.v1.UnitSpecificScale</code> annotation on the unit's
+	 *       key; entries where this would be <code>null</code> are ignored, and an error is logged
+	 *   </ul>
+	 *   It resolves with <code>null</code> if no
+	 *   <code>com.sap.vocabularies.CodeList.v1.UnitOfMeasure</code> annotation is found.
+	 *   It is rejected if the code list URL is not "./$metadata", there is not exactly one code
+	 *   key, or if the customizing cannot be loaded.
+	 *
+	 * @ui5-restricted sap.ui.table, sap.ui.export.Spreadsheet, sap.ui.comp
+	 * @see #requestCurrencyCodes
+	 * @since 1.88.0
+	 */
+	ODataMetaModel.prototype.requestUnitsOfMeasure = function () {
+		return Promise.resolve(this.fetchCodeList("UnitsOfMeasure"));
+	};
+
+	/**
 	 * Legacy syntax not supported by OData meta model!
 	 *
 	 * @param {boolean} bLegacySyntax
@@ -986,6 +1202,102 @@ sap.ui.define([
 	ODataMetaModel.prototype.setProperty = function () {
 		// Note: this method is called by JSONPropertyBinding#setValue
 		throw new Error("Unsupported operation: ODataMetaModel#setProperty");
+	};
+
+	/**
+	 * Gets the property names for the code list customizing for the given code list collection
+	 * path.
+	 *
+	 * In some cases it might be necessary to overwrite code list annotations contained in the
+	 * service metadata document. So local annotations need to be considered when loading code
+	 * lists. As code lists have to be provided by the same service as the current data model is
+	 * using, the metadata of the data model can be used to determine the property names
+	 * for the code list customizing. In that case also annotations added via
+	 * {@link sap.ui.model.odata.v2.ODataModel#addAnnotationUrl} or
+	 * {@link sap.ui.model.odata.v2.ODataModel#addAnnotationXML} are considered.
+	 *
+	 * @param {string} sCollectionPath
+	 *   The collection path specified in the corresponding
+	 *   com.sap.vocabularies.CodeList.v1.* annotation e.g. "SAP__Currencies"
+	 * @returns {object}
+	 *   The returned object has the properties "code", "text", "unitSpecificScale" and
+	 *   optionally "standardCode", with the values for the corresponding property names of the
+	 *   entity representing a code list entry
+	 * @throws {Error}
+	 *   If there is more than one alternative or more than one key per alternative
+	 *
+	 * @private
+	 */
+	ODataMetaModel.prototype._getPropertyNamesForCodeListCustomizing = function (sCollectionPath) {
+		var sPathToCollectionMetadata = "/" + sCollectionPath + "/##",
+			oTypeMetadata = this.oDataModel.getObject(sPathToCollectionMetadata),
+			aAlternateKeys = oTypeMetadata["Org.OData.Core.V1.AlternateKeys"],
+			sKeyPath = ODataMetaModel._getKeyPath(oTypeMetadata, sPathToCollectionMetadata),
+			oKeyMetadata = this.oDataModel.getObject("/" + sCollectionPath + "/" + sKeyPath
+				+ "/##");
+
+		if (aAlternateKeys) {
+			if (aAlternateKeys.length !== 1) {
+				throw new Error("Single alternative expected: " + sPathToCollectionMetadata
+					+ "Org.OData.Core.V1.AlternateKeys");
+			} else if (aAlternateKeys[0].Key.length !== 1) {
+				throw new Error("Single key expected: " + sPathToCollectionMetadata
+					+ "Org.OData.Core.V1.AlternateKeys/0/Key");
+			}
+			sKeyPath = aAlternateKeys[0].Key[0].Name.Path;
+		}
+
+		return {
+			code : sKeyPath,
+			standardCode : oKeyMetadata["com.sap.vocabularies.CodeList.v1.StandardCode"]
+				&& oKeyMetadata["com.sap.vocabularies.CodeList.v1.StandardCode"].Path,
+			text : oKeyMetadata["com.sap.vocabularies.Common.v1.Text"].Path,
+			unitSpecificScale :
+				oKeyMetadata["com.sap.vocabularies.Common.v1.UnitSpecificScale"].Path
+		};
+	};
+
+	//*********************************************************************************************
+	// "static" functions
+	//*********************************************************************************************
+
+	/**
+	 * Gets the single key property name for the given type.
+	 *
+	 * @param {object} oType The entity type
+	 * @param {string} sTypePath The path to the entity type
+	 * @returns {string} The property path to the type's single key
+	 * @throws {Error} If the type does not have exactly one key
+	 *
+	 * @private
+	 */
+	ODataMetaModel._getKeyPath = function (oType, sTypePath) {
+		var aKeys = oType.key.propertyRef;
+
+		if (aKeys && aKeys.length === 1) {
+			return aKeys[0].name;
+		}
+		throw new Error("Single key expected: " + sTypePath);
+	};
+
+	/**
+	 * Returns the code list term for the given data path in case it is "/##@@requestCurrencyCodes"
+	 * or "/##@@requestUnitsOfMeasure" so that it refers to a code list.
+	 *
+	 * @param {string} sDataPath
+	 *   The data path
+	 * @returns {string|undefined}
+	 *   The code list term as specified in {@link #fetchCodeList}; <code>undefined</code> if the
+	 *   data path does not refer to a code list
+	 *
+	 * @private
+	 */
+	ODataMetaModel.getCodeListTerm = function (sDataPath) {
+		if (sDataPath === "/##@@requestCurrencyCodes") {
+			return "CurrencyCodes";
+		} else if (sDataPath === "/##@@requestUnitsOfMeasure") {
+			return "UnitsOfMeasure";
+		}
 	};
 
 	return ODataMetaModel;

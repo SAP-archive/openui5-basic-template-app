@@ -48,8 +48,47 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/unified/calendar/CalendarDate', '
 	};
 
 	DatesRowRenderer.renderMonth = function(oRm, oDatesRow, oDate) {
-		MonthRenderer.renderMonth.apply(this, arguments);
-		this.renderWeekNumbers(oRm, oDatesRow);
+		if (oDatesRow.isRelative && oDatesRow.isRelative()) {
+			DatesRowRenderer.renderCustomIntervals(oRm, oDatesRow);
+		} else {
+			MonthRenderer.renderMonth.apply(this, arguments);
+			this.renderWeekNumbers(oRm, oDatesRow);
+		}
+	};
+
+	DatesRowRenderer.renderCustomIntervals = function (oRm, oDatesRow) {
+		var iIntervalWidth;
+
+		oRm.openStart("div", oDatesRow.getId() + "-customintervals");
+		oRm.openEnd();
+
+		var iIntervals = oDatesRow.getDays();
+		iIntervalWidth = 100 / iIntervals;
+
+		var oStartWeekNumber = oDatesRow._getRelativeInfo()._getIndexFromDate(oDatesRow.getStartDate());
+
+		for (var j = 0; j < iIntervals; j++) {
+			oRm.openStart("div");
+			oRm.class('sapUiCalItem');
+			if (oDatesRow._getRelativeInfo && oDatesRow._getRelativeInfo().bIsRelative) {
+				oRm.class('sapUiRelativeCalItem');
+				oRm.attr("data-sap-ui-index", oStartWeekNumber + j);
+				oRm.attr("tabindex", "-1");
+				var oAssociatedDate = oDatesRow._getRelativeInfo()._getDateFromIndex(oStartWeekNumber + j + 1);
+				oRm.attr("data-sap-day", oDatesRow._oFormatYyyymmdd.format(oAssociatedDate, true));
+			}
+
+			oRm.style("width", iIntervalWidth + "%");
+			oRm.openEnd();
+			oRm.openStart("span");
+			oRm.class("sapUiCalItemText");
+			oRm.openEnd();
+			oRm.text(oDatesRow._getRelativeInfo ? oDatesRow._getRelativeInfo().intervalLabelFormatter(oStartWeekNumber + j) : (oStartWeekNumber + j));
+			oRm.close("span");
+			oRm.close("div");
+		}
+
+			oRm.close("div");
 	};
 
 	/**
@@ -142,7 +181,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/unified/calendar/CalendarDate', '
 			iMonth = oDay.getMonth();
 			if (aMonthDays.length > 0 && aMonthDays[aMonthDays.length - 1].iMonth == iMonth) {
 				aMonthDays[aMonthDays.length - 1].iDays++;
-			}else {
+			} else  {
 				aMonthDays.push({iMonth: iMonth, iDays: 1});
 			}
 			oDay.setDate(oDay.getDate() + 1);

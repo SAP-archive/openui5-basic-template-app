@@ -22,7 +22,7 @@ sap.ui.define(["sap/m/OverflowToolbarToggleButton", "sap/m/ToggleButtonRenderer"
 		 * @extends sap.m.OverflowToolbarToggleButton
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @private
@@ -30,11 +30,11 @@ sap.ui.define(["sap/m/OverflowToolbarToggleButton", "sap/m/ToggleButtonRenderer"
 		 * @alias sap.m.SemanticOverflowToolbarToggleButton
 		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
-		var SemanticOverflowToolbarToggleButton = OverflowToolbarToggleButton.extend("sap.m.semantic.SemanticOverflowToolbarButton", /** @lends sap.m.SemanticOverflowToolbarToggleButton.prototype */ {
+		var SemanticOverflowToolbarToggleButton = OverflowToolbarToggleButton.extend("sap.m.semantic.SemanticOverflowToolbarToggleButton", /** @lends sap.m.SemanticOverflowToolbarToggleButton.prototype */ {
 			metadata: {
 				library: "sap.m"
 			},
-			renderer: ToggleButtonRenderer.render
+			renderer: ToggleButtonRenderer
 		});
 
 		SemanticOverflowToolbarToggleButton.prototype._getTooltip = function() {

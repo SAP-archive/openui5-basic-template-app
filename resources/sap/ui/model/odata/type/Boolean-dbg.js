@@ -6,12 +6,12 @@
 
 sap.ui.define([
 	"sap/base/Log",
-	"sap/ui/core/Core",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
-	"sap/ui/model/odata/type/ODataType"
-], function (Log, Core, FormatException, ParseException, ValidateException, ODataType) {
+	"sap/ui/model/odata/type/ODataType",
+	"sap/ui/core/Core" //  provides sap.ui.getCore()
+], function (Log, FormatException, ParseException, ValidateException, ODataType) {
 	"use strict";
 
 	/**
@@ -87,7 +87,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @alias sap.ui.model.odata.type.Boolean
 	 * @param {object} [oFormatOptions]
@@ -132,14 +132,14 @@ sap.ui.define([
 			return null;
 		}
 		switch (this.getPrimitiveType(sTargetType)) {
-		case "any":
-		case "boolean":
-			return bValue;
-		case "string":
-			return getText(bValue);
-		default:
-			throw new FormatException("Don't know how to format " + this.getName() + " to "
-				+ sTargetType);
+			case "any":
+			case "boolean":
+				return bValue;
+			case "string":
+				return getText(bValue);
+			default:
+				throw new FormatException("Don't know how to format " + this.getName() + " to "
+					+ sTargetType);
 		}
 	};
 

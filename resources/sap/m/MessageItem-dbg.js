@@ -37,7 +37,7 @@ sap.ui.define([
 		 *
 		 * @extends sap.ui.core.Item
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -146,27 +146,12 @@ sap.ui.define([
 			this._updatePropertiesFn = customFn;
 		};
 
-		MessageItem.prototype.setDescription = function(sDescription) {
-			// Avoid showing result of '' + undefined
-			if (typeof sDescription === 'undefined') {
-				sDescription = '';
-			}
-
-			if (this.getMarkupDescription()) {
-				sDescription = sanitizeHTML(sDescription);
-			}
-
-			this.setProperty("description", sDescription, true);
-
-			return this;
-		};
-
 		/**
 		 * Sets type of the MessageItem.
 		 * <b>Note:</b> if you set the type to None it will be handled and rendered as Information.
 		 *
 		 * @param {sap.ui.core.MessageType} sType Type of Message
-		 * @returns {sap.m.MessageItem} The MessageItem
+		 * @returns {this} The MessageItem
 		 * @public
 		 */
 		MessageItem.prototype.setType = function (sType) {

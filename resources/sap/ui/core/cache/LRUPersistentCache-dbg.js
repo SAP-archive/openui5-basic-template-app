@@ -4,11 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-/*!
- * Portions of this module ("Least Recently Used" logic) are taken from the node-lru-cache project (see https://github.com/isaacs/node-lru-cache/blob/v2.7.3/README.md),
- * but modified. Please see the OpenUI5 LICENSE file for license information respecting node-lru-cache.
- */
-
 sap.ui.define(["sap/base/Log", "sap/ui/performance/Measurement"],
 	function(Log, Measurement) {
 		"use strict";

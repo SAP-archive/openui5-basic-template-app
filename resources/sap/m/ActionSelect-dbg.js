@@ -5,8 +5,8 @@
  */
 
 // Provides control sap.m.ActionSelect.
-sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/core/Core', './ActionSelectRenderer'],
-	function(Select, InvisibleText, Core, ActionSelectRenderer) {
+sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/Device', 'sap/ui/core/Core', './ActionSelectRenderer'],
+	function(Select, InvisibleText, Device, Core, ActionSelectRenderer) {
 		"use strict";
 
 		/**
@@ -20,7 +20,7 @@ sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/core/Core', './A
 		 * @extends sap.m.Select
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -165,6 +165,8 @@ sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/core/Core', './A
 				oPicker = this.getPicker(),
 				i;
 
+			this._bProcessChange = false;
+
 			// check whether event is marked or not
 			if ( oEvent.isMarked() || !this.getEnabled()) {
 				return;
@@ -243,7 +245,7 @@ sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/core/Core', './A
 		 * @private
 		 */
 		ActionSelect.prototype.onfocusinList = function(oEvent) {
-			if (document.activeElement !== this.getList().getDomRef()) {
+			if (document.activeElement !== this.getList().getDomRef() && !Device.system.phone) {
 				this.focus();
 			}
 		};
@@ -313,6 +315,8 @@ sap.ui.define(['./Select', 'sap/ui/core/InvisibleText', 'sap/ui/core/Core', './A
 		 * @private
 		 */
 		ActionSelect.prototype.exit = function () {
+			Select.prototype.exit.call(this);
+
 			if (this._oTutorMessageText) {
 				this._oTutorMessageText.destroy();
 				this._oTutorMessageText = null;

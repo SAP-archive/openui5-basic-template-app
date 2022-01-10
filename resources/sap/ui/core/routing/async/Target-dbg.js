@@ -5,9 +5,11 @@
  */
 sap.ui.define([
 	"sap/base/Log",
+	"sap/ui/base/ManagedObjectMetadata",
 	"sap/ui/core/ComponentContainer",
+	"sap/ui/core/Placeholder",
 	"sap/ui/core/library"
-], function(Log, ComponentContainer, coreLib) {
+], function(Log, ManagedObjectMetadata, ComponentContainer, Placeholder, coreLib) {
 	"use strict";
 
 	// shortcut for sap.ui.core.ComponentLifecycle
@@ -48,10 +50,8 @@ sap.ui.define([
 		 */
 		_display: function (vData, oSequencePromise, oTargetCreateInfo) {
 			if (this._oParent) {
-				// replace the sync
-				oSequencePromise = this._oParent._display(vData, oSequencePromise, oTargetCreateInfo);
+				oSequencePromise = this._oParent._display(vData, oSequencePromise, Object.assign({}, oTargetCreateInfo));
 			}
-
 			return this._place(vData, oSequencePromise, oTargetCreateInfo);
 		},
 
@@ -82,6 +82,32 @@ sap.ui.define([
 				Log.warning("The target with name '" + this._oOptions._name + "' can't be suspended because it's being loaded or not loaded yet");
 			}
 
+			return this;
+		},
+
+		/**
+		 * Resumes the object which is loaded by the target.
+		 *
+		 * Currently this function initializes the router of the component without parsing the current hash when
+		 * the object which is loaded by this target is an instance of
+		 * UIComponent.
+		 *
+		 * @return {sap.ui.core.routing.Target} The 'this' to chain the call
+		 * @private
+		 */
+		resume: function() {
+			if (this._oParent) {
+				this._oParent.resume();
+			}
+
+			if (this._isLoaded()) {
+				var oObject = this._get(),
+					oRouter;
+
+				if (oObject.isA("sap.ui.core.UIComponent") && (oRouter = oObject.getRouter()) && oObject.hasNativeRouter()) {
+					oRouter.initialize(true);
+				}
+			}
 
 			return this;
 		},
@@ -97,22 +123,18 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get the target instance from the TargetCache.
+		 * Retrieves addional target creation info based on the target type.
 		 *
-		 * The difference between this function and the "_load" function is that this function returns the target
-		 * instance directly if it's already loaded and returns a Promise during the loading of the target instance
-		 * while the "_load" function always returns a promise no matter whether the target instance is loaded or not.
-		 *
-		 * @param {object} [oTargetCreateInfo] Additional information  for the component creation. Currently the object
-		 *  only contains the prefix for the routerHashChanger
-		 * @returns {sap.ui.core.mvc.View|sap.ui.core.UIComponent|Promise} The target instance when it's already loaded
-		 *  or a promise which resolves with the target instance during the loading of the target instance
-		 * @private
+		 * @param {object} oTargetCreateInfo Additional information for the target creation.
+		 *  Currently the object only contains the prefix for the routerHashChanger
+		 * @return {object} Merged target creation info object
 		 */
-		_get: function(oTargetCreateInfo) {
+		_getCreateOptions: function(oTargetCreateInfo) {
 			var sName = this._getEffectiveObjectName(this._oOptions.name),
 				oOptions = this._oOptions,
 				oCreateOptions;
+
+				oTargetCreateInfo = oTargetCreateInfo || {};
 
 			switch (oOptions.type) {
 				case "View":
@@ -138,7 +160,26 @@ sap.ui.define([
 					throw new Error("The given type " + oOptions.type + " isn't support by sap.ui.core.routing.Target");
 			}
 
-			return this._oCache._get(oCreateOptions, oOptions.type,
+			return oCreateOptions;
+		},
+
+		/**
+		 * Get the target instance from the TargetCache.
+		 *
+		 * The difference between this function and the "_load" function is that this function returns the target
+		 * instance directly if it's already loaded and returns a Promise during the loading of the target instance
+		 * while the "_load" function always returns a promise no matter whether the target instance is loaded or not.
+		 *
+		 * @param {object} [oTargetCreateInfo] Additional information for the component creation. Currently the object
+		 *  only contains the prefix for the routerHashChanger
+		 * @returns {sap.ui.core.mvc.View|sap.ui.core.UIComponent|Promise} The target instance when it's already loaded
+		 *  or a promise which resolves with the target instance during the loading of the target instance
+		 * @private
+		 */
+		_get: function(oTargetCreateInfo) {
+			var oCreateOptions = this._getCreateOptions(oTargetCreateInfo);
+
+			return this._oCache._get(oCreateOptions, this._oOptions.type,
 				// Hook in the route for deprecated global view id, it has to be supported to stay compatible
 				this._bUseRawViewId, oTargetCreateInfo);
 		},
@@ -172,6 +213,289 @@ sap.ui.define([
 		},
 
 		/**
+		 * Load the target and wait for the first <code>routeMatched</code> event if it's a Component target
+		 *
+		 * @param {object} oTargetCreateInfo The corresponding target create info
+		 * @return {Promise} Promise resolving with the loaded target object and the promise that waits for the
+		 *  <code>routeMatched</code> event in case of a Component target
+		 * @private
+		 */
+		load: function(oTargetCreateInfo) {
+			return this._load(oTargetCreateInfo)
+				.then(function (oLoadedTarget) {
+					return {
+						object: oLoadedTarget,
+						nestedComponentReady: this.waitForComponentTarget({
+							target: oLoadedTarget,
+							createInfo: oTargetCreateInfo
+						})
+					};
+				}.bind(this));
+		},
+
+		/**
+		 * Wait for the next <code>routeMatched</code> event from the Component target
+		 *
+		 * @param {object} mTargetOptions The option object that contains the loaded target object and the corresponding
+		 *  target create info.
+		 * @return {Promise} Promise resolving when the first <code>routeMatched</code> event is fired when the target
+		 *  has type "Component" otherwise the Promise resolves immediately
+		 * @private
+		 */
+		waitForComponentTarget: function(mTargetOptions) {
+			return new Promise(function(resolve, reject) {
+				var oLoadedTarget = mTargetOptions.target;
+				var oTargetCreateInfo = mTargetOptions.createInfo;
+				var bInstantResolve = true;
+
+				if (oLoadedTarget.isA("sap.ui.core.UIComponent")) {
+					var oRouter = oLoadedTarget.getRouter();
+					if (oRouter && oLoadedTarget.hasNativeRouter()) {
+						var sHash = oRouter.getHashChanger().getHash();
+						var oRoute = oRouter.getRouteByHash(sHash);
+						var bIgnoreInitialHash = oTargetCreateInfo && oTargetCreateInfo.ignoreInitialHash;
+
+						if (!oRouter._oConfig.async){
+							throw new Error("The router of component '" + oLoadedTarget.getId() +
+								"' which is loaded via the target '" + this._oOptions._name +
+								"' is defined as synchronous which is not supported using as a nested component.");
+						}
+
+						if (oRouter._oOwner && oTargetCreateInfo) {
+							// update the flag once the component is displayed again after it's already loaded
+							oRouter._oOwner._bRoutingPropagateTitle = oTargetCreateInfo.propagateTitle;
+						}
+
+						// TODO: offer getter for target info
+						//
+						// The router is normally initialized in the UIComponent.prototype.init function and the
+						// init function should be already called before it reaches this place which means that the
+						// router is initialized in most of the cases. If a router is already initialized, we still
+						// need to check whether the route match process is finished. If it's not finished, we are
+						// sure that there will be a "routeMatched" event fired and we can wait for it.
+						if (!bIgnoreInitialHash && (!oRouter.isInitialized() || oRouter._bMatchingProcessStarted) && oRoute && oRoute._oConfig.target) {
+							bInstantResolve = false;
+							oRouter.attachRouteMatched(resolve);
+						}
+						if (oRouter.isStopped()) {
+							// initialize the router in nested component
+							// if it has been previously stopped
+							oRouter.initialize(bIgnoreInitialHash);
+						}
+					}
+				}
+
+				if (bInstantResolve) {
+					resolve();
+				}
+			}.bind(this));
+		},
+
+		/**
+		 * Find the container control in the following order:
+		 * <ul>
+		 *   <li>Within the parent target in case <code>oParentInfo</code> is given</li>
+		 *   <li>Within the root view of the owner component</li>
+		 *   <li>Using the given control ID in the global scope</li>
+		 * </ul>
+		 *
+		 * @param {object} [oParentInfo] The view information from the displayed parent target
+		 * @return {Promise} Promise resolving with the container control
+		 * @private
+		 */
+		resolveContainerControl: function(oParentInfo) {
+			// use a Promise.resovle() to delay the container resolve to occur after the current call stack because the
+			// oOptions.rootView can be available after the current call stack.
+			return Promise.resolve().then(function() {
+				oParentInfo = oParentInfo || {};
+
+				var oOptions = this._oOptions;
+				var vValid = this._isValid(oParentInfo);
+				var sErrorMessage;
+
+				// validate config and log errors if necessary
+				if (vValid !== true) {
+					sErrorMessage = vValid;
+					return this._refuseInvalidTarget(oOptions._name, sErrorMessage);
+				}
+
+				var oViewContainingTheControl = oParentInfo.view,
+					oControl = oParentInfo.control,
+					pViewContainingTheControl,
+					pContainerControl;
+
+				// if the parent target loads a component, the oViewContainingTheControl is an instance of
+				// ComponentContainer. The root control of the component should be retrieved and set as
+				// oViewContainingTheControl
+				if (oViewContainingTheControl && oViewContainingTheControl.isA("sap.ui.core.ComponentContainer")) {
+					oViewContainingTheControl = oViewContainingTheControl.getComponentInstance().getRootControl();
+				}
+
+				//no parent view - see if container can be found by using oOptions.controlId under oOptions.rootView
+				if (!oViewContainingTheControl && oOptions.rootView) {
+					// oOptions.rootView can be either an id or a promise that resolves with the id
+					pViewContainingTheControl = Promise.resolve(oOptions.rootView)
+						.then(function(oRootViewId) {
+							var oView;
+
+							if (oRootViewId) {
+								oView = sap.ui.getCore().byId(oRootViewId);
+								oOptions.rootView = oRootViewId;
+							}
+
+							if (!oView) {
+								sErrorMessage = "Did not find the root view with the id " + oOptions.rootView;
+								return this._refuseInvalidTarget(oOptions._name, sErrorMessage);
+							} else {
+								return oView;
+							}
+						}.bind(this));
+				} else {
+					pViewContainingTheControl = Promise.resolve(oViewContainingTheControl);
+				}
+
+				pViewContainingTheControl = pViewContainingTheControl.then(function(oView) {
+					if (oView && oView.isA("sap.ui.core.mvc.View")) {
+						return oView.loaded();
+					} else {
+						return oView;
+					}
+				});
+
+				if (oOptions.controlId) {
+					pContainerControl = pViewContainingTheControl.then(function(oContainerView) {
+						var oContainerControl;
+
+						if (oContainerView) {
+							oContainerControl = oContainerView.byId(oOptions.controlId);
+						}
+
+						if (!oContainerControl) {
+							//Test if control exists in core (without prefix) since it was not found in the parent or root view
+							oContainerControl =  sap.ui.getCore().byId(oOptions.controlId);
+						}
+
+						return oContainerControl;
+					});
+				} else {
+					pContainerControl = Promise.resolve(oControl);
+				}
+
+				return pContainerControl.then(function(oContainerControl) {
+					if (!oContainerControl) {
+						sErrorMessage = "Control with ID " + oOptions.controlId + " could not be found";
+						return this._refuseInvalidTarget(oOptions._name, sErrorMessage);
+					} else {
+						return oContainerControl;
+					}
+				}.bind(this));
+			}.bind(this));
+		},
+
+		/**
+		 * Create and display the placeholder on the respective container
+		 *
+		 * @param {object} oTargetCreateInfo Object containing the target create info
+		 * @param {object} oContainerControl The container control
+		 * @returns {object} the view info object
+		 * @private
+		 */
+		displayPlaceholder: function(oTargetCreateInfo, oContainerControl) {
+			var oObject,
+				oOptions = this._oOptions,
+				bIsComponentTarget = oOptions.type === "Component",
+				bHasPlaceholderConfig = false,
+				oPlaceholderConfig = oTargetCreateInfo.placeholder || oOptions.placeholder || {},
+				pPlaceholder = Promise.resolve();
+
+			if (Placeholder.hasProviders()) {
+				Object.assign(oPlaceholderConfig, Placeholder.getPlaceholderFromProviders({
+					name: oOptions.name,
+					type: oOptions.type
+				}));
+			}
+
+			if (Object.keys(oPlaceholderConfig).length > 0) {
+				if (oPlaceholderConfig.autoClose === undefined) {
+					oPlaceholderConfig.autoClose = true;
+				}
+				bHasPlaceholderConfig = true;
+			}
+
+			if (bIsComponentTarget) {
+				var oOwnerComponent = this._oCache._oComponent;
+				var sComponentContainerId = oTargetCreateInfo.componentId + "-container";
+
+				oObject = (oOwnerComponent && oOwnerComponent.byId(sComponentContainerId))
+					|| sap.ui.getCore().byId(sComponentContainerId);
+
+				if (!oObject) {
+					// defaults mixed in with configured settings
+					var oContainerOptions = Object.assign({
+						height: "100%",
+						width: "100%",
+						lifecycle: ComponentLifecycle.Application
+					}, oOptions.containerOptions);
+
+					if (oOwnerComponent) {
+						oOwnerComponent.runAsOwner(function() {
+							oObject = new ComponentContainer(oOwnerComponent.createId(sComponentContainerId), oContainerOptions);
+						});
+					} else {
+						oObject = new ComponentContainer(sComponentContainerId, oContainerOptions);
+					}
+				}
+
+				// set container object only if placeholder config is available
+				if (bHasPlaceholderConfig) {
+					oPlaceholderConfig.container = oObject;
+				}
+			}
+
+			// for view targets use container control to display placeholder
+			if (bHasPlaceholderConfig && oContainerControl.isA("sap.ui.core.IPlaceholderSupport")) {
+				oPlaceholderConfig.container = oContainerControl;
+			}
+
+			// Placeholder creation
+			if (oPlaceholderConfig.container && !oTargetCreateInfo.repeatedRoute) {
+				oPlaceholderConfig.aggregation = this._oOptions.controlAggregation;
+
+				var oCreateOptions = this._getCreateOptions(oTargetCreateInfo);
+				var oCachedObject = this._oCache.fetch(oCreateOptions, this._oOptions.type);
+
+				if (oCachedObject && bIsComponentTarget) {
+					// for type "Component", the object that is saved in the placeholder config should be
+					// the component container instead of the component
+					oPlaceholderConfig.object = oObject;
+				} else {
+					oPlaceholderConfig.object = oCachedObject;
+				}
+
+				if (oPlaceholderConfig.html) {
+					oPlaceholderConfig.placeholder = new Placeholder({
+						html: oPlaceholderConfig.html
+					});
+				}
+
+				if (oPlaceholderConfig.placeholder && sap.ui.getCore().getConfiguration().getPlaceholder()) {
+					pPlaceholder = this.showPlaceholder(oPlaceholderConfig);
+				}
+			}
+
+			// wait for placeholder to load
+			return pPlaceholder.then(function(sPlaceholderContent) {
+				// returning view info object
+				return {
+					containerControl: oContainerControl,
+					object: oObject,
+					placeholderConfig: oPlaceholderConfig,
+					placeholderShown: !!sPlaceholderContent
+				};
+			});
+		},
+
+		/**
 		 * Here the magic happens - recursion + placement + view creation needs to be refactored
 		 *
 		 * @param {object} [vData] an object that will be passed to the display event in the data property. If the
@@ -182,174 +506,82 @@ sap.ui.define([
 		 * @private
 		 */
 		_place: function (vData, oSequencePromise, oTargetCreateInfo) {
+			var oOptions = this._oOptions,
+				that = this,
+				sErrorMessage,
+				bIsComponentTarget = oOptions.type === "Component";
+
+			var pLoaded, /* target is loaded and promise for waiting on "routeMatched" event in nested component is ready*/
+				pContainerReady; /* container control and placeholder ready */
+
 			if (vData instanceof Promise) {
 				oTargetCreateInfo = oSequencePromise;
 				oSequencePromise = vData;
 				vData = undefined;
 			}
 
-			var oOptions = this._oOptions,
-				that = this,
-				oObject, sErrorMessage, pLoaded,
-				bInstantResolve = true,
-				fnResolve,
-				pNestedRouteMatched;
+			oTargetCreateInfo = oTargetCreateInfo || {};
+
+			if (bIsComponentTarget) {
+				oTargetCreateInfo.componentId = oOptions.id || ManagedObjectMetadata.uid("uicomponent");
+			}
 
 			if ((oOptions.name || oOptions.usage) && oOptions.type) {
-				pNestedRouteMatched = new Promise(function(resolve) {
-					fnResolve = resolve;
-				});
-				pLoaded = this._load(oTargetCreateInfo).then(function (oObject) {
-					if (oObject.isA("sap.ui.core.UIComponent")) {
-						var oRouter = oObject.getRouter();
-						if (oRouter && oObject.hasNativeRouter()) {
-							var sHash = oRouter.getHashChanger().getHash();
-							var oRoute = oRouter.getRouteByHash(sHash);
+				// target loading
+				pLoaded = this.load(oTargetCreateInfo);
 
-							if (!oRouter._oConfig.async){
-								throw new Error("The router of component '" + oObject.getId() + "' which is loaded via the target '" + that._oOptions._name + "' is defined as synchronous which is not supported using as a nested component.");
-							}
+				// Either if parent available, then we need to wait until the parent got displayed or
+				// if no target info is given, then we need to wait for the oSequencePromise to be resolved
+				if (this._oParent || oTargetCreateInfo.legacy) {
+					// resolve container control and placeholder creation
+					pContainerReady = oSequencePromise.then(this.resolveContainerControl.bind(this));
+				} else {
+					// no need to wait for oSequencePromise, resolve container control in parallel
+					pContainerReady = this.resolveContainerControl();
+				}
 
-							if (oRouter._oOwner) {
-								// update the flag once the component is displayed again after it's already loaded
-								oRouter._oOwner._bRoutingPropagateTitle = oTargetCreateInfo.propagateTitle;
-							}
+				pContainerReady = pContainerReady.then(this.displayPlaceholder.bind(this, oTargetCreateInfo));
 
-							// TODO: offer getter for target info
-							if (oRoute && oRoute._oConfig.target) {
-								bInstantResolve = false;
-								oRouter.attachRouteMatched(fnResolve);
-							}
-							if (oRouter.isStopped()) {
-								// initialize the router in nested component
-								// if it has been previously stopped
-								oRouter.initialize();
-							}
-						}
-					}
-
-					if (bInstantResolve) {
-						fnResolve();
-					}
-					return oObject;
-				});
 				// when target information is given
-				oSequencePromise = oSequencePromise
-					.then(function(oParentInfo) {
-						return pLoaded.then(function(oObject) {
-							return {
-								object: oObject,
-								parentInfo: oParentInfo || {}
-							};
-						});
-					})
-					.then(function(oViewInfo) {
-						// loaded and do placement
-						var vValid = that._isValid(oViewInfo.parentInfo),
-						 oView, oRootControl;
+				oSequencePromise = Promise.all([pLoaded, pContainerReady, oSequencePromise])
+					// prepareTitleProvider
+					.then(function(aArguments) {
+						var oObject = aArguments[0].object,
+							oViewInfo = aArguments[1],
+							oView, oRootControl;
 
-						oObject = oViewInfo.object;
-						if (oObject.isA("sap.ui.core.UIComponent")) {
+						oViewInfo.nestedComponentReady = aArguments[0].nestedComponentReady;
+
+						if (bIsComponentTarget) {
+							var fnOriginalDestroy = oObject.destroy;
+							oObject.destroy = function () {
+								if (fnOriginalDestroy) {
+									fnOriginalDestroy.apply(this);
+								}
+								// destroy the component container when the component is destroyed
+								oViewInfo.object.destroy();
+							};
+							oViewInfo.object.setComponent(oObject);
+
 							oRootControl = oObject.getRootControl();
 							if (oRootControl && oRootControl.isA("sap.ui.core.mvc.View")) {
 								oView = oRootControl;
 							}
 						} else {
+							// view
+							oViewInfo.object = oObject;
 							oView = oObject;
 						}
 
 						that._bindTitleInTitleProvider(oView);
 						that._addTitleProviderAsDependent(oView);
 
-						// validate config and log errors if necessary
-						if (vValid !== true) {
-							sErrorMessage = vValid;
-							return that._refuseInvalidTarget(oOptions._name, sErrorMessage);
-						}
-
-						var oViewContainingTheControl = oViewInfo.parentInfo.view,
-							oControl = oViewInfo.parentInfo.control,
-							pContainerControl = Promise.resolve(oControl);
-
-						// if the parent target loads a component, the oViewContainingTheControl is an instance of
-						// ComponentContainer. The root control of the component should be retrieved and set as
-						// oViewContainingTheControl
-						if (oViewContainingTheControl && oViewContainingTheControl.isA("sap.ui.core.ComponentContainer")) {
-							oViewContainingTheControl = oViewContainingTheControl.getComponentInstance().getRootControl();
-						}
-
-						//no parent view - see if there is a targetParent in the config
-						if (!oViewContainingTheControl && oOptions.rootView) {
-							oViewContainingTheControl = sap.ui.getCore().byId(oOptions.rootView);
-
-							if (!oViewContainingTheControl) {
-								sErrorMessage = "Did not find the root view with the id " + oOptions.rootView;
-								return that._refuseInvalidTarget(oOptions._name, sErrorMessage);
-							}
-						}
-
-						// Find the control in the parent
-						if (oOptions.controlId) {
-							// The root control of a component may be any kind of control
-							// A check of sap.ui.core.View is needed before calling the loaded method to wait
-							// for the loading of the view
-							if (oViewContainingTheControl && oViewContainingTheControl.isA("sap.ui.core.mvc.View")) {
-								// controlId was specified - ask the parents view for it
-								// wait for the parent view to be loaded in case it's loaded async
-								pContainerControl = oViewContainingTheControl.loaded().then(function(oContainerView) {
-									return oContainerView.byId(oOptions.controlId);
-								});
-							}
-
-							pContainerControl = pContainerControl.then(function(oContainerControl) {
-								if (!oContainerControl) {
-									//Test if control exists in core (without prefix) since it was not found in the parent or root view
-									oContainerControl =  sap.ui.getCore().byId(oOptions.controlId);
-								}
-
-								if (!oContainerControl) {
-									sErrorMessage = "Control with ID " + oOptions.controlId + " could not be found";
-									return that._refuseInvalidTarget(oOptions._name, sErrorMessage);
-								} else {
-									return oContainerControl;
-								}
-							});
-						}
-
-						return pContainerControl;
+						return oViewInfo;
 					})
-					.then(function(oContainerControl) {
-						var oComponent,
-							sComponentContainerId,
-							fnOriginalDestroy;
-
-						if (oObject.isA("sap.ui.core.UIComponent")) {
-							oComponent = oObject;
-							sComponentContainerId = oComponent.getId() + "-container";
-							oObject = sap.ui.getCore().byId(sComponentContainerId);
-
-							if (!oObject) {
-								// defaults mixed in with configured settings
-								var oContainerOptions = Object.assign({
-									component: oComponent,
-									height: "100%",
-									width: "100%",
-									lifecycle: ComponentLifecycle.Application
-								}, oOptions.containerOptions);
-
-								oObject = new ComponentContainer(sComponentContainerId, oContainerOptions);
-
-								fnOriginalDestroy = oComponent.destroy;
-								oComponent.destroy = function () {
-									if (fnOriginalDestroy) {
-										fnOriginalDestroy.apply(this);
-									}
-
-									// destroy the component container when the component is destroyed
-									oObject.destroy();
-								};
-							}
-						}
+					// placing the view or component into container
+					.then(function(oViewInfo) {
+						var oContainerControl = oViewInfo.containerControl,
+							oObject = oViewInfo.object;
 
 						// adapt the container before placing the view into it to make the rendering occur together with the next
 						// aggregation modification.
@@ -362,7 +594,8 @@ sap.ui.define([
 						var oAggregationInfo = oContainerControl.getMetadata().getJSONKeys()[oOptions.controlAggregation];
 
 						if (!oAggregationInfo) {
-							sErrorMessage = "Control " + oOptions.controlId + " does not have an aggregation called " + oOptions.controlAggregation;
+							sErrorMessage = "Control " + oOptions.controlId +
+								" does not have an aggregation called " + oOptions.controlAggregation;
 							return that._refuseInvalidTarget(oOptions._name, sErrorMessage);
 						}
 
@@ -370,13 +603,21 @@ sap.ui.define([
 							oContainerControl[oAggregationInfo._sRemoveAllMutator]();
 						}
 
-						Log.info("Did place the " + oOptions.type.toLowerCase() + " target '" + (oOptions.name ? that._getEffectiveObjectName(oOptions.name) : oOptions.usage) + "' with the id '" + oObject.getId() + "' into the aggregation '" + oOptions.controlAggregation + "' of a control with the id '" + oContainerControl.getId() + "'", that);
+						Log.info("Did place the " + oOptions.type.toLowerCase() +
+							" target '" + (oOptions.name ? that._getEffectiveObjectName(oOptions.name) : oOptions.usage) +
+							"' with the id '" + oObject.getId() + "' into the aggregation '" + oOptions.controlAggregation +
+							"' of a control with the id '" + oContainerControl.getId() + "'", that);
+
+						// add oObject to oContainerControl's aggregation
 						oContainerControl[oAggregationInfo._sMutator](oObject);
 
 						return {
 							name: oOptions._name,
 							view: oObject,
-							control: oContainerControl
+							control: oContainerControl,
+							nestedComponentReady: oViewInfo.nestedComponentReady,
+							placeholderConfig: oViewInfo.placeholderConfig,
+							placeholderShown: oViewInfo.placeholderShown
 						};
 					});
 			} else {
@@ -387,22 +628,46 @@ sap.ui.define([
 				});
 			}
 
-			return Promise.all([oSequencePromise, pNestedRouteMatched]).then(function(aObjects) {
-				var oContainerControl = aObjects[0].control;
-				var oObject = aObjects[0].view;
+			return oSequencePromise.then(function(oParams) {
+				var pNestedComponentReady = oParams.nestedComponentReady || Promise.resolve();
+				return pNestedComponentReady.then(function() {
+					var oContainerControl = oParams.control,
+						oObject = oParams.view,
+						oPlaceholderConfig = oParams.placeholderConfig;
 
-				if (oContainerControl && oObject) {
-					that.fireDisplay({
-						view : oObject.isA("sap.ui.core.mvc.View") ? oObject : undefined,
-						object: oObject,
-						control : oContainerControl,
-						config : that._oOptions,
-						data: vData,
-						routeRelevant: that._routeRelevant
-					});
-				}
-				return aObjects[0];
+					if (oContainerControl && oObject) {
+						that.fireDisplay({
+							view : oObject.isA("sap.ui.core.mvc.View") ? oObject : undefined,
+							object: oObject,
+							control : oContainerControl,
+							config : that._oOptions,
+							data: vData,
+							routeRelevant: oTargetCreateInfo.routeRelevant
+						});
+					}
+
+					if (oPlaceholderConfig && oPlaceholderConfig.container &&
+						oPlaceholderConfig.autoClose && that.hidePlaceholder) {
+						that.hidePlaceholder(oPlaceholderConfig);
+					}
+
+					return oParams;
+				});
 			});
+		},
+
+		showPlaceholder: function(mSettings) {
+			if (mSettings.container && mSettings.container.showPlaceholder) {
+				return mSettings.container.showPlaceholder(mSettings);
+			} else {
+				return Promise.resolve();
+			}
+		},
+
+		hidePlaceholder: function(mSettings) {
+			if (mSettings.container.hidePlaceholder) {
+				mSettings.container.hidePlaceholder();
+			}
 		},
 
 		/**

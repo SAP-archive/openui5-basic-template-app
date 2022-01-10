@@ -10,10 +10,8 @@ sap.ui.define([
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
-	"sap/ui/model/odata/type/ODataType",
-	"sap/ui/thirdparty/jquery"
-], function (Log, NumberFormat, FormatException, ParseException, ValidateException, ODataType,
-		jQuery) {
+	"sap/ui/model/odata/type/ODataType"
+], function (Log, NumberFormat, FormatException, ParseException, ValidateException, ODataType) {
 	"use strict";
 
 	/**
@@ -34,10 +32,15 @@ sap.ui.define([
 	 *   the formatter
 	 */
 	function getFormatter(oType) {
-		var oFormatOptions;
+		var oFormatOptions, oTypeFormatOptions;
 
 		if (!oType.oFormat) {
-			oFormatOptions = jQuery.extend({groupingEnabled : true}, oType.oFormatOptions);
+			oFormatOptions = {groupingEnabled : true};
+			oTypeFormatOptions = oType.oFormatOptions || {};
+			if (oTypeFormatOptions.style !== "short" && oTypeFormatOptions.style !== "long") {
+				oFormatOptions.preserveDecimals = true;
+			}
+			Object.assign(oFormatOptions, oType.oFormatOptions);
 			oType.oFormat = NumberFormat.getFloatInstance(oFormatOptions);
 		}
 		return oType.oFormat;
@@ -92,12 +95,15 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @alias sap.ui.model.odata.type.Double
 	 * @param {object} [oFormatOptions]
 	 *   format options as defined in {@link sap.ui.core.format.NumberFormat}. In contrast to
 	 *   NumberFormat <code>groupingEnabled</code> defaults to <code>true</code>.
+	 * @param {boolean} [oFormatOptions.preserveDecimals=true]
+	 *   by default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
+	 *   "short" or "long"; since 1.89.0
 	 * @param {object} [oConstraints]
 	 *   constraints; {@link #validateValue validateValue} throws an error if any constraint is
 	 *   violated
@@ -149,25 +155,25 @@ sap.ui.define([
 			throw new FormatException("Illegal " + this.getName() + " value: " + vValue);
 		}
 		switch (this.getPrimitiveType(sTargetType)) {
-		case "any":
-			return vValue;
-		case "float":
-			return fValue;
-		case "int":
-			return Math.floor(fValue);
-		case "string":
-			if (fValue && (Math.abs(fValue) >= 1e15 || Math.abs(fValue) < 1e-4)) {
-				oFormatOptions = getFormatter(this).oFormatOptions;
-				return fValue.toExponential()
-					.replace("e", "\u00a0E") // non-breaking space
-					.replace(".", oFormatOptions.decimalSeparator)
-					.replace("+", oFormatOptions.plusSign)
-					.replace("-", oFormatOptions.minusSign);
-			}
-			return getFormatter(this).format(fValue);
-		default:
-			throw new FormatException("Don't know how to format " + this.getName() + " to "
-				+ sTargetType);
+			case "any":
+				return vValue;
+			case "float":
+				return fValue;
+			case "int":
+				return Math.floor(fValue);
+			case "string":
+				if (fValue && (Math.abs(fValue) >= 1e15 || Math.abs(fValue) < 1e-4)) {
+					oFormatOptions = getFormatter(this).oFormatOptions;
+					return fValue.toExponential()
+						.replace("e", "\u00a0E") // non-breaking space
+						.replace(".", oFormatOptions.decimalSeparator)
+						.replace("+", oFormatOptions.plusSign)
+						.replace("-", oFormatOptions.minusSign);
+				}
+				return getFormatter(this).format(fValue);
+			default:
+				throw new FormatException("Don't know how to format " + this.getName() + " to "
+					+ sTargetType);
 		}
 	};
 
@@ -199,19 +205,19 @@ sap.ui.define([
 			return null;
 		}
 		switch (this.getPrimitiveType(sSourceType)) {
-		case "string":
-			fResult = getFormatter(this).parse(vValue);
-			if (isNaN(fResult)) {
-				throw new ParseException(getErrorMessage());
-			}
-			break;
-		case "int":
-		case "float":
-			fResult = vValue;
-			break;
-		default:
-			throw new ParseException("Don't know how to parse " + this.getName() + " from "
-				+ sSourceType);
+			case "string":
+				fResult = getFormatter(this).parse(vValue);
+				if (isNaN(fResult)) {
+					throw new ParseException(getErrorMessage());
+				}
+				break;
+			case "int":
+			case "float":
+				fResult = vValue;
+				break;
+			default:
+				throw new ParseException("Don't know how to parse " + this.getName() + " from "
+					+ sSourceType);
 		}
 		return fResult;
 	};

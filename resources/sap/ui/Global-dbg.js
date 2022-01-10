@@ -18,7 +18,7 @@
  * sap.ui.lazyRequire("sap.ui.core.Control");
  * sap.ui.lazyRequire("sap.ui.commons.Button");
  *
- * @version 1.84.11
+ * @version 1.96.2
  * @author  SAP SE
  * @public
  */
@@ -48,7 +48,7 @@ sap.ui.define([
 	 * The <code>sap</code> namespace is automatically registered with the
 	 * OpenAjax hub if it exists.
 	 *
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @namespace
 	 * @public
 	 * @name sap
@@ -61,7 +61,7 @@ sap.ui.define([
 	 * The <code>sap.ui</code> namespace is the central OpenAjax compliant entry
 	 * point for UI related JavaScript functionality provided by SAP.
 	 *
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @namespace
 	 * @name sap.ui
 	 * @public
@@ -75,8 +75,9 @@ sap.ui.define([
 		 * The version of the SAP UI Library
 		 * @type string
 		 */
-		version: "1.84.11",
-		buildinfo : { lastchange : "${lastchange}", buildtime : "${buildtime}" }
+		version: "1.96.2",
+		// buildinfo.lastchange is deprecated and is therefore defaulted to empty string
+		buildinfo : { lastchange : "", buildtime : "20220110-1358" }
 	});
 
 	var oCfgData = window["sap-ui-config"] || {};
@@ -206,7 +207,7 @@ sap.ui.define([
 					} else {
 						Log.debug("lazy stub for constructor '" + sFullClass + "' called.");
 					}
-					sap.ui.requireSync(sModuleName.replace(/\./g, "/"));
+					sap.ui.requireSync(sModuleName.replace(/\./g, "/")); // legacy-relevant: 'sap.ui.lazyRequire' is deprecated
 					var oRealClass = oPackage[sClass];
 					assert(typeof oRealClass === "function", "lazyRequire: oRealClass must be a function after loading");
 					if ( oRealClass._sapUiLazyLoader ) {
@@ -267,7 +268,7 @@ sap.ui.define([
 					} else {
 						Log.debug("lazy stub for method '" + sFullClass + "." + sMethod + "' called.");
 					}
-					sap.ui.requireSync(sModuleName.replace(/\./g, "/"));
+					sap.ui.requireSync(sModuleName.replace(/\./g, "/")); // legacy-relevant: 'sap.ui.lazyRequire' is deprecated
 					var oRealClass = oPackage[sClass];
 					assert(typeof oRealClass === "function" || typeof oRealClass === "object", "lazyRequire: oRealClass must be a function or object after loading");
 					assert(typeof oRealClass[sMethod] === "function", "lazyRequire: method must be a function");

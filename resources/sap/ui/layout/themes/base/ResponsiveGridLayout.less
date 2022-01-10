@@ -20,11 +20,6 @@
 	margin-right: 0.5rem;
 }
 
-.sapUiRGLContainer > .sapUiFormTitle > button{
-	position: absolute;
-	right: 0.25rem;
-}
-
 /* Toolbar */
 .sapUiFormResGrid.sapUiFormToolbar > div:first-child {
 	height: 3rem; /* to have in compact mode and in commons always 3rem on Form header */
@@ -83,7 +78,7 @@
 	padding-bottom: 1.75rem; /* as content has 0.25rem padding-bottom */
 }
 
-.sapUiFormM > .sapUiFormResGrid > .sapUiFormResGridMain > div{
+.sapUiFormM > .sapUiFormResGrid > .sapUiFormResGridMain.sapUiRespGridOverflowHidden > div[class*="sapUiFormResGrid"]{
 	overflow: visible; /* to show top of title or tooolbar in cozy mode (because moved upwards) */
 }
 
@@ -163,14 +158,6 @@ html.sap-phone .sapUiFormM:not(.sapUiFormEdit) .sapUiFormResGridCont{
 .sapUiSizeCompact .sapUiFormM:not(.sapUiFormEdit) .sapUiFormContainerToolbar > .sapUiRGLContainerCont > .sapUiRespGridMedia-Std-Desktop.sapUiFormResGridCont > div:first-child.sapUiFormElementLbl.sapUiRespGridSpanL12,
 .sapUiSizeCompact .sapUiFormM:not(.sapUiFormEdit) .sapUiFormContainerToolbar > .sapUiRGLContainerCont > .sapUiRespGridMedia-Std-LargeDesktop.sapUiFormResGridCont > div:first-child.sapUiFormElementLbl.sapUiRespGridSpanXL12{
 	padding-top: 0.75rem;
-}
-
-/* make labels right aligned if left from fields*/
-.sapUiRespGridMedia-Std-Phone.sapUiFormResGridCont > .sapUiFormElementLbl:not(.sapUiRespGridSpanS12),
-.sapUiRespGridMedia-Std-Tablet.sapUiFormResGridCont > .sapUiFormElementLbl:not(.sapUiRespGridSpanM12),
-.sapUiRespGridMedia-Std-Desktop.sapUiFormResGridCont > .sapUiFormElementLbl:not(.sapUiRespGridSpanL12),
-.sapUiRespGridMedia-Std-LargeDesktop.sapUiFormResGridCont > .sapUiFormElementLbl:not(.sapUiRespGridSpanXL12){
-	padding-right: 1rem;
 }
 
 .sapUiRespGridMedia-Std-Phone.sapUiFormResGridCont > .sapUiFormElementLbl.sapUiRespGridSpanS12,

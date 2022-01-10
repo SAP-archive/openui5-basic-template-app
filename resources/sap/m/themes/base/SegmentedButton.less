@@ -115,7 +115,7 @@ html.sap-desktop .sapMSegBBtnFocusable:hover .sapMSegBBtnInner {
 	color: @sapUiSegmentedButtonSelectedTextColor;
 	border-color: @sapUiSegmentedButtonSelectedHoverBorderColor;
 	.sapUiIcon{
-		color: @sapUiSegmentedButtonSelectedIconColor;
+		color: @sapUiButtonSelectedTextColor;
 	}
 }
 
@@ -257,53 +257,5 @@ html[data-sap-ui-os^="iOS"] {
 html[data-sap-ui-os^="Android"] {
 	.sapUiSizeCompact .sapMSegBBtn .sapUiIcon {
 		line-height: 1.6rem;
-	}
-}
-
-/* IE ignores outline-offset. Use an overlay: */
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapMSegBBtn.sapMSegBBtnFocusable:focus .sapMSegBBtnInner {
-		outline: none;
-		position: relative;
-	}
-	.sapMSegBBtn.sapMSegBBtnFocusable:focus .sapMSegBBtnInner:before {
-		content: " ";
-		box-sizing: border-box;
-		position: absolute;
-		top: 0;
-		left: 0;
-		margin-top: 1px;
-		margin-left: 1px;
-		width: calc(~'100% - 2px');
-		height: calc(~'100% - 2px');
-		pointer-events: none;
-	}
-
-	.sapMSegB {
-		.sapMSegBBtnFocusable.sapMSegBBtnSel:focus .sapMSegBBtnInner {
-			outline: none;
-			position: relative;
-		}
-		.sapMSegBBtnFocusable.sapMSegBBtnSel:focus .sapMSegBBtnInner:before {
-			content: " ";
-			box-sizing: border-box;
-			position: absolute;
-			top: 0;
-			left: 0;
-			margin-top: 1px;
-			margin-left: 1px;
-			width: calc(~'100% - 2px');
-			height: calc(~'100% - 2px');
-			pointer-events: none;
-		}
-		.sapMSegBBtnFocusable {
-			&:focus .sapMSegBBtnInner:before {
-				border: 1px dashed @sapUiContentFocusColor;
-			}
-			&.sapMSegBBtnSel:focus .sapMSegBBtnInner:before {
-				border: 1px dashed @sapUiContentContrastFocusColor;
-			}
-		}
 	}
 }

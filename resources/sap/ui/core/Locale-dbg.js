@@ -5,8 +5,8 @@
  */
 
 //Provides the locale object sap.ui.core.Locale
-sap.ui.define(['sap/ui/base/Object', "sap/base/assert"],
-	function(BaseObject, assert) {
+sap.ui.define(['sap/ui/base/Object', 'sap/base/assert', './CalendarType'],
+	function(BaseObject, assert, CalendarType) {
 	"use strict";
 
 
@@ -38,7 +38,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert"],
 		 *
 		 * @extends sap.ui.base.Object
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 * @public
 		 * @alias sap.ui.core.Locale
 		 */
@@ -253,7 +253,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert"],
 			 * <li>use the language part only</li>
 			 * <li>convert old ISO639 codes to newer ones (e.g. 'iw' to 'he')</li>
 			 * <li>for Chinese, map 'Traditional Chinese' or region 'TW' to SAP proprietary code 'zf'</li>
-			 * <li>map private extensions x-saptrc and x-sappsd to SAP pseudo languages '1Q' and '2Q'</li>
+			 * <li>map private extensions x-saptrc, x-sappsd and saprigi to SAP pseudo languages '1Q', '2Q' and '3Q'</li>
 			 * <li>remove ext. language sub tags</li>
 			 * <li>convert to uppercase</li>
 			 * </ul>
@@ -291,17 +291,27 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert"],
 					|| M_LOCALE_TO_ABAP_LANGUAGE[getPseudoLanguageTag(this.sPrivateUse)]
 					|| sLanguage.toUpperCase()
 				);
+			},
+
+			/**
+			 *
+			 * @returns {sap.ui.core.CalendarType} The preferred Calendar type.
+			 * @private
+			 * @ui5-restricted sap.ui.core
+			 */
+			getPreferredCalendarType: function() {
+				return Locale._mPreferredCalendar[this.getLanguage() + "-" + this.getRegion()] ||
+					Locale._mPreferredCalendar[this.getLanguage()] ||
+					Locale._mPreferredCalendar["default"];
 			}
-
 		});
-
 
 		/*
 		 * Maps wellknown private use extensions to pseudo language tags.
 		 */
 		function getPseudoLanguageTag(sPrivateUse) {
 			if ( sPrivateUse ) {
-				var m = /-(saptrc|sappsd)(?:-|$)/i.exec(sPrivateUse);
+				var m = /-(saptrc|sappsd|saprigi)(?:-|$)/i.exec(sPrivateUse);
 				return m && "en-US-x-" + m[1].toLowerCase();
 			}
 		}
@@ -322,14 +332,28 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert"],
 			"1X" : "es-MX",
 			"3F" : "fr-CA",
 			"1Q" : "en-US-x-saptrc",
-			"2Q" : "en-US-x-sappsd"
+			"2Q" : "en-US-x-sappsd",
+			"3Q" : "en-US-x-saprigi"
 		};
 
 		var M_LOCALE_TO_ABAP_LANGUAGE = inverse(M_ABAP_LANGUAGE_TO_LOCALE);
 
 		/**
-		 * Helper to analyze and parse designtime variables
+		 * Helper to analyze and parse designtime (aka buildtime) variables
 		 *
+		 * At buildtime, the build can detect a pattern like $some-variable-name:some-value$
+		 * and replace 'some-value' with a value determined at buildtime (here: the actual list of locales).
+		 *
+		 * At runtime, this method removes the surrounding pattern ('$some-variable-name:' and '$') and leaves only the 'some-value'.
+		 * Additionally, this value is parsed as a comma-separated list (because this is the only use case here).
+		 *
+		 * The mimic of the comments is borrowed from the CVS (Concurrent Versions System),
+		 * see http://web.mit.edu/gnu/doc/html/cvs_17.html.
+		 *
+		 * If no valid <code>sValue</code> is given, <code>null</code> is returned
+		 *
+		 * @param {string} sValue The raw designtime property e.g. $cldr-rtl-locales:ar,fa,he$
+		 * @returns {string[]|null} The designtime property e.g. ['ar', 'fa', 'he']
 		 * @private
 		 */
 		function getDesigntimePropertyAsArray(sValue) {
@@ -354,10 +378,21 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert"],
 		Locale._cldrLocales = getDesigntimePropertyAsArray("$cldr-locales:ar,ar_EG,ar_SA,bg,ca,cy,cs,da,de,de_AT,de_CH,el,el_CY,en,en_AU,en_GB,en_HK,en_IE,en_IN,en_NZ,en_PG,en_SG,en_ZA,es,es_AR,es_BO,es_CL,es_CO,es_MX,es_PE,es_UY,es_VE,et,fa,fi,fr,fr_BE,fr_CA,fr_CH,fr_LU,he,hi,hr,hu,id,it,it_CH,ja,kk,ko,lt,lv,ms,nb,nl,nl_BE,pl,pt,pt_PT,ro,ru,ru_UA,sk,sl,sr,sr_Latn,sv,th,tr,uk,vi,zh_CN,zh_HK,zh_SG,zh_TW$");
 
 		/**
+		 * A map of preferred Calendar types according to the language.
+		 * @private
+		 */
+		Locale._mPreferredCalendar = {
+			"ar-SA": CalendarType.Islamic,
+			"fa": CalendarType.Persian,
+			"th": CalendarType.Buddhist,
+			"default": CalendarType.Gregorian
+		};
+
+		/**
 		 * List of locales for which translated texts have been bundled with the UI5 runtime.
 		 * @private
 		 */
-		Locale._coreI18nLocales = getDesigntimePropertyAsArray("$core-i18n-locales:,ar,bg,ca,cs,cy,da,de,el,en,en_GB,es,es_MX,et,fi,fr,fr_CA,hi,hr,hu,id,it,iw,ja,kk,ko,lt,lv,ms,nl,no,pl,pt,pt_PT,ro,ru,sh,sk,sl,sv,th,tr,uk,vi,zh_CN,zh_TW$");
+		Locale._coreI18nLocales = getDesigntimePropertyAsArray("$core-i18n-locales:,ar,bg,ca,cs,da,de,el,en,en_GB,es,es_MX,et,fi,fr,hi,hr,hu,it,iw,ja,kk,ko,lt,lv,ms,nl,no,pl,pt,ro,ru,sh,sk,sl,sv,th,tr,uk,vi,zh_CN,zh_TW$");
 
 		/**
 		 * Checks whether the given language tag implies a character orientation
@@ -367,12 +402,14 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/assert"],
 		 * that when a language (e.g. 'ar') is marked as 'RTL', then all language/region
 		 * combinations for that language (e.g. 'ar_SA') will be 'RTL' as well,
 		 * even if the combination is not mentioned in the above configuration.
-		 * There is no mean to define RTL=false for a language/region, when RTL=true for
+		 * There is no means to define RTL=false for a language/region, when RTL=true for
 		 * the language alone.
 		 *
 		 * As of 3/2013 this is true for all locales/regions supported by UI5.
 		 *
 		 * @param {string|sap.ui.core.Locale} vLanguage Locale or language to check
+		 * @returns {boolean} <code>true</code> if <code>vLanguage</code> implies RTL,
+		 *  otherwise <code>false</code>
 		 * @private
 		 */
 		Locale._impliesRTL = function(vLanguage) {

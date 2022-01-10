@@ -9,8 +9,9 @@ sap.ui.define([
 	"./RouterHashChanger",
 	'sap/ui/thirdparty/hasher',
 	"sap/base/Log",
-	"sap/base/util/ObjectPath"
-], function(HashChangerBase, RouterHashChanger, hasher, Log, ObjectPath) {
+	"sap/base/util/ObjectPath",
+	"sap/ui/performance/trace/Interaction"
+], function(HashChangerBase, RouterHashChanger, hasher, Log, ObjectPath, Interaction) {
 	"use strict";
 
 	/**
@@ -84,8 +85,11 @@ sap.ui.define([
 	 */
 	HashChanger.prototype.createRouterHashChanger = function() {
 		if (!this._oRouterHashChanger) {
+			var oParsedHash = this._parseHash(this.getHash());
 			this._oRouterHashChanger = new RouterHashChanger({
-				parent: this
+				parent: this,
+				hash: oParsedHash.hash,
+				subHashMap: oParsedHash.subHashMap
 			});
 
 			this._registerListenerToRelevantEvents();
@@ -93,7 +97,9 @@ sap.ui.define([
 			this._oRouterHashChanger.attachEvent("hashSet", this._onHashModified, this);
 			this._oRouterHashChanger.attachEvent("hashReplaced", this._onHashModified, this);
 		}
-
+		this._oRouterHashChanger.attachEvent("hashChanged", function() {
+			Interaction.notifyNavigation();
+		});
 		return this._oRouterHashChanger;
 	};
 
@@ -248,7 +254,12 @@ sap.ui.define([
 			subHashMap: aParts.reduce(function(oMap, sPart) {
 				var iSlashPos = sPart.indexOf("/");
 
-				oMap[sPart.substring(0, iSlashPos)] = sPart.substring(iSlashPos + 1);
+				if (iSlashPos === -1) {
+					oMap[sPart] = "";
+				} else {
+					oMap[sPart.substring(0, iSlashPos)] = sPart.substring(iSlashPos + 1);
+				}
+
 				return oMap;
 			}, {})
 		};

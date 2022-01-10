@@ -34,25 +34,6 @@
 html.sap-desktop .sapMToken:hover {
 	background: @sapUiButtonHoverBackground;
 	border: 1px solid @sapUiButtonHoverBorderColor;
-	border-radius: 0.125rem;
-}
-
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapMToken:focus {
-		position: relative;
-		outline: none;
-
-		.sapMTokenText:before {
-			position: absolute;
-			top: 2px;
-			left: 2px;
-			right: 2px;
-			bottom: 2px;
-			content: "";
-			pointer-events: none;
-		}
-	}
 }
 
 .sapMTokenText {
@@ -64,7 +45,6 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 	-moz-user-select: none;
-	-ms-user-select: none;
 	user-select: none;
 
 	pointer-events: none;
@@ -99,19 +79,6 @@ html[data-sap-ui-browser^="ed"].sap-desktop {
 	touch-action: none;
 }
 
-html[data-sap-ui-browser^="ie"].sap-desktop .sapMTokenIcon,
-html[data-sap-ui-browser^="ed"].sap-desktop .sapMTokenIcon {
-	line-height: 1.625rem;
-}
-
-html[data-sap-ui-browser^="ie"].sap-desktop .sapUiSizeCondensed .sapMTokenIcon {
-	line-height: 1.0625rem;
-}
-
-html[data-sap-ui-browser^="ed"].sap-desktop .sapUiSizeCondensed .sapMTokenIcon {
-	line-height: 1rem;
-}
-
 .sapUiSizeCompact .sapMToken {
 	font-size: @sapMFontSmallSize;
 	padding-left: @_sap_m_Token_TokenCompactPadding;
@@ -132,15 +99,9 @@ html[data-sap-ui-browser^="ed"].sap-desktop .sapUiSizeCondensed .sapMTokenIcon {
 	line-height: 1.125rem;
 }
 
-html[data-sap-ui-browser^="ie"].sap-desktop .sapUiSizeCompact .sapMTokenIcon,
-html[data-sap-ui-browser^="ed"].sap-desktop .sapUiSizeCompact .sapMTokenIcon {
-	line-height: 1.125rem;
-}
-
 html.sap-desktop .sapMToken.sapMTokenSelected:hover {
 	background: @sapUiToggleButtonPressedHoverBackground;
 	border: 1px solid @sapUiToggleButtonPressedHoverBorderColor;
-	border-radius: 0.125rem;
 }
 
 .sapMTokenSelected,
@@ -148,7 +109,6 @@ html.sap-desktop .sapMToken.sapMTokenSelected:hover {
 	color: @sapUiToggleButtonPressedTextColor;
 	background: @sapUiToggleButtonPressedBackground;
 	border: 1px solid @sapUiToggleButtonPressedBorderColor;
-	border-radius: 0.125rem;
 }
 
 .sapMTokenSelected .sapMTokenIcon {

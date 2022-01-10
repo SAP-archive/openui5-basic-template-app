@@ -22,7 +22,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"],function(e){"use strict";function t(e
 		 *
 		 * http://docs.jquery.com/UI
 		 *
-		 * But since visible is modified, focusable is different too the jQuery UI version too.
+		 * But since visible is modified, focusable is different from the jQuery UI version too.
 		 */
 e.expr.pseudos.focusable=function(t){return a(t,!isNaN(e.attr(t,"tabindex")))}}if(!t(e.expr.pseudos,"sapTabbable")){
 /*!

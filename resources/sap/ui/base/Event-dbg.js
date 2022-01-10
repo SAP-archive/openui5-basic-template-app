@@ -23,7 +23,7 @@ sap.ui.define(['./Object', "sap/base/assert"],
 	 * @extends sap.ui.base.Object
 	 * @implements sap.ui.base.Poolable
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @alias sap.ui.base.Event
 	 * @public
 	 */
@@ -51,7 +51,7 @@ sap.ui.define(['./Object', "sap/base/assert"],
 	 * @param {sap.ui.base.EventProvider} oSource Source of the event
 	 * @param {object} [oParameters] The event parameters
 	 *
-	 * @private
+	 * @protected
 	 *
 	 * @see sap.ui.base.Poolable.prototype#init
 	 */
@@ -70,7 +70,7 @@ sap.ui.define(['./Object', "sap/base/assert"],
 	 * Reset event data, needed for pooling.
 	 *
 	 * @see sap.ui.base.Poolable.prototype#reset
-	 * @private
+	 * @protected
 	 */
 	Event.prototype.reset = function() {
 		this.sId = "";

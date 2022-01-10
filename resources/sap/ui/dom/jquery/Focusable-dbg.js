@@ -5,9 +5,9 @@
  */
 sap.ui.define([
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/dom/jquery/hasTabIndex",
-	"sap/ui/dom/isHidden"
-], function(jQuery, domHasTabIndex, isHidden) {
+	"sap/ui/dom/isHidden",
+	"./hasTabIndex" // provides jQuery.fn.hasTabIndex
+], function(jQuery, isHidden) {
 	"use strict";
 
 	/**

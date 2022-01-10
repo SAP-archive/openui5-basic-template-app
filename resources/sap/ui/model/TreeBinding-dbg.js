@@ -3,7 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides an abstraction for list bindings
 sap.ui.define(['./Binding', './Filter', './Sorter'],
 	function(Binding, Filter, Sorter) {
@@ -84,10 +84,10 @@ sap.ui.define(['./Binding', './Filter', './Sorter'],
 	 *
 	 * @function
 	 * @name sap.ui.model.TreeBinding.prototype.getNodeContexts
-	 * @param {Object} oContext the context element of the node
+	 * @param {sap.ui.model.Context} oContext the context element of the node
 	 * @param {int} iStartIndex the startIndex where to start the retrieval of contexts
 	 * @param {int} iLength determines how many contexts to retrieve beginning from the start index.
-	 * @return {Array} the array of child contexts for the given node
+	 * @return {sap.ui.model.Context[]} the array of child contexts for the given node
 	 *
 	 * @public
 	 */
@@ -123,7 +123,7 @@ sap.ui.define(['./Binding', './Filter', './Sorter'],
 	 *
 	 * @function
 	 * @name sap.ui.model.TreeBinding.prototype.filter
-	 * @param {sap.ui.model.Filter[]} aFilters Array of sap.ui.model.Filter objects
+	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} aFilters Single sap.ui.model.Filter object or an array of filter objects
 	 * @param {sap.ui.model.FilterType} sFilterType Type of the filter which should be adjusted, if it is not given, the standard behaviour applies
 	 *
 	 * @public

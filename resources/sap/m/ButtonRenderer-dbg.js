@@ -5,7 +5,6 @@
  */
 
 sap.ui.define([
-	'sap/ui/Device',
 	'sap/ui/core/library',
 	'sap/ui/core/IconPool',
 	'sap/ui/core/ShortcutHintsMixin',
@@ -13,7 +12,7 @@ sap.ui.define([
 	'sap/ui/core/InvisibleText'
 ],
 
-	function(Device, coreLibrary, IconPool, ShortcutHintsMixin, library, InvisibleText) {
+	function(coreLibrary, IconPool, ShortcutHintsMixin, library, InvisibleText) {
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
@@ -57,9 +56,8 @@ sap.ui.define([
 		var sTooltip = oButton._getTooltip();
 		var sText = oButton._getText();
 		var sTextDir = oButton.getTextDirection();
-		var bIE_Edge = Device.browser.internet_explorer || Device.browser.edge;
 		// render bdi tag only if the browser is different from IE and Edge since it is not supported there
-		var bRenderBDI = (sTextDir === TextDirection.Inherit) && !bIE_Edge;
+		var bRenderBDI = (sTextDir === TextDirection.Inherit);
 
 		// get icon from icon pool
 		var sBackURI = IconPool.getIconURI("nav-back");
@@ -147,10 +145,6 @@ sap.ui.define([
 		// check if button is focusable (not disabled)
 		if (bEnabled) {
 			oRm.class("sapMFocusable");
-			// special focus handling for IE
-			if (bIE_Edge) {
-				oRm.class("sapMIE");
-			}
 		}
 
 		if (!oButton._isUnstyled()) {
@@ -222,14 +216,6 @@ sap.ui.define([
 			this.writeImgHtml(oRm, oButton);
 		}
 
-		// special handling for IE focus outline
-		if (bIE_Edge && bEnabled) {
-			oRm.openStart("span");
-			oRm.class("sapMBtnFocusDiv");
-			oRm.openEnd();
-			oRm.close("span");
-		}
-
 		// end inner button tag
 		oRm.close("span");
 
@@ -257,6 +243,21 @@ sap.ui.define([
 	 * @private
 	 */
 	ButtonRenderer.writeImgHtml = function(oRm, oButton) {
+		var sType = oButton.getType(),
+			bHasExplicitIcon = oButton.getIcon(),
+			bIsBackType = (sType === ButtonType.Back) || (sType === ButtonType.Up);
+
+		// Avoid duplicated rendering of the default Back/Up icon. Due to legacy
+		// reasons, those types are different than the others and can have 2 icons
+		// at the same time - here we render the one that's explicitly provided.
+		//
+		// If such isn't provided, our button will get the default icon for its type.
+		// However, because Back/Up's default icon is already rendered, two identical
+		// icons will appear unless we escape this here.
+		if (!bHasExplicitIcon && bIsBackType) {
+			return;
+		}
+
 		oRm.renderControl(oButton._getImage(
 			oButton.getId() + "-img",
 			oButton._getAppliedIcon(),
@@ -333,7 +334,8 @@ sap.ui.define([
 			sTooltip = oButton._getTooltip(),
 			sTooltipId = oButton.getId() + "-tooltip", // Icon-only buttons will always have a tooltip
 			sAccessibilityType = oButton._determineAccessibilityType(),
-			mAccProps = {};
+			mAccProps = {},
+			sDescription;
 
 		switch (sAccessibilityType) {
 			case ButtonAccessibilityType.Default:
@@ -341,7 +343,9 @@ sap.ui.define([
 				break;
 			case ButtonAccessibilityType.Described:
 				mAccProps["label"] = { value: sTooltip, append: true };
-				mAccProps["describedby"] = { value: (sTooltipId + " " + sTypeId + " " + sBadgeTextId).trim(), append: true };
+
+				sDescription = (sTypeId + " " + sBadgeTextId).trim();
+				sDescription && (mAccProps["describedby"] = { value: sDescription, append: true });
 				break;
 			case ButtonAccessibilityType.Labelled:
 				mAccProps["describedby"] = { value: sTooltipId, append: true };

@@ -14,8 +14,7 @@ sap.ui.define([
 	'sap/ui/core/message/MessageProcessor',
 	"sap/base/util/deepEqual",
 	"sap/base/Log",
-	'sap/base/util/merge',
-	'sap/base/util/array/uniqueSort'
+	'sap/base/util/merge'
 ],
 	function(
 		EventProvider,
@@ -26,8 +25,7 @@ sap.ui.define([
 		MessageProcessor,
 		deepEqual,
 		Log,
-		merge,
-		uniqueSort
+		merge
 	) {
 
 	"use strict";
@@ -48,7 +46,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.EventProvider
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @alias sap.ui.core.message.MessageManager
@@ -153,7 +151,7 @@ sap.ui.define([
 
 		if (!vMessages) {
 			return;
-		}else if (Array.isArray(vMessages)) {
+		} else if (Array.isArray(vMessages)) {
 			for (var i = 0; i < vMessages.length; i++) {
 				oMessage = vMessages[i];
 				this._importMessage(oMessage);
@@ -406,14 +404,14 @@ sap.ui.define([
 	 * @public
 	 */
 	MessageManager.prototype.registerObject = function(oObject, bHandleValidation) {
-		if (!oObject instanceof ManagedObject) {
+		if (!(oObject instanceof ManagedObject)) {
 			Log.error(this + " : " + oObject.toString() + " is not an instance of sap.ui.base.ManagedObject");
-			return;
+		} else {
+			oObject.attachValidationSuccess(bHandleValidation, this._handleSuccess, this);
+			oObject.attachValidationError(bHandleValidation, this._handleError, this);
+			oObject.attachParseError(bHandleValidation, this._handleError, this);
+			oObject.attachFormatError(bHandleValidation, this._handleError, this);
 		}
-		oObject.attachValidationSuccess(bHandleValidation, this._handleSuccess, this);
-		oObject.attachValidationError(bHandleValidation, this._handleError, this);
-		oObject.attachParseError(bHandleValidation, this._handleError, this);
-		oObject.attachFormatError(bHandleValidation, this._handleError, this);
 	};
 
 	/**
@@ -423,14 +421,14 @@ sap.ui.define([
 	 * @public
 	 */
 	MessageManager.prototype.unregisterObject = function(oObject) {
-		if (!oObject instanceof ManagedObject) {
+		if (!(oObject instanceof ManagedObject)) {
 			Log.error(this + " : " + oObject.toString() + " is not an instance of sap.ui.base.ManagedObject");
-			return;
+		} else {
+			oObject.detachValidationSuccess(this._handleSuccess, this);
+			oObject.detachValidationError(this._handleError, this);
+			oObject.detachParseError(this._handleError, this);
+			oObject.detachFormatError(this._handleError, this);
 		}
-		oObject.detachValidationSuccess(this._handleSuccess, this);
-		oObject.detachValidationError(this._handleError, this);
-		oObject.detachParseError(this._handleError, this);
-		oObject.detachFormatError(this._handleError, this);
 	};
 
 	/**

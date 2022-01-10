@@ -3,12 +3,12 @@
 /* Base theme                      */
 /* =============================== */
 
-@_sap_m_Carousel_PagesMarginRight: 1.25rem;
 @_sap_m_Carousel_MinWidth: 20rem;
 @_sap_m_Carousel_ControlsNoArrowsHeight: 2rem;
 @_sap_m_Carousel_NumericIndicatorTextColor: @sapUiContentLabelColor;
 @_sap_m_Carousel_PrevAndNextSize: 2rem;
 @_sap_m_Carousel_PrevAndNextPosition: 0.625rem;
+@_sap_m_Carousel_PrevAndNextFocusBorderRadius: unset;
 @_sap_m_Carousel_PageIndicatorContainerPadding: 1rem;
 @_sap_m_Carousel_PageIndicatorWidthSizeS: 12rem;
 @_sap_m_Carousel_PageIndicatorWidthSizeM: 16rem;
@@ -23,22 +23,33 @@
 
 @_sap_m_Carousel_BulletInactiveWidth: 0.25rem;
 @_sap_m_Carousel_BulletInactiveMargin: 0 0.375rem;
+@_sap_m_Carousel_FocusBorderOffset: 0;
+@_sap_m_Carousel_FocusBorderOffsetArrow: -0.125rem;
 
 .sapMCrsl {
 	position: relative;
 	overflow: hidden;
 	box-sizing: border-box;
 	border: 1px solid transparent;
-
-	/* IE Windows 8 */// TODO remove after the end of support for Internet Explorer
-	/* This element receives events when not panning in vertical direction */
-	touch-action: pan-y;
-	-ms-touch-action: pan-y;
 	min-width: @_sap_m_Carousel_MinWidth;
 }
 
 .sapMCrsl:focus {
 	outline: none;
+}
+
+.sapMCrsl:focus {
+  &:before {
+    border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+    position: absolute;
+    content: " ";
+    top: @_sap_m_Carousel_FocusBorderOffset;
+    right: @_sap_m_Carousel_FocusBorderOffset;
+    bottom: @_sap_m_Carousel_FocusBorderOffset;
+    left: @_sap_m_Carousel_FocusBorderOffset;
+    z-index: 2;
+    pointer-events: none;
+  }
 }
 
 //show the left and right arrows when the carousel is focused
@@ -89,19 +100,6 @@
 html[data-sap-ui-animation='off'] .sapMCrslInner {
 	transition-duration: 0.01s;
  }
-
-
-/* special handling for IE / Edge, as it does not support text-align: end */// TODO remove after the end of support for Internet Explorer
-html[data-sap-ui-browser^="ie"] .sapMCrslInner,// TODO remove after the end of support for Internet Explorer
-html[data-sap-ui-browser^="ed"] .sapMCrslInner {
- 	text-align: left;
-}
-
-html[dir=rtl][data-sap-ui-browser^="ie"] .sapMCrslInner,// TODO remove after the end of support for Internet Explorer
-html[dir=rtl][data-sap-ui-browser^="ed"] .sapMCrslInner {
-	text-align: right;
-
-}
 
 .sapMCrslItemTable {
 	height: 100%;
@@ -464,7 +462,6 @@ html[data-sap-ui-animation='off'] {
 	color: @sapUiContentNonInteractiveIconColor;
 	background-color: @_sap_m_Carousel_BulletActiveBackground;
 	border: 1px solid @_sap_m_Carousel_BulletActiveBorder;
-
 	width: 0.5rem;
 	height: 0.5rem;
 	margin: 0 0.25rem;
@@ -482,7 +479,6 @@ html[data-sap-ui-animation='off'] {
 .sapMCrsl .sapMCrslHud a:hover,
 .sapMCrsl .sapMCrslHud a:focus {
 	background: @sapUiButtonBackground;
-
 	opacity: 1;
 	display: block;
 }
@@ -541,7 +537,7 @@ html[data-sap-ui-animation='off'] {
 
 /* Default Themes/Sytles for Slider */
 .sapMCrslFluid .sapMCrslItem {
-	margin-right: @_sap_m_Carousel_PagesMarginRight;
+	margin-right: 1.25rem;
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
@@ -560,4 +556,24 @@ html[data-sap-ui-animation='off'] {
 .sapMCrsl:hover .sapMCrslHud a {
 	opacity: 1;
 	display: block;
+}
+
+html.sap-desktop {
+	.sapMCrslHud,
+	.sapMCrslControls {
+		.sapMCrslPrev:focus,
+		.sapMCrslNext:focus {
+			&::after {
+				content: "";
+				position: absolute;
+				top: @_sap_m_Carousel_FocusBorderOffsetArrow;
+				right: @_sap_m_Carousel_FocusBorderOffsetArrow;
+				bottom: @_sap_m_Carousel_FocusBorderOffsetArrow;
+				left: @_sap_m_Carousel_FocusBorderOffsetArrow;
+				pointer-events: none;
+				border-radius: @_sap_m_Carousel_PrevAndNextFocusBorderRadius;
+				border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+			}
+		}
+	}
 }

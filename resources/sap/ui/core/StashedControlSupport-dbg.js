@@ -5,8 +5,8 @@
  */
 
 // Provides inactive support for controls
-sap.ui.define(['sap/ui/core/Element', "sap/base/Log", "sap/base/assert"],
-	function(Element, Log, assert) {
+sap.ui.define(["sap/base/assert"],
+	function(assert) {
 		"use strict";
 
 		/**
@@ -104,7 +104,7 @@ sap.ui.define(['sap/ui/core/Element', "sap/base/Log", "sap/base/assert"],
 
 			// finally perform the real unstashing by starting the XMLTP again for the stashed part (scoped in XMLTP)
 			var Component = sap.ui.require("sap/ui/core/Component");
-			var oOwnerComponent = Component && Component.getOwnerComponentFor(oWrapperParent);
+			var oOwnerComponent = Component && oWrapperParent && Component.getOwnerComponentFor(oWrapperParent);
 			var aControls;
 			var fnCreate = oStashedInfo.fnCreate;
 

@@ -23,7 +23,7 @@ sap.ui.define(['sap/m/ToggleButton', 'sap/m/ToggleButtonRenderer'],
 		 * @extends sap.m.ToggleButton
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -32,7 +32,7 @@ sap.ui.define(['sap/m/ToggleButton', 'sap/m/ToggleButtonRenderer'],
 		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var OverflowToolbarToggleButton = ToggleButton.extend("sap.m.OverflowToolbarToggleButton", /** @lends sap.m.OverflowToolbarToggleButton.prototype */ {
-			renderer: ToggleButtonRenderer.render
+			renderer: ToggleButtonRenderer
 		});
 
 		OverflowToolbarToggleButton.prototype._getText = function() {

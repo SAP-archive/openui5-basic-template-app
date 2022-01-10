@@ -4,11 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
-
 // Provides control sap.m.SinglePlanningCalendarMonthGrid.
 sap.ui.define([
 	'sap/ui/core/Control',
@@ -81,7 +76,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @private
@@ -317,13 +312,28 @@ sap.ui.define([
 			}
 		};
 
+		SinglePlanningCalendarMonthGrid.prototype._findSrcControl = function (oEvent) {
+			if (!oEvent.target.parentElement || !oEvent.target.parentElement.classList.contains("sapUiCalendarRowApps")) {
+				return oEvent.srcControl;
+			}
+
+			// data-sap-ui-related - This is a relation to appointment object.
+			// This is the connection between the DOM Element and the Object representing an appointment.
+			var sAppointmentId = oEvent.target.parentElement.getAttribute("data-sap-ui-related");
+
+			// finding the appointment
+			return this.getAppointments().find(function (oAppointment) {
+				return oAppointment.sId === sAppointmentId;
+			});
+		};
+
 		/**
 		 * Helper function handling <code>keydown</code> or <code>tap</code> event on the grid.
 		 *
 		 * @param {jQuery.Event} oEvent The event object.
 		 */
 		SinglePlanningCalendarMonthGrid.prototype._fireSelectionEvent = function (oEvent) {
-			var oSrcControl = oEvent.srcControl,
+			var oSrcControl = this._findSrcControl(oEvent),
 				oTarget = oEvent.target,
 				bIsCell = oTarget && oTarget.classList.contains("sapMSPCMonthDay"),
 				bIsLink = oTarget && oTarget.classList.contains("sapMLnk"),
@@ -346,6 +356,18 @@ sap.ui.define([
 					appointments: this._toggleAppointmentSelection(undefined, true)
 				});
 			} else if (oSrcControl && oSrcControl.isA("sap.ui.unified.CalendarAppointment")) {
+				// add suffix in appointment
+				if (oTarget.parentElement && oTarget.parentElement.getAttribute("id")) {
+					var sTargetId = oTarget.parentElement.getAttribute("id");
+
+					// data-sap-ui-related - This is a relation to appointment object.
+					// This is the connection between the DOM Element and the Object representing an appointment.
+					var sBaseIDPart = oTarget.parentElement.getAttribute("data-sap-ui-related");
+					var sSuffix = sTargetId.replace(sBaseIDPart + "-", "");
+
+					oSrcControl._setAppointmentPartSuffix(sSuffix);
+				}
+
 				this.fireAppointmentSelect({
 					appointment: oSrcControl,
 					appointments: this._toggleAppointmentSelection(oSrcControl, !(oEvent.ctrlKey || oEvent.metaKey))
@@ -365,6 +387,7 @@ sap.ui.define([
 		 */
 		SinglePlanningCalendarMonthGrid.prototype._toggleAppointmentSelection = function (oAppointment, bRemoveOldSelection) {
 			var aChangedApps = [],
+				oAppointmentDomRef = oAppointment && oAppointment.getDomRef(),
 				aAppointments,
 				iAppointmentsLength,
 				i;
@@ -384,6 +407,9 @@ sap.ui.define([
 			if (oAppointment) {
 				oAppointment.setProperty("selected", !oAppointment.getSelected());
 				aChangedApps.push(oAppointment);
+				this._sSelectedAppointment = oAppointment.getSelected() && oAppointmentDomRef ? oAppointment : undefined;
+			} else {
+				this._sSelectedAppointment = undefined;
 			}
 
 			return aChangedApps;
@@ -756,12 +782,14 @@ sap.ui.define([
 					date: { type: "object", group: "Data" }
 				}
 			},
-			renderer: function(oRm, oControl) {
-				oRm.write("<div");
-				oRm.writeControlData(oControl);
-				oRm.addClass("sapMSinglePCPlaceholder");
-				oRm.writeClasses();
-				oRm.write("></div>");
+			renderer: {
+				apiVersion: 2,
+				render: function(oRm, oControl) {
+					oRm.openStart("div", oControl)
+						.class("sapMSinglePCPlaceholder")
+						.openEnd()
+						.close("div");
+				}
 			}
 		});
 
@@ -829,6 +857,12 @@ sap.ui.define([
 				}
 			}
 			return specialDates;
+		};
+
+		SinglePlanningCalendarMonthGrid.prototype.applyFocusInfo = function() {
+			// directly focus appointment part, if there is any selected
+			this._sSelectedAppointment && this._sSelectedAppointment.focus();
+			return this;
 		};
 
 		return SinglePlanningCalendarMonthGrid;

@@ -57,6 +57,9 @@ sap.ui.define([
 	// shortcut for sap.m.IconTabDensityMode
 	var IconTabDensityMode = library.IconTabDensityMode;
 
+	// shortcut for sap.m.TabsOverflowMode
+	var TabsOverflowMode = library.TabsOverflowMode;
+
 	/**
 	 * Constructor for a new IconTabHeader.
 	 *
@@ -65,14 +68,20 @@ sap.ui.define([
 	 *
 	 * @class
 	 * This control displays a number of IconTabFilters and IconTabSeparators. If the available horizontal
-	 * space is exceeded, a horizontal scrolling appears.
+	 * space is exceeded, an overflow tab appears.
+	 *
+	 * <h3>Usage</h3>
+	 * Use <code>IconTabHeader</code> if you need it as a standalone header.
+	 * If you need to manage content use {@link sap.m.IconTabBar} instead.
+	 *
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
+	 * @since 1.15
 	 * @alias sap.m.IconTabHeader
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
@@ -105,7 +114,6 @@ sap.ui.define([
 
 			/**
 			 * Specifies the header mode.
-			 * <b>Note:</b> The Inline mode works only if no icons are set.
 			 *
 			 * @since 1.40
 			 */
@@ -123,9 +131,8 @@ sap.ui.define([
 			/**
 			 * Specifies the background color of the header.
 			 *
-			 * Depending on the theme, you can change the state of
-			 * the background color to "Solid", "Translucent", or "Transparent".
-			 * Default is "Solid".
+			 * Depending on the theme, you can change the state of the background color to "Solid", "Translucent", or "Transparent".
+			 * <b>Note:</b> In SAP Belize Deep (sap_belize_plus) theme this property should be set to "Solid".
 			 * @since 1.44
 			 */
 			backgroundDesign : {type : "sap.m.BackgroundDesign", group : "Appearance", defaultValue : BackgroundDesign.Solid},
@@ -166,7 +173,17 @@ sap.ui.define([
 			 * <code>headerDescription</code> - text to serve as a description for the header.
 			 * @since 1.80
 			 */
-			ariaTexts : {type : "object", group : "Accessibility", defaultValue : null}
+			ariaTexts : {type : "object", group : "Accessibility", defaultValue : null},
+
+			/**
+			 * Specifies the overflow mode of the header.
+			 *
+			 * The default <code>End</code> mode shows as many tabs that can fit on the screen, then shows one overflow at the end
+			 * containing the remaining items.
+			 * The <code>StartAndEnd</code> is used to keep the order of tabs intact and offers overflow tabs on both ends of the bar.
+			 * @since 1.90
+			 */
+			tabsOverflowMode: {type : "sap.m.TabsOverflowMode", group : "Behavior", defaultValue : TabsOverflowMode.End}
 		},
 		aggregations : {
 
@@ -178,7 +195,12 @@ sap.ui.define([
 			/**
 			 * Internal aggregation for managing the overflow tab.
 			 */
-			_overflow : {type : "sap.m.IconTabFilter", multiple : false, visibility : "hidden"}
+			_overflow : {type : "sap.m.IconTabFilter", multiple : false, visibility : "hidden"},
+
+			/**
+			 * Internal aggregation for managing the start overflow tab.
+			 */
+			_startOverflow : {type : "sap.m.IconTabFilter", multiple : false, visibility : "hidden"}
 		},
 		events : {
 
@@ -198,7 +220,13 @@ sap.ui.define([
 					 * The key of the selected item
 					 * @since 1.15.0
 					 */
-					key : {type : "string"}
+					key : {type : "string"},
+
+					/**
+					 * The key of the previous selected item
+					 * @since 1.96
+					 */
+					previousKey : {type : "string"}
 				}
 			}
 		}
@@ -239,6 +267,12 @@ sap.ui.define([
 			this._oOverflow.removeEventDelegate(this._oOverflowEventDelegate);
 			this._oOverflowEventDelegate = null;
 			this._oOverflow = null;
+		}
+
+		if (this._oStartOverflow) {
+			this._oStartOverflow.removeEventDelegate(this._oStartOverflowEventDelegate);
+			this._oStartOverflowEventDelegate = null;
+			this._oStartOverflow = null;
 		}
 
 		if (this._oAriaHeadText) {
@@ -334,6 +368,30 @@ sap.ui.define([
 	};
 
 	/**
+	 * @private
+	 * @returns {sap.m.IconTabFilter} The start overflow tab instance
+	 */
+	IconTabHeader.prototype._getStartOverflow = function () {
+		var oStartOverflow = this.getAggregation("_startOverflow");
+
+		if (!oStartOverflow) {
+			oStartOverflow = new IconTabFilter({
+				id: this.getId() + '-startOverflow',
+				text: oResourceBundle.getText("ICONTABHEADER_OVERFLOW_MORE")
+			});
+			oStartOverflow._bIsStartOverflow = true;
+			this._oStartOverflowEventDelegate = {
+				onsapprevious: oStartOverflow.onsapdown
+			};
+			oStartOverflow.addEventDelegate(this._oStartOverflowEventDelegate, oStartOverflow);
+			this.setAggregation("_startOverflow", oStartOverflow);
+			this._oStartOverflow = oStartOverflow;
+		}
+
+		return oStartOverflow;
+	};
+
+	/**
 	 * Returns invisible text, used for the head.
 	 * @returns {sap.ui.core.InvisibleText} InvisibleText
 	 * @private
@@ -417,7 +475,7 @@ sap.ui.define([
 	 * @overwrite
 	 * @public
 	 * @param {string} sKey The key of the item to be selected
-	 * @return {sap.m.IconTabHeader} this pointer for chaining
+	 * @return {this} this pointer for chaining
 	 */
 	IconTabHeader.prototype.setSelectedKey = function (sKey) {
 		var aItems = this.getTabFilters(),
@@ -452,8 +510,8 @@ sap.ui.define([
 	 * Sets the selected item, updates the UI, and fires the select event.
 	 * @private
 	 * @param {sap.m.IconTabFilter} oItem The item to be selected
-	 * @param {Boolean} bAPIChange whether this function is called through the API
-	 * @returns {sap.m.IconTabHeader} this pointer for chaining
+	 * @param {boolean} bAPIChange whether this function is called through the API
+	 * @returns {this} this pointer for chaining
 	 */
 	IconTabHeader.prototype.setSelectedItem = function (oItem, bAPIChange) {
 		if (!oItem) {
@@ -471,6 +529,7 @@ sap.ui.define([
 
 		var oParent = this.getParent();
 		var bIsParentIconTabBar = this._isInsideIconTabBar();
+		var sPrevKey = this.getSelectedKey();
 
 		//if the old selected tab and the new selected tab both have no own content, which means they both use the same content from the icontabbar
 		//there is no need to rerender the content
@@ -543,7 +602,8 @@ sap.ui.define([
 					selectedItem: this.oSelectedItem,
 					selectedKey: sSelectedKey,
 					item: this.oSelectedItem,
-					key: sSelectedKey
+					key: sSelectedKey,
+					previousKey: sPrevKey
 				});
 			} else {
 				// fire event on header
@@ -551,14 +611,22 @@ sap.ui.define([
 					selectedItem: this.oSelectedItem,
 					selectedKey: sSelectedKey,
 					item: this.oSelectedItem,
-					key: sSelectedKey
+					key: sSelectedKey,
+					previousKey: sPrevKey
 				});
 			}
 		}
 
 		this.oSelectedItem._startBadgeHiding();
 
-		this._setItemsForStrip();
+		var oSelectedRootItemDomRef = this.oSelectedItem._getRootTab().getDomRef();
+
+		if (!oSelectedRootItemDomRef ||
+			oSelectedRootItemDomRef.classList.contains("sapMITBFilterHidden") ||
+			this.getTabsOverflowMode() === TabsOverflowMode.End) {
+			this._setItemsForStrip();
+		}
+
 		return this;
 	};
 
@@ -578,6 +646,12 @@ sap.ui.define([
 			iSelectedDomIndex = -1,
 			oSelectedRootItem = this.oSelectedItem && this.oSelectedItem._getRootTab();
 
+		if (this.$().hasClass("sapMITHStartOverflowList")) {
+			var oStartOverflowDomRef = this._getStartOverflow().getFocusDomRef();
+			oStartOverflowDomRef.setAttribute("tabindex", "-1");
+			aTabDomRefs.push(oStartOverflowDomRef);
+		}
+
 		// find a collection of all tabs
 		this.getTabFilters().forEach(function (oItem) {
 			var oItemDomRef = this.getFocusDomRef(oItem);
@@ -592,7 +666,7 @@ sap.ui.define([
 			}
 		}.bind(this));
 
-		if (this.$().hasClass("sapMITHOverflowList")) {
+		if (this.$().hasClass("sapMITHEndOverflowList")) {
 			var oOverflowDomRef = this._getOverflow().getFocusDomRef();
 			oOverflowDomRef.setAttribute("tabindex", "-1");
 			aTabDomRefs.push(oOverflowDomRef);
@@ -670,6 +744,8 @@ sap.ui.define([
 		this.addAggregation("items", oItem);
 
 		this._invalidateParentIconTabBar();
+
+		return this;
 	};
 
 	IconTabHeader.prototype.insertItem = function (oItem, iIndex) {
@@ -776,7 +852,7 @@ sap.ui.define([
 
 	/**
 	 * Sets whether the currently selected item is preserved.
-	 * @param {Boolean} bPreserveSelection The new value
+	 * @param {boolean} bPreserveSelection The new value
 	 * @private
 	 */
 	IconTabHeader.prototype._setPreserveSelection = function (bPreserveSelection) {
@@ -809,7 +885,7 @@ sap.ui.define([
 	 * @private
 	 */
 	IconTabHeader.prototype.isInlineMode = function () {
-		return this._bTextOnly && this.getMode() == IconTabHeaderMode.Inline;
+		return this.getMode() === IconTabHeaderMode.Inline;
 	};
 
 	/**
@@ -887,93 +963,263 @@ sap.ui.define([
 			return;
 		}
 
-		var oTabStrip = this.getDomRef("head"),
-			oSelectedItem = (this.oSelectedItem && this.oSelectedItem.getVisible()) ? this.oSelectedItem : aTabFilters[0];
+		var oTabStrip = this.getDomRef("head");
 
 		if (!oTabStrip) {
 			// control has not been rendered, exit
 			return;
 		}
 
-		var iTabStripWidth = oTabStrip.offsetWidth,
-			i,
-			oSelectedItemDomRef = (oSelectedItem._getRootTab() || oSelectedItem).getDomRef(),
+		var oStartOverflow = this._getStartOverflow(),
+			oOverflow = this._getOverflow(),
 			aItems = this.getItems()
 				.filter(function (oItem) { return oItem.getDomRef(); })
-				.map(function (oItem) { return oItem.getDomRef(); });
+				.map(function (oItem) { return oItem.getDomRef(); }),
+			oSelectedItem = (this.oSelectedItem && this.oSelectedItem.getVisible()) ? this.oSelectedItem : aTabFilters[0],
+			oSelectedItemDomRef = (oSelectedItem._getRootTab() || oSelectedItem).getDomRef();
 
 		if (!aItems.length || !oSelectedItemDomRef) {
 			return;
 		}
 
+		// hide overflow tabs
+		oStartOverflow.$().removeClass("sapMITHOverflowVisible");
+		oOverflow.$().removeClass("sapMITHOverflowVisible");
+
+		this.$().removeClass("sapMITHStartOverflowList");
+		this.$().removeClass("sapMITHEndOverflowList");
+
 		// reset all display styles and their initial order to calculate items' width
 		aItems.forEach(function (oItem) {
-			oItem.style.width = "";
 			oItem.classList.remove("sapMITBFilterHidden");
-			oItem.classList.remove("sapMITBFilterTruncated");
 		});
 
-		// find all fitting items, start with selected item's width
-		var iSelectedItemIndex = aItems.indexOf(oSelectedItemDomRef),
-			iSelectedItemSize = this._getItemSize(oSelectedItemDomRef),
-			oSelectedSeparator,
-			iSelectedSeparatorSize = 0,
-			iSelectedCombinedSize;
+		var iTotalWidthItems = aItems.reduce(function (iSum, oDomRef) {
+				return iSum + jQuery(oDomRef).outerWidth(true);
+			}, 0),
+			bHasOverflow = iTotalWidthItems > oTabStrip.offsetWidth;
 
-		if (aItems[iSelectedItemIndex - 1] && aItems[iSelectedItemIndex - 1].classList.contains("sapMITBSep")) {
-			oSelectedSeparator = aItems[iSelectedItemIndex - 1];
-			iSelectedSeparatorSize = this._getItemSize(oSelectedSeparator);
+		if (!bHasOverflow) {
+			return;
 		}
 
-		iSelectedCombinedSize = iSelectedItemSize + iSelectedSeparatorSize;
-
-		if (iTabStripWidth < iSelectedCombinedSize) {
-			// selected item can't fit fully, truncate it's text and put all other items in the overflow
-			oSelectedItemDomRef.style.width = (iTabStripWidth - 20 - iSelectedSeparatorSize) + "px";
-			oSelectedItemDomRef.classList.add("sapMITBFilterTruncated");
+		switch (this.getTabsOverflowMode()) {
+			case TabsOverflowMode.StartAndEnd:
+				this._updateStartAndEndOverflow(aItems, oSelectedItemDomRef);
+				break;
+			case TabsOverflowMode.End:
+			default:
+				this._updateEndOverflow(aItems, oSelectedItemDomRef);
+				break;
 		}
+	};
 
-		aItems.splice(iSelectedItemIndex, 1);
 
-		// if previous item is a separator - keep it
-		if (oSelectedSeparator) {
-			aItems.splice(iSelectedItemIndex - 1, 1);
-		}
+	IconTabHeader.prototype._updateEndOverflow = function (aItems, oSelectedItemDomRef) {
+		var oOverflow = this._getOverflow(),
+			oTabStrip = this.getDomRef("head"),
+			iTabStripWidth,
+			iLastVisible,
+			mSelectedItem,
+			i;
 
-		var iLastVisible = this._findLastVisibleItem(aItems, iTabStripWidth, iSelectedCombinedSize);
+		oOverflow.$().addClass("sapMITHOverflowVisible");
+		this.$().addClass("sapMITHEndOverflowList");
+
+		iTabStripWidth = oTabStrip.offsetWidth;
+		mSelectedItem = this._getSelectedItemIndexAndSize(aItems, oSelectedItemDomRef);
+		iLastVisible = this._findLastVisibleItem(aItems, iTabStripWidth, mSelectedItem.width);
+
 		for (i = iLastVisible + 1; i < aItems.length; i++) {
 			aItems[i].classList.add("sapMITBFilterHidden");
 		}
 
-		this._getOverflow()._updateExpandButtonBadge();
-		this._getOverflow().$().toggleClass("sapMITHOverflowVisible", iLastVisible + 1 !== aItems.length);
-		this.$().toggleClass("sapMITHOverflowList", iLastVisible + 1 !== aItems.length);
+		oOverflow._updateExpandButtonBadge();
 	};
 
-	IconTabHeader.prototype._findLastVisibleItem  = function (aItems, iTabStripWidth, iSumFittingItems) {
-		var iLastVisible = -1,
-			iInd,
-			oItem,
-			iItemSize,
-			oPrevItem;
 
-		// hide all items after the fitting items, selected item will take place as the last fitting item, if it's out of order
-		for (iInd = 0; iInd < aItems.length; iInd++) {
-			oItem = aItems[iInd];
-			iItemSize = this._getItemSize(oItem);
+	IconTabHeader.prototype._updateStartAndEndOverflow = function (aItems, oSelectedItemDomRef) {
+		var oStartOverflow = this._getStartOverflow(),
+			oOverflow = this._getOverflow(),
+			oTabStrip = this.getDomRef("head"),
+			iTabStripWidth = oTabStrip.offsetWidth,
+			mSelectedItem = this._getSelectedItemIndexAndSize(aItems, oSelectedItemDomRef),
+			bHasStartOverflow = this._hasStartOverflow(iTabStripWidth, aItems, mSelectedItem),
+			bHasEndOverflow = this._hasEndOverflow(iTabStripWidth, aItems, mSelectedItem),
+			iFirstVisible,
+			iLastVisible,
+			i;
 
-			if (iTabStripWidth > (iSumFittingItems + iItemSize)) {
-				iSumFittingItems += iItemSize;
-				iLastVisible = iInd;
-			} else {
-				// if prev item is separator - hide it
-				oPrevItem = aItems[iInd - 1];
-				if (oPrevItem && oPrevItem.classList.contains("sapMITBSep")) {
-					iLastVisible -= 1;
-				}
+		oOverflow.$().addClass("sapMITHOverflowVisible");
+		this.$().addClass("sapMITHEndOverflowList");
 
+		// width has changed after the overflow became visible
+		iTabStripWidth = oTabStrip.offsetWidth;
+
+		// has "end", but no "start" overflow
+		if (!bHasStartOverflow) {
+			iLastVisible = this._findLastVisibleItem(aItems, iTabStripWidth, mSelectedItem.width);
+
+			for (i = iLastVisible + 1; i < aItems.length; i++) {
+				aItems[i].classList.add("sapMITBFilterHidden");
+			}
+
+			oOverflow._updateTabCountText();
+			oOverflow._updateExpandButtonBadge();
+			return;
+		}
+
+		oStartOverflow.$().addClass("sapMITHOverflowVisible");
+		this.$().addClass("sapMITHStartOverflowList");
+
+		oOverflow.$().removeClass("sapMITHOverflowVisible");
+		this.$().removeClass("sapMITHEndOverflowList");
+
+		iTabStripWidth = oTabStrip.offsetWidth;
+
+		// has "start", but no "end" overflow
+		if (!bHasEndOverflow) {
+			iFirstVisible = this._findFirstVisibleItem(aItems, iTabStripWidth, mSelectedItem.width);
+
+			for (i = iFirstVisible - 1; i >= 0; i--) {
+				aItems[i].classList.add("sapMITBFilterHidden");
+			}
+
+			oStartOverflow._updateTabCountText();
+			oStartOverflow._updateExpandButtonBadge();
+			return;
+		}
+
+		// has "start" and "end" overflows
+		oOverflow.$().addClass("sapMITHOverflowVisible");
+		this.$().addClass("sapMITHEndOverflowList");
+
+		iTabStripWidth = oTabStrip.offsetWidth;
+
+		var aLeftItems = [],
+			iIndex;
+
+		for (iIndex = 0; iIndex < mSelectedItem.index; iIndex++) {
+			aLeftItems.push(aItems[iIndex]);
+		}
+
+		iFirstVisible = this._findFirstVisibleItem(aItems, iTabStripWidth, mSelectedItem.width, mSelectedItem.index - 1);
+		iLastVisible = this._findLastVisibleItem(aItems, iTabStripWidth, mSelectedItem.width, iFirstVisible);
+
+		for (i = iFirstVisible - 1; i >= 0; i--) {
+			aItems[i].classList.add("sapMITBFilterHidden");
+		}
+
+		for (i = iLastVisible + 1; i < aItems.length; i++) {
+			aItems[i].classList.add("sapMITBFilterHidden");
+		}
+
+		oStartOverflow._updateExpandButtonBadge();
+		oStartOverflow._updateTabCountText();
+		oOverflow._updateTabCountText();
+		oOverflow._updateExpandButtonBadge();
+	};
+
+	IconTabHeader.prototype._hasStartOverflow = function (iTabStripWidth, aItems, mSelectedItem) {
+
+		if (mSelectedItem.index === 0) {
+			return false;
+		}
+
+		var i,
+			iLeftItemsWidth = 0;
+
+		for (i = mSelectedItem.index - 1; i >= 0; i--) {
+			iLeftItemsWidth += this._getItemSize(aItems[i]);
+		}
+
+		return iTabStripWidth < iLeftItemsWidth + mSelectedItem.width;
+	};
+
+	IconTabHeader.prototype._hasEndOverflow = function (iTabStripWidth, aItems, mSelectedItem) {
+
+		if (mSelectedItem.index >= aItems.length) {
+			return false;
+		}
+
+		var i,
+			iRightItemsWidth = 0;
+
+		for (i = mSelectedItem.index; i < aItems.length; i++) {
+			iRightItemsWidth += this._getItemSize(aItems[i]);
+		}
+
+		return iTabStripWidth < iRightItemsWidth + mSelectedItem.width;
+	};
+
+	IconTabHeader.prototype._getSelectedItemIndexAndSize = function (aItems, oSelectedItemDomRef) {
+		var iSelectedItemIndex = aItems.indexOf(oSelectedItemDomRef),
+			iSelectedItemSize = this._getItemSize(oSelectedItemDomRef),
+			oSelectedSeparator;
+
+		if (aItems[iSelectedItemIndex - 1] && aItems[iSelectedItemIndex - 1].classList.contains("sapMITBSep")) {
+			oSelectedSeparator = aItems[iSelectedItemIndex - 1];
+			iSelectedItemSize += this._getItemSize(oSelectedSeparator);
+		}
+
+		aItems.splice(iSelectedItemIndex, 1);
+
+		// if previous item is a separator - remove it
+		if (oSelectedSeparator) {
+			aItems.splice(iSelectedItemIndex - 1, 1);
+		}
+
+		return {
+			index: iSelectedItemIndex,
+			width: iSelectedItemSize
+		};
+	};
+
+	IconTabHeader.prototype._findFirstVisibleItem = function (aItems, iTabStripWidth, iSelectedItemWidth, iStartIndex) {
+		var iLastVisible = aItems.length,
+			iIndex,
+			iItemSize;
+
+		if (iStartIndex === undefined) {
+			iStartIndex = aItems.length - 1;
+		}
+
+		for (iIndex = iStartIndex; iIndex >= 0; iIndex--) {
+			iItemSize = this._getItemSize(aItems[iIndex]);
+
+			if (iTabStripWidth < iSelectedItemWidth + iItemSize) {
 				break;
 			}
+
+			iSelectedItemWidth += iItemSize;
+			iLastVisible = iIndex;
+		}
+
+		return iLastVisible;
+	};
+
+	IconTabHeader.prototype._findLastVisibleItem = function (aItems, iTabStripWidth, iSelectedItemWidth, iStartIndex) {
+		var iLastVisible = -1,
+			iIndex,
+			iItemSize;
+
+		iStartIndex = iStartIndex || 0;
+
+		for (iIndex = iStartIndex; iIndex < aItems.length; iIndex++) {
+			iItemSize = this._getItemSize(aItems[iIndex]);
+
+			if (iTabStripWidth < iSelectedItemWidth + iItemSize) {
+				break;
+			}
+
+			iSelectedItemWidth += iItemSize;
+			iLastVisible = iIndex;
+		}
+
+		// if prev item is separator - hide it
+		var oPrevItem = aItems[iIndex - 1];
+		if (oPrevItem && oPrevItem.classList.contains("sapMITBSep")) {
+			iLastVisible -= 1;
 		}
 
 		return iLastVisible;
@@ -1020,13 +1266,13 @@ sap.ui.define([
 					if (oControl.getMetadata().isInstanceOf("sap.m.IconTab") && !(oControl instanceof IconTabSeparator)) {
 
 						if (this._isUnselectable(oControl)) {
-							if (oControl.getItems().length || oControl._bIsOverflow) {
+							if (oControl.getItems().length || oControl._isOverflow()) {
 								oControl._expandButtonPress();
 							}
 							return;
 						}
 
-						if (oControl === this._getOverflow()) {
+						if ((oControl === this._getOverflow()) || (oControl === this._getStartOverflow())) {
 							oControl._expandButtonPress();
 							return;
 						}
@@ -1037,13 +1283,13 @@ sap.ui.define([
 					// select item if it is an iconTab but not a separator
 
 					if (this._isUnselectable(oControl)) {
-						if (oControl.getItems().length || oControl._bIsOverflow) {
+						if (oControl.getItems().length || oControl._isOverflow()) {
 							oControl._expandButtonPress();
 						}
 						return;
 					}
 
-					if (oControl === this._getOverflow()) {
+					if ((oControl === this._getOverflow()) || (oControl === this._getStartOverflow())) {
 						oControl._expandButtonPress();
 						return;
 					}
@@ -1055,13 +1301,13 @@ sap.ui.define([
 				if (oControl.getMetadata().isInstanceOf("sap.m.IconTab") && !(oControl instanceof IconTabSeparator)) {
 
 					if (this._isUnselectable(oControl)) {
-						if (oControl.getItems().length || oControl._bIsOverflow) {
+						if (oControl.getItems().length || oControl._isOverflow()) {
 							oControl._expandButtonPress();
 						}
 						return;
 					}
 
-					if (oControl === this._getOverflow()) {
+					if ((oControl === this._getOverflow()) || (oControl === this._getStartOverflow())) {
 						oControl._expandButtonPress();
 						return;
 					}
@@ -1080,7 +1326,9 @@ sap.ui.define([
 		if (this._getOverflow()._oPopover) {
 			this._getOverflow()._oPopover.close();
 		}
-
+		if (this._getStartOverflow()._oPopover) {
+			this._getStartOverflow()._oPopover.close();
+		}
 		this._setItemsForStrip();
 		this._initItemNavigation();
 	};
@@ -1098,7 +1346,7 @@ sap.ui.define([
 
 		return !oFilter.getEnabled() || (this._isInsideIconTabBar() && !this.getParent().getContent().length &&
 			oFilter._getNestedLevel() === 1 && oFilter.getItems().length && !oFilter.getContent().length) ||
-			oFilter._bIsOverflow;
+			oFilter._isOverflow();
 	};
 
 	/**
@@ -1108,6 +1356,15 @@ sap.ui.define([
 	IconTabHeader.prototype._isInsideIconTabBar = function() {
 		var oParent = this.getParent();
 		return oParent instanceof Control && oParent.isA('sap.m.IconTabBar');
+	};
+
+	/**
+	 * Returns if the control is inside a sap.tnt.ToolHeader.
+	 * @private
+	 */
+	IconTabHeader.prototype._isInsideToolHeader = function() {
+		var oParent = this.getParent();
+		return oParent instanceof Control && oParent.isA('sap.tnt.ToolHeader');
 	};
 
 	/**
@@ -1150,9 +1407,8 @@ sap.ui.define([
 		var aItems = this.getItems(),
 			sSelectedKey = this.getSelectedKey(),
 			i = 0,
-			oParent = this.getParent(),
 			bIsParentIconTabBar = this._isInsideIconTabBar(),
-			bIsParentToolHeader = oParent && oParent.isA("sap.tnt.ToolHeader");
+			bIsParentToolHeader = this._isInsideToolHeader();
 
 		if (!aItems.length) {
 			return;
@@ -1263,13 +1519,22 @@ sap.ui.define([
 		}
 	};
 
-	IconTabHeader.prototype._getItemsForOverflow = function () {
+	IconTabHeader.prototype._getItemsForOverflow = function (bIsStartOverflow) {
+
 		var aItemsInStrip = this._getItemsInStrip(),
+			bIsStartAndEndMode = this.getTabsOverflowMode() === TabsOverflowMode.StartAndEnd,
+			iIndex,
+			aItems = this.getItems(),
 			aItemsForList = [];
 
-		this.getItems().forEach(function (oItem) {
+		if (bIsStartAndEndMode) {
+			iIndex = aItems.indexOf(aItemsInStrip[0]);
+			aItems = bIsStartOverflow ? aItems.slice(0, iIndex) : aItems.slice(iIndex, aItems.length);
+		}
+
+		aItems.forEach(function (oItem) {
 			// If tab is an overflow tab and oItem is already in Tab Strip, do not add it to list
-			// on a mobile device, this behaviour doesn't occur, and all items are shown
+			// on a mobile device, this behavior doesn't occur, and all items are shown
 			if (!Device.system.phone && aItemsInStrip.indexOf(oItem) > -1) {
 				return;
 			}
@@ -1343,9 +1608,14 @@ sap.ui.define([
 				oEvent.preventDefault();
 				break;
 			case KeyCodes.SPACE:
-				this._handleActivation(oEvent);
 				oEvent.preventDefault(); // prevent scrolling when focused on the tab
 				break;
+		}
+	};
+
+	IconTabHeader.prototype.onkeyup = function(oEvent) {
+		if (oEvent.which === KeyCodes.SPACE) {
+			this._handleActivation(oEvent);
 		}
 	};
 
@@ -1382,6 +1652,7 @@ sap.ui.define([
 		this._setItemsForStrip();
 		this._initItemNavigation();
 		this._getOverflow()._setSelectListItems();
+		this._getStartOverflow()._setSelectListItems();
 		this._getSelectList()._initItemNavigation();
 
 		oDraggedControl._getRealTab().$().trigger("focus");
@@ -1403,8 +1674,8 @@ sap.ui.define([
 	 * Moves a tab by a specific key code
 	 *
 	 * @param {object} oTab The event object
-	 * @param {integer} iKeyCode Key code
-	 * @param {integer} iMaxIndex The end of the tab strip`
+	 * @param {int} iKeyCode Key code
+	 * @param {int} iMaxIndex The end of the tab strip`
 	 * @private
 	 */
 	IconTabHeader.prototype._moveTab = function (oTab, iKeyCode, iMaxIndex) {

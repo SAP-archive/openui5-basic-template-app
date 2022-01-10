@@ -28,7 +28,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.DateTimeBase
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @alias sap.ui.model.odata.type.DateTimeOffset
 	 * @param {object} [oFormatOptions]
@@ -152,6 +152,18 @@ sap.ui.define([
 		return DateTimeBase.prototype.formatValue.call(this, vValue, sTargetType);
 	};
 
+	// @override
+	// @see sap.ui.model.SimpleType#getConstraints
+	DateTimeOffset.prototype.getConstraints = function () {
+		var oConstraints = DateTimeBase.prototype.getConstraints.call(this);
+
+		if (this.bV4) {
+			oConstraints.V4 = true;
+		}
+
+		return oConstraints;
+	};
+
 	/**
 	 * Returns a formatter that converts between the model format and a Javascript Date. It has two
 	 * methods: <code>format</code> and <code>parse</code>.
@@ -218,7 +230,7 @@ sap.ui.define([
 	/**
 	 * Sets OData V4 semantics for this type instance.
 	 *
-	 * @returns {sap.ui.model.odata.type.DateTimeOffset}
+	 * @returns {this}
 	 *   <code>this</code> to allow method chaining
 	 *
 	 * @private

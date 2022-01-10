@@ -126,7 +126,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @public
 	 * @alias sap.ui.core.Element
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
@@ -240,6 +240,9 @@ sap.ui.define([
 	};
 
 	/**
+	 * Elements don't have a facade and therefore return themselves as their interface.
+	 *
+	 * @returns {this} <code>this</code> as there's no facade for elements
 	 * @see sap.ui.base.Object#getInterface
 	 * @public
 	 */
@@ -291,8 +294,9 @@ sap.ui.define([
 	 *  <li><code>[layout="Vertical"]: </code> The arrangement of the items in this aggregation. This setting is recommended for the aggregation with multiplicity 0..n (<code>multiple: true</code>). Possible values are <code>Vertical</code> (e.g. rows in a table) and <code>Horizontal</code> (e.g. columns in a table). It is recommended to use <code>Horizontal</code> layout if the arrangement is multidimensional.</li>
 	 * </ul>
 	 *
-	 * @param {string} sClassName fully qualified name of the class that is described by this metadata object
-	 * @param {object} oStaticInfo static info to construct the metadata from
+	 * @param {string} sClassName Name of the class to be created
+	 * @param {object} [oClassInfo] Object literal with information about the class
+	 * @param {function} [FNMetaImpl] Constructor function for the metadata object. If not given, it defaults to <code>sap.ui.core.ElementMetadata</code>.
 	 * @returns {function} Created class / constructor function
 	 *
 	 * @public
@@ -303,6 +307,8 @@ sap.ui.define([
 
 	/**
 	 * Dispatches the given event, usually a browser event or a UI5 pseudo event.
+	 *
+	 * @param {jQuery.Event} oEvent The event
 	 * @private
 	 */
 	Element.prototype._handleEvent = function (oEvent) {
@@ -394,10 +400,13 @@ sap.ui.define([
 	 * @param {sap.ui.core.Element|object} vData Data to create the element from
 	 * @param {object} [oKeyInfo] An entity information (e.g. aggregation info)
 	 * @param {string} [oKeyInfo.type] Type info for the entity
+	 * @returns {sap.ui.core.Element}
+	 *   The newly created <code>Element</code>
 	 * @public
 	 * @static
 	 * @deprecated As of 1.44, use the more flexible {@link sap.ui.base.ManagedObject.create}.
 	 * @function
+	 * @ts-skip
 	 */
 	Element.create = ManagedObject.create;
 
@@ -455,8 +464,7 @@ sap.ui.define([
 	/**
 	 * Checks whether this element has an active parent.
 	 *
-	 * @type boolean
-	 * @return true if this element has an active parent
+	 * @returns {boolean} Whether this element has an active parent
 	 * @private
 	 */
 	Element.prototype.isActive = function() {
@@ -469,7 +477,7 @@ sap.ui.define([
 	 *
 	 * @param {string}  sPropertyName name of the property to set
 	 * @param {any}     [oValue] value to set the property to
-	 * @return {any|sap.ui.core.Element} Returns <code>this</code> to allow method chaining in case of setter and the property value in case of getter
+	 * @return {any|this} Returns <code>this</code> to allow method chaining in case of setter and the property value in case of getter
 	 * @public
 	 * @deprecated Since 1.28.0 The contract of this method is not fully defined and its write capabilities overlap with applySettings
 	 */
@@ -547,8 +555,9 @@ sap.ui.define([
 	 *
 	 * Applications should call this method if they don't need the element any longer.
 	 *
-	 * @param {boolean}
-	 *            [bSuppressInvalidate] if true, the UI element is removed from DOM synchronously and parent will not be invalidated.
+	 * @param {boolean} [bSuppressInvalidate=false] If <code>true</code>, this ManagedObject and all its ancestors won't be invalidated.
+	 *      <br>This flag should be used only during control development to optimize invalidation procedures.
+	 *      It should not be used by any application code.
 	 * @public
 	 */
 	Element.prototype.destroy = function(bSuppressInvalidate) {
@@ -602,7 +611,7 @@ sap.ui.define([
 	 */
 	Element.prototype.fireEvent = function(sEventId, mParameters, bAllowPreventDefault, bEnableEventBubbling) {
 		if (this.hasListeners(sEventId)) {
-			Interaction.notifyStepStart(this);
+			Interaction.notifyStepStart(sEventId, this);
 		}
 
 		// get optional parameters right
@@ -650,7 +659,7 @@ sap.ui.define([
 	 * @param {boolean} [bCallBefore=false] if true, the delegate event listeners are called before the event listeners of the element; default is "false". In order to also set bClone, this parameter must be given.
 	 * @param {object} [oThis=oDelegate] if given, this object will be the "this" context in the listener methods; default is the delegate object itself
 	 * @param {boolean} [bClone=false] if true, this delegate will also be attached to any clones of this element; default is "false"
-	 * @return {sap.ui.core.Element} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @private
 	 */
 	Element.prototype.addDelegate = function (oDelegate, bCallBefore, oThis, bClone) {
@@ -685,7 +694,7 @@ sap.ui.define([
 	 * If the delegate was marked to be cloned and this element has been cloned, the delegate will not be removed from any clones.
 	 *
 	 * @param {object} oDelegate the delegate object
-	 * @return {sap.ui.core.Element} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @private
 	 */
 	Element.prototype.removeDelegate = function (oDelegate) {
@@ -750,7 +759,7 @@ sap.ui.define([
 	 *
 	 * @param {object} oDelegate The delegate object which consists of the event handler names and the corresponding event handler functions
 	 * @param {object} [oThis=oDelegate] If given, this object will be the "this" context in the listener methods; default is the delegate object itself
-	 * @returns {sap.ui.core.Element} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @since 1.9.0
 	 * @public
 	 */
@@ -776,7 +785,7 @@ sap.ui.define([
 	 * oElement.removeEventDelegate(oDelegate);
 	 * </pre>
 	 * @param {object} oDelegate The delegate object which consists of the event handler names and the corresponding event handler functions
-	 * @return {sap.ui.core.Element} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @since 1.9.0
 	 * @public
 	 */
@@ -828,9 +837,9 @@ sap.ui.define([
 	}
 
 	/**
-	 * Sets the focus to the stored focus DOM reference
+	 * Sets the focus to the stored focus DOM reference.
 	 *
-	 * @param {object} oFocusInfo
+	 * @param {object} [oFocusInfo={}] Options for setting the focus
 	 * @param {boolean} [oFocusInfo.preventScroll=false] @since 1.60 if it's set to true, the focused
 	 *   element won't be shifted into the viewport if it's not completely visible before the focus is set
 	 * @public
@@ -844,14 +853,14 @@ sap.ui.define([
 		if (oFocusDomRef) {
 			// save the scroll position of all ancestor DOM elements
 			// before the focus is set, because preventScroll is not supported by the following browsers
-			if (Device.browser.safari || Device.browser.msie || Device.browser.edge) {
+			if (Device.browser.safari) {
 				if (oFocusInfo.preventScroll === true) {
 					aScrollHierarchy = getAncestorScrollPositions(oFocusDomRef);
 				}
 				oFocusDomRef.focus();
 				if (aScrollHierarchy.length > 0) {
 					// restore the scroll position if it's changed after setting focus
-					// Safari, IE11 and Edge need a little delay to get the scroll position updated
+					// Safari needs a little delay to get the scroll position updated
 					setTimeout(restoreScrollPositions.bind(null, aScrollHierarchy), 0);
 				}
 			} else {
@@ -861,10 +870,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns an object representing the serialized focus information
-	 * To be overwritten by the specific control method
-	 * @type object
-	 * @return an object representing the serialized focus information
+	 * Returns an object representing the serialized focus information.
+	 *
+	 * To be overwritten by the specific control method.
+	 *
+	 * @returns {object} an object representing the serialized focus information
 	 * @protected
 	 */
 	Element.prototype.getFocusInfo = function () {
@@ -876,9 +886,10 @@ sap.ui.define([
 	 *
 	 * To be overwritten by the specific control method.
 	 *
-	 * @param {object} oFocusInfo
+	 * @param {object} oFocusInfo Focus info object as returned by {@link #getFocusInfo}
 	 * @param {boolean} [oFocusInfo.preventScroll=false] @since 1.60 if it's set to true, the focused
 	 *   element won't be shifted into the viewport if it's not completely visible before the focus is set
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @protected
 	 */
 	Element.prototype.applyFocusInfo = function (oFocusInfo) {
@@ -888,7 +899,10 @@ sap.ui.define([
 
 
 	/**
+	 * Refreshs the tooltip base delegate with the given <code>oTooltip</code>
+	 *
 	 * @see sap.ui.core.Element#setTooltip
+	 * @param {sap.ui.core.TooltipBase} oTooltip The new tooltip
 	 * @private
 	 */
 	Element.prototype._refreshTooltipBaseDelegate = function (oTooltip) {
@@ -906,13 +920,15 @@ sap.ui.define([
 
 
 	/**
-	 * Sets a new tooltip for this object. The tooltip can either be a simple string
-	 * (which in most cases will be rendered as the <code>title</code> attribute of this
-	 * Element) or an instance of {@link sap.ui.core.TooltipBase}.
+	 * Sets a new tooltip for this object.
+	 *
+	 * The tooltip can either be a simple string (which in most cases will be rendered as the
+	 * <code>title</code> attribute of this  Element) or an instance of {@link sap.ui.core.TooltipBase}.
 	 *
 	 * If a new tooltip is set, any previously set tooltip is deactivated.
 	 *
-	 * @param {string|sap.ui.core.TooltipBase} vTooltip
+	 * @param {string|sap.ui.core.TooltipBase} vTooltip New tooltip
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	Element.prototype.setTooltip = function(vTooltip) {
@@ -978,7 +994,7 @@ sap.ui.define([
 	/**
 	 * Destroys the tooltip in the aggregation
 	 * named <code>tooltip</code>.
-	 * @return {sap.ui.core.Element} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @public
 	 * @name sap.ui.core.Element#destroyTooltip
 	 * @function
@@ -1101,7 +1117,12 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the data object with the given key
+	 * Returns the data object with the given <code>key</code>
+	 *
+	 * @private
+	 * @param {sap.ui.core.Element} element The element
+	 * @param {string} key The key of the desired custom data
+	 * @returns {sap.ui.core.CustomData} The custom data
 	 */
 	function findCustomData(element, key) {
 		var aData = element.getAggregation("customData");
@@ -1117,34 +1138,34 @@ sap.ui.define([
 
 	/**
 	 * Contains the data modification logic
+	 *
+	 * @private
+	 * @param {sap.ui.core.Element} element The element
+	 * @param {string} key The key of the desired custom data
+	 * @param {string|any} value The value of the desired custom data
+	 * @param {boolean} writeToDom Whether this custom data entry should be written to the DOM during rendering
 	 */
 	function setCustomData(element, key, value, writeToDom) {
+		var oDataObject = findCustomData(element, key);
 
-		// DELETE
 		if (value === null) { // delete this property
-			var dataObject = findCustomData(element, key);
-			if (!dataObject) {
+			if (!oDataObject) {
 				return;
 			}
-
 			var dataCount = element.getAggregation("customData").length;
 			if (dataCount == 1) {
 				element.destroyAggregation("customData", true); // destroy if there is no other data
 			} else {
-				element.removeAggregation("customData", dataObject, true);
-				dataObject.destroy();
+				element.removeAggregation("customData", oDataObject, true);
+				oDataObject.destroy();
 			}
-
-			// ADD or CHANGE
-		} else {
-			var dataObject = findCustomData(element, key);
-			if (dataObject) {
-				dataObject.setValue(value);
-				dataObject.setWriteToDom(writeToDom);
-			} else {
-				var dataObject = new CustomData({key:key,value:value, writeToDom:writeToDom});
-				element.addAggregation("customData", dataObject, true);
-			}
+		} else if (oDataObject) { // change the existing data object
+			oDataObject.setValue(value);
+			oDataObject.setWriteToDom(writeToDom);
+		} else { // add a new data object
+			element.addAggregation("customData",
+				new CustomData({ key: key, value: value, writeToDom: writeToDom }),
+				true);
 		}
 	}
 
@@ -1302,7 +1323,7 @@ sap.ui.define([
 	 *
 	 * @param {string} [sIdSuffix] Suffix to be appended to the cloned element ID
 	 * @param {string[]} [aLocalIds] Array of local IDs within the cloned hierarchy (internally used)
-	 * @returns {sap.ui.core.Element} reference to the newly created clone
+	 * @returns {this} reference to the newly created clone
 	 * @public
 	 */
 	Element.prototype.clone = function(sIdSuffix, aLocalIds){
@@ -1314,9 +1335,9 @@ sap.ui.define([
 				oClone.aDelegates.push(this.aDelegates[i]);
 			}
 		}
-		for ( var i = 0; i < this.aBeforeDelegates.length; i++) {
-			if (this.aBeforeDelegates[i].bClone) {
-				oClone.aBeforeDelegates.push(this.aBeforeDelegates[i]);
+		for ( var k = 0; k < this.aBeforeDelegates.length; k++) {
+			if (this.aBeforeDelegates[k].bClone) {
+				oClone.aBeforeDelegates.push(this.aBeforeDelegates[k]);
 			}
 		}
 
@@ -1356,7 +1377,7 @@ sap.ui.define([
 	 * for this control when it is used inside a layout.
 	 *
 	 * @param {sap.ui.core.LayoutData} oLayoutData which should be set
-	 * @return {sap.ui.core.Element} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	Element.prototype.setLayoutData = function(oLayoutData) {
@@ -1375,7 +1396,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Allows the parent of a control to enhance the aria information during rendering.
+	 * Allows the parent of a control to enhance the ARIA information during rendering.
 	 *
 	 * This function is called by the RenderManager's
 	 * {@link sap.ui.core.RenderManager#accessibilityState accessibilityState} and
@@ -1384,9 +1405,11 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @name sap.ui.core.Element.prototype.enhanceAccessibilityState
-	 * @param {sap.ui.core.Element} oElement the Control/Element for which aria properties are rendered
-	 * @param {object} mAriaProps map of aria properties keyed by there name (without prefix "aria-")
-	 * @return {object} map of enhanced aria properties
+	 * @param {sap.ui.core.Element} oElement
+	 *   The Control/Element for which ARIA properties are collected
+	 * @param {object} mAriaProps
+	 *   Map of ARIA properties keyed by their name (without prefix "aria-"); the method
+	 *   implementation can enhance this map in any way (add or remove properties, modify values)
 	 * @protected
 	 * @abstract
 	 */
@@ -1408,7 +1431,7 @@ sap.ui.define([
 	 * @param {object} [mParameters] map of additional parameters for this binding (only taken into account when vPath is a string in that case it corresponds to vPath.parameters).
 	 * The supported parameters are listed in the corresponding model-specific implementation of <code>sap.ui.model.ContextBinding</code>.
 	 *
-	 * @returns {sap.ui.core.Element} reference to the instance itself
+	 * @returns {this} reference to the instance itself
 	 * @public
 	 * @function
 	 * @see {@link sap.ui.base.ManagedObject#bindObject}
@@ -1488,7 +1511,7 @@ sap.ui.define([
 	 * @returns {Element} The first matching DOM Element for the setting or <code>null</code>
 	 * @throws {SyntaxError} When the selector string in the metadata is not a valid CSS selector group
 	 * @private
-	 * @ui5-restricted internal usage for drag and drop and sap.ui.dt
+	 * @ui5-restricted drag and drop, sap.ui.dt
 	 */
 	Element.prototype.getDomRefForSetting = function (sSettingsName) {
 		var oSetting = this.getMetadata().getAllSettings()[sSettingsName];
@@ -1509,7 +1532,8 @@ sap.ui.define([
 
 	/**
 	 * Returns the contextual width of an element, if set, or <code>undefined</code> otherwise
-	 * @returns {*}
+	 *
+	 * @returns {*} The contextual width
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -1524,8 +1548,9 @@ sap.ui.define([
 	/**
 	 * Returns the current media range of the Device or the closest media container
 	 *
-	 * @param {string} sName
-	 * @returns {object}
+	 * @param {string} [sName=Device.media.RANGESETS.SAP_STANDARD] The name of the range set
+	 * @returns {object} Information about the current active interval of the range set.
+	 *  The returned object has the same structure as the argument of the event handlers ({@link sap.ui.Device.media.attachHandler})
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -1567,7 +1592,7 @@ sap.ui.define([
 		// Notify all listeners, for which a media breakpoint change occurred, based on their RangeSet
 		aListeners.forEach(function (oL) {
 			var oMedia = this._getCurrentMediaContainerRange(oL.name);
-			if (oMedia.from !== oL.media.from) {
+			if (oMedia && oMedia.from !== oL.media.from) {
 				oL.media = oMedia;
 				oL.callback.call(oL.listener || window, oMedia);
 			}
@@ -1575,11 +1600,16 @@ sap.ui.define([
 	};
 
 	/**
-	 * Registers the given event handler to change events of the screen width/closest media container width, based on the range set with the specified name.
+	 * Registers the given event handler to change events of the screen width/closest media container width,
+	 *  based on the range set with the given <code>sName</code>.
 	 *
-	 * @param {function} fnFunction
-	 * @param {object} oListener
-	 * @param {string} sName
+	 * @param {function} fnFunction The handler function to call when the event occurs.
+	 *  This function will be called in the context of the <code>oListener</code> instance (if present) or
+	 *  on the element instance.
+	 * @param {object} oListener The object that wants to be notified when the event occurs
+	 *  (<code>this</code> context within the handler function).
+	 *  If it is not specified, the handler function is called in the context of the element.
+	 * @param {string} sName The name of the desired range set
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -1603,9 +1633,14 @@ sap.ui.define([
 
 	/**
 	 * Removes a previously attached event handler from the change events of the screen width/closest media container width.
-	 * @param {function} fnFunction
-	 * @param {object} oListener
-	 * @param {string} sName
+	 *
+	 * @param {function} fnFunction The handler function to call when the event occurs.
+	 *  This function will be called in the context of the <code>oListener</code> instance (if present) or
+	 *  on the element instance.
+	 * @param {object} oListener The object that wants to be notified when the event occurs
+	 *  (<code>this</code> context within the handler function).
+	 *  If it is not specified, the handler function is called in the context of the element.
+	 * @param {string} sName The name of the desired range set
 	 * @private
 	 * @ui5-restricted
 	 */

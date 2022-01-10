@@ -4,12 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
-
-
 // Provides control sap.m.ColorPalette
 sap.ui.define([
 	'sap/ui/core/Control',
@@ -24,7 +18,9 @@ sap.ui.define([
 	"sap/ui/dom/containsOrEquals",
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/unified/ColorPickerDisplayMode"
+	"sap/ui/unified/library",
+	"sap/ui/unified/ColorPickerDisplayMode",
+	"sap/ui/unified/ColorPicker"
 ], function(
 	Control,
 	Device,
@@ -38,18 +34,17 @@ sap.ui.define([
 	containsOrEquals,
 	KeyCodes,
 	jQuery,
-	ColorPickerDisplayMode
+	unifiedLibrary,
+	ColorPickerDisplayMode,
+	ColorPicker
 ) {
 		"use strict";
 
 		// shortcut to CSSColor of the core library
 		var CSSColor = coreLibrary.CSSColor;
 
-		// shortcut to ColorPicker (lazy initialized)
-		var ColorPicker;
-
-		// shortcut to ColorPickerMode (lazy initialized)
-		var ColorPickerMode;
+		// shortcut to ColorPickerMode
+		var ColorPickerMode = unifiedLibrary.ColorPickerMode;
 
 		// shortcut to the ButtonType enumeration
 		var ButtonType = library.ButtonType;
@@ -100,14 +95,16 @@ sap.ui.define([
 		 * wrapper control <code>sap.m.ColorPalettePopover</code>).
 		 * @see {@link sap.m.ColorPalettePopover}
 		 *
-		 * <b>Note:</b> The {@link sap.ui.unified.ColorPicker} is used internally only if the <code>ColorPicker</code>
+		 * <b>Note:</b> The application developers should add dependency to <code>sap.ui.unified</code> library
+		 * on application level to ensure that the library is loaded before the module dependencies will be required.
+		 * The {@link sap.ui.unified.ColorPicker} is used internally only if the <code>ColorPicker</code>
 		 * is opened (not used for the initial rendering). If the <code>sap.ui.unified</code> library is not loaded
-		 * before the <code>ColorPicker</code> is opened, it will be loaded upon opening. This could lead to a waiting
-		 * time when the <code>ColorPicker</code> is opened for the first time. To prevent this, apps using the
-		 * <code>ColorPalette</code> should also load the <code>sap.ui.unified</code> library.
+		 * before the <code>ColorPicker</code> is opened, it will be loaded upon opening. This could lead to CSP compliance
+		 * issues and adds an additional waiting time when the <code>ColorPicker</code> is opened for the first time.
+		 * To prevent this, apps using the <code>ColorPalette</code> should also load the <code>sap.ui.unified</code> library in advance.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -166,6 +163,60 @@ sap.ui.define([
 							 * Denotes if the color has been chosen by selecting the "Default Color" button (true or false)
 							 */
 							"defaultAction": {type: "boolean"}
+						}
+					},
+					/**
+					 * Fired when the value is changed by user interaction in the internal ColorPicker
+					 *
+					 * @since 1.85
+					 */
+					liveChange: {
+						parameters : {
+
+							/**
+							 * Parameter containing the RED value (0-255).
+							 */
+							r : {type: "int"},
+
+							/**
+							 * Parameter containing the GREEN value (0-255).
+							 */
+							g : {type: "int"},
+
+							/**
+							 * Parameter containing the BLUE value (0-255).
+							 */
+							b : {type: "int"},
+
+							/**
+							 * Parameter containing the HUE value (0-360).
+							 */
+							h : {type: "int"},
+
+							/**
+							 * Parameter containing the SATURATION value (0-100).
+							 */
+							s : {type: "int"},
+
+							/**
+							 * Parameter containing the VALUE value (0-100).
+							 */
+							v : {type: "int"},
+
+							/**
+							 * Parameter containing the LIGHTNESS value (0-100).
+							 */
+							l : {type: "int"},
+
+							/**
+							 * Parameter containing the Hexadecimal string (#FFFFFF).
+							 */
+							hex : {type: "string"},
+
+							/**
+							 * Parameter containing the alpha value (transparency).
+							 */
+							alpha : {type: "string"}
 						}
 					}
 				}
@@ -234,7 +285,7 @@ sap.ui.define([
 		 * Sets a default displayMode.
 		 * @param {sap.ui.unified.ColorPickerDisplayMode} oDisplayMode the color
 		 * @private
-		 * @return {sap.m.ColorPalette} <code>this</code> for method chaining
+		 * @return {this} <code>this</code> for method chaining
 		 */
 		ColorPalette.prototype._setDisplayMode = function (oDisplayMode) {
 			var oColorPicker = this._getColorPicker();
@@ -318,7 +369,7 @@ sap.ui.define([
 		 * Sets a selected color for the ColorPicker control.
 		 * @param {sap.ui.core.CSSColor} color the selected color
 		 * @public
-		 * @return {sap.m.ColorPalette} <code>this</code> for method chaining
+		 * @return {this} <code>this</code> for method chaining
 		 */
 		ColorPalette.prototype.setColorPickerSelectedColor = function (color) {
 			if (!CSSColor.isValid(color)) {
@@ -350,7 +401,7 @@ sap.ui.define([
 		 * Sets a default color.
 		 * @param {sap.ui.core.CSSColor} color the color
 		 * @private
-		 * @return {sap.m.ColorPalette} <code>this</code> for method chaining
+		 * @return {this} <code>this</code> for method chaining
 		 */
 		ColorPalette.prototype._setDefaultColor = function (color) {
 			if (!CSSColor.isValid(color)) {
@@ -475,12 +526,13 @@ sap.ui.define([
 				title: oLibraryResourceBundle.getText("COLOR_PALETTE_MORE_COLORS_TITLE")
 			}).addStyleClass("CPDialog");
 
-			this._ensureUnifiedLibrary();
-
 			// keep explicit reference to the picker attached to the parent dialog
 			oDialog.addContent(oDialog._oColorPicker = new ColorPicker({
 				mode: ColorPickerMode.HSL,
-				displayMode: this._oDisplayMode
+				displayMode: this._oDisplayMode,
+				liveChange: function (oEvent) {
+					this.fireLiveChange(oEvent.getParameters());
+				}.bind(this)
 			}));
 
 			// OK button
@@ -504,21 +556,8 @@ sap.ui.define([
 
 			return oDialog;
 		};
+
 		// Other
-
-		// Ensure that the sap.ui.unified library and sap.ui.unified.ColorPicker are both loaded
-		ColorPalette.prototype._ensureUnifiedLibrary = function () {
-			var oUnifiedLib;
-
-			if (!ColorPicker) {
-				sap.ui.getCore().loadLibrary("sap.ui.unified");
-				oUnifiedLib = sap.ui.require("sap/ui/unified/library");
-
-				ColorPicker = sap.ui.requireSync("sap/ui/unified/ColorPicker");
-				ColorPickerMode = oUnifiedLib.ColorPickerMode;
-			}
-		};
-
 		/**
 		 * Focuses the first available element in the palette.
 		 * @private
@@ -540,6 +579,7 @@ sap.ui.define([
 			this.fireColorSelect({value: color, defaultAction: defaultAction, _originalEvent: oOriginalEvent});
 			this.pushToRecentColors(color);
 		};
+
 		/**
 		 * Handles creation or update of the ItemNavigation.
 		 * @private

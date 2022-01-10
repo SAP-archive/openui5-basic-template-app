@@ -3,28 +3,36 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/thirdparty/URI'], function(URI) {
+/*global URL */
+sap.ui.define([], function() {
 	"use strict";
 
 	/**
-	 * If the given URL is cross-origin, checks whether its origin is different from
-	 * the origin of the current document.
+	 * Checks whether the given URL is cross-origin, compared to the origin of
+	 * the current page (<code>window.location</code>).
+	 *
+	 * <b>Note</b>: for opaque origins ('null'), the check is quite conservative
+	 * and always reports a cross-origin URL, although the real origins might be
+	 * the same. The serialized representation of origins does not allow a more
+	 * accurate check.
+	 *
+	 * @see https://html.spec.whatwg.org/multipage/origin.html#origin
 	 *
 	 * @param {sap.ui.core.URI} sHref The URL to check
 	 * @returns {boolean} Whether the URL is a cross-origin URL
 	 * @private
-	 * @ui5-restricted
+	 * @ui5-restricted sap.ui.model.odata.v2.ODataModel,sap.ushell
 	 * @alias module:sap/ui/util/isCrossOriginURL
 	 * @since 1.84
 	 */
 	function isCrossOriginURL(sHref) {
-		// Code can be similfied during IE11 cleanup as URL API can handle URNs without errors:
-		// --> new URL("mailto:info.germany@sap.com', document.baseURI).toString()
-		var oURI = new URI(sHref),
-			oURI = oURI.is("relative") ? oURI.absoluteTo(document.baseURI) : oURI,
-			sOrigin = window.location.origin || new URI().origin();
+		var oURL = new URL(sHref, document.baseURI);
 
-		return oURI.origin() !== sOrigin;
+		return (
+			oURL.origin === 'null'
+			|| window.location.origin === 'null'
+			|| oURL.origin !== window.location.origin
+		);
 	}
 
 	return isCrossOriginURL;

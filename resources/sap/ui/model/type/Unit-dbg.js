@@ -3,30 +3,21 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the base implementation for all model implementations
 sap.ui.define([
-	'sap/ui/core/format/NumberFormat',
-	'sap/ui/model/CompositeType',
-	'sap/ui/model/FormatException',
-	'sap/ui/model/ParseException',
-	'sap/ui/model/ValidateException',
-	'sap/ui/core/LocaleData',
 	"sap/base/strings/hash",
-	"sap/ui/thirdparty/jquery",
-	"sap/base/util/isEmptyObject"
-],
-	function(
-		NumberFormat,
-		CompositeType,
-		FormatException,
-		ParseException,
-		ValidateException,
-		LocaleData,
-		hash,
-		jQuery,
-		isEmptyObject
-	) {
+	"sap/base/util/each",
+	"sap/base/util/extend",
+	"sap/base/util/isEmptyObject",
+	"sap/ui/core/LocaleData",
+	"sap/ui/core/format/NumberFormat",
+	"sap/ui/model/CompositeType",
+	"sap/ui/model/FormatException",
+	"sap/ui/model/ParseException",
+	"sap/ui/model/ValidateException"
+], function(hash, each, extend, isEmptyObject, LocaleData, NumberFormat, CompositeType,
+		FormatException, ParseException, ValidateException) {
 	"use strict";
 
 
@@ -56,17 +47,35 @@ sap.ui.define([
 	 *
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
-	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.NumberFormat.getUnitInstance NumberFormat}.
-	 * @param {object} [oFormatOptions.source] Additional set of format options to be used if the property in the model is not of type <code>string</code> and needs formatting as well.
-	 * 										   If an empty object is given, the grouping is disabled and a dot is used as decimal separator.
-	 * @param {object} [oConstraints] Value constraints
-	 * @param {float} [oConstraints.minimum] Smallest value allowed for this type
-	 * @param {float} [oConstraints.maximum] Largest value allowed for this type
-	 * @param {float} [oConstraints.decimals] Largest number of decimals allowed for this type
-	 * @param {array} [aDynamicFormatOptionNames] keys for dynamic format options which are used to map additional binding values, e.g. <code>["decimals"]</code>
+	 * @param {object} [oFormatOptions]
+	 *   Formatting options. For a list of all available options, see
+	 *   {@link sap.ui.core.format.NumberFormat.getUnitInstance NumberFormat}. If the format options
+	 *   <code>showMeasure</code> or <code>showNumber</code> are set to <code>false</code>, model
+	 *   messages for the respective parts are not propagated to the control, provided the
+	 *   corresponding binding supports the feature of ignoring model messages, see
+	 *   {@link sap.ui.model.Binding#supportsIgnoreMessages}, and the corresponding binding
+	 *   parameter is not set manually.
+	 * @param {boolean} [oFormatOptions.preserveDecimals=true]
+	 *   By default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
+	 *   "short" or "long"; since 1.89.0
+	 * @param {object} [oFormatOptions.source]
+	 *   Additional set of format options to be used if the property in the model is not of type
+	 *   <code>string</code> and needs formatting as well. If an empty object is given, the grouping
+	 *   is disabled and a dot is used as decimal separator.
+	 * @param {object} [oConstraints]
+	 *   Value constraints
+	 * @param {float} [oConstraints.minimum]
+	 *   Smallest value allowed for this type
+	 * @param {float} [oConstraints.maximum]
+	 *   Largest value allowed for this type
+	 * @param {float} [oConstraints.decimals]
+	 *   Largest number of decimals allowed for this type
+	 * @param {array} [aDynamicFormatOptionNames]
+	 *   keys for dynamic format options which are used to map additional binding values, e.g.
+	 *   <code>["decimals"]</code>
 	 * @alias sap.ui.model.type.Unit
 	 */
 	var Unit = CompositeType.extend("sap.ui.model.type.Unit", /** @lends sap.ui.model.type.Unit.prototype  */ {
@@ -74,6 +83,10 @@ sap.ui.define([
 		constructor : function (oFormatOptions, oConstraints, aDynamicFormatOptionNames) {
 			CompositeType.apply(this, arguments);
 			this.sName = "Unit";
+			this.bShowMeasure = !oFormatOptions || !("showMeasure" in oFormatOptions)
+				|| oFormatOptions.showMeasure;
+			this.bShowNumber = !oFormatOptions || !("showNumber" in oFormatOptions)
+				|| oFormatOptions.showNumber;
 			this.bUseRawValues = true;
 			this.aDynamicFormatOptionNames = aDynamicFormatOptionNames;
 		}
@@ -84,8 +97,10 @@ sap.ui.define([
 	 * If a Unit is already known during formatting, we also pass it along to construct
 	 * an optimal NumberFormat instance.
 	 *
-	 * @param {*} aArgs an array containing the parsed dynamic format options
-	 * @param {*} sUnitToBeFormatted
+	 * @param {any[]} aArgs An array containing the parsed dynamic format options
+	 * @param {string} sUnitToBeFormatted The name of the unit to be formatted
+	 *
+	 * @return {sap.ui.core.format.NumberFormat} The new NumberFormat instance
 	 */
 	Unit.prototype._getInstance = function(aArgs, sUnitToBeFormatted) {
 		var oFormatArgs = this.createFormatOptions(aArgs);
@@ -106,7 +121,7 @@ sap.ui.define([
 
 			// we have a unit pattern, so we create a customUnit definition for the format options
 			if (mUnitPatterns) {
-				var mUnitClone = jQuery.extend({}, mUnitPatterns);
+				var mUnitClone = extend({}, mUnitPatterns);
 				mUnitClone.decimals = (oFormatArgs.decimals != undefined) ? oFormatArgs.decimals : mUnitClone.decimals;
 				mUnitClone.precision = (oFormatArgs.precision != undefined) ? oFormatArgs.precision : mUnitClone.precision;
 				oFormatArgs.customUnits = {};
@@ -117,7 +132,7 @@ sap.ui.define([
 		var oFormatOptionsMerged = oFormatArgs;
 		// merge the format options defined via constructor with the bound dynamic format options
 		if (this.oFormatOptions) {
-			oFormatOptionsMerged = jQuery.extend({}, this.oFormatOptions, oFormatArgs);
+			oFormatOptionsMerged = extend({}, this.oFormatOptions, oFormatArgs);
 		}
 
 		// Only subclasses of the Unit type use a NumberFormat instance cache.
@@ -167,16 +182,20 @@ sap.ui.define([
 	};
 
 	/**
-	 * Extracts arguments from the given value
-	 * @param vValue
-	 * @returns {Array}
+	 * Extracts arguments from the given value.
+	 *
+	 * @param {any} vValue
+	 *   The value to extract parameters from
+	 * @returns {any[]}
+	 *   Returns a copy of the given value starting with the third entry if the given value is an
+	 *   array; returns an empty array otherwise
 	 */
 	Unit.prototype.extractArguments = function(vValue) {
 		return Array.isArray(vValue) && vValue.length > 2 ? vValue.slice(2) : [];
 	};
 
 	/**
-	 * Format the given array containing amount and Unit code to an output value of type string.
+	 * Format the given array containing measure and unit code to an output value of type string.
 	 * Other internal types than 'string' are not supported by the Unit type.
 	 * If a source format has been defined for this type, the formatValue does also accept
 	 * a string value as input, which will be parsed into an array using the source format.
@@ -204,7 +223,7 @@ sap.ui.define([
 		if (!Array.isArray(aValues)) {
 			throw new FormatException("Cannot format Unit: " + vValue + " has the wrong format");
 		}
-		if (aValues[0] == undefined || aValues[0] == null) {
+		if ((aValues[0] == undefined || aValues[0] == null) && this.bShowNumber) {
 			return null;
 		}
 		switch (this.getPrimitiveType(sInternalType)) {
@@ -222,7 +241,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Parse a string value to an array containing amount and Unit. Parsing of other
+	 * Parse a string value to an array containing measure and unit. Parsing of other
 	 * internal types than 'string' is not supported by the Unit type.
 	 * In case a source format has been defined, after parsing the Unit is formatted
 	 * using the source format and a string value is returned instead.
@@ -231,13 +250,16 @@ sap.ui.define([
 	 * @name sap.ui.model.type.Unit.prototype.parseValue
 	 * @param {any} vValue the value to be parsed
 	 * @param {string} sInternalType the source type
-	 * @param {array} aCurrentValues the current values of all binding parts
-	 * @return {array|string} the parse result array
+	 * @param {array} [aCurrentValues] Not used
+	 * @return {any[]|string} the parse result array
+	 * @throws {sap.ui.model.ParseException}
+	 *   if <code>sInternalType</code> is unsupported or if the given string cannot be parsed
 	 *
 	 * @public
 	 */
 	Unit.prototype.parseValue = function(vValue, sInternalType) {
-		var vResult, oBundle;
+		var vResult;
+
 		switch (this.getPrimitiveType(sInternalType)) {
 			case "string":
 				this.oOutputFormat = this._getInstance(this.aDynamicValues);
@@ -245,9 +267,8 @@ sap.ui.define([
 				// current default error
 				// more specific errors describing the actual issue during parse()
 				// will be introduced with later work on the NumberFormat
-				if (!Array.isArray(vResult) || isNaN(vResult[0])) {
-					oBundle = sap.ui.getCore().getLibraryResourceBundle();
-					throw new ParseException(oBundle.getText("Unit.Invalid", [vValue]));
+				if (!Array.isArray(vResult) || this.bShowNumber && isNaN(vResult[0])) {
+					throw this.getParseException();
 				}
 				break;
 			case "int":
@@ -272,7 +293,7 @@ sap.ui.define([
 				aValues = this.oInputFormat.parse(vValue);
 			}
 			iValue = aValues[0];
-			jQuery.each(this.oConstraints, function(sName, oContent) {
+			each(this.oConstraints, function(sName, oContent) {
 				switch (sName) {
 					case "minimum":
 						if (iValue < oContent) {
@@ -293,6 +314,7 @@ sap.ui.define([
 							aMessages.push(oBundle.getText("Unit.Decimals", [oContent]));
 						}
 						break;
+					default: break;
 				}
 			});
 			if (aViolatedConstraints.length > 0) {
@@ -302,7 +324,11 @@ sap.ui.define([
 	};
 
 	Unit.prototype.setFormatOptions = function(oFormatOptions) {
-		this.oFormatOptions = oFormatOptions;
+		this.oFormatOptions = Object.assign(
+			oFormatOptions.style !== "short" && oFormatOptions.style !== "long"
+				? {preserveDecimals : true}
+				: {},
+			oFormatOptions);
 		this._clearInstances();
 		this._createInputFormat();
 	};
@@ -328,6 +354,56 @@ sap.ui.define([
 			}
 			this.oInputFormat = NumberFormat.getUnitInstance(oSourceOptions);
 		}
+	};
+
+	/**
+	 * Returns the parse exception based on "showNumber" and "showMeasure" format options.
+	 *
+	 * @returns {sap.ui.model.ParseException} The parse exception
+	 *
+	 * @private
+	 */
+	Unit.prototype.getParseException = function () {
+		var oBundle = sap.ui.getCore().getLibraryResourceBundle(),
+			sText;
+
+		if (!this.bShowNumber) {
+			sText = oBundle.getText("Unit.InvalidMeasure");
+		} else if (!this.bShowMeasure) {
+			sText = oBundle.getText("EnterNumber");
+		} else {
+			sText = oBundle.getText("Unit.Invalid");
+		}
+
+		return new ParseException(sText);
+	};
+
+	 /**
+	 * Gets an array of indices that determine which parts of this type shall not propagate their
+	 * model messages to the attached control. Prerequisite is that the corresponding binding
+	 * supports this feature, see {@link sap.ui.model.Binding#supportsIgnoreMessages}. If the format
+	 * option <code>showMeasure</code> is set to <code>false</code> and the unit value is not shown
+	 * in the control, the part for the unit code shall not propagate model messages to the control.
+	 * Analogously, if the format option <code>showNumber</code> is set to <code>false</code>, the
+	 * measure is not shown in the control and the part for the measure shall not propagate model
+	 * messages to the control.
+	 *
+	 * @return {number[]}
+	 *   An array of indices that determine which parts of this type shall not propagate their model
+	 *   messages to the attached control
+	 *
+	 * @public
+	 * @see sap.ui.model.Binding#supportsIgnoreMessages
+	 * @since 1.89.0
+	 */
+	// @override sap.ui.model.Binding#supportsIgnoreMessages
+	Unit.prototype.getPartsIgnoringMessages = function () {
+		if (!this.bShowMeasure) {
+			return [1];
+		} else if (!this.bShowNumber) {
+			return [0];
+		}
+		return [];
 	};
 
 	return Unit;

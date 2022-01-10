@@ -175,7 +175,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @param {sap.ui.core.Core} oCore internal API of the <core>Core</code> that manages this UIArea
 	 * @param {object} [oRootNode] reference to the DOM element that should be 'hosting' the UI Area.
 	 * @public
@@ -254,8 +254,9 @@ sap.ui.define([
 	});
 
 	/**
-	 * Returns whether rerendering is currently suppressed on this UIArea
-	 * @return boolean
+	 * Returns whether re-rendering is currently suppressed on this UIArea.
+	 *
+	 * @returns {boolean} Whether re-rendering is currently suppressed on this UIArea
 	 * @protected
 	 */
 	UIArea.prototype.isInvalidateSuppressed = function() {
@@ -286,8 +287,8 @@ sap.ui.define([
 	 *
 	 * The node must have an ID that will be used as ID for this instance of <code>UIArea</code>.
 	 *
-	 * @param {object}
-	 *            oRootNode the hosting DOM node for this instance of <code>UIArea</code>.
+	 * @param {object} oRootNode
+	 *            the hosting DOM node for this instance of <code>UIArea</code>.
 	 * @public
 	 */
 	UIArea.prototype.setRootNode = function(oRootNode) {
@@ -335,8 +336,8 @@ sap.ui.define([
 	 * The real re-rendering happens whenever the re-rendering is called. Either implicitly
 	 * at the end of any control event or by calling sap.ui.getCore().applyChanges().
 	 *
-	 * @param {sap.ui.base.Interface | sap.ui.core.Control}
-	 *            oRootControl the Control that should be the Root for this <code>UIArea</code>.
+	 * @param {sap.ui.base.Interface | sap.ui.core.Control} oRootControl
+	 *            the Control that should be the Root for this <code>UIArea</code>.
 	 * @public
 	 * @deprecated As of version 1.1, use {@link #removeAllContent} and {@link #addContent} instead
 	 */
@@ -473,7 +474,8 @@ sap.ui.define([
 
 	/**
 	 * Provide getBindingContext, as UIArea can be parent of an element.
-	 * @return {null} Always returns null.
+	 *
+	 * @returns {null} Always returns null.
 	 *
 	 * @protected
 	 */
@@ -580,15 +582,6 @@ sap.ui.define([
 			that.bNeedsRerendering = false;
 		}
 
-		// at least IE9 can fail with a runtime error when accessing activeElement from within an iframe
-		function activeElement() {
-			try {
-				return document.activeElement;
-			} catch (err) {
-				// return undefined; -- also satisfies eslint check for empty block
-			}
-		}
-
 		if (force) {
 			this.bNeedsRerendering = true;
 		}
@@ -634,7 +627,7 @@ sap.ui.define([
 					return len;
 				};
 
-				var oFocusRef_Initial = activeElement();
+				var oFocusRef_Initial = document.activeElement;
 				var oStoredFocusInfo = this.oCore.oFocusHandler.getControlFocusInfo();
 
 				//First remove the old Dom nodes and then render the controls again
@@ -643,7 +636,7 @@ sap.ui.define([
 				var aContent = this.getContent();
 				var len = cleanUpDom(aContent, true);
 
-				var oFocusRef_AfterCleanup = activeElement();
+				var oFocusRef_AfterCleanup = document.activeElement;
 
 				for (var i = 0; i < len; i++) {
 					if (aContent[i] && aContent[i].getParent() === this) {
@@ -653,7 +646,7 @@ sap.ui.define([
 				bUpdated = true;
 
 				/* Try restoring focus when focus ref is changed due to cleanup operations and not changed anymore by the rendering logic */
-				if (oFocusRef_Initial && oFocusRef_Initial != oFocusRef_AfterCleanup && oFocusRef_AfterCleanup === activeElement()) {
+				if (oFocusRef_Initial && oFocusRef_Initial != oFocusRef_AfterCleanup && oFocusRef_AfterCleanup === document.activeElement) {
 					try {
 						this.oCore.oFocusHandler.restoreFocus(oStoredFocusInfo);
 					} catch (e) {
@@ -892,7 +885,7 @@ sap.ui.define([
 
 		// in case of CRTL+SHIFT+ALT the contextmenu event should not be dispatched
 		// to allow to display the browsers context menu
-		if (oEvent.type === "contextmenu" && oEvent.shiftKey && oEvent.altKey && !!(oEvent.metaKey || oEvent.ctrlKey)) {
+		if (oEvent.type === "contextmenu" && oEvent.shiftKey && oEvent.altKey && (oEvent.metaKey || oEvent.ctrlKey)) {
 			Log.info("Suppressed forwarding the contextmenu event as control event because CTRL+SHIFT+ALT is pressed!");
 			return;
 		}
@@ -1144,7 +1137,10 @@ sap.ui.define([
 	 */
 	UIArea.prototype._handleGroupChange = function(oEvent, oElement) {
 		var oKey = UIArea._oFieldGroupValidationKey;
-		if (oEvent.type === "focusin") {
+		if (oEvent.type === "focusin" || oEvent.type === "focusout") {
+			if (oEvent.type === "focusout") {
+				oElement = jQuery(document.activeElement).control(0);
+			}
 			// delay the check for a field group change to allow focus forwarding and resetting focus after selection
 			if (UIArea._iFieldGroupDelayTimer) {
 				clearTimeout(UIArea._iFieldGroupDelayTimer);

@@ -20,7 +20,7 @@ sap.ui.define(['sap/ui/core/Element', "sap/base/Log"], function(Element, Log) {
 	 *
 	 * @author SAP SE
 	 * @extends sap.ui.core.Element
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @public
 	 * @constructor
 	 * @since 1.34.0
@@ -49,7 +49,7 @@ sap.ui.define(['sap/ui/core/Element', "sap/base/Log"], function(Element, Log) {
 	 * Sets <code>maskFormatSymbol</code> property.
 	 * @override
 	 * @param {String} sNewMaskFormatSymbol The new format symbol
-	 * @returns {sap.m.MaskInputRule} The <code>this</code> pointer for chaining
+	 * @returns {this} The <code>this</code> pointer for chaining
 	 */
 	MaskInputRule.prototype.setMaskFormatSymbol = function (sNewMaskFormatSymbol) {
 		var bIsMaskSymbolValid = validateMaskFormatSymbol.call(this, sNewMaskFormatSymbol);
@@ -64,7 +64,7 @@ sap.ui.define(['sap/ui/core/Element', "sap/base/Log"], function(Element, Log) {
 	 * Sets <code>regex</code> property.
 	 * @override
 	 * @param {String} sNewRegex The new regular expression
-	 * @returns {sap.m.MaskInputRule} The <code>this</code> pointer for chaining
+	 * @returns {this} The <code>this</code> pointer for chaining
 	 */
 	MaskInputRule.prototype.setRegex = function (sNewRegex) {
 		var bIsRegexValid = validateRegex.call(this, sNewRegex);

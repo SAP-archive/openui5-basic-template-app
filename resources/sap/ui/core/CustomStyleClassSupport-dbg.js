@@ -5,9 +5,10 @@
  */
 
 // Provides helper sap.ui.core.CustomStyleClassSupport
-sap.ui.define(['./Element', "sap/base/assert", "sap/base/Log", "sap/ui/thirdparty/jquery"],
-	function(Element, assert, Log, jQuery) {
+sap.ui.define(['./Element', "sap/base/assert", "sap/base/Log"],
+	function(Element, assert, Log) {
 	"use strict";
+
 
 	var rAnyWhiteSpace = /\s/;
 	var rNonWhiteSpace = /\S+/g;
@@ -114,8 +115,12 @@ sap.ui.define(['./Element', "sap/base/assert", "sap/base/Log", "sap/ui/thirdpart
 				}
 			}
 
-			aClasses = sStyleClass.match(rNonWhiteSpace);
-			aClasses && aClasses.forEach(check);
+			if ( rAnyWhiteSpace.test(sStyleClass) ) {
+				aClasses = sStyleClass.match(rNonWhiteSpace);
+				aClasses && aClasses.forEach(check);
+			} else {
+				check(sStyleClass);
+			}
 
 			// if all classes exist already, it's not needed to change the DOM or trigger invalidate
 			if (!bModified) {
@@ -124,7 +129,11 @@ sap.ui.define(['./Element', "sap/base/assert", "sap/base/Log", "sap/ui/thirdpart
 
 			var oRoot = this.getDomRef();
 			if (oRoot) { // non-rerendering shortcut
-				jQuery(oRoot).addClass(aClasses);
+				if ( aClasses ) {
+					oRoot.classList.add.apply(oRoot.classList, aClasses);
+				} else {
+					oRoot.classList.add(sStyleClass);
+				}
 			} else if (bSuppressRerendering === false) {
 				this.invalidate();
 			}
@@ -170,13 +179,21 @@ sap.ui.define(['./Element', "sap/base/assert", "sap/base/Log", "sap/ui/thirdpart
 				}
 			}
 
-			aClasses = sStyleClass.match(rNonWhiteSpace);
-			aClasses && aClasses.forEach(check);
+			if ( rAnyWhiteSpace.test(sStyleClass) ) {
+				aClasses = sStyleClass.match(rNonWhiteSpace);
+				aClasses && aClasses.forEach(check);
+			} else {
+				check(sStyleClass);
+			}
 
 			if (bExist) {
 				var oRoot = this.getDomRef();
 				if (oRoot) { // non-rerendering shortcut
-					jQuery(oRoot).removeClass(aClasses);
+					if ( aClasses ) {
+						oRoot.classList.remove.apply(oRoot.classList, aClasses);
+					} else {
+						oRoot.classList.remove(sStyleClass);
+					}
 				} else if (bSuppressRerendering === false) {
 					this.invalidate();
 				}

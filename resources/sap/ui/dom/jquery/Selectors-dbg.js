@@ -3,6 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
 /*
  * IMPORTANT: This is a private module, its API must not be used and is subject to change.
  * Code other than the OpenUI5 libraries must not introduce dependencies to this module.
@@ -93,7 +94,7 @@ sap.ui.define(['sap/ui/thirdparty/jquery'], function(jQuery) {
 		 *
 		 * http://docs.jquery.com/UI
 		 *
-		 * But since visible is modified, focusable is different too the jQuery UI version too.
+		 * But since visible is modified, focusable is different from the jQuery UI version too.
 		 */
 
 		/*

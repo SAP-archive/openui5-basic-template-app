@@ -3,7 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the JSON model implementation of a property binding
 sap.ui.define([
 	'sap/ui/model/ChangeReason',
@@ -51,10 +51,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Check whether this Binding would provide new values and in case it changed,
-	 * inform interested parties about this.
+	 * Check whether this Binding would provide new values and in case it changed, fire a change
+	 * event with change reason <code>Change</code>.
 	 *
 	 * @param {boolean} bForceupdate
+	 *   Whether the change event will be fired regardless of the bindings state
 	 *
 	 */
 	JSONPropertyBinding.prototype.checkUpdate = function(bForceupdate){

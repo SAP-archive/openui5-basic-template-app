@@ -25,7 +25,7 @@ sap.ui.define(['./library', 'sap/ui/core/LayoutData'],
 	 * <code>layoutData</code> aggregation of {@link sap.m.ToolbarSpacer} and if set it's ignored.
 	 *
 	 * @extends sap.ui.core.LayoutData
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -78,7 +78,7 @@ sap.ui.define(['./library', 'sap/ui/core/LayoutData'],
 	 * If the control that is using ToolbarLayoutData has been already rendered,
 	 * then this function can be used to apply layout data properties to the related control
 	 *
-	 * @returns {sap.m.ToolbarLayoutData}
+	 * @returns {this}
 	 * @protected
 	 */
 	ToolbarLayoutData.prototype.applyProperties = function() {

@@ -6,7 +6,7 @@
   <copyright>OpenUI5
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.84.11</version>
+  <version>1.96.2</version>
 
   <documentation>The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.</documentation>
 
@@ -80,6 +80,9 @@
                 <module>sap/m/SelectionDetailsLine</module>
                 <module>sap/m/MultiEditField</module>
                 <module>sap/m/PDFViewer</module>
+                <module>sap/m/upload/Uploader</module>
+                <module>sap/m/upload/UploadSet</module>
+                <module>sap/m/upload/UploadSetItem</module>
             </modules>
         </component>
         <component>
@@ -126,6 +129,8 @@
                 <module>sap/m/Column</module>
                 <module>sap/m/ColumnListItem</module>
                 <module>sap/m/plugins/DataStateIndicator</module>
+                <module>sap/m/plugins/ColumnResizer</module>
+                <module>sap/m/plugins/PasteProvider</module>
             </modules>
         </component>
     </ownership>

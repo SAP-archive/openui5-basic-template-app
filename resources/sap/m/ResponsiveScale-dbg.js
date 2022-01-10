@@ -34,7 +34,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -65,6 +65,7 @@ sap.ui.define([
 		 * @param {float} fStep - The step walking from start to end.
 		 * @param {int} iTickmarksThreshold - Limits the number of tickmarks.
 		 *
+		 * @public
 		 * @returns {number} The max number of possible tickmarks
 		 */
 		Scale.prototype.calcNumberOfTickmarks = function (fSize, fStep, iTickmarksThreshold) {
@@ -137,7 +138,7 @@ sap.ui.define([
 			var iJumpStep, iCurPos,
 				aHiddenLabelsIndices = new Array(iTotalLabelsCount),
 				// How many labels should get hidden, so there would be enough space.
-				// There's min distance design limitation of {TICKMARKS.MIN_SIZE.WITH_LABEL} between the labels
+				// There's min distance design size limits of {TICKMARKS.MIN_SIZE.WITH_LABEL} between the labels
 				iStartPosition = Math.ceil(1 / (fOffsetLeftPx / iLabelsMinDistance)),
 				fnCalcJumpStep = function (iPos) {
 					// iPos^2 === iPos * iPos === iPos << 1
@@ -185,7 +186,7 @@ sap.ui.define([
 		};
 
 		/**
-		 * Shows/hides tickmarks when some limitations are met.
+		 * Shows/hides tickmarks when some size limits are met.
 		 * Implements responsiveness of the tickmarks.
 		 *
 		 * @param {jQuery.Event} oEvent The event object passed.

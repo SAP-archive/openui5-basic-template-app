@@ -22,7 +22,7 @@ sap.ui.define(["./DragInfo", "./DropInfo", "sap/ui/Device", "sap/base/Log"],
 	 * @extends sap.ui.core.dnd.DropInfo
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @since 1.52
@@ -87,17 +87,7 @@ sap.ui.define(["./DragInfo", "./DropInfo", "sap/ui/Device", "sap/base/Log"],
 	}});
 
 	// Mixin the DragInfo implementation
-	DragDropInfo.prototype.isDraggable = DragInfo.prototype.isDraggable;
-	DragDropInfo.prototype.fireDragEnd = DragInfo.prototype.fireDragEnd;
-
-	DragDropInfo.prototype.fireDragStart = function(oEvent) {
-		// In IE, we can only control the cursor by setting effectAllowed in the dragstart.
-		if (Device.browser.msie) {
-			oEvent.originalEvent.dataTransfer.effectAllowed = this.getDropEffect().toLowerCase();
-		}
-
-		return DragInfo.prototype.fireDragStart.apply(this, arguments);
-	};
+	DragInfo.Mixin.apply(DragDropInfo.prototype);
 
 	DragDropInfo.prototype.getDropTarget = function() {
 		var sTargetElement = this.getTargetElement();
@@ -112,7 +102,7 @@ sap.ui.define(["./DragInfo", "./DropInfo", "sap/ui/Device", "sap/base/Log"],
 	 * <code>groupName</code> property must not be set.
 	 *
 	 * @private
-	 * @returns {sap.ui.core.dnd.DragDropInfo} <code>this</code> to allow method chaining.
+	 * @returns {this} <code>this</code> to allow method chaining.
 	 */
 	DragDropInfo.prototype.setGroupName = function() {
 		Log.error("groupName property must not be set on " + this);

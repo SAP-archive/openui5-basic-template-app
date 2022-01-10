@@ -4,8 +4,8 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["./MessageStripUtilities"],
-	function (MSUtils) {
+sap.ui.define(["./MessageStripUtilities", "sap/ui/core/IconPool"],
+	function (MSUtils, IconPool) {
 	"use strict";
 
 	/**
@@ -50,7 +50,7 @@ sap.ui.define(["./MessageStripUtilities"],
 	};
 
 	MessageStripRenderer.renderAriaTypeText = function (oRm, oControl) {
-		oRm.openStart("span");
+		oRm.openStart("span", oControl.getId() + "-info");
 		oRm.class("sapUiPseudoInvisibleText");
 		oRm.openEnd();
 		oRm.text(MSUtils.getAriaTypeText.call(oControl));
@@ -71,7 +71,7 @@ sap.ui.define(["./MessageStripUtilities"],
 	MessageStripRenderer.renderTextAndLink = function (oRm, oControl) {
 		var oFormattedText = oControl.getAggregation("_formattedText");
 
-		oRm.openStart("div");
+		oRm.openStart("div", oControl.getId() + "-content");
 		oRm.class(MSUtils.CLASSES.MESSAGE);
 		oRm.openEnd();
 

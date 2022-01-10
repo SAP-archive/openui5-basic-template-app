@@ -54,9 +54,9 @@ sap.ui.define(['sap/ui/core/Renderer', "sap/ui/core/Core"],
 
 		if (!oControl.getEditable()) {
 			oRM.class(SliderTooltipRenderer.CSS_CLASS + "NonEditable");
-		} else {
-			oRM.attr("aria-label", oRb.getText("SLIDER_INPUT_LABEL"));
 		}
+
+		oRM.attr("aria-label", oRb.getText("SLIDER_INPUT_LABEL"));
 
 		oRM.accessibilityState(oControl)
 			.attr("tabindex", "-1")

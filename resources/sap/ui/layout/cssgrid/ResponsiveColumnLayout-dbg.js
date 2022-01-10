@@ -5,59 +5,18 @@
  */
 
 sap.ui.define([
-	"sap/ui/core/Core",
 	"sap/ui/layout/cssgrid/GridLayoutBase",
-	"sap/ui/layout/cssgrid/GridSettings",
-	"sap/ui/layout/cssgrid/VirtualGrid",
 	"sap/ui/Device",
 	"sap/ui/layout/library"
-], function (Core,
-			 GridLayoutBase,
-			 GridSettings,
-			 VirtualGrid,
-			 Device) {
+], function (
+	GridLayoutBase,
+	Device
+) {
 	"use strict";
 
-	var iStandardGidGap = 16;
-	var iPhoneGridGap = 8;
+	var RCL_RANGE_SET = "RCLRangeSet";
 
-	var bRtl = Core.getConfiguration().getRTL();
-
-	var mSizeClasses = {
-		"Phone": "sapUiLayoutCSSResponsiveColumnLayoutS",
-		"Tablet": "sapUiLayoutCSSResponsiveColumnLayoutM",
-		"Desktop": "sapUiLayoutCSSResponsiveColumnLayoutL",
-		"LargeDesktop": "sapUiLayoutCSSResponsiveColumnLayoutXL"
-	};
-
-	var mSizeColumns = {
-		"Phone": 4,
-		"Tablet": 8,
-		"Desktop": 12,
-		"LargeDesktop": 16
-	};
-
-	/**
-	 * Gets the columns property from the item's layout data.
-	 * @private
-	 * @param {sap.ui.core.Control} oItem The item
-	 * @returns {number} The number of columns
-	 */
-	function getItemColumnCount(oItem) {
-		var oLayoutData = oItem.getLayoutData();
-		return (oLayoutData && oLayoutData.isA("sap.ui.layout.cssgrid.ResponsiveColumnItemLayoutData")) ? oLayoutData.getColumns() : 1;
-	}
-
-	/**
-	 * Gets the rows property from the item's layout data.
-	 * @private
-	 * @param {sap.ui.core.Control} oItem The item
-	 * @returns {number} The number of rows
-	 */
-	function getItemRowCount(oItem) {
-		var oLayoutData = oItem.getLayoutData();
-		return (oLayoutData && oLayoutData.isA("sap.ui.layout.cssgrid.ResponsiveColumnItemLayoutData")) ? oLayoutData.getRows() : 1;
-	}
+	Device.media.initRangeSet(RCL_RANGE_SET, [600, 1024, 1280, 1440, 1680, 1920], "px", ["S", "M", "ML", "L", "XL", "XXL", "XXXL"], true);
 
 	/**
 	 * Constructor for a new <code>ResponsiveColumnLayout</code>.
@@ -74,7 +33,7 @@ sap.ui.define([
 	 * Grid row's height is dynamically determined by the height of the highest grid element on this row.
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @extends sap.ui.layout.cssgrid.GridLayoutBase
 	 *
@@ -98,7 +57,7 @@ sap.ui.define([
 					parameters: {
 
 						/**
-						 * The name of the newly active layout - "Phone", "Tablet", "Desktop" or "LargeDesktop".
+						 * The name of the newly active layout - "S", "M", "ML", "L", "XL", "XXL" or "XXXL".
 						 */
 						layout: { type: "string" }
 					}
@@ -126,11 +85,12 @@ sap.ui.define([
 	/**
 	 * Handler for IGridConfigurable onAfterRendering
 	 *
-	 * @private
+	 * @override
+	 * @protected
 	 * @param {sap.ui.layout.cssgrid.IGridConfigurable} oGrid The grid
 	 */
 	ResponsiveColumnLayout.prototype.onGridAfterRendering = function (oGrid) {
-		this._applyLayout(oGrid, false);
+		this._applyLayout(oGrid);
 	};
 
 
@@ -148,173 +108,50 @@ sap.ui.define([
 	 * Resize handler for the ResponsiveColumnLayout.
 	 *
 	 * @param {object} oEvent - The event from a resize
-	 * @private
+	 * @override
+	 * @protected
 	 */
 	ResponsiveColumnLayout.prototype.onGridResize = function (oEvent) {
 		if (!oEvent || oEvent.size.width === 0) {
 			return;
 		}
 
-		this._applyLayout(oEvent.control, true);
+		this._applyLayout(oEvent.control);
 	};
 
 	/**
-	 * Render display:grid styles. Used for non-responsive grid layouts.
-	 *
-	 * @param {sap.ui.core.RenderManager} oRM The render manager of the Control which wants to render display:grid styles
+	 * @override
 	 */
-	ResponsiveColumnLayout.prototype.renderSingleGridLayout = function (oRM) {
-		if (this.isGridSupportedByBrowser()) {
-			oRM.class("sapUiLayoutCSSResponsiveColumnLayoutGrid");
-		} else {
-			oRM.class("sapUiLayoutCSSResponsiveColumnLayoutGridPolyfill");
-		}
+	ResponsiveColumnLayout.prototype.addGridStyles = function (oRM) {
+		GridLayoutBase.prototype.addGridStyles.apply(this, arguments);
+
+		oRM.class("sapUiLayoutCSSGridRCL");
+
 	};
 
 	/**
 	 * Changes the active layout if it's different than the currently active one.
 	 *
 	 * @param {sap.ui.layout.cssgrid.IGridConfigurable} oGrid The grid which layout is going to be updated
-	 * @param {boolean} bTriggerLayoutChange If changing the active layout should trigger layoutChange event
 	 * @private
 	 */
-	ResponsiveColumnLayout.prototype._applyLayout = function (oGrid, bTriggerLayoutChange) {
-		var iWidth = oGrid.$().parent().outerWidth(),
-			oRange = Device.media.getCurrentRange("StdExt", iWidth),
-			sClassName = mSizeClasses[oRange.name],
-			bGridSupportedByBrowser = this.isGridSupportedByBrowser();
-
-		if (!bGridSupportedByBrowser) {
-			this._scheduleIEPolyfill(oGrid, oRange);
-		}
+	ResponsiveColumnLayout.prototype._applyLayout = function (oGrid) {
+		var oParent = oGrid.getParent(),
+			iWidth = oParent ? oParent.getDomRef().offsetWidth : oGrid.getDomRef().parentElement.offsetWidth,
+			oRange = Device.media.getCurrentRange(RCL_RANGE_SET, iWidth),
+			sClassName = "sapUiLayoutCSSGridRCL-Layout" + oRange.name;
 
 		if (this._sCurrentLayoutClassName === sClassName) {
 			return;
 		}
 
-		if (bGridSupportedByBrowser) {
-			oGrid.removeStyleClass(this._sCurrentLayoutClassName);
-			oGrid.addStyleClass(sClassName);
-		}
+		oGrid.removeStyleClass(this._sCurrentLayoutClassName);
+		oGrid.addStyleClass(sClassName);
 
 		this._sCurrentLayoutClassName = sClassName;
-
-		if (bTriggerLayoutChange) {
-			this.fireLayoutChange({
-				layout: oRange.name
-			});
-		}
-	};
-
-	/**
-	 * Schedules the application of the IE polyfill for the next tick.
-	 *
-	 * @param {sap.ui.layout.cssgrid.IGridConfigurable} oGrid The grid
-	 * @param {object} oRange The information about the current active range set
-	 * @private
-	 */
-	ResponsiveColumnLayout.prototype._scheduleIEPolyfill = function (oGrid, oRange) {
-		if (this._iPolyfillCallId) {
-			clearTimeout(this._iPolyfillCallId);
-		}
-
-		this._iPolyfillCallId = setTimeout(function () {
-			var sGridSuffix = oGrid.isA("sap.f.GridList") ? "listUl" : "",
-				$grid = oGrid.$(sGridSuffix);
-
-			this._applyIEPolyfillLayout(oGrid, $grid, oRange);
-		}.bind(this), 0);
-	};
-
-	/**
-	 * Calculates absolute positions for items, so it mimics a css grid.
-	 *
-	 * @param {sap.ui.layout.cssgrid.IGridConfigurable} oGrid The grid
-	 * @param {jQuery} $grid The grid on which to add the polyfill
-	 * @param {object} oRange The information about the current active range set
-	 * @private
-	 */
-	ResponsiveColumnLayout.prototype._applyIEPolyfillLayout = function (oGrid, $grid, oRange) {
-
-		if (oGrid.bIsDestroyed) {
-			return;
-		}
-
-		var iColumnsCount = mSizeColumns[oRange.name],
-			iInnerWidth = $grid.innerWidth(),
-			aItems = oGrid.getItems(),
-			iGapSize = oRange.name === "Phone" ? iPhoneGridGap : iStandardGidGap,
-			iColumnSize = Math.floor((iInnerWidth - iGapSize * (iColumnsCount - 1) ) / iColumnsCount),
-			iColumns,
-			iRows,
-			oItem,
-			$item,
-			mVirtualGridItems,
-			mVirtualGridItem,
-			i;
-
-		// set the width and reset the height
-		for (i = 0; i < aItems.length; i++) {
-			oItem = aItems[i];
-			$item = oItem.$();
-
-			iColumns = getItemColumnCount(oItem);
-
-			$item.css({
-				position: 'absolute',
-				height: 'auto',
-				width: iColumnSize * iColumns + iGapSize * (iColumns - 1)
-			});
-		}
-
-		var oVirtualGrid = new VirtualGrid();
-		oVirtualGrid.init({
-			numberOfCols: iColumnsCount,
-			cellWidth: iColumnSize,
-			unitOfMeasure: "px",
-			gapSize: iGapSize,
-			topOffset: 0,
-			leftOffset: 0,
-			allowDenseFill: false,
-			rtl: bRtl,
-			width: iInnerWidth,
-			rowsAutoHeight: true
+		this.fireLayoutChange({
+			layout: oRange.name
 		});
-
-		for (i = 0; i < aItems.length; i++) {
-
-			oItem = aItems[i];
-
-			if (!oItem.getVisible()) {
-				continue;
-			}
-
-			$item = oItem.$();
-
-			iColumns = getItemColumnCount(oItem);
-			iRows = getItemRowCount(oItem);
-
-			oVirtualGrid.fitElement(i + '', iColumns, iRows, $item.outerHeight(true));
-		}
-
-		oVirtualGrid.calculatePositions();
-
-		mVirtualGridItems = oVirtualGrid.getItems();
-
-		for (i = 0; i < aItems.length; i++) {
-			oItem = aItems[i];
-			$item = oItem.$();
-			mVirtualGridItem = mVirtualGridItems[i];
-
-			$item.css({
-				position: 'absolute',
-				top: mVirtualGridItem.top,
-				left: mVirtualGridItem.left,
-				height: mVirtualGridItem.height
-			});
-		}
-
-		$grid.height(oVirtualGrid.getHeight());
 	};
 
 	return ResponsiveColumnLayout;

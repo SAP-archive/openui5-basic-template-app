@@ -87,8 +87,8 @@ sap.ui.define([
 			 * RuleEngineOpaAssertions represents a set of methods with which OPA test assertions can be enhanced.
 			 * To use this functionality, {@link sap.ui.core.support.RuleEngineOpaExtension RuleEngineOpaExtension} should be provided in the OPA extensions list.
 			 *
-			 * @namespace
-			 * @name sap.ui.core.support.RuleEngineOpaAssertions
+			 * @interface
+			 * @alias sap.ui.core.support.RuleEngineOpaAssertions
 			 * @public
 			 */
 			var oRuleEngineAssertions = /** @lends sap.ui.core.support.RuleEngineOpaAssertions */ {
@@ -111,8 +111,8 @@ sap.ui.define([
 				 * @returns {Promise} Promise.
 				 */
 				noRuleFailures: function(options) {
+					options = options || {};
 					var ruleDeferred = jQuery.Deferred(),
-						options = options[0] || {},
 						failOnAnyRuleIssues = options["failOnAnyIssues"],
 						failOnHighRuleIssues = options["failOnHighIssues"],
 						rules = options.rules,
@@ -213,7 +213,7 @@ sap.ui.define([
 				getReportAsFileInFormat: function (options) {
 					var oContext,
 						oHistory,
-						oOptions = options[0] || {},
+						oOptions = options || {},
 						ruleDeferred = jQuery.Deferred(),
 						sHistoryFormat = oOptions["historyFormat"],
 						sFileName = oOptions["fileName"];
@@ -242,8 +242,6 @@ sap.ui.define([
 
 					oContext = getWindow();
 
-					// Avoid method calls on _$files as IE11/Edge throws "Can't execute code from a freed script"
-					// BCP: 1980144925
 					oContext._$files[oContext._$files.length] = {
 						name: sFileName,
 						content: JSON.stringify(oHistory)

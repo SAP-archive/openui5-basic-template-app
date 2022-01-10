@@ -13,11 +13,11 @@
  * @name sap.ui.test
  * @public
  */
-
+// The module ID argument is given because QUnitUtils.js often was included as a script Element in the past.
+// It is now recommended to use it via a module dependency (sap.ui.define).
 sap.ui.define('sap/ui/qunit/QUnitUtils', [
 	'jquery.sap.global',
 	'sap/base/util/ObjectPath',
-	'sap/ui/Device',
 	'sap/ui/base/DataType',
 	'sap/ui/events/KeyCodes',
 	"sap/base/strings/camelize",
@@ -29,7 +29,6 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 	function(
 		jQuery,
 		ObjectPath,
-		Device,
 		DataType,
 		KeyCodes,
 		camelize,
@@ -80,7 +79,7 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 					var QUnit = window.QUnit;
 					window.QUnit = undefined;
 					// load the blanket instance
-					sap.ui.requireSync("sap/ui/thirdparty/blanket");
+					sap.ui.requireSync("sap/ui/thirdparty/blanket"); // legacy-relevant
 					// restore the QUnit object
 					window.QUnit = QUnit;
 					// trigger blanket to display the coverage report
@@ -362,10 +361,10 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 		oParams.location = mapKeyCodeToLocation(sKey);
 
 		oParams.which = oParams.keyCode;
-		oParams.shiftKey = bShiftKey;
-		oParams.altKey = bAltKey;
-		oParams.metaKey = bCtrlKey;
-		oParams.ctrlKey = bCtrlKey;
+		oParams.shiftKey = !!bShiftKey;
+		oParams.altKey = !!bAltKey;
+		oParams.metaKey = !!bCtrlKey;
+		oParams.ctrlKey = !!bCtrlKey;
 		QUtils.triggerEvent(sEventType, oTarget, oParams);
 	};
 
@@ -988,7 +987,7 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 						} else if ( c > a ) {
 							var j = offset(a,c,va,0),
 								end = j + params[c].n;
-							for (count = occurs[j]; count > 0 && i < end; j++ ) {
+							for (count = occurs[j]; count > 0 && j < end; j++ ) {
 								if ( occurs[j] < count ) {
 									count = occurs[j];
 								}

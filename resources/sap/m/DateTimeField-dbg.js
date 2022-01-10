@@ -10,6 +10,8 @@ sap.ui.define([
 	'sap/ui/model/odata/type/ODataType',
 	'sap/ui/model/odata/type/DateTimeBase',
 	'./InputBase',
+	'./ValueStateHeader',
+	'sap/ui/core/Core',
 	'sap/ui/core/LocaleData',
 	'sap/ui/core/library',
 	'sap/ui/core/format/DateFormat',
@@ -24,6 +26,8 @@ sap.ui.define([
 	ODataType,
 	DateTimeBase,
 	InputBase,
+	ValueStateHeader,
+	Core,
 	LocaleData,
 	coreLibrary,
 	DateFormat,
@@ -36,6 +40,9 @@ sap.ui.define([
 
 	// shortcut for sap.ui.core.CalendarType
 	var CalendarType = coreLibrary.CalendarType;
+
+	// shortcut for sap.ui.core.ValueState
+	var ValueState = coreLibrary.ValueState;
 
 	/**
 	 * Constructor for a new <code>sap.m.DateTimeField</code>.
@@ -52,7 +59,7 @@ sap.ui.define([
 	 * @extends sap.m.InputBase
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -204,13 +211,44 @@ sap.ui.define([
 
 		this.updateDomValue(this._formatValue(this.getDateValue()));
 
-		this._updateDomPlaceholder(this._getPlaceholder());
+		this.setPlaceholder(this._getPlaceholder());
 
 		return this;
 	};
 
 	DateTimeField.prototype.getDisplayFormatType = function () {
 		return null;
+	};
+
+	DateTimeField.prototype.onfocusin = function(oEvent) {
+
+		if (!jQuery(oEvent.target).hasClass("sapUiIcon")) {
+			this.addStyleClass("sapMFocus");
+		}
+
+		if (!jQuery(oEvent.target).hasClass("sapMInputBaseIconContainer") && !(this._oPopup && this._oPopup.isOpen())) {
+			// open value state message popup when focus is in the input
+			this.openValueStateMessage();
+		} else if (this._oValueStateHeader) {
+			this._oValueStateHeader.setVisible(this.getValueState() !== ValueState.None);
+		}
+
+	};
+
+	DateTimeField.prototype._getValueStateHeader = function () {
+		var sValueState;
+
+		if (!this._oValueStateHeader) {
+			sValueState = this.getValueState();
+
+			this._oValueStateHeader = new ValueStateHeader({
+				text: this._getTextForPickerValueStateContent(),
+				valueState: sValueState,
+				visible: sValueState !== ValueState.None
+			});
+		}
+
+		return this._oValueStateHeader;
 	};
 
 	DateTimeField.prototype._dateValidation = function (oDate) {
@@ -254,6 +292,9 @@ sap.ui.define([
 	DateTimeField.prototype._parseValue = function (sValue, bDisplayFormat) {
 		var oBinding = this.getBinding("value"),
 			oBindingType = oBinding && oBinding.getType && oBinding.getType(),
+			// The internal "_getFormatter" method gets called now if there is a binding to the "value" property with
+			// a supported binding type. As a result all needed internal control variables are created.
+			oFormatter = this._getFormatter(bDisplayFormat),
 			oFormatOptions,
 			oDateLocal,
 			oDate;
@@ -288,7 +329,7 @@ sap.ui.define([
 			return oDate;
 		}
 
-		return this._getFormatter(bDisplayFormat).parse(sValue);
+		return oFormatter.parse(sValue);
 	};
 
 	/* The bValueFormat variable defines whether the result is in valueFormat(true) or displayFormat(false) */
@@ -460,17 +501,34 @@ sap.ui.define([
 		return !oDate || Object.prototype.toString.call(oDate) === "[object Date]";
 	};
 
+	/**
+	 * Gets the text for the picker's subheader title.
+	 * In case <code>valueStateText</code> is not set, a default value is returned.
+	 * @returns {string}
+	 * @private
+	 */
+	DateTimeField.prototype._getTextForPickerValueStateContent = function() {
+		return this.getValueStateText() || this._getDefaultTextForPickerValueStateContent();
+	};
 
 	/**
-	 * Updates the placeholder of the input element with a given valye
-	 * @param {string} sValue the new value
+	 * Gets the default text for the picker's subheader title.
+	 * @returns {string}
 	 * @private
-	 * @returns void
 	 */
-	DateTimeField.prototype._updateDomPlaceholder = function (sValue) {
-		if (this.getDomRef()) {
-			this._$input.attr("placeholder", sValue);
+	DateTimeField.prototype._getDefaultTextForPickerValueStateContent = function() {
+		var sValueState = this.getValueState(),
+			oResourceBundle,
+			sText;
+
+		if (sValueState === ValueState.None) {
+			sText = "";
+		} else {
+			oResourceBundle = Core.getLibraryResourceBundle("sap.ui.core");
+			sText = oResourceBundle.getText("VALUE_STATE_" + sValueState.toUpperCase());
 		}
+
+		return sText;
 	};
 
 	return DateTimeField;

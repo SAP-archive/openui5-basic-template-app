@@ -17,6 +17,233 @@
 	vertical-align: top;
 }
 
+.sapMGTCriticalBorder {
+    height: 100%;
+    width: 0.25rem;
+    position: absolute;
+    left: -1px;
+    top: -1px;
+    border-radius: 0.25rem 0 0 0.25rem;
+    border: 1px solid;
+}
+
+.sapMGTCriticalBorder.Neutral {
+	background-color: @sapUiNeutralText;
+	border-color:  @sapUiNeutralText;
+}
+
+.sapMGTCriticalBorder.Good {
+	background-color: @sapUiPositiveText;
+	border-color:  @sapUiPositiveText;
+}
+
+.sapMGTCriticalBorder.Critical {
+	background-color: @sapUiCriticalText;
+	border-color:  @sapUiCriticalText;
+}
+
+.sapMGTCriticalBorder.Error {
+	background-color: @sapUiNegativeText;
+	border-color:  @sapUiNegativeText;
+}
+
+.sapMGTContentPlaceholder {
+	outline: none;
+	width: 300px;
+    height: 100px;
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.10);
+    border-radius: 4px;
+}
+
+.sapMGTContentPlaceholder:focus::before {
+	content: '';
+	display: block;
+	position: absolute;
+	left: 1px;
+	bottom: 1px;
+	right: 1px;
+	top: 1px;
+	border: 1px dotted @sapUiContentFocusColor;
+	pointer-events: none;
+}
+
+
+.sapMGTContentShimmerPlaceholderItem {
+	padding: 1rem 1rem 0 1rem;
+	box-sizing: border-box;
+	display: flex;
+	position: relative;
+	align-items: center;
+	flex: 1 1 auto;
+
+	&.sapMGTContentShimmerPlaceholderWithChart.sapMGTContentShimmerPlaceholderWithDescription {
+		height: 6rem;
+	}
+
+	.sapMGTContentShimmerPlaceholderImg {
+		margin: 0rem 0.75rem 0rem 0rem;
+		height: 2rem;
+		width: 2rem;
+		display: inline-block;
+	}
+
+	.sapMGTContentShimmerPlaceholderRows {
+		flex-grow: 1;
+
+		.sapMGTContentShimmerPlaceholderItemText {
+			height: 0.5rem;
+			margin-bottom: 0.5rem;
+			width: 80%;
+		}
+		.sapMGTContentShimmerPlaceholderItemTextFooter {
+			height: 0.5rem;
+			margin-bottom: 0.5rem;
+			margin-top: 0.5rem;
+			width: 80%;
+			top: 3rem;
+		}
+		.sapMGTContentShimmerPlaceholderItemBox {
+			height: 2rem;
+			margin-bottom: 0.5rem;
+			margin-top: 0.5rem;
+			width: 20%;
+			top: 3rem;
+		}
+		.sapMGTContentShimmerPlaceholderItemBoxSmall {
+			height: 3.75rem;
+			margin-bottom: 0.5rem;
+			margin-top: 0.5rem;
+		}
+		.sapMGTContentShimmerPlaceholderItemHeader {
+			height: 1rem;
+			margin-bottom: 0.5rem;
+			margin-top: 0.5rem;
+		}
+	}
+}
+
+.sapMGTContentShimmerPlaceholderItemOneByOne {
+	padding: 1rem 1rem 0 1rem;
+	box-sizing: border-box;
+	display: flex;
+	position: relative;
+	align-items: center;
+	flex: 1 1 auto;
+
+	&.sapMGTContentShimmerPlaceholderWithChart.sapMGTContentShimmerPlaceholderWithDescriptionOneByOne {
+		height: 6rem;
+	}
+
+	.sapMGTContentShimmerPlaceholderImg {
+		margin: 0rem 0.75rem 0rem 0rem;
+		height: 2rem;
+		width: 2rem;
+		display: inline-block;
+	}
+
+	.sapMGTContentShimmerPlaceholderRowsOneByOne {
+		flex-grow: 1;
+		.sapMGTContentShimmerPlaceholderIconOneByOne {
+			height: 2rem;
+			width: 2rem;
+			margin: auto;
+			margin-bottom: 0.5rem;
+			margin-top: 0.5rem;
+		}
+		.sapMGTContentShimmerPlaceholderItemTextOneByOne {
+			height: 0.5rem;
+			margin-bottom: 0.5rem;
+		}
+	}
+}
+
+.sapMGTContentShimmerPlaceholderItemTwoByHalf {
+	padding: 0 1rem 0 0;
+	box-sizing: border-box;
+	display: flex;
+	position: relative;
+	align-items: center;
+	flex: 1 1 auto;
+
+	&.sapMGTContentShimmerPlaceholderWithChart.sapMGTContentShimmerPlaceholderWithDescriptionTwoByHalf {
+		height: 6rem;
+	}
+
+	.sapMGTContentShimmerPlaceholderImg {
+		margin: 0rem 0.75rem 0rem 0rem;
+		height: 2rem;
+		width: 2rem;
+		display: inline-block;
+	}
+
+	.sapMGTContentShimmerPlaceholderRowsTwoByHalf {
+		flex-grow: 1;
+		display: flex;
+    	align-items: center;
+		.sapMGTContentShimmerPlaceholderIconTwoByHalf {
+			height: 2rem;
+			width: 2rem;
+			margin-bottom: 0.5rem;
+			margin-top: 0.5rem;
+		}
+		.sapMGTContentShimmerPlaceholderItemTextTwoByHalf {
+			height: 0.5rem;
+			width: 80%;
+			margin-left: 0.75rem
+		}
+	}
+}
+
+.sapMGTLoadingShimmer {
+.sapMGTLoadingShimmerMixin();
+}
+
+.sapMGTLoadingShimmerMixin() {
+background-color: @sapUiContentPlaceholderloadingBackground;
+background-image: @sapUiContentPlaceholderloadingGradient;
+background-repeat: no-repeat;
+background-size: 800px 144px;
+position: relative;
+border-radius: 0.25rem;
+
+[data-sap-ui-animation-mode="full"] & {
+	animation-duration: 2.5s;
+	animation-fill-mode: forwards;
+	animation-iteration-count: infinite;
+	animation-name: placeHolderShimmer;
+	animation-timing-function: linear;
+}
+
+[data-sap-ui-animation-mode="basic"] &,
+[data-sap-ui-animation-mode="minimal"] & {
+	animation-duration: 8s;
+	animation-fill-mode: forwards;
+	animation-iteration-count: infinite;
+	animation-name: placeHolderShimmer;
+	animation-timing-function: linear;
+}
+}
+
+@keyframes placeHolderShimmer {
+0% {
+	background-position: -468px 0;
+}
+
+100% {
+	background-position: 468px 0;
+}
+}
+
+@keyframes placeHolderShimmer{
+    0% {
+      background-position: -468px 0;
+    }
+    100% {
+      background-position: 468px 0;
+    }
+}
+
+
 .sapMGTBackgroundImage {
 	background-clip: padding-box;
 	background-color: inherit;
@@ -52,9 +279,90 @@
 	height: 5.25rem;
 }
 
+
+ .OneByOne.tileWithAppInfo {
+	.sapMGTContent.appInfoWithFooter {
+		height: 3.5rem;
+		.sapMTileCnt {
+			.sapMTileCntContent {
+				height: 1.75rem;
+				.sapMNC {
+					height: 1.75rem;
+					.sapMNCLargeFontSize {
+						font-size: 1.75rem;
+						height: 1.75rem;
+					}
+					.sapMNCIndScale {
+						padding: 0rem;
+						padding-left: 0.5rem;
+					}
+				}
+				.sapMImageContent {
+					height: 1.75rem;
+					.sapMImageContentImageIcon {
+						padding-bottom: 0rem;
+					}
+				}
+			}
+			.sapMTileCntFtrTxt {
+				position: static;
+			}
+		}
+	}
+	.sapMGTContent.appInfoWithoutFooter {
+		height: 3.5rem;
+		.sapMTileCnt {
+			height: 3.5rem;
+			.sapMTileCntContent {
+				height: 3.25rem;
+				.sapMImageContent {
+					height: 3.25rem;
+				}
+			}
+		}
+	}
+	.sapMGTTInfoContainer {
+		height: 2rem;
+		margin-top: 0.25rem;
+		.sapMGTTInfo {
+			padding: 0.125rem 1rem 0.125rem 0.125rem;
+			text-transform: uppercase;
+			margin-bottom: 0.5rem;
+			border-radius: 0.25rem 0 0 0.25rem;
+			background-color: @sapUiTileHoverBackground;
+			width: fit-content;
+			float: right;
+			bottom: 0;
+			position: absolute;
+			right: 0;
+			.sapMText{
+				font-size: @sapMFontSmallSize ;
+			}
+			.sapMGTSystemInfoText{
+				display: flex;
+				justify-content: flex-end;
+				.sapMText {
+					color: @sapUiTileTitleTextColor;
+				}
+			}
+			.sapMGTAppShortcutText {
+				display: flex;
+				justify-content: flex-end;
+				.sapMText {
+					color: @sapUiTileTextColor;
+				}
+			}
+		}
+	}
+}
 .OneByHalf {
 	.sapMGTHdrContent {
 		height: 1.25rem;
+			.sapMGTHdrTxt {
+				.sapMText {
+					display: block;
+				}
+		}
 	}
 
 	.sapMGTContent {
@@ -64,10 +372,13 @@
 			.sapMTileCntContent {
 				height: 2.5rem;
 				.sapMNCLargeFontSize {
-					font-size: 2rem;
+					font-size: 1.5rem;
+					padding-bottom: 0.55rem;
+					height: auto;
+					align-self: flex-end;
 				}
 				.sapMNCIndScale.sapMNCLargeFontSize {
-					padding: 0.375rem 0 0.188rem 0.5rem;
+					padding: 0.375rem 0 0.65rem 0.25rem;
 				}
 				.sapMImageContent {
 					display: none;
@@ -83,6 +394,13 @@
 .TwoByHalf {
 	.sapMGTHdrContent {
 		height: 1.25rem;
+			.sapMGTHdrTxt {
+				
+				.sapMText {
+					display: block;
+				}
+			
+		}
 	}
 
 	.sapMGTContent {
@@ -92,10 +410,13 @@
 			.sapMTileCntContent {
 				height: 2.5rem;
 				.sapMNCLargeFontSize {
-					font-size: 2rem;
+					font-size: 1.5rem;
+					padding-bottom: 0.55rem;
+					height: auto;
+					align-self: flex-end;
 				}
 				.sapMNCIndScale.sapMNCLargeFontSize {
-					padding: 0.375rem 0 0.188rem 0.5rem;
+					padding: 0.375rem 0 0.65rem 0.25rem;
 				}
 				.sapMImageContentImageIcon {
 					max-height: 1.75rem;
@@ -116,7 +437,6 @@
 	user-select: none;
 	-webkit-user-select: none;
 	-moz-user-select: -moz-none;
-	-ms-user-select: none;
 }
 
 .sapMGTHdrTxt > .sapMGTTitle,
@@ -177,6 +497,17 @@
 	padding-left: 1rem;
 	padding-right: 1rem;
 }
+.sapMGTHdrContent.Stretch{
+	height: 42%;
+	padding-top: 0rem;
+}
+
+.sapMGT.sapMGTBackgroundImage.Stretch{
+	.sapMGTContent {
+		height: 58%;
+	}
+}
+
 
 .sapMGTHdrIconImage {
 	float: right;
@@ -228,7 +559,7 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 			.sapMGTOverlayMixin();
 			display: block;
 			content: "";
-			background-color: fade(@sapUiTileBackground, 70);
+			background-color: fade(@sapUiTileBackground, 60);
 		}
 	}
 
@@ -316,7 +647,7 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 			.sapMGTOverlayMixin();
 			display: block;
 			content: "";
-			background-color: fade(@sapUiTileBackground, 70);
+			background-color: fade(@sapUiTileBackground, 60);
 			border-radius: 0.125rem;
 		}
 	}
@@ -343,15 +674,14 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 /* COZY */
 .sapUiMedia-GenericTileDeviceSet-small {
 	.sapMGTLineMode.sapMGT {
-		display: flex;
 		align-items: center;
-		min-height: 2.5rem;
-		min-width: 2rem;
-		border-radius: 0.2rem;
-		box-shadow: none;
+		padding: 0.5rem;
+		min-height: 2rem;
+		max-width: 100%;
+		border-radius: 0.25rem;
 		transition: background-color 0.2s;
-		margin: 0.125rem 0 0.125rem 0;
 		pointer-events: none;
+		margin: 0.25rem 0.5rem 0.25rem 0; 
 	}
 
 	.sapMGTLineMode .sapMGTTouchArea {
@@ -410,15 +740,17 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 }
 
 .sapMGTLineMode .sapMGTActionsContainer:not(.sapMGTScopeSingleActionContainer) {
-	width: 4rem;
+	width: 2rem;
 
 	.sapMGTMoreIcon {
 		position: static;
+		padding-right: 0.5rem;
 	}
 
 	.sapMGTRemoveButton {
-		position: static;
-		left: 2rem;
+		position: absolute;
+		top: -1rem;
+		left: 1.5rem;
 	}
 }
 
@@ -428,7 +760,9 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 	}
 
 	.sapMGTRemoveButton {
-		position: static;
+		position: absolute;
+		top: -1rem;
+		left: 1.5rem;
 	}
 }
 
@@ -453,17 +787,16 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 
 	.sapMGTMoreIcon {
 		display: block;
-		right: 0;
-		bottom: 0;
+		right: -1.5rem;
+		bottom: 0.25rem;
 		width: 2rem;
-		height: 1.375rem;
 	}
 
 	.sapMGTRemoveButton {
 		display: block;
 		margin: 0 0.3125rem;
-		top: 0;
-		right: 0;
+		top: -1rem;
+		left: -0.5rem;
 		z-index: 0; // Remark: If increased, this will break FLP footer visualization.
 
 		&:before {
@@ -489,20 +822,10 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 	}
 }
 
-/* Fix for IE not displaying items in line */
-html[data-sap-ui-browser*='ie'] .sapMGTLineMode .sapMGTTouchArea {
-	margin-bottom: 0px;
-	margin-top: 0px;
-}
-html[data-sap-ui-browser*='ie'] .sapUiSizeCompact .sapMGTLineMode .sapMGTTouchArea {
-	margin-top: 2px;
-	margin-bottom: 0px;
+.sapMGTLineMode .sapMGTLineModeFailedIcon {
+	text-align: start;
 }
 
-/* IE does not support text-align: start, this is a workaround:*/
-html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
-	text-align: right;
-}
 /* COMPACT */
 .sapUiMedia-GenericTileDeviceSet-small {
 	&.sapUiSizeCompact, .sapUiSizeCompact {
@@ -514,7 +837,7 @@ html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
 			margin: -0.1875rem 0;
 		}
 		.sapMGTLineMode .sapMGTLineModeFailedIcon {
-			font-size: 1.25rem !important;
+			font-size: 0.875rem !important;
 		}
 	}
 }
@@ -539,7 +862,6 @@ html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
 		user-select: none;
 		-webkit-user-select: none;
 		-moz-user-select: -moz-none;
-		-ms-user-select: none;
 		-webkit-text-size-adjust:100%;
 	}
 
@@ -547,23 +869,19 @@ html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
 		float: none;
 		clear: none;
 		margin-bottom: 0px;
-
-		display: inline;
+		display: inline-block;
 		min-width: 2rem;
-		border-radius: 0px;
-		box-shadow: none;
-		background: none !important;
-		border: 1px solid transparent !important;
+		background-color: @sapUiTileBackground;
+		border: @sapUiTileBorderColor;
+		border-radius: 0.25rem;
+		box-shadow: @sapUiShadowLevel0;
 		position: relative;
-
+		padding: 0.5rem;
 		@line-height: 2.75rem;
 		@padding-top: 0.125rem;
 		@padding-bottom: 0.125rem;
-		margin-top: @padding-top + @padding-bottom; /* used as hover-style bar-offset top, does not have an effect for inline elements */
-		min-height: @line-height - @padding-top - @padding-bottom; /* used as hover-style bar height */
-		line-height: @line-height !important;
-		height: @line-height;
-		padding: (@line-height / 2) - (@sapMFontMediumSize / 2) 0;
+		margin: 0.25rem 0.5rem 0.25rem 0; 
+		min-height: 2rem; /* used as hover-style bar height */
 		pointer-events: none;
 	}
 
@@ -596,16 +914,13 @@ html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
 
 	.sapMGTLineMode .sapMGTLineModeFailedIcon {
 		display: inline-block;
-		line-height: 1.375rem;
-		width: 1.75rem;
-		vertical-align: top;
+		vertical-align: middle;
 		padding-right: 0px;
-		margin-top: 0.6875rem;
 		position: relative;
 		left: 0.5rem;
 		border-right: 0.375rem solid transparent;
 		box-sizing: border-box;
-		font-size: 1.375rem  !important;
+		font-size: 0.875rem  !important;
 	}
 	.sapMGTLineMode .sapMGTHdrTxt {
 		border-left: 0.5rem solid transparent;
@@ -616,16 +931,16 @@ html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
 		padding-right: 0.5rem;
 		margin-right: 0.5rem;
 	}
-
-	.sapMGTLineMode.sapMGTScopeSingleAction:not(.sapMGTDisabled) {
+	
+	.sapMGTLineMode.sapMGTScopeSingleAction {
 		.sapMGTHdrTxt:last-of-type, .sapMGTSubHdrTxt {
-			padding-right: 2.25rem;
+			padding-right: 1rem;
 		}
 	}
 
-	.sapMGTLineMode.sapMGTScopeActions:not(.sapMGTDisabled) {
+	.sapMGTLineMode.sapMGTScopeActions {
 		.sapMGTHdrTxt:last-of-type, .sapMGTSubHdrTxt {
-			padding-right: 4.25rem;
+			padding-right: 3rem;
 		}
 	}
 
@@ -647,7 +962,7 @@ html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
 		display: inline-block;
 		position: relative;
 		top: 0.5rem;
-		z-index: 3; // Remark: If increased, this will break FLP footer visualization.
+		z-index: 2; // Remark: If increased, this will break FLP footer visualization. Changed from 3 to 2 as it was breaking FLP footer visualization
 	}
 
 	.sapMGTStyleHelper {
@@ -681,16 +996,11 @@ html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
 			@line-height: 1.875rem;
 			@padding-top: 0.125rem;
 			@padding-bottom: 0.125rem;
-			margin-top: @padding-top + @padding-bottom; /* used as hover-style bar-offset top, does not have an effect for inline elements */
-			min-height: @line-height - @padding-top - @padding-bottom; /* used as hover-style bar height */
-			line-height: @line-height !important;
-			height: @line-height;
-			padding: (@line-height / 2) - (@sapMFontMediumSize / 2) 0;
+			min-height: 2rem;
+			padding: 0.5rem;
 		}
 		.sapMGTLineMode .sapMGTLineModeFailedIcon {
 			display: inline-block;
-			line-height: 1.375rem;
-			width: 1.625rem;
 			vertical-align: middle;
 			padding-right: 0px;
 			margin-top: 0px;
@@ -698,7 +1008,7 @@ html[dir=rtl] .sapMGTLineMode .sapMGTLineModeFailedIcon {
 			left: 0.5rem;
 			border-right: 0.375rem solid transparent;
 			box-sizing: border-box;
-			font-size: 1.25rem  !important;
+			font-size: 0.875rem  !important;
 		}
 	}
 }
@@ -711,9 +1021,17 @@ html[dir=rtl] .sapMGTLineMode {
 }
 
 /******************* OVERLAYS AND HELPERS *******************/
-.sapMGTOverlay {
-	.sapMGTOverlayMixin();
-	opacity: 0.8;
+.sapMGT.sapMGTStateFailed, .sapMGT.sapMGTStateDisabled {
+	.sapMTileCnt {
+		position: relative;
+
+		&:after {
+			.sapMGTOverlayMixin();
+			display: block;
+			content: "";
+			background-color: fade(@sapUiTileBackground, 80);
+		}
+	}
 }
 
 .sapMGT .sapMGTFocusDiv {
@@ -729,7 +1047,7 @@ html[dir=rtl] .sapMGTLineMode {
 	right: 1px;
 	left: 1px;
 	bottom: 1px;
-	border-radius: 0.25rem;
+	border-radius: 0.25rem !important;
 }
 
 .sapMGenericTileFtrFld {
@@ -774,7 +1092,7 @@ html[dir=rtl] .sapMGenericTileFtrFldTxt {
 
 /* the max-height is calculated the same as webkit-line-clamping and supported to work when
 the screen size changes between small and large (e.g. mobile devices auto rotation) without rerendering*/
-html[data-sap-ui-browser*='ie'], html[data-sap-ui-browser*='ed'], html[data-sap-ui-browser*='ff'] {
+html[data-sap-ui-browser*='ff'] {
 	.sapMGT.sapMGTHeaderMode .sapMGTHdrContent .sapMTextMaxLine {
 		max-height: 6.85rem !important;
 	}
@@ -790,13 +1108,13 @@ html[data-sap-ui-browser*='ie'], html[data-sap-ui-browser*='ed'], html[data-sap-
 		max-height: 2.36rem;
 	}
 
-	html[data-sap-ui-browser*='ie'], html[data-sap-ui-browser*='ed'], html[data-sap-ui-browser*='ff'] {
+	html[data-sap-ui-browser*='ff'] {
 		&.sapMGT.sapMGTHeaderMode > .sapMGTHdrContent .sapMTextMaxLine {
 			max-height: 5.9rem !important;
 		}
 	}
 
-	html[data-sap-ui-browser*='ie'], html[data-sap-ui-browser*='ed'], html[data-sap-ui-browser*='ff'] {
+	html[data-sap-ui-browser*='ff'] {
 		&.sapMGT:not(.sapMGTHeaderMode) > .sapMGTHdrContent .sapMTextMaxLine {
 			max-height: 3.54rem !important;
 		}
@@ -826,12 +1144,13 @@ html[data-sap-ui-browser*='ie'], html[data-sap-ui-browser*='ed'], html[data-sap-
 				.sapMTileCntContent {
 					height: 100%;
 					.sapMNCLargeFontSize {
-						font-size: 2rem;
-						height: 100%;
-						padding-top: 0rem;
+						font-size: 1.5rem;
+						height: auto;
+						align-self: flex-end;
+						padding-bottom: 0.25rem;
 					}
 					.sapMNCIndScale.sapMNCLargeFontSize {
-						padding: 0.25rem 0 0.25rem 0.375rem;
+						padding: 0.25rem 0 0.25rem 0.25rem;
 					}
 					.sapMImageContent {
 						display: none;
@@ -859,13 +1178,15 @@ html[data-sap-ui-browser*='ie'], html[data-sap-ui-browser*='ed'], html[data-sap-
 				.sapMTileCntContent {
 					height: 100%;
 					.sapMNCLargeFontSize {
-						font-size: 2rem;
-						height: 100%;
-						padding-top: 0rem;
+						font-size: 1.5rem;
+						align-self: flex-end;
+						height: auto;
+						padding-bottom: 0.25rem;
 					}
 					.sapMNCIndScale.sapMNCLargeFontSize {
-						padding: 0.25rem 0 0.25rem 0.375rem;
+						padding: 0.25rem 0 0.25rem 0.2	5rem;
 					}
+
 					.sapMImageContentImageIcon {
 						height: 100%;
 						max-height: 2rem;
@@ -929,4 +1250,327 @@ html[data-sap-ui-browser*='ie'], html[data-sap-ui-browser*='ed'], html[data-sap-
 	margin-left: 1rem;
 	margin-right: 1rem;
 	bottom: 1.0625rem;
+}
+
+.TwoByOne.sapMGTActionMode {
+	overflow: hidden;
+	.sapMGTTitle {
+		font-weight: bold;
+	}
+	.sapMGTHdrContent {
+		padding: 0;
+		margin: 1rem 1rem 0.75rem 1rem;
+		height: 3rem;
+		width: 17.5rem;
+		overflow: hidden;
+		.sapMText {
+			font-size: 1rem;
+			line-height: 1.5rem;
+		}
+		.sapMGTSubHdrTxt .sapMText {
+			font-size: 0.875rem;
+		}
+		.sapMGTHdrIconImage {
+			float: left;
+			margin-right: 1rem;
+			width: 3rem;
+		}
+		.sapMGTHdrIconImage.sapUiIcon {
+			width: 2rem;
+		}
+		.sapMGTHdrIconImage.sapUiIcon::before {
+			font-size: 2rem;
+		}
+		.sapMGTHdrIconImage.Neutral {
+			color:  @sapUiNeutralText;
+		}
+		.sapMGTHdrIconImage.Good {
+			color: @sapUiPositiveText;
+		}
+		.sapMGTHdrIconImage.Critical {
+			color: @sapUiCriticalText;
+		}
+		.sapMGTHdrIconImage.Error {
+			color: @sapUiNegativeText;
+		}
+		.sapMGTHdrIconImage.None {
+			color: @sapUiTileIconColor
+		}
+	}
+	.sapMGTContent {
+		height: 6.5rem;
+		.sapMTileCnt {
+			height: 6.5rem;
+			.sapMTileContainer {
+				height: 3rem;
+				margin-bottom: 0.625rem;
+				overflow: hidden;
+				display: flex;
+				.sapMTilePriority {
+					margin: 0 0.5rem 0 1rem;
+					.sapMTilePriorityCnt {
+						display: flex;
+						align-items: center;
+						height: 1.5rem;
+						width: fit-content;
+						border-radius: 0.25rem;
+						overflow: hidden;
+						.sapMTilePriorityBorder {
+							width: 0.125rem;
+							height: inherit;
+						}
+						.sapMTilePriorityValue {
+							font-size: 0.75rem;
+							font-weight: bold;
+							line-height: 1rem;
+							padding: 0.25rem 0.5rem 0.25rem 0.625rem;
+						}
+					}
+				}
+				.High {
+					.sapMTilePriorityCnt {
+						background-color: @sapErrorBackground;
+						.sapMTilePriorityBorder {
+							background-color: @sapErrorBorderColor;
+						}
+						.sapMTilePriorityValue {
+							color: @sapNegativeTextColor;
+						}
+					}
+				}
+				.Medium {
+					.sapMTilePriorityCnt {
+						background-color: @sapWarningBackground;
+						.sapMTilePriorityBorder {
+							background-color: @sapWarningBorderColor;
+						}
+						.sapMTilePriorityValue {
+							color: @sapCriticalTextColor;
+						}
+					}
+				}
+				.Low {
+					.sapMTilePriorityCnt {
+						background-color: @sapSuccessBackground;
+						.sapMTilePriorityBorder {
+							background-color: @sapSuccessBorderColor;
+						}
+						.sapMTilePriorityValue {
+							color: @sapPositiveTextColor;
+						}
+					}
+				}
+				.sapMTileCntContent {
+					padding: 0;
+					margin: 0 1rem 0 0;
+					.sapMText {
+						line-height: 1.5rem;
+					}
+					.sapMNC {
+						.sapMNCInner {
+							position: relative;
+						}
+					}
+				}
+			}
+			.sapMTileCntContent {
+				height: 3rem;
+				overflow: hidden;
+				padding: 0 1rem;
+				margin: 0 0 0.625rem 0;
+				.sapMText {
+					line-height: 1.5rem;
+				}
+				.sapMImageContent {
+					height: 3rem;
+					.sapMImageContentImageIcon {
+						max-height: 3rem;
+					}
+				}
+			}
+			.sapMTileFtrCnt {
+				height: 2rem;
+				display: flex;
+				position: absolute;
+				left: 0;
+				right: 0;
+				bottom: 0rem;
+				justify-content: space-between;
+				align-items: center;
+				padding-bottom: 1rem;
+				.sapMTileCntFtrTxt {
+					position: initial;
+					margin-right: 0;
+					margin-left: 1rem;
+					font-size: 0.75rem;
+				}
+				.sapMGTActionModeContainer {
+					margin: 0 1rem 0 0.5rem;
+					display: inline-flex;
+					column-gap: 0.5rem;
+				}
+			}
+			.sapMTileCntFtrTxt {
+				margin: 0 1rem;
+				font-size: 0.75rem;
+				bottom: 1.5rem;
+			}
+		}
+	}
+}
+
+.TwoByOne.sapMGTActionMode.sapMTileSmallPhone {
+	.sapMGTContent {
+		.sapMTileCnt {
+			.sapMTileContainer {
+				.sapMTilePriority {
+					margin-left: 0.5rem;
+				}
+			}
+			.sapMTileFtrCnt {
+				.sapMGTActionModeContainer {
+					margin-right: 0.5rem;
+				}
+			}
+		}
+	}
+}
+
+.sapMAutoPointer {
+	.sapMText {
+		cursor: auto;
+	}
+}
+
+.TwoByHalf.sapMGTIconMode.sapMTileSmallPhone.sapMGT .sapMGTHdrContent {
+    height: auto;
+    max-height: 2rem;
+    padding-top: 0;
+}
+
+@media (min-width:320px) and (max-width:599px){
+    .sapMGT.sapMGTOneByOne {
+        width: 9rem;
+        height: 9rem;
+    }
+}
+@media (min-width:600px) {
+    .sapMGT.sapMGTOneByOne {
+        width: 7rem;
+        height: 7rem;
+    }
+}
+.sapMGT.sapMGTOneByOne {
+    border-radius: 1rem;
+    border: none;
+}
+
+.sapMGTHdrContent.sapMGTOneByOne {
+    height: 3.625rem;
+	padding-top: 0;
+	display: flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+}
+
+.sapMGTHdrContent.sapMGTOneByOne > .sapMGTHdrTxt > .sapMText{
+	font-size: 0.875rem;
+	color: @sapUiContentContrastTextColor;
+    text-align: center !important;
+}
+
+.sapMGTOneByOneIcon {
+	display: flex;
+    align-items: flex-end;
+    padding-top: 1.25rem;
+	justify-content: center;
+}
+
+.sapMGT.sapMGTTwoByHalf {
+	display: flex;
+    border: none ;
+    box-shadow: none ;
+    background-color: transparent ;
+    align-items: center;
+	width: 18.75rem ;
+    height: 3.438rem ;
+    padding-left: 0.75rem;
+	border-radius: 0.75rem;
+    box-sizing: border-box;
+}
+
+.sapMGTTwoByHalf  > .TwoByHalf > .sapMGTHdrTxt > .sapMText{
+	font-size: 0.875rem;
+	color: @sapUiTileTitleTextColor;
+}
+
+.sapMGTTwoByHalfIcon {
+	width: 2rem;
+    height: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+}
+
+.sapMGT.TwoByHalf .sapMGTHdrContent {
+    line-height: 2rem;
+    vertical-align: middle;
+}
+
+.sapMGTTwoByHalfIcon ~ .sapMGTHdrContent.TwoByHalf{
+	padding-top: 0.25rem;
+    padding-left: 1rem;
+    height: initial;
+	align-items: center;
+}
+
+.sapMGTTileIcon {
+	color: @sapUiContentContrastTextColor;
+}
+
+.sapMGTArticleMode {
+	.sapMGTContent {
+		.sapMTileCnt {
+			.sapMTileCntContent {
+				height: 3.25rem;
+				.sapMImageContent {
+					height: 3rem;
+					.sapMImageContentImageIcon {
+						max-height: 3.25rem;
+					}
+				}
+			}
+			.sapMTileFtrCnt {
+				height: 2.5rem;
+				display: flex;
+				position: absolute;
+				left: 0;
+				right: 0;
+				bottom: 0.25rem;
+				justify-content: space-between;
+				align-items: center;
+				.sapMTileCntFtrTxt {
+					position: initial;
+					margin-right: 0;
+				}
+				.sapMTileNavContainer {
+					margin: 0 1rem 0 0.5rem;
+				}
+			}
+		}
+	}
+}
+.sapMGTArticleMode.sapMTileSmallPhone {
+	.sapMGTContent {
+		.sapMTileCnt {
+			.sapMTileFtrCnt {
+				.sapMTileNavContainer {
+					margin-right: 0.5rem;
+				}
+			}
+		}
+	}
 }

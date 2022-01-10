@@ -16,7 +16,6 @@
 	overflow: hidden !important;
 	-webkit-user-select: none;
 	-moz-user-select: none;
-	-ms-user-select: none;
 	user-select: none;
 	box-shadow: @sapUiShadowLevel1 !important; //Need to override this with important because of popover stronger selectors
 }
@@ -46,9 +45,13 @@ html.sap-phone {
 	.sapMTimePickerDropDown {
 		/* This centers content in landscape & portrait mode */
 		.sapMDialogScrollCont {
-			display: flex;
 			height: 100%;
 			padding: 0;
 		}
 	}
+}
+
+/* DESKTOP STYLES */
+html.sap-desktop .sapMValueStateHeaderRoot {
+	margin-right: -12px; // fixing a right margin set from popover
 }

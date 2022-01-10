@@ -297,7 +297,8 @@ sap.ui.define([
 				return false;
 			}
 
-			if (this._iRenderedDataItems >= 40) {
+			// 32 is the minimum height of the item
+			if (this._getDomIndex(this._iRenderedDataItems) > (window.innerHeight / 32)) {
 				return true;
 			}
 
@@ -392,19 +393,8 @@ sap.ui.define([
 			this.applyPendingGroupItem();
 
 			var iLength = this._aChunk.length;
-			if (!iLength) {
+			if (!iLength || !this._oControl.shouldRenderItems()) {
 				return;
-			}
-
-			// prevent DOM updates when there are no visible columns in the table and items are being inserted (see BCP: 2080250160)
-			if (this._oControl.isA("sap.m.Table")) {
-				var bHasVisibleColumn = this._oControl.getColumns().some(function(oColumn) {
-					return oColumn.getVisible();
-				});
-
-				if (!bHasVisibleColumn) {
-					return;
-				}
 			}
 
 			if (this._oControl.getGrowingDirection() == ListGrowingDirection.Upwards) {
@@ -532,9 +522,7 @@ sap.ui.define([
 				this.rebuildListItems(aContexts, oBindingInfo);
 			} else if (!aDiff || !aItems.length && aDiff.length) {
 				// new records need to be applied from scratch
-				if (oControl.shouldRenderItems()) {
-					this.rebuildListItems(aContexts, oBindingInfo, oControl.shouldGrowingSuppressInvalidation());
-				}
+				this.rebuildListItems(aContexts, oBindingInfo, oControl.shouldGrowingSuppressInvalidation());
 			} else if (oBinding.isGrouped() || oControl.checkGrowingFromScratch()) {
 
 				if (this._sGroupingPath != this._getGroupingPath(oBinding)) {
@@ -666,20 +654,18 @@ sap.ui.define([
 					(bLengthFinal && this._iLimit >= iBindingLength) ||
 					(bHasScrollToLoad && this._getHasScrollbars())) {
 					oControl.$("triggerList").css("display", "none");
+					oControl.$("listUl").removeClass("sapMListHasGrowing");
 				} else {
 					if (bLengthFinal) {
 						oControl.$("triggerInfo").css("display", "block").text(this._getListItemInfo());
 					}
 
-					oTrigger.$().removeClass("sapMGrowingListBusyIndicatorVisible");
 					oControl.$("triggerList").css("display", "");
+					oControl.$("listUl").addClass("sapMListHasGrowing");
+					oTrigger.$().removeClass("sapMGrowingListBusyIndicatorVisible");
 
-					// adapt trigger button width if dummy col is rendered
-					if (oControl.isA("sap.m.Table") && !oControl.hasPopin() && oControl.shouldRenderDummyColumn()) {
-						var oDummyColDomRef = oControl.getDomRef("tblHeadDummyCol");
-						var iWidth = oControl.getDomRef().clientWidth - oDummyColDomRef.clientWidth;
-						oTriggerDomRef.style.width = iWidth + "px";
-
+					if (oControl.isA("sap.m.Table") && !oControl.hasPopin()) {
+						this.adaptTriggerButtonWidth(oControl, oTriggerDomRef);
 					}
 				}
 
@@ -702,6 +688,33 @@ sap.ui.define([
 					oScrollDelegate.scrollTo(oScrollPosition.left, oScrollDelegate.getScrollHeight() - oScrollPosition.top);
 					this._oScrollPosition = null;
 				}
+			}
+		},
+
+		adaptTriggerButtonWidth: function(oControl, oTriggerDomRef) {
+			// adapt trigger button width if dummy col is rendered
+			if (oControl.shouldRenderDummyColumn() && oControl.$("listUl").hasClass("sapMListHasGrowing")) {
+				if (!oTriggerDomRef) {
+					oTriggerDomRef = this._oTrigger.getDomRef();
+				}
+
+				window.requestAnimationFrame(function() {
+					if (oControl.bIsDestroyed) {
+						return;
+					}
+
+					var sCalWidth = Array.from(oControl.getDomRef("tblHeader").childNodes).slice(0, -1).map(function(oDomRef) {
+						var sWidth = oDomRef.getAttribute("data-sap-width");
+						if (!sWidth || !sWidth.includes("%")) {
+							return oDomRef.getBoundingClientRect().width + "px";
+						} else {
+							return sWidth;
+						}
+					}).join(" + ");
+					// 1px is borderLeft of the dummyCell
+					oTriggerDomRef.style.width = "calc(" + sCalWidth + " + 1px)";
+					oTriggerDomRef.classList.add("sapMGrowingListDummyColumn");
+				});
 			}
 		}
 	});

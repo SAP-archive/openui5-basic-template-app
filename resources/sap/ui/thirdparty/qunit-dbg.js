@@ -16,7 +16,8 @@
 	// the goal is to prevent QUnit timeouts while test is already paused.
 	if (window && window.sap && window.sap.ui && window.sap.ui.require) {
 		try {
-			window.sap.ui.require("sap/ui/test/qunitPause") || window.sap.ui.requireSync("sap/ui/test/qunitPause");
+			var QUnitPause = window.sap.ui.require("sap/ui/test/qunitPause") || window.sap.ui.requireSync("sap/ui/test/qunitPause"); // legacy-relevant
+			QUnitPause.setupBeforeQUnit();
 		} catch (e) {
 			window.console.warn("Could not find module sap/ui/test/qunitPause. Details: " + e);
 		}
@@ -673,7 +674,6 @@ function resumeProcessing() {
 
 function pauseProcessing() {
 	config.blocking = true;
-
 	if ( config.testTimeout && defined.setTimeout ) {
 		clearTimeout( config.timeout );
 		config.timeout = setTimeout(function() {

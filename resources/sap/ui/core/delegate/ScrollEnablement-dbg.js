@@ -14,6 +14,7 @@
 sap.ui.define([
 	'sap/ui/Device',
 	'sap/ui/base/Object',
+	'sap/ui/core/Core',
 	'sap/ui/core/IntervalTrigger',
 	'sap/ui/core/ResizeHandler',
 	"sap/ui/thirdparty/jquery",
@@ -22,6 +23,7 @@ sap.ui.define([
 	function(
 		Device,
 		BaseObject,
+		Core,
 		IntervalTrigger,
 		ResizeHandler,
 		jQuery,
@@ -56,7 +58,7 @@ sap.ui.define([
 		 *
 		 * @protected
 		 * @alias sap.ui.core.delegate.ScrollEnablement
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 * @author SAP SE
 		 */
 		var ScrollEnablement = BaseObject.extend("sap.ui.core.delegate.ScrollEnablement", /** @lends sap.ui.core.delegate.ScrollEnablement.prototype */ {
@@ -173,8 +175,8 @@ sap.ui.define([
 			 * Only a single listener can be registered
 			 *
 			 * @param {function} fnCallback
-			 * @ui5-restricted sap.m.GrowingEnablement
 			 * @private
+			 * @ui5-restricted sap.m.GrowingEnablement
 			 * @since 1.74
 			 */
 			onOverflowChange : function(fnCallback){
@@ -182,6 +184,20 @@ sap.ui.define([
 				if (!this._fnOverflowChangeCallback) {
 					this._deregisterOverflowMonitor();
 				}
+			},
+
+			/**
+			 * Sets the listener for the end of any <code>scrollToElement</code>
+			 *
+			 * Only a single listener can be registered
+			 *
+			 * @param {function} fnCallback
+			 * @private
+			 * @ui5-restricted sap.uxap.ObjectPageLayout, sap.f.DynamicPage
+			 * @since 1.87
+			 */
+			setOnAfterScrollToElement : function(fnCallback){
+				this._fnAfterScrollToElement = fnCallback;
 			},
 
 			/**
@@ -199,7 +215,17 @@ sap.ui.define([
 				this._fnScrollStartCallback = jQuery.proxy(fnScrollStartCallback, oIconTabBar);
 				return this;
 			},
-
+			/**
+			 * Scrolls to a specific position in scroll container.
+			 * @param {int} iHorizontalPosition Horizontal position of the scrollbar
+			 * @param {int} iVerticalPosition Vertical position of the scrollbar
+			 * @param {int} [iTime=0]
+			 *           The duration of animated scrolling in milliseconds. To scroll immediately without animation,
+			 *           give 0 as value.
+			 * @param {function} fnCallback
+			 * @returns {this}
+			 * @public
+			 */
 			scrollTo : function(x, y, time, fnScrollEndCallback) {
 				this._scrollX = x; // remember for later rendering
 				this._scrollY = y;
@@ -239,7 +265,7 @@ sap.ui.define([
 			 * @param {int[]} [aOffset=[0,0]]
 			 *           Specifies an additional left and top offset of the target scroll position, relative to
 			 *           the upper left corner of the DOM element
-			 * @returns {sap.ui.core.delegate.ScrollEnablement}
+			 * @returns {this}
 			 * @protected
 			 */
 			scrollToElement: function(oElement, iTime, aOffset) {
@@ -263,7 +289,7 @@ sap.ui.define([
 				}
 
 				// scroll to destination
-				this._scrollTo(iLeftScroll, iTopScroll , iTime);
+				this._scrollTo(iLeftScroll, iTopScroll , iTime, this._fnAfterScrollToElement);
 
 				return this;
 			},
@@ -320,7 +346,7 @@ sap.ui.define([
 					}
 				}
 
-				if (oEvent.ctrlKey) {
+				if (oEvent.ctrlKey && !oEvent.altKey) {
 					switch (oEvent.keyCode) {
 						case KeyCodes.ARROW_UP:
 							// [CTRL]+[UP] - 1 page up
@@ -365,7 +391,8 @@ sap.ui.define([
 							}
 
 							if (!this.getVertical()) {
-								left = this._scrollX;
+								left = Core.getConfiguration().getRTL() ?
+									container.clientWidth - container.scrollWidth : this._scrollX;
 							}
 
 							this._customScrollTo(left, top, oEvent);
@@ -462,8 +489,7 @@ sap.ui.define([
 				}
 
 				if (!(this._oPullDown && this._oPullDown._bTouchMode)
-					&& !this._fnScrollLoadCallback
-					&& !Device.browser.msie) {
+					&& !this._fnScrollLoadCallback) {
 					// for IE the resize listener must remain in place for the case when navigating away and coming back.
 					// For the other browsers it seems to work fine without.
 					ResizeHandler.deregister(this._sResizeListenerId);
@@ -679,7 +705,6 @@ sap.ui.define([
 				this._refresh();
 
 				if (!bElementVisible
-					|| Device.browser.msie
 					|| this._oPullDown
 					|| this._fnScrollLoadCallback) {
 
@@ -783,11 +808,8 @@ sap.ui.define([
 					if (oConfig.nonTouchScrolling === true) {
 						this._bDragScroll = true; // optional drag instead of native scrolling
 					}
-					if (sap.ui.getCore().getConfiguration().getRTL()) {
+					if (Core.getConfiguration().getRTL()) {
 						this._scrollX = 9999; // in RTL case initially scroll to the very right
-						if (Device.browser.msie || Device.browser.edge) {
-							this._bFlipX = true; // in IE and Edge RTL, scrollLeft goes opposite direction
-						}
 					}
 				},
 				_exit : function() {

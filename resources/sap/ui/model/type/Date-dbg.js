@@ -3,28 +3,19 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the base implementation for all model implementations
 sap.ui.define([
-	'sap/ui/core/format/DateFormat',
-	'sap/ui/model/SimpleType',
-	'sap/ui/model/FormatException',
-	'sap/ui/model/ParseException',
-	'sap/ui/model/ValidateException',
-	"sap/ui/thirdparty/jquery",
-	"sap/base/util/isEmptyObject"
-],
-	function(
-		DateFormat,
-		SimpleType,
-		FormatException,
-		ParseException,
-		ValidateException,
-		jQuery,
-		isEmptyObject
-	) {
+	"sap/base/util/each",
+	"sap/base/util/isEmptyObject",
+	"sap/ui/core/format/DateFormat",
+	"sap/ui/model/FormatException",
+	"sap/ui/model/ParseException",
+	"sap/ui/model/SimpleType",
+	"sap/ui/model/ValidateException"
+], function(each, isEmptyObject, DateFormat, FormatException, ParseException, SimpleType,
+		ValidateException) {
 	"use strict";
-
 
 	/**
 	 * Constructor for a Date type.
@@ -35,7 +26,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions] Formatting options. For a list of all available options, see {@link sap.ui.core.format.DateFormat.getDateInstance DateFormat}.
@@ -89,7 +80,7 @@ sap.ui.define([
 				if (oValue === "") {
 					return null;
 				}
-				var oResult = this.oOutputFormat.parse(oValue);
+				oResult = this.oOutputFormat.parse(oValue);
 				if (!oResult) {
 					oBundle = sap.ui.getCore().getLibraryResourceBundle();
 					throw new ParseException(oBundle.getText(this.sName + ".Invalid"));
@@ -121,7 +112,7 @@ sap.ui.define([
 				oValue = oInputFormat.parse(oValue);
 			}
 
-			jQuery.each(this.oConstraints, function(sName, oContent) {
+			each(this.oConstraints, function(sName, oContent) {
 				if (oInputFormat) {
 					oContent = oInputFormat.parse(oContent);
 				}
@@ -140,6 +131,7 @@ sap.ui.define([
 							aMessages.push(oBundle.getText(that.sName + ".Maximum", [sContent]));
 						}
 						break;
+					default: break;
 				}
 			});
 			if (aViolatedConstraints.length > 0) {
@@ -185,6 +177,11 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns the output pattern.
+	 *
+	 * @returns {string} The output pattern
+	 *
+	 * @see sap.ui.core.format.DateFormat.getDateInstance
 	 * @protected
 	 */
 	Date1.prototype.getOutputPattern = function() {

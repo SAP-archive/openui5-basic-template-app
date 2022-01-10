@@ -7,7 +7,6 @@
 sap.ui.define([
 		'./library',
 		'sap/ui/core/Core',
-		'sap/ui/core/Control',
 		'sap/ui/core/Element',
 		'sap/ui/Device',
 		'./ListItemBase',
@@ -20,7 +19,6 @@ sap.ui.define([
 		'sap/ui/core/library'],
 	function (library,
 			  Core,
-			  Control,
 			  Element,
 			  Device,
 			  ListItemBase,
@@ -80,7 +78,7 @@ sap.ui.define([
 		 * @extends sap.m.ListItemBase
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -256,7 +254,7 @@ sap.ui.define([
 		/* Clones the NotificationListBase.
 		 *
 		 * @public
-		 * @returns {sap.m.NotificationListBase} The cloned NotificationListBase.
+		 * @returns {this} The cloned NotificationListBase.
 		 */
 		NotificationListBase.prototype.clone = function () {
 			var clonedObject = ListItemBase.prototype.clone.apply(this, arguments);

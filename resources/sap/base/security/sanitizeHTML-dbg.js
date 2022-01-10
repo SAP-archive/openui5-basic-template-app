@@ -9,9 +9,9 @@
  */
 sap.ui.define([
 	"sap/base/assert",
-	"sap/base/security/URLWhitelist",
+	"sap/base/security/URLListValidator",
 	"sap/ui/thirdparty/caja-html-sanitizer"
-], function(assert, URLWhitelist /*cajaHtmlSanitizer*/) {
+], function(assert, URLListValidator /*cajaHtmlSanitizer*/) {
 
 	"use strict";
 
@@ -32,9 +32,9 @@ sap.ui.define([
 
 		mOptions = mOptions || {
 			uriRewriter: function(sUrl) {
-				// by default we use the URL whitelist to check the URL's
+				// by default, we use the URLListValidator to check the URLs
 
-				if (URLWhitelist.validate(sUrl)) {
+				if (URLListValidator.validate(sUrl)) {
 					return sUrl;
 				}
 			}

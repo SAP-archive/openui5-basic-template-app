@@ -42,12 +42,15 @@ sap.ui.define([
 	 * There are options for setting the background color and a background image with the use of the
 	 * <code>backgroundColor</code> and <code>backgroundImage</code> properties.
 	 *
+	 * <b>Note</b>: Keep in mind that by default (<code>isTopLevel</code> is set to <code>true</code>)
+	 * <code>sap.m.App</code> traverses its parent elements and automatically sets their height to 100%.
+	 *
 	 * @see {@link topic:a4afb138acf64a61a038aa5b91a4f082 App}
 	 *
 	 * @extends sap.m.NavContainer
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -66,7 +69,7 @@ sap.ui.define([
 			 *
 			 * This icon must be in PNG format. The property can either hold the URL of one single icon which is used for all devices (and possibly scaled, which looks not perfect), or an object holding icon URLs for the different required sizes.
 			 *
-			 * A desktop icon (used for bookmarks and overriding the favicon) can also be configured. This requires an object to be given and the "icon" property of this object then defines the desktop bookmark icon. For this icon, PNG is not supported by Internet Explorer. The ICO format is supported by all browsers. ICO is also preferred for this desktop icon setting because the file can contain different images for different resolutions.
+			 * A desktop icon (used for bookmarks and overriding the favicon) can also be configured. This requires an object to be given and the "icon" property of this object then defines the desktop bookmark icon. The ICO format is supported by all browsers. ICO is also preferred for this desktop icon setting because the file can contain different images for different resolutions.
 			 *
 			 * One example is:
 			 *
@@ -130,7 +133,16 @@ sap.ui.define([
 			 *
 			 * @since 1.58.0
 			 */
-			mobileWebAppCapable : {type : "boolean", group : "Appearance", defaultValue : true}
+			mobileWebAppCapable : {type : "boolean", group : "Appearance", defaultValue : true},
+			/**
+			 * Determines whether <code>sap.m.App</code> is used as a top level control.
+			 *
+			 * <b>Note</b>: When the <code>isTopLevel</code> property set to <code>true</code>, <code>sap.m.App</code>
+			 * traverses its parent DOM elements and sets their height to 100%.
+			 *
+			 * @since 1.91
+			 */
+			 isTopLevel : {type : "boolean", group : "Behavior", defaultValue : true}
 		},
 		events : {
 
@@ -179,6 +191,17 @@ sap.ui.define([
 		if (NavContainer.prototype.onAfterRendering) {
 			NavContainer.prototype.onAfterRendering.apply(this, arguments);
 		}
+
+		if (this.getIsTopLevel()) {
+			this._adjustParentsHeight();
+		}
+	};
+
+	App.prototype._adjustParentsHeight = function () {
+		if (!this.getDomRef()) {
+			return;
+		}
+
 		var ref = this.getDomRef().parentNode;
 		// set all parent elements to 100% height this *should* be done by the application in CSS, but people tend to forget it...
 		while (ref && ref !== document.documentElement) {
@@ -192,7 +215,6 @@ sap.ui.define([
 			ref = ref.parentNode;
 		}
 	};
-
 
 	/**
 	 * Termination of the App control

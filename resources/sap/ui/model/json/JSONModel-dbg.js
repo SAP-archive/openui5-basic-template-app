@@ -3,7 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 /**
  * JSON-based DataBinding
  *
@@ -14,27 +14,17 @@
 
 // Provides the JSON object based model implementation
 sap.ui.define([
-	'sap/ui/model/ClientModel',
-	'sap/ui/model/Context',
-	'./JSONListBinding',
-	'./JSONPropertyBinding',
-	'./JSONTreeBinding',
+	"./JSONListBinding",
+	"./JSONPropertyBinding",
+	"./JSONTreeBinding",
 	"sap/base/Log",
-	"sap/ui/thirdparty/jquery",
-	"sap/base/util/isPlainObject"
-],
-	function(
-		ClientModel,
-		Context,
-		JSONListBinding,
-		JSONPropertyBinding,
-		JSONTreeBinding,
-		Log,
-		jQuery,
-		isPlainObject
-	) {
+	"sap/base/util/deepExtend",
+	"sap/base/util/isPlainObject",
+	"sap/ui/model/ClientModel",
+	"sap/ui/model/Context"
+], function(JSONListBinding, JSONPropertyBinding, JSONTreeBinding, Log, deepExtend, isPlainObject,
+		ClientModel, Context) {
 	"use strict";
-
 
 	/**
 	 * Constructor for a new JSONModel.
@@ -47,12 +37,14 @@ sap.ui.define([
 	 * @param {boolean} [bObserve] Whether to observe the JSON data for property changes (experimental)
 	 *
 	 * @class
-	 * Model implementation for JSON format
+	 * Model implementation for the JSON format.
+	 *
+	 * This model is not prepared to be inherited from.
 	 *
 	 * @extends sap.ui.model.ClientModel
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @public
 	 * @alias sap.ui.model.json.JSONModel
 	 */
@@ -85,7 +77,7 @@ sap.ui.define([
 	JSONModel.prototype.setData = function(oData, bMerge){
 		if (bMerge) {
 			// do a deep copy
-			this.oData = jQuery.extend(true, Array.isArray(this.oData) ? [] : {}, this.oData, oData);
+			this.oData = deepExtend(Array.isArray(this.oData) ? [] : {}, this.oData, oData);
 		} else {
 			this.oData = oData;
 		}
@@ -126,12 +118,14 @@ sap.ui.define([
 			}
 		}
 		function observeRecursive(oObject, oParentObject, sName) {
+			var i;
+
 			if (Array.isArray(oObject)) {
-				for (var i = 0; i < oObject.length; i++) {
+				for (i = 0; i < oObject.length; i++) {
 					observeRecursive(oObject[i], oObject, i);
 				}
 			} else if (isPlainObject(oObject)) {
-				for (var i in oObject) {
+				for (i in oObject) {
 					observeRecursive(oObject[i], oObject, i);
 				}
 			}
@@ -164,9 +158,8 @@ sap.ui.define([
 
 	/**
 	 * Serializes the current JSON data of the model into a string.
-	 * Note: May not work in Internet Explorer 8 because of lacking JSON support (works only if IE 8 mode is enabled)
 	 *
-	 * @return {string} the JSON data serialized as string
+	 * @return {string} The JSON data serialized as string
 	 * @public
 	 */
 	JSONModel.prototype.getJSON = function(){
@@ -220,10 +213,10 @@ sap.ui.define([
 			// the textStatus is either passed by jQuery via arguments,
 			// or by us from a promise reject() in the async case
 			var sMessage = sTextStatus || oParams.textStatus;
-			var oParams = bAsync ? oParams.request : oParams;
-			var iStatusCode = oParams.status;
-			var sStatusText = oParams.statusText;
-			var sResponseText = oParams.responseText;
+			var oParameters = bAsync ? oParams.request : oParams;
+			var iStatusCode = oParameters.status;
+			var sStatusText = oParameters.statusText;
+			var sResponseText = oParameters.responseText;
 
 			var oError = {
 				message : sMessage,
@@ -240,6 +233,8 @@ sap.ui.define([
 			if (bAsync) {
 				return Promise.reject(oError);
 			}
+
+			return undefined;
 		}.bind(this);
 
 		var _loadData = function(fnSuccess, fnError) {
@@ -279,6 +274,8 @@ sap.ui.define([
 			return pReturn;
 		} else {
 			_loadData(fnSuccess, fnError);
+
+			return undefined;
 		}
 	};
 
@@ -318,12 +315,13 @@ sap.ui.define([
 	/**
 	 * @see sap.ui.model.Model.prototype.bindTree
 	 *
-	 * @param {object}
-	 *         [mParameters=null] additional model specific parameters (optional)
-	 *         If the mParameter <code>arrayNames</code> is specified with an array of string names this names will be checked against the tree data structure
-	 *         and the found data in this array is included in the tree but only if also the parent array is included.
-	 *         If this parameter is not specified then all found arrays in the data structure are bound.
-	 *         If the tree data structure doesn't contain an array you don't have to specify this parameter.
+	 * @param {object} [mParameters=null]
+	 *   Additional model specific parameters; if the mParameter <code>arrayNames</code> is
+	 *   specified with an array of string names these names will be checked against the tree data
+	 *   structure and the found data in this array is included in the tree, but only if the parent
+	 *   array is also included; if this parameter is not specified then all found arrays in the
+	 *   data structure are bound; if the tree data structure doesn't contain an array, this
+	 *   parameter doesn't need to be specified
 	 *
 	 */
 	JSONModel.prototype.bindTree = function(sPath, oContext, aFilters, mParameters, aSorters) {
@@ -372,22 +370,40 @@ sap.ui.define([
 	};
 
 	/**
-	* Returns the value for the property with the given <code>sPropertyName</code>
-	*
-	* @param {string} sPath the path to the property
-	* @param {sap.ui.model.Context} [oContext=null] the context which will be used to retrieve the property
-	* @return {any} the value of the property
-	* @public
-	*/
+	 * Returns the value for the property with the given path and context.
+	 *
+	 * @param {string} sPath
+	 *   The path to the property
+	 * @param {sap.ui.model.Context} [oContext=null]
+	 *   The context which will be used to retrieve the property
+	 * @return {any}
+	 *   The value of the property. If the property is not found, <code>null</code> or
+	 *   <code>undefined</code> is returned.
+	 * @public
+	 */
 	JSONModel.prototype.getProperty = function(sPath, oContext) {
 		return this._getObject(sPath, oContext);
 
 	};
 
 	/**
+	 * Returns the value for the property with the given path and context.
+	 *
 	 * @param {string} sPath
+	 *   The path to the property
 	 * @param {object|sap.ui.model.Context} [oContext]
-	 * @returns {any} the node of the specified path/context
+	 *   The context or a JSON object
+	 * @returns {any}
+	 *   The value of the property. If the property path derived from the given path and context is
+	 *   absolute (starts with a "/") but does not lead to a property in the data structure,
+	 *   <code>undefined</code> is returned. If the property path is not absolute, <code>null</code>
+	 *   is returned.
+	 *
+	 *   Note: If a JSON object is given instead of a context, the value of the property is taken
+	 *   from the JSON object. If the given path does not lead to a property, <code>undefined</code>
+	 *   is returned. If the given path represents a falsy JavaScript value, the given JSON object
+	 *   is returned.
+	 * @private
 	 */
 	JSONModel.prototype._getObject = function (sPath, oContext) {
 		var oNode = this.isLegacySyntax() ? this.oData : null;

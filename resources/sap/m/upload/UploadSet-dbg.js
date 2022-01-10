@@ -4,11 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
-
 sap.ui.define([
 	"sap/ui/core/Control",
 	"sap/ui/core/Icon",
@@ -27,9 +22,10 @@ sap.ui.define([
 	"sap/ui/unified/FileUploader",
 	"sap/m/upload/UploadSetItem",
 	"sap/m/upload/Uploader",
-	"sap/m/upload/UploadSetRenderer"
+	"sap/m/upload/UploadSetRenderer",
+	"sap/m/upload/UploaderHttpRequestMethod"
 ], function (Control, Icon, KeyCodes, Log, deepEqual, MobileLibrary, Button, Dialog, List, MessageBox, OverflowToolbar,
-			 StandardListItem, Text, ToolbarSpacer, FileUploader, UploadSetItem, Uploader, Renderer) {
+			 StandardListItem, Text, ToolbarSpacer, FileUploader, UploadSetItem, Uploader, Renderer, UploaderHttpRequestMethod) {
 	"use strict";
 
 	/**
@@ -43,10 +39,10 @@ sap.ui.define([
 	 * and requests, unified behavior of instant and deferred uploads, as well as improved progress indication.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @constructor
 	 * @public
-	 * @since 1.62
+	 * @since 1.63
 	 * @alias sap.m.upload.UploadSet
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel.
 	 */
@@ -103,8 +99,13 @@ sap.ui.define([
 				/**
 				 * URL where the uploaded files will be stored.
 				 */
-				uploadUrl: {type: "string", defaultValue: null}
-			},
+				uploadUrl: {type: "string", defaultValue: null},
+				/**
+				 * HTTP request method chosen for file upload.
+				 * @since 1.90
+				 */
+				httpRequestMethod: {type: "sap.m.upload.UploaderHttpRequestMethod", defaultValue: UploaderHttpRequestMethod.Post}
+				},
 			defaultAggregation: "items",
 			aggregations: {
 				/**
@@ -332,7 +333,8 @@ sap.ui.define([
 					}
 				}
 			}
-		}
+		},
+		renderer: Renderer
 	});
 
 	var UploadState = MobileLibrary.UploadState;
@@ -488,17 +490,18 @@ sap.ui.define([
 	};
 
 	UploadSet.prototype.removeAggregation = function (sAggregationName, oObject, bSuppressInvalidate) {
-		var oListItem;
-		Control.prototype.removeAggregation.call(this, sAggregationName, oObject, bSuppressInvalidate);
-		if (oObject && (sAggregationName === "items" || sAggregationName === "incompleteItems")) {
-			oListItem = oObject._getListItem();
-			var oItem = this.getList().removeAggregation("items", oListItem, bSuppressInvalidate);
-			if (oItem) {
-				oItem.destroy();
-			}
-			this._refreshInnerListStyle();
-		}
-	};
+        var oListItem;
+        Control.prototype.removeAggregation.call(this, sAggregationName, oObject, bSuppressInvalidate);
+        if (oObject && (sAggregationName === "items" || sAggregationName === "incompleteItems")) {
+            oListItem = oObject._getListItem();
+            var oItem = this.getList().removeAggregation("items", oListItem, bSuppressInvalidate);
+            if (oItem && oObject) {
+                oObject.destroy();
+                oItem.destroy();
+            }
+            this._refreshInnerListStyle();
+        }
+    };
 
 	UploadSet.prototype.removeAllAggregation = function (sAggregationName, bSuppressInvalidate) {
 		if (sAggregationName === "items") {
@@ -665,8 +668,11 @@ sap.ui.define([
 				tooltip: sTooltip,
 				iconOnly: false,
 				enabled: this.getUploadEnabled(),
+				fileType: this.getFileTypes(),
+				mimeType: this.getMediaTypes(),
 				icon: "",
 				iconFirst: false,
+				multiple: true,
 				style: "Transparent",
 				name: "uploadSetFileUploader",
 				sameFilenameAllowed: true,
@@ -676,7 +682,10 @@ sap.ui.define([
 				uploadStart: [this._onUploadStarted, this],
 				uploadProgress: [this._onUploadProgressed, this],
 				uploadComplete: [this._onUploadCompleted, this],
-				uploadAborted: [this._onUploadAborted, this]
+				uploadAborted: [this._onUploadAborted, this],
+				typeMissmatch: [this._fireFileTypeMismatch, this],
+				fileSizeExceed: [this._fireFileSizeExceed, this],
+				filenameLengthExceed: [this._fireFilenameLengthExceed, this]
 			});
 		}
 
@@ -719,6 +728,7 @@ sap.ui.define([
 	UploadSet.prototype._onUploadCompleted = function (oEvent) {
 		var oItem = oEvent.getParameter("item");
 		oItem.setProgress(100);
+		this.insertItem(oItem, 0);
 		oItem.setUploadState(UploadState.Complete);
 		this.fireUploadCompleted({item: oItem});
 	};
@@ -766,7 +776,7 @@ sap.ui.define([
 		}
 
 		if (oFile.name !== sNewFileName) {
-			sNewFullName = sNewFileName + "." + oFile.extension;
+			sNewFullName = oFile.extension ? sNewFileName + "." + oFile.extension : sNewFileName;
 			oItem.setFileName(sNewFullName);
 		}
 		oItem._setContainsError(false);
@@ -1021,7 +1031,9 @@ sap.ui.define([
 
 	UploadSet.prototype._getImplicitUploader = function () {
 		if (!this._oUploader) {
-			this._oUploader = new Uploader();
+			this._oUploader = new Uploader({
+				httpRequestMethod : this.getHttpRequestMethod()
+			});
 			this._oUploader.setUploadUrl(this.getUploadUrl());
 			this.registerUploaderEvents(this._oUploader);
 			this.addDependent(this._oUploader);
@@ -1037,7 +1049,8 @@ sap.ui.define([
 	UploadSet.prototype._uploadItemIfGoodToGo = function (oItem) {
 		if (oItem.getUploadState() === UploadState.Ready && !oItem._isRestricted()) {
 			if (this.fireBeforeUploadStarts({item: oItem})) {
-				this._getActiveUploader().uploadItem(oItem, this.getHeaderFields());
+				var oHeaderFields = oItem.getHeaderFields().length ? oItem.getHeaderFields() : this.getHeaderFields();
+				this._getActiveUploader().uploadItem(oItem, oHeaderFields);
 			}
 		}
 	};
@@ -1086,9 +1099,8 @@ sap.ui.define([
 	};
 
 	UploadSet.prototype._checkRestrictions = function () {
-		this.getItems().forEach(function (oItem) {
-			this._checkRestrictionsForItem(oItem);
-		}.bind(this));
+		// this will only check the restriction for the newly uploaded files
+		// or files for which the upload is pending
 		this.getIncompleteItems().forEach(function (oItem) {
 			this._checkRestrictionsForItem(oItem);
 		}.bind(this));
@@ -1099,6 +1111,31 @@ sap.ui.define([
 		oItem._checkNameLengthRestriction(this.getMaxFileNameLength());
 		oItem._checkSizeRestriction(this.getMaxFileSize());
 		oItem._checkMediaTypeRestriction(this.getMediaTypes());
+	};
+
+	UploadSet.prototype._fireFileTypeMismatch = function (oItem) {
+		var aMediaTypes = this.getMediaTypes();
+		var aFileTypes = this.getFileTypes();
+
+		var sFileType = oItem.getParameter("fileType");
+		var sMediaType = oItem.getParameter("mimeType");
+
+		var bMediaRestricted = (!!aMediaTypes && (aMediaTypes.length > 0) && !!sMediaType && aMediaTypes.indexOf(sMediaType) === -1);
+		var bFileRestricted = (!!aFileTypes && (aFileTypes.length > 0) && !!sFileType && aFileTypes.indexOf(sFileType) === -1);
+
+		if (bMediaRestricted){
+			this.fireMediaTypeMismatch({item: oItem});
+		} else if (bFileRestricted){
+			this.fireFileTypeMismatch({item: oItem});
+		}
+	};
+
+	UploadSet.prototype._fireFileSizeExceed = function (oItem) {
+		this.fireFileSizeExceeded({item: oItem});
+	};
+
+	UploadSet.prototype._fireFilenameLengthExceed = function (oItem) {
+		this.fireFileNameLengthExceeded({item: oItem});
 	};
 
 	return UploadSet;

@@ -3,25 +3,20 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-/* global XMLHttpRequest */
-
+/*eslint-disable max-len */
 // Provides client-based DataBinding implementation
 sap.ui.define([
-	'./ClientContextBinding',
-	'./ClientListBinding',
-	'./ClientPropertyBinding',
-	'./ClientTreeBinding',
+	"sap/ui/thirdparty/jquery",
 	'./Model',
-	"sap/ui/thirdparty/jquery"
+	'./ClientContextBinding',
+	'./ClientListBinding', // convenience dependency for legacy code using global names
+	'./ClientPropertyBinding', // convenience dependency for legacy code using global names
+	'./ClientTreeBinding' // convenience dependency for legacy code using global names
 ],
 	function(
-		ClientContextBinding,
-		ClientListBinding,
-		ClientPropertyBinding,
-		ClientTreeBinding,
+		jQuery,
 		Model,
-		jQuery
+		ClientContextBinding
 	) {
 	"use strict";
 
@@ -34,7 +29,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.Model
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @param {string} [oData] URL where to load the data from
 	 * @public
@@ -154,11 +149,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * @see sap.ui.model.Model.prototype.destroyBindingContext
+	 * Does nothing.
 	 *
+	 * @param {sap.ui.model.Context} oContext The context to destroy
 	 */
 	ClientModel.prototype.destroyBindingContext = function(oContext) {
-		// TODO: what todo here?
 	};
 
 	/**

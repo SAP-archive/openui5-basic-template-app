@@ -21,7 +21,7 @@ sap.ui.define([
 	 * Have to possibility to hold multiple sap.ui.layout.cssgrid.GridSettings and apply the currently active GridSettings.
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @extends sap.ui.layout.cssgrid.GridLayoutBase
 	 *
@@ -134,7 +134,8 @@ sap.ui.define([
 	/**
 	 * Handler for IGridConfigurable onAfterRendering
 	 *
-	 * @private
+	 * @override
+	 * @protected
 	 * @param {sap.ui.layout.cssgrid.IGridConfigurable} oGrid The grid
 	 */
 	GridResponsiveLayout.prototype.onGridAfterRendering = function (oGrid) {
@@ -144,7 +145,8 @@ sap.ui.define([
 	/**
 	 * Handler for IGridConfigurable resize
 	 *
-	 * @private
+	 * @override
+	 * @protected
 	 * @param {jQuery.Event} oEvent The event object from a grid resize
 	 */
 	GridResponsiveLayout.prototype.onGridResize = function (oEvent) {

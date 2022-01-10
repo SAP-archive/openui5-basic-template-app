@@ -17,6 +17,8 @@ sap.ui.define([
 	 */
 	var ResponsiveGridLayoutRenderer = Renderer.extend(FormLayoutRenderer);
 
+	ResponsiveGridLayoutRenderer.apiVersion = 2;
+
 	ResponsiveGridLayoutRenderer.getMainClass = function(){
 		return "sapUiFormResGrid";
 	};

@@ -5,7 +5,7 @@
  */
 sap.ui.define(["jquery.sap.global","sap/ui/dom/containsOrEquals","sap/ui/core/syncStyleClass","sap/ui/dom/getOwnerWindow","sap/ui/dom/getScrollbarSize","sap/ui/dom/denormalizeScrollLeftRTL","sap/ui/dom/denormalizeScrollBeginRTL","sap/ui/dom/units/Rem","sap/ui/dom/jquery/Aria","sap/ui/dom/jquery/Selection","sap/ui/dom/jquery/zIndex","sap/ui/dom/jquery/parentByAttribute","sap/ui/dom/jquery/cursorPos","sap/ui/dom/jquery/selectText","sap/ui/dom/jquery/getSelectedText","sap/ui/dom/jquery/rect","sap/ui/dom/jquery/rectContains","sap/ui/dom/jquery/Focusable","sap/ui/dom/jquery/hasTabIndex","sap/ui/dom/jquery/scrollLeftRTL","sap/ui/dom/jquery/scrollRightRTL","sap/ui/dom/jquery/Selectors"],function(e,r,o,u,s,t,a,i){"use strict";e.sap.domById=function e(r,o){return r?(o||window).document.getElementById(r):null};e.sap.byId=function r(o,u){var s="";if(o){s="#"+o.replace(/(:|\.)/g,"\\$1")}return e(s,u)};e.sap.focus=function e(r){if(!r){return}r.focus();return true};e.sap.pxToRem=i.fromPx;e.sap.remToPx=i.toPx;e.fn.outerHTML=function(){var e=this.get(0);if(e&&e.outerHTML){return e.outerHTML.trim()}else{var r=this[0]?this[0].ownerDocument:document;var o=r.createElement("div");o.appendChild(e.cloneNode(true));return o.innerHTML}};e.sap.containsOrEquals=r;e.sap.denormalizeScrollLeftRTL=t;e.sap.denormalizeScrollBeginRTL=a;
 /*
-	 * The following methods are taken from jQuery UI core but modified.
+	 * The following implementation of jQuery.support.selectstart is taken from jQuery UI core but modified.
 	 *
 	 * jQuery UI Core
 	 * http://jqueryui.com

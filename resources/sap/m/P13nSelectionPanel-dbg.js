@@ -30,7 +30,7 @@ sap.ui.define([
 	 * @class The P13nSelectionPanel control is used to define selection settings like the visibility or the order of items.
 	 * @extends sap.m.P13nPanel
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @constructor
 	 * @private
 	 * @since 1.46.0
@@ -362,6 +362,7 @@ sap.ui.define([
 								href: "{href}",
 								text: "{text}",
 								target: "{target}",
+								wrapping: true,
 								enabled: {
 									path: 'href',
 									formatter: function(oValue) {
@@ -383,6 +384,7 @@ sap.ui.define([
 									fnPress(oEvent);
 								}
 							}), new Text({
+								wrapping: true,
 								visible: {
 									path: 'description',
 									formatter: function(sDescription) {

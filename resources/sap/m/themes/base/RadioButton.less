@@ -8,26 +8,31 @@
 	float: left;
 	clear: left;
 	outline: none;
+	overflow: hidden;
 	text-overflow: ellipsis;
 	position: relative;
 	white-space: nowrap;
 	max-width: 100%;
+	display: flex;
 
-	> .sapMLabel {
-		max-width: calc(~"100% - 3rem");
-		// some browsers [ie] calcs rems different than the others 0.0625 is caled as 1.04 px in IE
-		padding-right: 1px;
+	> .sapMRbBLabel {
+		padding-right: 0.125rem;
 	}
 }
 
 .sapMILI-CTX .sapMRb {
 	float: right;
 }
+.sapMListTblCell > .sapMRb {
+	float: inherit;
+	display: inline-block;
+	vertical-align: top;
+}
 
 .sapMRb .sapMRbB {
 	height: 3rem;
 	width: 3rem;
-	display: inline-block; /* for ie*/
+	display: inline-block;
 	font-size: 1rem; /* override font size of the message dialog */
 
 	&:focus {
@@ -42,19 +47,6 @@
 		padding: 1px; /* using padding here so that margin won't collide */
 		stroke: @sapUiFieldBorderColor;
 		fill: @sapUiFieldBackground;
-	}
-}
-
-html[data-sap-ui-browser^="ie"].sap-desktop {
-	.sapMRbSvg {
-		position: relative;
-		left: 0.6875rem;
-		top: 0.6875rem;
-	}
-
-	.sapUiSizeCompact .sapMRbSvg {
-		left: 0.5rem;
-		top: 0.5rem;
 	}
 }
 
@@ -134,14 +126,25 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 	}
 }
 
+/* Align RadioButton in Form with other controls */
+.sapUiForm.sapUiFormEdit-CTX{
+	.sapMRb > .sapMRbB {
+		width: 2.3rem;
+	}
+
+	.sapMRbSvg {
+		margin-left: 0.125rem;
+	}
+
+	.sapMRb:focus:before {
+		left: 0;
+	}
+}
+
 /* Compact size */
 .sapUiSizeCompact{
 	.sapMRb {
 		height: 2rem;
-
-		> .sapMLabel {
-			max-width: calc(~"100% - 2rem + 1px");
-		}
 	}
 
 	.sapMRbSvg {
@@ -185,6 +188,20 @@ html[data-sap-ui-browser^="ie"].sap-desktop {
 
 	.sapMRbHasLabel.sapMRb:focus:before {
 		right: 0;
+	}
+
+	.sapUiForm.sapUiFormEdit-CTX{
+		.sapMRb > .sapMRbB {
+			width: 1.625rem;
+		}
+
+		.sapMRbSvg {
+			margin-left: 0.125rem;
+		}
+
+		.sapMRb:focus:before {
+			left: 0;
+		}
 	}
 }
 

@@ -13,13 +13,14 @@ sap.ui.define([
 	"sap/ui/base/BindingParser",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/base/SyncPromise",
+	"sap/ui/core/Component",
 	"sap/ui/core/XMLTemplateProcessor",
 	"sap/ui/model/BindingMode",
 	"sap/ui/model/CompositeBinding",
 	"sap/ui/model/Context",
 	"sap/ui/performance/Measurement"
 ], function (Log, deepExtend, JSTokenizer, ObjectPath, BindingParser, ManagedObject, SyncPromise,
-		XMLTemplateProcessor, BindingMode, CompositeBinding, Context, Measurement) {
+		Component, XMLTemplateProcessor, BindingMode, CompositeBinding, Context, Measurement) {
 	"use strict";
 
 	var sNAMESPACE = "http://schemas.sap.com/sapui5/extension/sap.ui.core.template/1",
@@ -572,7 +573,7 @@ sap.ui.define([
 		 *   ID of the owning component (since 1.31; needed for extension point support)
 		 * @param {string} oViewInfo.name
 		 *   the view name (since 1.31; needed for extension point support)
-		 * @param {boolean} [oViewInfo.sync=false]
+		 * @param {boolean} [oViewInfo.sync]
 		 *   whether the view is synchronous (since 1.57.0; needed for asynchronous XML templating)
 		 * @param {object} [mSettings={}]
 		 *   map/JSON-object with initial property values, etc.
@@ -891,7 +892,7 @@ sap.ui.define([
 					 *
 					 * @param {object} [mVariables={}]
 					 *   Map from variable name (string) to value ({@link sap.ui.model.Context})
-					 * @param {boolean} [bReplace=false]
+					 * @param {boolean} [bReplace]
 					 *   Whether only the given variables are known in the new callback interface
 					 *   instance, no inherited ones
 					 * @returns {sap.ui.core.util.XMLPreprocessor.ICallback}
@@ -1442,22 +1443,20 @@ sap.ui.define([
 					return oSyncPromiseResolvedTrue;
 				}
 				return oPromise.then(function (sName) {
-					var CustomizingConfiguration
-							= sap.ui.require("sap/ui/core/CustomizingConfiguration"),
-						oViewExtension;
+					var oViewExtension;
 
 					if (sName !== sValue) {
 						// debug trace for dynamic names only
 						debug(oElement, "name =", sName);
 					}
-					if (CustomizingConfiguration) {
-						oViewExtension = CustomizingConfiguration.getViewExtension(sCurrentName,
-							sName, oViewInfo.componentId);
-						if (oViewExtension && oViewExtension.className === "sap.ui.core.Fragment"
-								&& oViewExtension.type === "XML") {
-							return insertFragment(oViewExtension.fragmentName, oElement,
-								oWithControl);
-						}
+					oViewExtension = Component.getCustomizing(oViewInfo.componentId, {
+						extensionName : sName,
+						name : sCurrentName,
+						type : "sap.ui.viewExtensions"
+					});
+					if (oViewExtension && oViewExtension.className === "sap.ui.core.Fragment"
+							&& oViewExtension.type === "XML") {
+						return insertFragment(oViewExtension.fragmentName, oElement, oWithControl);
 					}
 
 					return true;

@@ -51,7 +51,7 @@ sap.ui.define([
          * @extends sap.m.Slider
          *
          * @author SAP SE
-         * @version 1.84.11
+         * @version 1.96.2
          *
          * @constructor
          * @public
@@ -309,7 +309,7 @@ sap.ui.define([
                 sCssClass = this.getRenderer().CSS_CLASS,
                 oFormInput = this.getDomRef("input");
 
-            if (!!this.getName()) {
+            if (this.getName()) {
                 oFormInput.setAttribute(oHandle.getAttribute("data-range-val"), this.toFixed(aRange[iIndex], this._iDecimalPrecision));
                 oFormInput.setAttribute("value", this.getValue());
             }
@@ -338,7 +338,11 @@ sap.ui.define([
             var aRange = this.getRange(),
                 oProgressHandle = this.getDomRef("progress"),
                 fNormalizedValue = this.toFixed(sValue, this._iDecimalPrecision),
-                sScaleLabel = this._formatValueByCustomElement(fNormalizedValue);
+                sScaleLabel = this._formatValueByCustomElement(fNormalizedValue),
+                firstValue = this.getValue(),
+                secondValue = this.getValue2(),
+                iValueNow = Math.abs(secondValue - firstValue);
+
 
             aRange[0] = this.toFixed(aRange[0], this._iDecimalPrecision);
             aRange[1] = this.toFixed(aRange[1], this._iDecimalPrecision);
@@ -350,6 +354,7 @@ sap.ui.define([
             if (oProgressHandle) {
                 oProgressHandle.setAttribute("aria-valuetext",
                     this._oResourceBundle.getText('RANGE_SLIDER_RANGE_ANNOUNCEMENT', aRange.map(this._formatValueByCustomElement, this)));
+                oProgressHandle.setAttribute("aria-valuenow", iValueNow);
             }
         };
 

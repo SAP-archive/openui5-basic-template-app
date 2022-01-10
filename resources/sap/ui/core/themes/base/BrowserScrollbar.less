@@ -3,13 +3,10 @@
 /* Base theme                                    */
 /* ============================================= */
 
-/****** IE ******/
+/****** Firefox ******/
 
-html[data-sap-ui-browser*="ie"]:not(.sapUiNativeScrollbars) .sapUiBody {
-	scrollbar-face-color: @sapUiScrollBarFaceColor;
-	scrollbar-highlight-color: @sapUiScrollBarFaceColor;
-	scrollbar-shadow-color: @sapUiScrollBarFaceColor;
-	scrollbar-track-color: @sapUiScrollBarTrackColor;
+html.sap-desktop:not(.sapUiNativeScrollbars) {
+	scrollbar-color: @sapUiScrollBarFaceColor @sapUiScrollBarTrackColor;
 }
 
 /****** Safari + Chrome on Desktop ******/

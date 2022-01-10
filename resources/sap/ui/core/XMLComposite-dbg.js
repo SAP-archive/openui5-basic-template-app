@@ -18,10 +18,7 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/core/XMLCompositeMetadata',
 	'sap/ui/model/base/ManagedObjectModel',
-	'sap/ui/model/json/JSONModel',
 	'sap/ui/core/Fragment',
-	'sap/ui/base/ManagedObject',
-	'sap/ui/base/DataType',
 	'sap/ui/model/resource/ResourceModel',
 	'sap/base/Log',
 	'sap/ui/performance/Measurement'
@@ -30,10 +27,7 @@ sap.ui.define([
 		Control,
 		XMLCompositeMetadata,
 		ManagedObjectModel,
-		JSONModel,
 		Fragment,
-		ManagedObject,
-		DataType,
 		ResourceModel,
 		Log,
 		Measurement
@@ -149,13 +143,14 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 * @since 1.56.0
 		 * @alias sap.ui.core.XMLComposite
 		 * @see {@link topic:b83a4dcb7d0e46969027345b8d32fd44 XML Composite Controls}
 		 *
 		 * @abstract
-		   * @public
+		 * @public
+		 * @deprecated As of version 1.88, use {@link topic:c1512f6ce1454ff1913e3857bad56392 Standard Composite Controls}
 		 * @experimental Since 1.56.0
 		 */
 		var XMLComposite = Control.extend("sap.ui.core.XMLComposite", {
@@ -355,7 +350,7 @@ sap.ui.define([
 		/**
 		 * Destroys the internal composite aggregation
 		 *
-		 * @returns {sap.ui.core.XMLComposite} Returns <code>this</code> to allow method chaining
+		 * @returns {this} Returns <code>this</code> to allow method chaining
 		 *
 		 * @private
 		 */
@@ -400,7 +395,7 @@ sap.ui.define([
 		/**
 		 * Sets the internal composite aggregation
 		 *
-		 * @returns {sap.ui.core.XMLComposite} Returns <code>this</code> to allow method chaining
+		 * @returns {this} Returns <code>this</code> to allow method chaining
 		 *
 		 * @private
 		 */
@@ -524,7 +519,7 @@ sap.ui.define([
 			var sFragment = oFragmentContent ? (new XMLSerializer()).serializeToString(oFragmentContent) : undefined;
 			this.bUsesI18n = sFragment ? (sFragment.indexOf("$" + this.alias + ".i18n") != -1) : true;
 
-			this._setCompositeAggregation(sap.ui.xmlfragment({
+			this._setCompositeAggregation(sap.ui.xmlfragment({ // legacy-relevant: can lead to follow-up sync XHRs for controls
 				sId: this.getId(),
 				fragmentContent: oFragmentContent,
 				oController: this
@@ -540,7 +535,7 @@ sap.ui.define([
 		 * those controls.
 		 *
 		 * @param {sap.ui.core.Control} oElement - The Control that gets rendered by the RenderManager
-		 * @param {Object} mAriaProps - The mapping of "aria-" prefixed attributes
+		 * @param {object} mAriaProps - The mapping of "aria-" prefixed attributes
 		 * @protected
 		 */
 		XMLComposite.prototype.enhanceAccessibilityState = function(oElement, mAriaProps) {
@@ -548,10 +543,8 @@ sap.ui.define([
 
 			if (oParent && oParent.enhanceAccessibilityState) {
 				// use XMLComposite as control, but aria properties of rendered inner controls.
-				return oParent.enhanceAccessibilityState(this, mAriaProps);
+				oParent.enhanceAccessibilityState(this, mAriaProps);
 			}
-
-			return mAriaProps;
 		};
 
 		/**

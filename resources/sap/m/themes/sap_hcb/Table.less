@@ -3,11 +3,6 @@
 /* High Contrast Black theme    */
 /* ============================ */
 
-html[data-sap-ui-browser='ie11'] .sapMListTbl,
-html[data-sap-ui-browser^='ed'] .sapMListTbl {
-	padding: 2px; /* outline must be visible */
-}
-
 .sapMListTblHeader,
 .sapMListTblFooter {
 	background: @sapUiListBackground;
@@ -34,7 +29,7 @@ html[data-sap-ui-browser^='ed'] .sapMListTbl {
 
 // to ensure that the bottom focus outline is visible on the table header row,
 // the <th> bottom border color is made transparent
-.sapMLIBFocusable:focus > th {
+.sapMLIBFocusable:not(.sapMTableRowCustomFocus):focus > .sapMTableTH {
 	border-bottom-color: transparent;
 }
 
@@ -45,4 +40,8 @@ html[data-sap-ui-browser^='ed'] .sapMListTbl {
 /* table footer */
 .sapMListTblFooter > td {
 	border-top: 0.125rem solid @sapUiListTableFooterBorder;
+}
+
+.sapMTableRowCustomFocus:focus > :not(.sapMListTblDummyCell:last-child)::before {
+	border-width: 2px;
 }

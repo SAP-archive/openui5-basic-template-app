@@ -10,9 +10,11 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/core/Renderer',
 	'sap/ui/core/library',
+	"sap/ui/core/LabelEnablement",
+	"sap/ui/events/KeyCodes",
 	'./ObjectNumberRenderer'
 ],
-	function(library, Control, Renderer, coreLibrary, ObjectNumberRenderer) {
+	function(library, Control, Renderer, coreLibrary, LabelEnablement, KeyCodes, ObjectNumberRenderer) {
 	"use strict";
 
 
@@ -25,6 +27,8 @@ sap.ui.define([
 	// shortcut for sap.ui.core.ValueState
 	var ValueState = coreLibrary.ValueState;
 
+	// shortcut for sap.m.EmptyIndicator
+	var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
 	/**
 	 * Constructor for a new ObjectNumber.
@@ -43,7 +47,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -94,14 +98,48 @@ sap.ui.define([
 			/**
 			 * Sets the horizontal alignment of the number and unit.
 			 */
-			textAlign : {type : "sap.ui.core.TextAlign", group : "Appearance", defaultValue : TextAlign.Begin}
+			textAlign : {type : "sap.ui.core.TextAlign", group : "Appearance", defaultValue : TextAlign.Begin},
+
+			/**
+			 * Indicates if the <code>ObjectNumber</code> text and icon can be clicked/tapped by the user.
+			 *
+			 * <b>Note:</b> If you set this property to <code>true</code>, you have to set also the <code>number</code> or <code>unit</code> property.
+			 *
+			 * @since 1.86
+			 */
+			active : {type : "boolean", group : "Misc", defaultValue : false},
+
+			/**
+			 * Determines whether the background color reflects the set <code>state</code> instead of the control's text.
+			 * @since 1.86
+			 */
+			inverted : {type : "boolean", group : "Misc", defaultValue : false},
+
+			/**
+			 * Specifies if an empty indicator should be displayed when there is no number.
+			 *
+			 * @since 1.89
+			 */
+			emptyIndicatorMode: { type: "sap.m.EmptyIndicatorMode", group: "Appearance", defaultValue: EmptyIndicatorMode.Off }
 		},
 		associations : {
+			/**
+			 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
+			 */
+			ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"},
 
 			/**
 			 * Association to controls / ids which describe this control (see WAI-ARIA attribute aria-describedby).
 			 */
 			ariaDescribedBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaDescribedBy"}
+		},
+		events : {
+
+			/**
+			 * Fires when the user clicks/taps on active <code>Object Number</code>.
+			 * @since 1.86
+			 */
+			press : {}
 		},
 		dnd: { draggable: true, droppable: false }
 	}});
@@ -118,7 +156,7 @@ sap.ui.define([
 
 	/**
 	 * @see sap.ui.core.Control#getAccessibilityInfo
-	 * @returns {Object} Current accessibility state of the control
+	 * @returns {object} Current accessibility state of the control
 	 * @protected
 	 */
 	ObjectNumber.prototype.getAccessibilityInfo = function() {
@@ -131,6 +169,156 @@ sap.ui.define([
 		return {
 			description: (this.getNumber() + " " + this.getUnit() + " " + sStateText).trim()
 		};
+	};
+
+	/**
+	 * @private
+	 * @param {object} oEvent The fired event
+	 */
+	ObjectNumber.prototype.ontap = function(oEvent) {
+		if (this._isClickable(oEvent)) {
+			this.firePress();
+		}
+	};
+
+	/**
+	 * Ensures that parent interactive controls will not handle
+	 * the touch/mouse events a second time.
+	 * @private
+	 * @param {object} oEvent The fired event
+	 */
+	ObjectNumber.prototype.ontouchstart = function(oEvent) {
+		if (this._isClickable(oEvent)) {
+			oEvent.setMarked();
+		}
+	};
+
+	/**
+	 * Applies active state to the OnjectNumber.
+	 *
+	 * @private
+	 */
+	ObjectNumber.prototype._activeState = function() {
+		this.addStyleClass("sapMObjectNumberPressed");
+	};
+
+	/**
+	 * Removes active state to the OnjectNumber.
+	 *
+	 * @private
+	 */
+	ObjectNumber.prototype._inactiveState = function() {
+		this.removeStyleClass("sapMObjectNumberPressed");
+	};
+
+	/**
+	 * Handle the key down event for SPACE and ENTER.
+	 * @param {jQuery.Event} oEvent - the keyboard event.
+	 * @private
+	 */
+	ObjectNumber.prototype.onkeydown = function(oEvent) {
+		if (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
+			// mark the event for components that needs to know if the event was handled by the button
+			oEvent.setMarked();
+			// set active state
+			this._activeState();
+			if (oEvent.which === KeyCodes.ENTER) {
+				this.firePress();
+			} else {
+				oEvent.preventDefault();
+				this._bPressedSpace = true;
+			}
+		} else if (this._bPressedSpace) {
+			if (oEvent.which === KeyCodes.SHIFT || oEvent.which === KeyCodes.ESCAPE) {
+				this._bPressedEscapeOrShift = true;
+				// set inactive state
+				this._inactiveState();
+			} else {
+				oEvent.preventDefault();
+			}
+		}
+	};
+
+	/**
+	 * Handle the key up event for SPACE and ENTER.
+	 *
+	 * @param {jQuery.Event} oEvent - the keyboard event.
+	 * @private
+	 */
+	ObjectNumber.prototype.onkeyup = function(oEvent) {
+		if (oEvent.which === KeyCodes.ENTER) {
+			// mark the event for components that needs to know if the event was handled by the button
+			oEvent.setMarked();
+			// set inactive state
+			this._inactiveState();
+		} else if (oEvent.which === KeyCodes.SPACE) {
+			if (!this._bPressedEscapeOrShift) {
+				// mark the event for components that needs to know if the event was handled by the button
+				oEvent.setMarked();
+				this.firePress();
+				// set inactive state
+				this._inactiveState();
+			} else {
+				this._bPressedEscapeOrShift = false;
+			}
+			this._bPressedSpace = false;
+		} else if (oEvent.which === KeyCodes.ESCAPE){
+			this._bPressedSpace = false;
+		}
+	};
+
+	/**
+	 * Checks if the ObjectNumber should be considered as active.
+	 * @private
+	 * @returns {boolean} If the ObjectNumber is active
+	 */
+	ObjectNumber.prototype._isActive = function() {
+		return  this.getActive() && (this.getNumber().trim() || this.getUnit().trim());
+	};
+
+
+	ObjectNumber.prototype._isClickable = function(oEvent) {
+		var sSourceId = oEvent.target.id;
+
+		//event should only be fired if the click is on the number, unit or link
+		return this._isActive() && (sSourceId === this.getId() + "-link" || sSourceId === this.getId() + "-number" || sSourceId === this.getId() + "-unit");
+	};
+
+	/**
+	 * Checks whether or not the control is labelled either via labels or its <code>ariaLabelledBy</code> association.
+	 * @returns {boolean}
+	 * @private
+	 */
+	ObjectNumber.prototype._hasExternalLabelling = function() {
+		return this.getAriaLabelledBy().length > 0 || LabelEnablement.getReferencingLabels(this).length > 0;
+	};
+
+	/**
+	 * Generates a string containing all internal elements' IDs, which provide information to the screen reader user.
+	 * @returns {string}
+	 * @private
+	 */
+	ObjectNumber.prototype._generateSelfLabellingIds = function() {
+		var sId = this.getId(),
+			sResult = "";
+
+		if (this.getNumber()) {
+			sResult += sId + "-number ";
+		}
+
+		if (this.getUnit()) {
+			sResult += sId + "-unit ";
+		}
+
+		if (this.getEmphasized()) {
+			sResult += sId + "-emphasized ";
+		}
+
+		if (this.getState() !== ValueState.None) {
+			sResult += sId + "-state";
+		}
+
+		return sResult.trim();
 	};
 
 	return ObjectNumber;

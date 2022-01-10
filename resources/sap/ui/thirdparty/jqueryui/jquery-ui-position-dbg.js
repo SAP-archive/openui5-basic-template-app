@@ -63,7 +63,8 @@ function getDimensions( elem ) {
 	}
 	// ##### BEGIN: MODIFIED BY SAP
 	// When positioning around SVG elements, method getBoundingClientRect should be used
-	if (typeof window.SVGElement !== "undefined" && raw instanceof window.SVGElement) {
+	// If the control expects getBoundingClientRect to be returned, useClientRect flag should be passed
+	if ((typeof window.SVGElement !== "undefined" && raw instanceof window.SVGElement) || raw.useClientRect) {
 		var boundingClientRect = raw.getBoundingClientRect();
 
 		return {
@@ -86,9 +87,14 @@ $.position = {
 			return cachedScrollbarWidth;
 		}
 		var w1, w2,
-			div = $( "<div style='display:block;position:absolute;width:50px;height:50px;overflow:hidden;'><div style='height:100px;width:auto;'></div></div>" ),
+			// ##### BEGIN: MODIFIED BY SAP
+			// CSP Modification - remove inline style
+			// div = $( "<div style='display:block;position:absolute;width:50px;height:50px;overflow:hidden;'><div style='height:100px;width:auto;'></div></div>" ),
+			div = $( "<div><div></div></div>" ),
 			innerDiv = div.children()[0];
-
+			div[0].style = "display:block;position:absolute;width:50px;height:50px;overflow:hidden;";
+			innerDiv.style = "height:100px;width:auto;";
+			// ##### END: MODIFIED BY SAP
 		$( "body" ).append( div );
 		w1 = innerDiv.offsetWidth;
 		div.css( "overflow", "scroll" );

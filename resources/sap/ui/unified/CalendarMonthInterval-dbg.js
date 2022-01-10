@@ -6,8 +6,10 @@
 
 //Provides control sap.ui.unified.Calendar.
 sap.ui.define([
+	'sap/m/Popover',
 	'sap/ui/Device',
 	'sap/ui/core/Control',
+	'sap/ui/core/Core',
 	'sap/ui/core/Locale',
 	'sap/ui/core/LocaleData',
 	'sap/ui/core/Renderer',
@@ -21,13 +23,14 @@ sap.ui.define([
 	'./CalendarMonthIntervalRenderer',
 	"sap/ui/dom/containsOrEquals",
 	"sap/base/util/deepEqual",
-	"sap/ui/core/Popup",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/unified/DateRange"
 ], function(
+	Popover,
 	Device,
 	Control,
+	Core,
 	Locale,
 	LocaleData,
 	Renderer,
@@ -41,7 +44,6 @@ sap.ui.define([
 	CalendarMonthIntervalRenderer,
 	containsOrEquals,
 	deepEqual,
-	Popup,
 	Log,
 	jQuery,
 	DateRange
@@ -65,7 +67,7 @@ sap.ui.define([
 	 * <b>Note:</b> JavaScript Date objects are used to set and return the months, mark them as selected or as a special type.
 	 * But the date part of the Date object is not used. If a Date object is returned the date will be set to the 1st of the corresponding month.
 	 * @extends sap.ui.core.Control
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -130,7 +132,13 @@ sap.ui.define([
 			 * the <code>minDate</code> is set to the begin of the month of the <code>maxDate</code>.
 			 * @since 1.38.0
 			 */
-			maxDate : {type : "object", group : "Misc", defaultValue : null}
+			maxDate : {type : "object", group : "Misc", defaultValue : null},
+
+			/**
+			 * Holds a reference to the currently shown picker. Possible values: monthsRow and yearPicker.
+			 * @since 1.84.0
+			 */
+			_currentPicker : {type : "string", group : "Appearance", defaultValue : "monthsRow", visibility: "hidden"}
 		},
 		aggregations : {
 
@@ -156,8 +164,7 @@ sap.ui.define([
 			 */
 			header : {type : "sap.ui.unified.calendar.Header", multiple : false, visibility : "hidden"},
 			monthsRow : {type : "sap.ui.unified.calendar.MonthsRow", multiple : false, visibility : "hidden"},
-			yearPicker : {type : "sap.ui.unified.calendar.YearPicker", multiple : false, visibility : "hidden"},
-			calendarPicker : {type : "sap.ui.unified.Calendar", multiple : false, visibility : "hidden"}
+			yearPicker : {type : "sap.ui.unified.calendar.YearPicker", multiple : false, visibility : "hidden"}
 
 		},
 		associations: {
@@ -202,6 +209,12 @@ sap.ui.define([
 	 * If 1 a year picker is shown.
 	 */
 
+	// Holds the possible values for the "_currentPicker" property.
+	var CURRENT_PICKERS = {
+		MONTHS_ROW: "monthsRow", // represents the "monthsRow" aggregation
+		YEAR_PICKER: "yearPicker"  // represents the "yearPicker" aggregation
+	};
+
 	CalendarMonthInterval.prototype.init = function(){
 
 		this._iMode = 0; // months are shown
@@ -228,6 +241,17 @@ sap.ui.define([
 
 		if (this._sInvalidateContent) {
 			clearTimeout(this._sInvalidateContent);
+		}
+
+		if (this._oPopup) {
+			this._oPopup.destroy();
+			this._oPopup = null;
+		}
+
+		if (this._oCustomYearPicker) {
+			this._oCustomYearPicker.removeDelegate(this._oFocusCYPDelegate);
+			this._oCustomYearPicker.destroy();
+			this._oCustomYearPicker = null;
 		}
 
 	};
@@ -294,33 +318,42 @@ sap.ui.define([
 		return oYearPicker;
 	};
 	/**
-	 * Lazily initializes the <code>Calendar</code> aggregation.
+	 * Lazily initializes the calendar.
 	 * @private
 	 * @returns {sap.ui.unified.Calendar} The newly created control
 	 */
 	CalendarMonthInterval.prototype._getCalendarPicker = function (){
-		var oCalPicker = this.getAggregation("calendarPicker");
+		var oCustomYearPicker;
 
-		if (!oCalPicker) {
-			oCalPicker = new CustomYearPicker(this.getId() + "--Cal");
-			oCalPicker.setPopupMode(true);
-			oCalPicker.attachEvent("select", _handleCalendarDateSelect, this);
-			oCalPicker.attachEvent("cancel", function (oEvent) {
+		if (!this._oCustomYearPicker) {
+			oCustomYearPicker = new CustomYearPicker(this.getId() + "--Cal");
+			oCustomYearPicker.setPopupMode(true);
+			oCustomYearPicker.attachEvent("select", _handleCalendarDateSelect, this);
+			oCustomYearPicker.attachEvent("cancel", function (oEvent) {
 				this._oPopup.close();
 				var oDomRefB2 = this.getAggregation("header").getDomRef("B2");
 				if (oDomRefB2) {
 					oDomRefB2.focus();
 				}
 			}, this);
-			this.setAggregation("calendarPicker", oCalPicker, true);
+
+			this._oFocusCYPDelegate = {
+				onAfterRendering: function() {
+					this.focus();
+				}
+			};
+
+			oCustomYearPicker.addDelegate(this._oFocusCYPDelegate,  oCustomYearPicker);
+
+			this._oCustomYearPicker = oCustomYearPicker;
 		}
-		return oCalPicker;
+		return this._oCustomYearPicker;
 	};
 
-	/*
+	/**
 	 * Sets a start date.
 	 * @param {Date} oStartDate A JavaScript date
-	 * @return {sap.ui.unified.CalendarMonthInterval} <code>this</code> for method chaining
+	 * @return {this} <code>this</code> for method chaining
 	 */
 	CalendarMonthInterval.prototype.setStartDate = function(oStartDate){
 
@@ -494,7 +527,7 @@ sap.ui.define([
 	 * Displays a month in the <code>CalendarMonthInterval</code> but doesn't set the focus.
 	 *
 	 * @param {Object} oDatetime JavaScript date object for displayed date. (The month of this date will be displayed.)
-	 * @returns {sap.ui.unified.CalendarMonthInterval} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
@@ -537,7 +570,7 @@ sap.ui.define([
 		if (this.getDomRef()) {
 			if (this._getShowItemHeader()) {
 				this.$().addClass("sapUiCalIntHead");
-			}else {
+			} else  {
 				this.$().removeClass("sapUiCalIntHead");
 			}
 		}
@@ -598,7 +631,7 @@ sap.ui.define([
 	/*
 	 * Sets a minimum date for the calendar.
 	 * @param {Date} oDate a JavaScript date
-	 * @return {sap.ui.unified.Calendar} <code>this</code> for method chaining
+	 * @returns {this} <code>this</code> for method chaining
 	 */
 	CalendarMonthInterval.prototype.setMinDate = function(oDate){
 
@@ -657,7 +690,7 @@ sap.ui.define([
 	/*
 	 * Sets a maximum date for the calendar.
 	 * @param {Date} oDate a JavaScript date
-	 * @return {sap.ui.unified.CalendarMonthInterval} <code>this</code> for method chaining
+	 * @return {this} <code>this</code> for method chaining
 	 */
 	CalendarMonthInterval.prototype.setMaxDate = function(oDate){
 
@@ -957,7 +990,7 @@ sap.ui.define([
 		var iMonths = this.getMonths();
 		if (iMonths > this._iDaysMonthsHead) {
 			return true;
-		}else {
+		} else  {
 			return false;
 		}
 
@@ -982,7 +1015,7 @@ sap.ui.define([
 		}
 		if (oStartDate.isBefore(this._oMinDate)) {
 			oStartDate = new CalendarDate(this._oMinDate);
-		}else if (oStartDate.isAfter(oMaxDate)){
+		} else if (oStartDate.isAfter(oMaxDate)){
 			oStartDate = oMaxDate;
 		}
 
@@ -1002,7 +1035,7 @@ sap.ui.define([
 				//focused date not longer visible -> focus start date
 				this._setFocusedDate(oStartDate);
 				oMonthsRow.setDate(oLocaleDate);
-			}else {
+			} else  {
 				oMonthsRow.setDate(oDateTime);
 			}
 		}
@@ -1064,7 +1097,7 @@ sap.ui.define([
 
 		if (this._oFocusedDate.isBefore(this._oMinDate)) {
 			this._oFocusedDate = new CalendarDate(this._oMinDate);
-		}else if (this._oFocusedDate.isAfter(this._oMaxDate)){
+		} else if (this._oFocusedDate.isAfter(this._oMaxDate)){
 			this._oFocusedDate = new CalendarDate(this._oMaxDate);
 		}
 
@@ -1081,16 +1114,7 @@ sap.ui.define([
 		var oDate = this._getFocusedDate();
 		var oYearPicker = this.getAggregation("yearPicker");
 
-		if (oYearPicker.getDomRef()) {
-			// already rendered
-			oYearPicker.$().css("display", "");
-		} else {
-			var oRm = sap.ui.getCore().createRenderManager();
-			var $Container = this.$("content");
-			oRm.renderControl(oYearPicker);
-			oRm.flush($Container[0], false, true); // insert it
-			oRm.destroy();
-		}
+		this.setProperty("_currentPicker", CURRENT_PICKERS.YEAR_PICKER);
 
 		this._showOverlay();
 
@@ -1110,8 +1134,7 @@ sap.ui.define([
 	function _hideYearPicker(bNoFocus){
 		this._iMode = 0;
 
-		var oYearPicker = this.getAggregation("yearPicker");
-		oYearPicker.$().css("display", "none");
+		this.setProperty("_currentPicker", CURRENT_PICKERS.MONTHS_ROW);
 
 		this._hideOverlay();
 
@@ -1146,7 +1169,7 @@ sap.ui.define([
 
 		if (iYear < iYearMin || (iYear == iYearMin && iMonth <= iMonthMin )) {
 			oHeader.setEnabledPrevious(false);
-		}else {
+		} else  {
 			oHeader.setEnabledPrevious(true);
 		}
 
@@ -1155,7 +1178,7 @@ sap.ui.define([
 		iMonth = oDate.getMonth();
 		if (iYear > iYearMax || (iYear == iYearMax && iMonth >= iMonthMax)) {
 			oHeader.setEnabledNext(false);
-		}else {
+		} else  {
 			oHeader.setEnabledNext(true);
 		}
 
@@ -1165,7 +1188,7 @@ sap.ui.define([
 
 		var oYearPicker = this.getAggregation("yearPicker");
 		var iYears = oYearPicker.getYears();
-		var oDate = CalendarDate.fromLocalJSDate(oYearPicker.getFirstRenderedDate());
+		var oDate = new CalendarDate(oYearPicker.getProperty("_middleDate"));
 		oDate.setYear(oDate.getYear() + Math.floor(iYears / 2));
 		var oHeader = this.getAggregation("header");
 		var oMaxDate = new CalendarDate(this._oMaxDate);
@@ -1216,10 +1239,10 @@ sap.ui.define([
 		if (oDate.isBefore(this._oMinDate)) {
 			oFocusedDate = this._oMinDate;
 			bChanged = true;
-		}else if (oDate.isAfter(this._oMaxDate)){
+		} else if (oDate.isAfter(this._oMaxDate)){
 			oFocusedDate = this._oMaxDate;
 			bChanged = true;
-		}else {
+		} else  {
 			oFocusedDate = oDate;
 		}
 
@@ -1266,12 +1289,20 @@ sap.ui.define([
 	}
 
 	function _handleButton2(oEvent){
+		var fnYPDelegate;
+
 		if (this.getPickerPopup()) {
 			this._showCalendarPicker();
 		} else {
 			// check if go inside this
 			if (this._iMode != 1) {
+				fnYPDelegate = function () {
+					var oYearPicker = this.getAggregation("yearPicker");
+					oYearPicker.focus();
+					oYearPicker.removeDelegate(fnYPDelegate);
+				};
 				_showYearPicker.call(this);
+				this.getAggregation("yearPicker").addDelegate({ onAfterRendering: fnYPDelegate }, this);
 			} else {
 				_hideYearPicker.call(this);
 			}
@@ -1283,8 +1314,11 @@ sap.ui.define([
 		var oDate = this._getFocusedDate(true).toLocalJSDate();
 		var oCalPicker = this._getCalendarPicker();
 		var oSelectedDate = new DateRange({ startDate: oDate });
+		var oCalDate = CalendarDate.fromLocalJSDate(oDate);
 
 		oCalPicker.displayDate(oDate, false);
+		oCalDate.setMonth(0, 1);
+		oCalPicker._getYearPicker().setProperty("_middleDate", oCalDate);
 		oCalPicker.removeAllSelectedDates();
 		oCalPicker.addSelectedDate(oSelectedDate);
 
@@ -1343,6 +1377,13 @@ sap.ui.define([
 		var oFocusedDate = new CalendarDate(this._getFocusedDate());
 		var oYearPicker = this.getAggregation("yearPicker");
 		var oDate = CalendarDate.fromLocalJSDate(oYearPicker.getDate());
+		var oFocusMonthsRowDelegate = {
+			onAfterRendering: function() {
+				this._oItemNavigation.focusItem(this._oItemNavigation.getFocusedIndex());
+				this.removeDelegate(oFocusMonthsRowDelegate);
+			}
+		};
+		var oMonthsrow = this.getAggregation("monthsRow");
 
 		// to keep day and month stable also for islamic date
 		oDate.setMonth(oFocusedDate.getMonth());
@@ -1353,6 +1394,8 @@ sap.ui.define([
 		_focusDate.call(this, oFocusedDate, true);
 
 		_hideYearPicker.call(this);
+
+		oMonthsrow.addDelegate(oFocusMonthsRowDelegate,  oMonthsrow);
 
 	}
 
@@ -1394,27 +1437,44 @@ sap.ui.define([
 	function _openPickerPopup(oPicker){
 
 		if (!this._oPopup) {
-			this._oPopup = new Popup();
-			this._oPopup.setAutoClose(true);
-			this._oPopup.setAutoCloseAreas([this.getDomRef()]);
-			this._oPopup.setDurations(0, 0); // no animations
-			this._oPopup._oCalendar = this;
-			this._oPopup.attachClosed(_handlePopupClosed, this);
-			this._oPopup.onsapescape = function(oEvent) {
-				this._oCalendar.onsapescape(oEvent);
-			};
+			var oPopover = new Popover({
+				placement: "VerticalPreferredBottom",
+				showHeader: false,
+				showArrow: false,
+				verticalScrolling: false
+			});
+
+			oPopover.oPopup.setDurations(0, 0); // no animations
+			oPopover.addEventDelegate({
+				onsapescape: function (oEvent) {
+					this._oCustomYearPicker.onsapescape(oEvent);
+					this._hideOverlay();
+				}
+			}, this);
+
+			this._oPopup = oPopover;
 		}
 
-		this._oPopup.setContent(oPicker);
+		this._oPopup.addContent(oPicker);
+		this._oPopup.attachAfterClose(function () {
+			this._hideOverlay();
+		}, this);
+
+		this._oPopup.attachAfterOpen(function () {
+			var $Button = oHeader.$("B2");
+			var $Popover = this._oPopup.$();
+			var iOffsetX = Math.floor(($Popover.width() - $Button.width()) / 2);
+
+			this._oPopup.setOffsetX(Core.getConfiguration().getRTL() ? iOffsetX : -iOffsetX);
+
+			var iOffsetY = $Button.height();
+
+			this._oPopup.setOffsetY(this._oPopup._getCalculatedPlacement() === "Top" ? iOffsetY : -iOffsetY);
+		}, this);
 
 		var oHeader = this.getAggregation("header");
-		var eDock = Popup.Dock;
-		this._oPopup.open(0, eDock.CenterTop, eDock.CenterTop, oHeader, null, "flipfit", true);
+		this._oPopup.openBy(oHeader.getDomRef("B2"));
 
-	}
-
-	function _handlePopupClosed(oEvent) {
-		_closeCalendarPicker.call(this);
 	}
 
 	function _handleYearPickerPageChange(oEvent) {

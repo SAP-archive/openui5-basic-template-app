@@ -16,13 +16,6 @@
 	margin: 0;
 }
 
-.sapMListSwipable {
-	/* IE Windows 8 */
-	/* This elements receives events when not panning in vertical direction */
-	touch-action: pan-y;
-	-ms-touch-action: pan-y;
-}
-
 .sapMListUl:focus {
 	outline: none;
 }
@@ -111,14 +104,16 @@
 	color: @sapUiListTextColor;
 	background-color: @sapUiListBackground;
 	border-bottom: 1px solid @sapUiListBorderColor;
-	padding: 0 1rem !important;
-	height:3rem;
+	padding: 0.5rem 1rem !important;
+	min-height: 3rem;
+	line-height: 1.4;
 }
 
 .sapMListNoDataText {
 	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+    overflow: clip;
+	white-space: pre-wrap;
+	text-align: center;
 }
 
 .sapMListShowSeparatorsAll {
@@ -134,6 +129,11 @@
 }
 
 /* Growing feature */
+
+.sapMGrowingList {
+	border-bottom: 1px solid @sapUiButtonActionSelectBorderColor;
+}
+
 .sapMGrowingListTrigger {
 	display: block;
 	text-align: center;
@@ -141,11 +141,24 @@
 	border-top: 1px solid @sapUiListHeaderBorderColor;
 }
 
+.sapMGrowingListDummyColumn {
+	border-right: 1px solid @sapList_TableFooterBorder;
+}
+
 /* .sapMSLIDescription also has padding defined, hence making the style rule stronger */
 .sapMGrowingListDescription.sapMSLIDescription {
 	display: none;
 	padding: 0.375rem 2rem 0.875rem 2rem;
 	text-align: center;
+}
+
+.sapMGrowingList > .sapMCLI.sapMLIB:not(.sapMLIBActive) {
+	background: @sapUiButtonActionSelectBackground;
+	border-bottom: none;
+}
+
+.sapMGrowingList > .sapMCLI.sapMLIBHoverable:hover {
+	background: @sapUiButtonLiteActionSelectHoverBackground;
 }
 
 .sapMGrowingListBusyIndicatorVisible .sapMGrowingListTriggerText,
@@ -295,7 +308,7 @@ html.sap-phone .sapMListInsetBG > .sapMListSwp {
 
 /* Compact size */
 .sapUiSizeCompact .sapMListNoData {
-	height: 2rem;
+	min-height: 2rem;
 	font-size: @sapMFontMediumSize;
 }
 

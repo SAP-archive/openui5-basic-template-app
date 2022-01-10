@@ -29,30 +29,39 @@ sap.ui.define([
 	 *   Whether the amount is parsed to a string; set to <code>false</code> if the amount's
 	 *   underlying type is represented as a <code>number</code>, for example
 	 *   {@link sap.ui.model.odata.type.Int32}
-	 * @param {boolean} [oFormatOptions.unitOptional=true]
-	 *   Whether the amount is parsed if no currency is entered.
+	 * @param {boolean} [oFormatOptions.unitOptional]
+	 *   Whether the amount is parsed if no currency is entered; defaults to <code>true</code> if
+	 *   neither <code>showMeasure</code> nor <code>showNumber</code> is set to a falsy value,
+	 *   otherwise defaults to <code>false</code>
 	 * @param {any} [oFormatOptions.emptyString=0]
 	 *   Defines how an empty string is parsed into the amount. With the default value
 	 *   <code>0</code> the amount becomes <code>0</code> when an empty string is parsed.
-	 * @param {object} [oConstraints] Not supported
+	 * @param {boolean} [oFormatOptions.preserveDecimals=true]
+	 *   By default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
+	 *   "short" or "long"; since 1.89.0
+	 * @param {object} [oConstraints]
+	 *   Only the 'skipDecimalsValidation' constraint is supported. Constraints are immutable,
+	 *   that is, they can only be set once on construction.
+	 * @param {boolean} [oConstraints.skipDecimalsValidation=false]
+	 *   Whether to skip validation of the number of decimals based on the code list customizing;
+	 *   since 1.93.0
 	 * @throws {Error} If called with more parameters than <code>oFormatOptions</code> or if the
 	 *   format option <code>customCurrencies</code> is set
 	 *
 	 * @alias sap.ui.model.odata.type.Currency
 	 * @author SAP SE
 	 * @class This class represents the <code>Currency</code> composite type with the parts amount,
-	 * currency, and currency customizing. The amount part is formatted according to the customizing
-	 * for the currency. Use the result of the promise returned by
-	 * {@link sap.ui.model.odata.v4.ODataMetaModel#requestCurrencyCodes} as currency customizing
-	 * part. If no currency customizing is available, UI5's default formatting applies. The type may
-	 * only be used for amount and currency parts from a {@link sap.ui.model.odata.v4.ODataModel}.
+	 * currency, and currency customizing. The type may only be used for amount and currency parts
+	 * from a {@link sap.ui.model.odata.v4.ODataModel} or a
+	 * {@link sap.ui.model.odata.v2.ODataModel}. The amount part is formatted according to the
+	 * customizing for the currency. Use the result of the promise returned by
+	 * {@link sap.ui.model.odata.v4.ODataMetaModel#requestCurrencyCodes} for OData V4 or by
+	 * {@link sap.ui.model.odata.ODataMetaModel#requestCurrencyCodes} for OData V2 as currency
+	 * customizing part. If no currency customizing is available, UI5's default formatting applies.
 	 * @extends sap.ui.model.type.Currency
 	 * @public
 	 * @since 1.63.0
-	 * @version 1.84.11
-	 *
-	 * @borrows sap.ui.model.odata.type.UnitMixin#getInterface as #getInterface
-	 * @borrows sap.ui.model.odata.type.UnitMixin#validateValue as #validateValue
+	 * @version 1.96.2
 	 */
 	var Currency = BaseCurrency.extend("sap.ui.model.odata.type.Currency", {
 		constructor : function (oFormatOptions, oConstraints) {
@@ -60,7 +69,7 @@ sap.ui.define([
 		}
 	});
 
-	applyUnitMixin(Currency.prototype, BaseCurrency, "customCurrencies");
+	applyUnitMixin(Currency.prototype, BaseCurrency, "customCurrencies", "Currency");
 
 	/**
 	 * Formats the given values of the parts of the <code>Currency</code> composite type to the
@@ -90,10 +99,8 @@ sap.ui.define([
 	 * @since 1.63.0
 	 */
 
-	/**
-	 * @override
-	 * @see sap.ui.model.odata.type.UnitMixin#getCustomUnitForKey
-	 */
+	// @override
+	// @see sap.ui.model.odata.type.UnitMixin#getCustomUnitForKey
 	Currency.prototype.getCustomUnitForKey = function (mCustomizing, sKey) {
 		return {
 			decimals : mCustomizing[sKey].UnitSpecificScale,
@@ -124,8 +131,8 @@ sap.ui.define([
 	 *   with "string" as its
 	 *   {@link sap.ui.base.DataType#getPrimitiveType primitive type}.
 	 *   See {@link sap.ui.model.odata.type} for more information.
-	 * @param {any[]} aCurrentValues
-	 *   The current values of all binding parts
+	 * @param {any[]} [aCurrentValues]
+	 *   Not used
 	 * @returns {any[]}
 	 *   An array containing amount and currency in this order. Both, amount and currency, are
 	 *   string values unless the format option <code>parseAsString</code> is <code>false</code>; in
@@ -138,6 +145,23 @@ sap.ui.define([
 	 * @name sap.ui.model.odata.type.Currency#parseValue
 	 * @public
 	 * @see sap.ui.model.type.Currency#parseValue
+	 * @since 1.63.0
+	 */
+
+	/**
+	 * Validates whether the given value in model representation as returned by {@link #parseValue}
+	 * is valid and meets the conditions of this type's currency customizing.
+	 *
+	 * @param {any[]} aValues
+	 *   An array containing amount and currency in this order, see return value of
+	 *   {@link #parseValue}
+	 * @throws {sap.ui.model.ValidateException}
+	 *   If {@link #formatValue} has not yet been called with a customizing part or if the entered
+	 *   amount has too many decimals for its currency
+	 *
+	 * @function
+	 * @name sap.ui.model.odata.type.Currency#validateValue
+	 * @public
 	 * @since 1.63.0
 	 */
 

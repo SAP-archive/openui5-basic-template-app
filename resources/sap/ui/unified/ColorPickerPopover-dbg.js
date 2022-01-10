@@ -47,7 +47,7 @@ sap.ui.define([
 		 * A thin wrapper over {@link sap.ui.unified.ColorPicker} allowing the latter to be used in a popover.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -141,6 +141,61 @@ sap.ui.define([
 							 */
 							alpha : {type : "string"}
 						}
+					},
+					/**
+					 * Fired when the value is changed by user interaction in the internal ColorPicker
+					 *
+					 * @since 1.85
+					 */
+					liveChange : {
+						parameters : {
+
+							/**
+							 * Parameter containing the RED value (0-255).
+							 */
+							r : {type: "int"},
+
+							/**
+							 * Parameter containing the GREEN value (0-255).
+							 */
+							g : {type: "int"},
+
+							/**
+							 * Parameter containing the BLUE value (0-255).
+							 */
+							b : {type: "int"},
+
+							/**
+							 * Parameter containing the HUE value (0-360).
+							 */
+							h : {type: "int"},
+
+							/**
+							 * Parameter containing the SATURATION value (0-100).
+							 */
+							s : {type: "int"},
+
+							/**
+							 * Parameter containing the VALUE value (0-100).
+							 */
+							v : {type: "int"},
+
+							/**
+							 * Parameter containing the LIGHTNESS value (0-100).
+							 */
+							l : {type: "int"},
+
+							/**
+							 * Parameter containing the Hexadecimal string (#FFFFFF).
+							 */
+							hex : {type: "string"},
+
+							/**
+							 * Parameter containing the alpha value (transparency).
+							 */
+							alpha : {type: "string"}
+						}
+
 					}
 				}
 			},
@@ -262,10 +317,13 @@ sap.ui.define([
 				content: oColorPicker
 			});
 
-			oColorPicker.attachEvent("change", function (oEvent) {
+			oColorPicker.attachChange(function (oEvent) {
 				this._handleChange(oEvent);
 			}.bind(this));
 
+			oColorPicker.attachLiveChange(function (oEvent) {
+				this.fireLiveChange(oEvent.getParameters());
+			}.bind(this));
 
 			// aria requirements for the popover implemented as delegate
 			oDelegate = {
@@ -285,7 +343,7 @@ sap.ui.define([
 		/**
 		 * On submit fires change event of the control with parameters
 		 * taken from the event fired from the ColorPicker control.
-		 * @return {sap.ui.unified.ColorPickerPopover} <code>this</code> for method chaining.
+		 * @return {this} <code>this</code> for method chaining.
 		 * @private
 		 */
 		ColorPickerPopover.prototype._handleChange = function (oEvent) {
@@ -301,7 +359,6 @@ sap.ui.define([
 		 * @return {sap.ui.unified.ColorPicker} the ColorPicker.
 		 * @private
 		 */
-
 		ColorPickerPopover.prototype._createColorPicker = function () {
 			var oColorPicker = new ColorPicker(this.getId() + "-color_picker");
 

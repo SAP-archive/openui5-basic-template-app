@@ -21,7 +21,7 @@ sap.ui.define(['sap/ui/base/ManagedObject', "sap/base/Log"],
 	 * @extends sap.ui.base.ManagedObject
 	 * @abstract
 	 * @author SAP
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @alias sap.m.TablePersoProvider
 	 */
 	var TablePersoProvider = ManagedObject.extend("sap.m.TablePersoProvider", /** @lends sap.m.TablePersoProvider */
@@ -54,8 +54,31 @@ sap.ui.define(['sap/ui/base/ManagedObject', "sap/base/Log"],
 	};
 
 	/**
-	 * Retrieves the personalization bundle.
-	 * This must return a jQuery promise (see http://api.jquery.com/promise/)
+	 * Retrieves the personalization bundle.<br>
+	 * This must return a {@link http://api.jquery.com/promise/ jQuery Promise},
+	 * which resolves in the desired table state.
+	 *
+	 * @example [
+	 *		{
+	 *			id: "demoApp-productsTable-productCol",
+	 *			order: 2,
+	 *			text: "Product",
+	 *			visible: true
+	 *		},
+	 *		{
+	 *			id: "demoApp-productsTable-supplierCol",
+	 *			order: 1,
+	 *			text: "Supplier",
+	 *			visible: true
+	 *		},
+	 *		{
+	 *			id: "demoApp-productsTable-dimensionsCol",
+	 *			order: 0,
+	 *			text: "Dimensions",
+	 *			visible: false
+	 *		}
+	 *	]
+	 *
 	 * @public
 	 */
 	TablePersoProvider.prototype.getPersData = function() {
@@ -65,9 +88,8 @@ sap.ui.define(['sap/ui/base/ManagedObject', "sap/base/Log"],
 	};
 
 	/**
-	 * Stores the personalization bundle, overwriting any
-	 * previous bundle completely
-	 * This must return a jQuery promise (see http://api.jquery.com/promise/)
+	 * Stores the personalization bundle, overwriting any previous bundle completely.<br>
+	 * This must return a {@link http://api.jquery.com/promise/ jQuery promise}.
 	 * @param {object} oBundle
 	 * @public
 	 */
@@ -78,8 +100,8 @@ sap.ui.define(['sap/ui/base/ManagedObject', "sap/base/Log"],
 	};
 
 	/**
-	 * Removes the personalization bundle
-	 * This must return a jQuery promise (see http://api.jquery.com/promise/)
+	 * Removes the personalization bundle.<br>
+	 * This must return a {@link http://api.jquery.com/promise/ jQuery promise}.
 	 * @public
 	 */
 	TablePersoProvider.prototype.delPersData = function() {
@@ -129,14 +151,28 @@ sap.ui.define(['sap/ui/base/ManagedObject', "sap/base/Log"],
 	/**
 	* Resets user’s personalization for a given table so that ‘getPersData’ will
 	* deliver its initial state. If no table is specified, all personalizations
-	* of the currently logged on user are reset.
+	* of the currently logged on user are reset.<br>
 	*
-	* This must return a jQuery promise (see http://api.jquery.com/promise/)
-	 * @public
+	* This must return a {@link http://api.jquery.com/promise/ jQuery promise}.
+	* @public
 	*/
 	TablePersoProvider.prototype.resetPersData = function() {
 
 		Log.debug("TablePersoProvider resetPersData");
+
+	};
+
+	/**
+	 * Retrieves the desired reset state.
+	 * This getter is used by the <code>TablePersoController</code> if the <code>resetAllMode</code> is <code>ServiceReset</code>.<br>
+	 *
+	 * This must return a {@link http://api.jquery.com/promise/ jQuery promise}.
+	 * @public
+	 * @since 1.88
+	 */
+	TablePersoProvider.prototype.getResetPersData = function() {
+
+		Log.debug("TablePersoProvider getPersData");
 
 	};
 

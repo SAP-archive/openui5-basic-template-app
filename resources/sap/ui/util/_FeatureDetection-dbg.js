@@ -3,6 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
+
 /*
  * IMPORTANT: This is a private module, its API must not be used and is subject to change.
  * Code other than the OpenUI5 libraries must not introduce dependencies to this module.
@@ -15,14 +16,15 @@ sap.ui.define([], function() {
         /* detect scrolling behavior - Begin */
         // inspired by jQuery.rtl-scroll-type
         var div = document.createElement("div");
-        div.innerHTML = '<div dir="rtl" style="width: 1px; height: 1px; position: fixed; top: 0px; left: 0px; overflow: hidden"><div style="width: 2px"><span style="display: inline-block; width: 1px"></span><span style="display: inline-block; width: 1px"></span></div></div>';
+        div.innerHTML = '<div dir="rtl"><div><span></span><span></span></div></div>';
+        div.firstChild.style = 'width: 1px; height: 1px; position: fixed; top: 0px; left: 0px; overflow: hidden';
+        div.firstChild.firstChild.style = 'width: 2px';
+        div.firstChild.firstChild.firstChild.style = 'display: inline-block; width: 1px';
+        div.firstChild.firstChild.lastChild.style = 'display: inline-block; width: 1px';
         document.documentElement.appendChild(div);
         var definer = div.firstChild;
         //check initial value
         detectedFeatures.initialZero = definer.scrollLeft == 0;
-        //check if scrolling left goes negative
-        definer.scrollLeft = -1;
-        detectedFeatures.canNegative = definer.scrollLeft < 0;
         document.documentElement.removeChild(div);
         /* detect scrolling behavior - End */
     }
@@ -30,9 +32,6 @@ sap.ui.define([], function() {
     detectFeatures();
 
     var _FeatureDetection = {
-        canScrollToNegative: function() {
-            return detectedFeatures.canNegative;
-        },
         initialScrollPositionIsZero: function() {
             return detectedFeatures.initialZero;
         }

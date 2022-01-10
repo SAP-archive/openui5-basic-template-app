@@ -10,7 +10,7 @@ sap.ui.define([
 ], function (Expression) {
 	"use strict";
 
-	var rBadChars = /[\\\{\}:]/, // @see sap.ui.base.BindingParser: rObject, rBindingChars
+	var rBadChars = /[\\{}:]/, // @see sap.ui.base.BindingParser: rObject, rBindingChars
 		rCount = /\/\$count$/,
 		rPaths = /\$(?:(?:Annotation)|(?:(?:Navigation)?Property))?Path/,
 		rSplitPathSegment = /^(.+?\/(\$(?:Annotation)?Path))(\/?)(.*)$/,
@@ -320,11 +320,11 @@ sap.ui.define([
 					}
 
 					return oModel.fetchObject(aMatches[1]).then(function (sPathValue) {
-						var i,
-							bIsAnnotationPath = aMatches[2] === "$AnnotationPath",
+						var bIsAnnotationPath = aMatches[2] === "$AnnotationPath",
 							sPrefix = bIsAnnotationPath
 								? sPathValue.split("@")[0]
-								: sPathValue;
+								: sPathValue,
+							i;
 
 						if (!bIsAnnotationPath && aMatches[3]) {
 							sPrefix = sPrefix + "/";
@@ -408,10 +408,10 @@ sap.ui.define([
 					sPath = sPath.slice(0, -1);
 				}
 
-				if (sPath.indexOf(".") > -1) {
+				if (sPath.includes(".")) {
 					sPath = sPath.split("/")
 						.filter(function (sSegment) { // remove type casts
-							return sSegment.indexOf(".") < 0;
+							return !sSegment.includes(".");
 						}).join("/");
 				}
 

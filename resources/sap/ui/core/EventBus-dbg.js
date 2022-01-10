@@ -30,7 +30,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @public
 	 * @since 1.8.0
 	 * @alias sap.ui.core.EventBus
@@ -41,6 +41,7 @@ sap.ui.define([
 			BaseObject.apply(this);
 			this._mChannels = {};
 			this._defaultChannel = new EventProvider();
+			this._bIsSuspended = false;
 		}
 
 	});
@@ -62,7 +63,7 @@ sap.ui.define([
 	 * @param {object}
 	 *            [oListener] The object that wants to be notified when the event occurs (<code>this</code> context within the
 	 *                        handler function). If it is not specified, the handler function is called in the context of the event bus.
-	 * @return {sap.ui.core.EventBus} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventBus.prototype.subscribe = function(sChannelId, sEventId, fnFunction, oListener) {
@@ -103,7 +104,7 @@ sap.ui.define([
 	 *            [oListener] The object that wants to be notified when the event occurs (<code>this</code> context within the
 	 *                        handler function). If it is not specified, the handler function is called in the context of the event bus.
 	 * @since 1.32.0
-	 * @return {sap.ui.core.EventBus} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventBus.prototype.subscribeOnce = function(sChannelId, sEventId, fnFunction, oListener){
@@ -134,7 +135,7 @@ sap.ui.define([
 	 *            fnFunction The handler function to unsubscribe from the event
 	 * @param {object}
 	 *            [oListener] The object that wanted to be notified when the event occurred
-	 * @return {sap.ui.core.EventBus} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventBus.prototype.unsubscribe = function(sChannelId, sEventId, fnFunction, oListener) {
@@ -200,6 +201,11 @@ sap.ui.define([
 			}
 		}
 
+		if (this._bIsSuspended) {
+			Log.warning("Failed to publish into channel '" + sChannelId + "'." + " The EventBus is suspended.", sChannelId + "#" + sEventId, "sap.ui.core.EventBus");
+			return;
+		}
+
 		oData = oData ? oData : {};
 
 		assert(!sChannelId || typeof (sChannelId) === "string", "EventBus.publish: sChannelId must be empty or a non-empty string");
@@ -257,6 +263,25 @@ sap.ui.define([
 		BaseObject.prototype.destroy.apply(this, arguments);
 	};
 
+	/**
+	 * Suspends the EventBus, so no further events will be published
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 */
+	EventBus.prototype.suspend = function () {
+		this._bIsSuspended = true;
+	};
+
+	/**
+	 * Resumes the EventBus, so future events will be published
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 */
+	EventBus.prototype.resume = function () {
+		this._bIsSuspended = false;
+	};
 
 	function getChannel(oEventBus, sChannelId){
 		if (!sChannelId) {

@@ -6,13 +6,14 @@
 
 // Provides class sap.ui.core.ThemeCheck
 sap.ui.define([
-	'sap/ui/Device',
-	'sap/ui/base/Object',
+	"sap/ui/Device",
+	"sap/ui/base/Object",
 	"sap/base/Log",
 	"sap/ui/dom/includeStylesheet",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"./theming/ThemeHelper"
 ],
-	function(Device, BaseObject, Log, includeStylesheet, jQuery) {
+	function(Device, BaseObject, Log, includeStylesheet, jQuery, ThemeHelper) {
 	"use strict";
 
 
@@ -32,6 +33,7 @@ sap.ui.define([
 	 * @private
 	 * @alias sap.ui.core.ThemeCheck
 	 */
+	// TODO: Check moving ThemeCheck form sap/ui/core to sap/ui/core/theming
 	var ThemeCheck = BaseObject.extend("sap.ui.core.ThemeCheck", /** @lends sap.ui.core.ThemeCheck.prototype */ {
 
 		constructor : function(oCore) {
@@ -43,7 +45,6 @@ sap.ui.define([
 			this._themeCheckedForCustom = null;
 			this._sFallbackTheme = null;
 			this._mThemeFallback = {};
-			this._oThemeMetaDataCheckElement = null;
 		},
 
 		getInterface : function() {
@@ -130,10 +131,6 @@ sap.ui.define([
 			oThemeCheck._iCount = 0;
 			oThemeCheck._sFallbackTheme = null;
 			oThemeCheck._mThemeFallback = {};
-			if (oThemeCheck._oThemeMetaDataCheckElement && oThemeCheck._oThemeMetaDataCheckElement.parentNode) {
-				oThemeCheck._oThemeMetaDataCheckElement.parentNode.removeChild(oThemeCheck._oThemeMetaDataCheckElement);
-				oThemeCheck._oThemeMetaDataCheckElement = null;
-			}
 		}
 	}
 
@@ -146,7 +143,7 @@ sap.ui.define([
 
 		var aFailedLibs = [];
 
-		if (!!oThemeCheck._customCSSAdded && oThemeCheck._themeCheckedForCustom === sThemeName) {
+		if (oThemeCheck._customCSSAdded && oThemeCheck._themeCheckedForCustom === sThemeName) {
 			// include custom style sheet here because it has already been added using jQuery.sap.includeStyleSheet
 			// hence, needs to be checked for successful inclusion, too
 			mLibs[oThemeCheck._CUSTOMID] = {};
@@ -238,17 +235,13 @@ sap.ui.define([
 
 			// Only retrieve the fallback theme once per ThemeCheck cycle
 			if (!oThemeCheck._sFallbackTheme) {
-				if (!oThemeCheck._oThemeMetaDataCheckElement) {
-					// Create dummy element to retrieve custom theme metadata which is applied
-					// via background-image data-uri
-					oThemeCheck._oThemeMetaDataCheckElement = document.createElement("style");
-					jQuery.each(mLibs, function(sLib) {
-						var sClassName = "sapThemeMetaData-UI5-" + sLib.replace(/\./g, "-");
-						oThemeCheck._oThemeMetaDataCheckElement.classList.add(sClassName);
-					});
-					document.head.appendChild(oThemeCheck._oThemeMetaDataCheckElement);
+				for (var sLib in mLibs) {
+					var oThemeMetaData = ThemeHelper.getMetadata(sLib);
+					if (oThemeMetaData && oThemeMetaData.Extends && oThemeMetaData.Extends[0]) {
+						oThemeCheck._sFallbackTheme = oThemeMetaData.Extends[0];
+						break;
+					}
 				}
-				oThemeCheck._sFallbackTheme = getFallbackTheme(oThemeCheck._oThemeMetaDataCheckElement);
 			}
 
 			if (oThemeCheck._sFallbackTheme) {
@@ -280,47 +273,6 @@ sap.ui.define([
 			oThemeCheck._themeCheckedForCustom = sThemeName;
 		}
 		return res;
-	}
-
-	function getFallbackTheme(oThemeMetaDataCheckElement) {
-		function getThemeMetaData() {
-			var sDataUri = window.getComputedStyle(oThemeMetaDataCheckElement).getPropertyValue("background-image");
-
-			var aDataUriMatch = /\(["']?data:text\/plain;utf-8,(.*?)['"]?\)/i.exec(sDataUri);
-			if (!aDataUriMatch || aDataUriMatch.length < 2) {
-				return null;
-			}
-
-			var sMetaData = aDataUriMatch[1];
-
-			// decode only if necessary
-			if (sMetaData.charAt(0) !== "{" && sMetaData.charAt(sMetaData.length - 1) !== "}") {
-				try {
-					sMetaData = decodeURI(sMetaData);
-				} catch (ex) {
-					// ignore
-				}
-			}
-
-			// Remove superfluous escaping of double quotes
-			sMetaData = sMetaData.replace(/\\"/g, '"');
-
-			// Replace encoded spaces
-			sMetaData = sMetaData.replace(/%20/g, " ");
-
-			try {
-				return JSON.parse(sMetaData);
-			} catch (ex) {
-				return null;
-			}
-		}
-
-		var oThemeMetaData = getThemeMetaData();
-		if (oThemeMetaData && oThemeMetaData.Extends && oThemeMetaData.Extends[0]) {
-			return oThemeMetaData.Extends[0];
-		} else {
-			return null;
-		}
 	}
 
 	/* checks if a particular class is available

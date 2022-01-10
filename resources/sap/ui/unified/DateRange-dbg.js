@@ -20,7 +20,7 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/calendar/Cale
 	 * @class
 	 * Date range for use in DatePicker
 	 * @extends sap.ui.core.Element
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -45,7 +45,7 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/calendar/Cale
 		}
 	}});
 
-	DateRange.prototype.setStartDate = function(oDate){
+	DateRange.prototype.setStartDate = function(oDate, bInvalidate){
 
 		if (oDate) {
 			CalendarUtils._checkJSDateObject(oDate);
@@ -54,13 +54,13 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/calendar/Cale
 			CalendarUtils._checkYearInValidRange(iYear);
 		}
 
-		this.setProperty("startDate", oDate);
+		this.setProperty("startDate", oDate, bInvalidate);
 
 		return this;
 
 	};
 
-	DateRange.prototype.setEndDate = function(oDate){
+	DateRange.prototype.setEndDate = function(oDate, bInvalidate){
 
 		if (oDate) {
 			CalendarUtils._checkJSDateObject(oDate);
@@ -69,7 +69,7 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/unified/calendar/Cale
 			CalendarUtils._checkYearInValidRange(iYear);
 		}
 
-		this.setProperty("endDate", oDate);
+		this.setProperty("endDate", oDate, bInvalidate);
 
 		return this;
 

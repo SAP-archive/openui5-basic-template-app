@@ -28,10 +28,10 @@ sap.ui.define([
 	 * Helper control which represents button with 'Attention' badge.
 	 * Used in IconTabFilter.
 	 *
-	 * @extends sap.m.AccButton
+	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @private

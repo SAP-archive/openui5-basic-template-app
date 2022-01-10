@@ -26,7 +26,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -150,7 +150,7 @@ sap.ui.define([
 		/**
 		 * Handles the position change.
 		 * @param {boolean} bIncrease Indicates the direction of the change of position
-		 * @returns {sap.m.PagingButton} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 */
 		PagingButton.prototype._handlePositionChange = function (bIncrease) {
 			var iOldPosition = this.getPosition(),
@@ -164,7 +164,7 @@ sap.ui.define([
 
 		/**
 		 * Sets the appropriate state (enabled/disabled) for the buttons based on the total count / position.
-		 * @returns {sap.m.PagingButton} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 */
 		PagingButton.prototype._updateButtonState = function () {
 			var iTotalCount = this.getCount(),
@@ -198,7 +198,7 @@ sap.ui.define([
 		 * properties and ensures they are correct.
 		 * @param {string} sProperty The property to be checked
 		 * @param {number} iValue 	The value to be checked
-		 * @returns {sap.m.PagingButton} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 */
 		PagingButton.prototype._validateProperty = function (sProperty, iValue) {
 			if (iValue < 1) {
@@ -213,7 +213,7 @@ sap.ui.define([
 		 * Validates the position property to ensure that it's not set higher than the total count.
 		 * @private
 		 * @param {number} iPosition
-		 * @returns {sap.m.PagingButton} Reference to the control instance for chaining
+		 * @returns {this} Reference to the control instance for chaining
 		 */
 		PagingButton.prototype._enforceValidPosition = function (iPosition) {
 			var iCount = this.getCount();

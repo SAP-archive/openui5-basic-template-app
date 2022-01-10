@@ -85,7 +85,8 @@ sap.ui.define([
 		// No Footer
 		var bNoToolbarAndNoButtons = !oDialog._oToolbar && !oBeginButton && !oEndButton;
 		var bEmptyToolbarAndNoButtons = oDialog._oToolbar && oDialog._isToolbarEmpty() && !oBeginButton && !oEndButton;
-		if (bNoToolbarAndNoButtons || bEmptyToolbarAndNoButtons) {
+		var bHiddenFooter = oDialog._oToolbar && !oDialog._oToolbar.getVisible();
+		if (bNoToolbarAndNoButtons || bEmptyToolbarAndNoButtons || bHiddenFooter) {
 			oRM.class("sapMDialog-NoFooter");
 		}
 
@@ -104,10 +105,6 @@ sap.ui.define([
 			role: sRole,
 			modal: true
 		});
-
-		if (oDialog._forceDisableScrolling) {
-			oRM.class("sapMDialogWithScrollCont");
-		}
 
 		if (oSubHeader && oSubHeader.getVisible()) {
 			oRM.class("sapMDialogWithSubHeader");
@@ -170,13 +167,18 @@ sap.ui.define([
 		if (oHeader) {
 			oHeader._applyContextClassFor("header");
 			oRM.openStart("header")
-				.class("sapMDialogTitle")
-				.openEnd()
+				.class("sapMDialogTitle");
+
+			if (oDialog._isDraggableOrResizable()) {
+				oRM.attr("tabindex", 0);
+			}
+
+			oRM.openEnd()
 				.renderControl(oHeader)
 				.close("header");
 		}
 
-		if (oSubHeader) {
+		if (oSubHeader && oSubHeader.getVisible()) {
 			oSubHeader._applyContextClassFor("subheader");
 			oRM.openStart("header")
 				.class("sapMDialogSubHeader")
@@ -212,7 +214,7 @@ sap.ui.define([
 			.close("div")
 			.close("section");
 
-		if (!(bNoToolbarAndNoButtons || bEmptyToolbarAndNoButtons)) {
+		if (!bNoToolbarAndNoButtons && !bEmptyToolbarAndNoButtons && !bHiddenFooter) {
 			oDialog._oToolbar._applyContextClassFor("footer");
 			oRM.openStart("footer")
 				.class("sapMDialogFooter")

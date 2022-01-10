@@ -13,7 +13,28 @@
  * might break in future releases.
  */
 
-/*global sap:true, console, document, Promise, XMLHttpRequest */
+/*global sap:true, Blob, console, document, Promise, URL, XMLHttpRequest */
+
+(function(__global) {
+	"use strict";
+	if ( __global.Promise === undefined || !__global.Promise.prototype.finally || __global.URLSearchParams === undefined ) {
+		var page = document.documentElement, pageStyle = page.style,
+			msg = "Microsoft Internet Explorer 11 and other legacy browsers are no longer supported. For more information, see ",
+			hrefText = "Internet Explorer 11 will no longer be supported by various SAP UI technologies in newer releases",
+			href = "https://blogs.sap.com/2021/02/02/internet-explorer-11-will-no-longer-be-supported-by-various-sap-ui-technologies-in-newer-releases/";
+
+		page.innerHTML = '<body style="margin:0;padding:0;overflow-y:hidden;background-color:#f7f7f7;text-align:center;width:100%;position:absolute;top:50%;transform:translate(0,-50%);"><div style="color:#32363a;font-family:Arial,Helvetica,sans-serif;font-size:.875rem;">' +
+			msg + '<a href="' + href + '" style="color:#4076b4;">' + hrefText + '</a>.</div></body>';
+		pageStyle.margin = pageStyle.padding = "0";
+		pageStyle.width = pageStyle.height = "100%";
+		if (__global.stop) { // Check for __global.stop first because Safari 11 has __global.stop and document.execCommand but document.execCommand('Stop') does not work in Safari 11
+			__global.stop();
+		} else {
+			document.execCommand('Stop');
+		}
+		throw new Error(msg + href);
+	}
+}(window));
 
 (function(__global) {
 	"use strict";
@@ -29,20 +50,6 @@
 		return p < 0 ? href : href.slice(0, p);
 	}
 
-	/*
-	 * Helper function that returns the document base URL without search parameters and hash.
-	 *
-	 * @returns {string}
-	 */
-	function docBase() {
-		return pathOnly(document.baseURI);
-	}
-
-	/*
-	 * Whether the current browser is IE11, derived from the compatibility check for the URL Web API.
-	 */
-	var isIE11 = false;
-
 	/**
 	 * Resolve a given URL, either against the base URL of the current document or against a given base URL.
 	 *
@@ -50,51 +57,16 @@
 	 * If a base URL is given, that base will first be resolved relative to the document's baseURI,
 	 * then the URL will be resolved relative to the resolved base.
 	 *
+	 * Search parameters or a hash of the chosen base will be ignored.
+	 *
 	 * @param {string} sURI Relative or absolute URL that should be resolved
 	 * @param {string} [sBase=document.baseURI] Base URL relative to which the URL should be resolved
 	 * @returns {string} Resolved URL
 	 */
-	var resolveURL = (function(_URL) {
-
-		// feature check: URI support
-		// Can URL be used as a constructor (fails in IE 11)?
-		try {
-			new _URL('index.html', 'http://localhost:8080/');
-		} catch (e) {
-			isIE11 = true;
-			_URL = null;
-		}
-
-		if ( _URL ) {
-			return function(sURI, sBase) {
-				// For a spec see https://url.spec.whatwg.org/
-				// For browser support see https://developer.mozilla.org/en/docs/Web/API/URL
-				return new _URL(sURI, sBase ? new _URL(sBase, docBase()) : docBase()).toString();
-			};
-		}
-
-		// fallback for IE11: use a shadow document with <base> and <a>nchor tag
-		var doc = document.implementation.createHTMLDocument("Dummy doc for resolveURI");
-		var base = doc.createElement('base');
-		base.href = docBase();
-		doc.head.appendChild(base);
-		var anchor = doc.createElement("A");
-		doc.body.appendChild(anchor);
-
-		return function (sURI, sBase) {
-			base.href = docBase();
-			if ( sBase != null ) {
-				// first resolve sBase relative to location
-				anchor.href = sBase;
-				// then use it as base
-				base.href = anchor.href;
-			}
-			anchor.href = sURI;
-			// console.log("(" + sURI + "," + sBase + ") => (" + base.href + "," + anchor.href + ")");
-			return anchor.href;
-		};
-
-	}(__global.URL || __global.webkitURL));
+	function resolveURL(sURI, sBase) {
+		sBase = pathOnly(sBase ? resolveURL(sBase) : document.baseURI);
+		return new URL(sURI, sBase).href;
+	}
 
 	// ---- helpers -------------------------------------------------------------------------------
 
@@ -139,7 +111,7 @@
 	/**
 	 * Basic assert functionality.
 	 *
-	 * Can be set to a function that gets a value (the expression t be asserted) as first
+	 * Can be set to a function that gets a value (the expression to be asserted) as first
 	 * parameter and a message as second parameter. When the expression coerces to false,
 	 * the assertion is violated and the message should be emitted (logged, thrown, whatever).
 	 *
@@ -247,7 +219,7 @@
 	var mUrlPrefixes = Object.create(null);
 	mUrlPrefixes[''] = {
 		url: DEFAULT_BASE_URL,
-		absoluteUrl: resolveURL(DEFAULT_BASE_URL, document.baseURI)
+		absoluteUrl: resolveURL(DEFAULT_BASE_URL)
 	};
 
 	/**
@@ -362,15 +334,7 @@
 	 * @type {int}
 	 * @private
 	 */
-		iAnonymousModuleCount = 0,
-
-	/**
-	 * IE only: max size a script should have when executing it with execScript, otherwise fallback to eval.
-	 * @type {int}
-	 * @const
-	 * @private
-	 */
-		MAX_EXEC_SCRIPT_LENGTH = 512 * 1024;
+		iAnonymousModuleCount = 0;
 
 
 	// ---- Names and Paths -----------------------------------------------------------------------
@@ -585,7 +549,21 @@
 		return syncCallBehavior;
 	}
 
-	function guessResourceName(sURL) {
+	/**
+	 * Try to find a resource name that would be mapped to the given URL.
+	 *
+	 * If multiple path mappings would create a match, the returned name is not necessarily
+	 * the best (longest) match. The first match which is found, will be returned.
+	 *
+	 * When <code>bLoadedResourcesOnly</code> is set, only those resources will be taken
+	 * into account for which content has been loaded already.
+	 *
+	 * @param {string} sURL URL to guess the resource name for
+	 * @param {boolean} [bLoadedResourcesOnly=false] Whether the guess should be limited to already loaded resources
+	 * @returns {string} Resource name or undefined if no matching name could be found
+	 * @private
+	 */
+	function guessResourceName(sURL, bLoadedResourcesOnly) {
 		var sNamePrefix,
 			sUrlPrefix,
 			sResourceName;
@@ -601,7 +579,7 @@
 			// the prefix check here has to be done without the slash
 			sUrlPrefix = mUrlPrefixes[sNamePrefix].absoluteUrl.slice(0, -1);
 
-			if ( sURL.indexOf(sUrlPrefix) === 0 ) {
+			if ( sURL.lastIndexOf(sUrlPrefix, 0) === 0 ) {
 
 				// calc resource name
 				sResourceName = sNamePrefix + sURL.slice(sUrlPrefix.length);
@@ -610,7 +588,7 @@
 					sResourceName = sResourceName.slice(1);
 				}
 
-				if ( mModules[sResourceName] && mModules[sResourceName].data != undefined ) {
+				if ( !bLoadedResourcesOnly || mModules[sResourceName] && mModules[sResourceName].data != undefined ) {
 					return sResourceName;
 				}
 			}
@@ -832,6 +810,12 @@
 		}
 	};
 
+	Module.prototype.failWith = function(msg, cause) {
+		var err = makeModuleError(msg, this, cause);
+		this.fail(err);
+		return err;
+	};
+
 	Module.prototype.fail = function(err) {
 		// should throw, but some tests and apps would fail
 		assert(!this.settled, "Module " + this.name + " is already settled");
@@ -938,7 +922,10 @@
 	 * @static
 	 */
 	Module.get = function(sModuleName) {
-		return mModules[sModuleName] || (mModules[sModuleName] = new Module(sModuleName));
+		if (!mModules[sModuleName]) {
+			mModules[sModuleName] = new Module(sModuleName);
+		}
+		return mModules[sModuleName];
 	};
 
 	/*
@@ -1014,35 +1001,54 @@
 
 	// --------------------------------------------------------------------------------------------
 
-	function ensureStacktrace(oError) {
-		if (!oError.stack) {
-			try {
-				throw oError;
-			} catch (ex) {
-				return ex;
-			}
-		}
-		return oError;
+	function isModuleError(err) {
+		return err && err.name === "ModuleError";
 	}
 
-	function makeNestedError(msg, cause) {
-		var oError = new Error(msg + ": " + cause.message);
-		oError.cause = cause;
-		oError.loadError = cause.loadError;
-		ensureStacktrace(oError);
-		ensureStacktrace(cause);
-		// concat the error stack for better traceability of loading issues
-		if ( oError.stack && cause.stack ) {
-			oError.stack = oError.stack + "\nCaused by: " + cause.stack;
+	/**
+	 * Wraps the given 'cause' in a new error with the given message and with name 'ModuleError'.
+	 *
+	 * The new message and the message of the cause are combined. The stacktrace of the
+	 * new error and of the cause are combined (with a separating 'Caused by').
+	 *
+	 * Instead of the final message string, a template is provided which can contain placeholders
+	 * for the module ID ({id}) and module URL ({url}). Providing a template without concrete
+	 * values allows to detect the repeated nesting of the same error. In such a case, only
+	 * the innermost cause will be kept (affects both, stack trace as well as the cause property).
+	 * The message, however, will contain the full chain of module IDs.
+	 *
+	 * @param {string} template Message string template with placeholders
+	 * @param {Module} module Module for which the error occurred
+	 * @param {Error} cause original error
+	 * @returns {Error} New module error
+	 */
+	function makeModuleError(template, module, cause) {
+		var modules = "'" + module.name + "'";
+
+		if (isModuleError(cause)) {
+			// update the chain of modules (increasing the indent)
+			modules = modules + "\n -> " + cause._modules.replace(/ -> /g, "  -> ");
+			// omit repeated occurrences of the same kind of error
+			if ( template === cause._template ) {
+				cause = cause.cause;
+			}
 		}
-		// @evo-todo
-		// for non Chrome browsers we log the caused by stack manually in the console
-		// if (__global.console && !Device.browser.chrome) {
-		// 	/*eslint-disable no-console */
-		// 	console.error(oError.message + "\nCaused by: " + oCausedByStack);
-		// 	/*eslint-enable no-console */
-		// }
-		return oError;
+
+		// create the message string from the template and the cause's message
+		var message =
+			template.replace(/\{id\}/, modules).replace(/\{url\}/, module.url)
+			+ (cause ? ": " + cause.message : "");
+
+		var error = new Error(message);
+		error.name = "ModuleError";
+		error.cause = cause;
+		if ( cause && cause.stack ) {
+			error.stack = error.stack + "\nCaused by: " + cause.stack;
+		}
+		// the following properties are only for internal usage
+		error._template = template;
+		error._modules = modules;
+		return error;
 	}
 
 	function declareModule(sModuleName) {
@@ -1246,11 +1252,11 @@
 	function loadSyncXHR(oModule) {
 		var xhr = new XMLHttpRequest();
 
-		function enrichXHRError(error) {
-			error = error || ensureStacktrace(new Error(xhr.status + " - " + xhr.statusText));
+		function createXHRLoadError(error) {
+			error = new Error(xhr.statusText ? xhr.status + " - " + xhr.statusText : xhr.status);
+			error.name = "XHRLoadError";
 			error.status = xhr.status;
 			error.statusText = xhr.statusText;
-			error.loadError = true;
 			return error;
 		}
 
@@ -1260,44 +1266,41 @@
 				oModule.state = LOADED;
 				oModule.data = xhr.responseText;
 			} else {
-				oModule.error = enrichXHRError();
+				oModule.error = createXHRLoadError();
 			}
 		});
 		// Note: according to whatwg spec, error event doesn't fire for sync send(), instead an error is thrown
 		// we register a handler, in case a browser doesn't follow the spec
 		xhr.addEventListener('error', function(e) {
-			oModule.error = enrichXHRError();
+			oModule.error = createXHRLoadError();
 		});
 		xhr.open('GET', oModule.url, false);
 		try {
 			xhr.send();
 		} catch (error) {
-			oModule.error = enrichXHRError(error);
+			oModule.error = error;
 		}
 	}
 
 	/**
 	 * Global event handler to detect script execution errors.
-	 * Only works for browsers that support <code>document.currentScript</code>.
 	 * @private
 	 */
-	if ( 'currentScript' in document ) {
-		window.addEventListener('error', function onUncaughtError(errorEvent) {
-			var sModuleName = document.currentScript && document.currentScript.getAttribute('data-sap-ui-module');
-			var oModule = sModuleName && Module.get(sModuleName);
-			if ( oModule && oModule.execError == null ) {
-				// if a currently executing module can be identified, attach the error to it and suppress reporting
-				if ( log.isLoggable() ) {
-					log.debug("unhandled exception occurred while executing " + sModuleName + ": " + errorEvent.message);
-				}
-				oModule.execError = errorEvent.error || {
-					name: 'Error',
-					message: errorEvent.message
-				};
-				return false;
+	window.addEventListener('error', function onUncaughtError(errorEvent) {
+		var sModuleName = document.currentScript && document.currentScript.getAttribute('data-sap-ui-module');
+		var oModule = sModuleName && Module.get(sModuleName);
+		if ( oModule && oModule.execError == null ) {
+			// if a currently executing module can be identified, attach the error to it and suppress reporting
+			if ( log.isLoggable() ) {
+				log.debug("unhandled exception occurred while executing " + sModuleName + ": " + errorEvent.message);
 			}
-		});
-	}
+			oModule.execError = errorEvent.error || {
+				name: 'Error',
+				message: errorEvent.message
+			};
+			return false;
+		}
+	});
 
 	function loadScript(oModule, sAlternativeURL) {
 
@@ -1326,8 +1329,7 @@
 			}
 
 			log.error("failed to load JavaScript resource: " + oModule.name);
-			oModule.fail(
-				ensureStacktrace(new Error("failed to load '" + oModule.name +  "' from " + oModule.url + ": script load error")));
+			oModule.failWith("failed to load {id} from {url}", new Error("script load error"));
 		}
 
 		oScript = document.createElement('SCRIPT');
@@ -1410,11 +1412,8 @@
 				// set bSkipShimDeps to true to prevent endless recursion
 				return requireModule(oRequestingModule, sModuleName, bAsync, /* bSkipShimDeps = */ true, bSkipBundle);
 			}, function(oErr) {
-				oModule.fail(oErr);
-				if ( bAsync ) {
-					return;
-				}
-				throw oErr;
+				// Note: in async mode, this 'throw' will reject the promise returned by requireAll
+				throw oModule.failWith("Failed to resolve dependencies of {id}", oErr);
 			}, bAsync);
 		}
 
@@ -1475,9 +1474,7 @@
 				if ( bAsync ) {
 					return oModule.deferred().promise;
 				} else {
-					throw (bExecutedNow
-						? oModule.error
-						: makeNestedError("found in negative cache: '" + sModuleName + "' from " + oModule.url, oModule.error));
+					throw oModule.error;
 				}
 			} else {
 				// currently loading or executing
@@ -1503,12 +1500,6 @@
 				log.warning("Sync request triggered for '" + sModuleName + "' while async request was already pending." +
 					" Loading a module twice might cause issues and should be avoided by fully migrating to async APIs.");
 			}
-		}
-
-		if ( isIE11 && bAsync && oShim && oShim.amd ) {
-			// in IE11, we force AMD/UMD modules into sync loading to apply the define.amd workaround
-			// in other browsers, we intercept read access to window.define, see ensureDefineInterceptor
-			bAsync = false;
 		}
 
 		measure && measure.start(sModuleName, "Require module " + sModuleName, ["require"]);
@@ -1545,8 +1536,7 @@
 
 			if ( oModule.state === LOADING ) {
 				// transition to FAILED
-				oModule.fail(
-					makeNestedError("failed to load '" + sModuleName +  "' from " + oModule.url, oModule.error));
+				oModule.failWith("failed to load {id} from {url}", oModule.error);
 			} else if ( oModule.state === LOADED ) {
 				// execute module __after__ loading it, this reduces the required stack space!
 				execModule(sModuleName, bAsync);
@@ -1555,11 +1545,6 @@
 			measure && measure.end(sModuleName);
 
 			if ( oModule.state !== READY ) {
-				// loading or executing failed for some reason, load again as script for better error reporting
-				// (but without further eventing)
-				if ( fnIgnorePreload ) {
-					loadScript(oModule);
-				}
 				throw oModule.error;
 			}
 
@@ -1627,8 +1612,7 @@
 
 					sScript = oModule.data;
 
-					// sourceURL: Firebug, Chrome, Safari and IE11 debugging help, appending the string seems to cost ZERO performance
-					// Note: IE11 supports sourceURL even when running in IE9 or IE10 mode
+					// sourceURL: Firebug, Chrome and Safari debugging help, appending the string seems to cost ZERO performance
 					// Note: make URL absolute so Chrome displays the file tree correctly
 					// Note: do not append if there is already a sourceURL / sourceMappingURL
 					// Note: Safari fails, if sourceURL is the same as an existing XHR URL
@@ -1653,26 +1637,31 @@
 						sScript = translate(sScript, sModuleName);
 					}
 
-					if (__global.execScript && (!oModule.data || oModule.data.length < MAX_EXEC_SCRIPT_LENGTH) ) {
-						try {
-							oModule.data && __global.execScript(sScript); // execScript fails if data is empty
-						} catch (e) {
-							_execStack.pop();
-							// eval again with different approach - should fail with a more informative exception
-							/* eslint-disable no-eval */
-							eval(oModule.data);
-							/* eslint-enable no-eval */
-							throw e; // rethrow err in case globalEval succeeded unexpectedly
-						}
-					} else {
-						__global.eval(sScript);
-					}
+					// eval the source in the global context (preventing access to the closure of this function)
+					__global.eval(sScript);
 				}
 				queue.process(oModule, "after eval");
 
 			} catch (err) {
 				oModule.data = undefined;
-				oModule.fail(err);
+				if (isModuleError(err)) {
+					// don't wrap a ModuleError again
+					oModule.fail(err);
+				} else {
+					if (err instanceof SyntaxError && sScript) {
+						// Module execution failed with a syntax error.
+						// If in debug mode, load the script code again via script tag for better error reporting
+						// (but without reacting to load/error events)
+						if (fnIgnorePreload) {
+							oModule.url = URL.createObjectURL(new Blob([sScript], {type: 'text/javascript'}));
+							loadScript(oModule);
+						} else {
+							log.error("A syntax error occurred while evaluating '" + sModuleName + "'"
+								+ ", restarting the app with sap-ui-debug=x might reveal the error location");
+						}
+					}
+					oModule.failWith("Failed to execute {id}", err);
+				}
 			} finally {
 
 				_execStack.pop();
@@ -1834,11 +1823,12 @@
 					}
 					oModule.content = exports;
 				} catch (error) {
-					oModule.fail(error);
+					var wrappedError = oModule.failWith("failed to execute module factory for '{id}'", error);
 					if ( bAsync ) {
+						// Note: in async mode, the error is reported via the oModule's promise
 						return;
 					}
-					throw error;
+					throw wrappedError;
 				}
 			} else {
 				oModule.content = vFactory;
@@ -1861,11 +1851,11 @@
 			oModule.ready();
 
 		}, function(oErr) {
-			// @evo-todo wrap error with current module?
-			oModule.fail(oErr);
+			var oWrappedError = oModule.failWith("Failed to resolve dependencies of {id}", oErr);
 			if ( !bAsync ) {
-				throw oErr;
+				throw oWrappedError;
 			}
+			// Note: in async mode, the error is reported via the oModule's promise
 		}, /* bAsync = */ bAsync);
 
 	}
@@ -2205,7 +2195,7 @@
 		if ( name ) {
 			name = getMappedName(name);
 		} else {
-			name = guessResourceName(url);
+			name = guessResourceName(url, true);
 		}
 		var oModule = name && mModules[name];
 		if ( oModule ) {
@@ -2424,6 +2414,7 @@
 		getUrlPrefixes: getUrlPrefixes,
 		loadJSResourceAsync: loadJSResourceAsync,
 		resolveURL: resolveURL,
+		guessResourceName: guessResourceName,
 		toUrl: toUrl,
 		unloadResources: unloadResources
 	};
@@ -2547,7 +2538,7 @@
 		 *
 		 * </pre>
 		 *
-		 * @param {object|undefined} [cfg]
+		 * @param {object} [cfg]
 		 *   The provided configuration gets merged with the UI5 loader configuration in use.
 		 *   If <code>cfg</code> is omitted or <code>undefined</code>, a copy of the current configuration
 		 *   gets returned, containing at least the properties <code>amd</code> and <code>async</code>.
@@ -3013,7 +3004,7 @@
 
 	/**
 	 * @private
-	 * @ui5-restricted library-preload files
+	 * @ui5-restricted bundles created with UI5 tooling
 	 * @function
 	 * @ui5-global-only
 	 */

@@ -106,7 +106,7 @@ sap.ui.define(["sap/base/assert"], function (assert) {
 		}.bind(this);
 
 		/**
-		 * Returns whether the given storage is suppported.
+		 * Returns whether the given storage is supported.
 		 *
 		 * @return {boolean} true if storage is supported, false otherwise (e.g. due to browser security settings)
 		 * @public
@@ -182,7 +182,7 @@ sap.ui.define(["sap/base/assert"], function (assert) {
 		/**
 		 * Removes all stored keys.
 		 *
-		 * @param {string} sIdPrefix prefix id for the states to delete
+		 * @param {string} [sIdPrefix=""] prefix id for the states to delete
 		 * @return {boolean} true if the deletion
 		 * was successful or the data doesn't exist under the specified key,
 		 * and false if the feature is unavailable or a problem occurred
@@ -192,15 +192,21 @@ sap.ui.define(["sap/base/assert"], function (assert) {
 		 */
 		this.removeAll = function (sIdPrefix) {
 			return hasExecuted(function () {
-				var key, p = sPrefix + (sIdPrefix || "");
+				var p = sPrefix + (sIdPrefix || ""),
+					keysToRemove = [],
+					key, i;
 
-				for (var i = 0, max = oStorageImpl.length; i < max;) {
+				// first determine keys that should be removed
+				for (i = 0; i < oStorageImpl.length; i++) {
 					key = oStorageImpl.key(i);
 					if (key && key.startsWith(p)) {
-						oStorageImpl.removeItem(key);
-					} else {
-						i++;
+						keysToRemove.push(key);
 					}
+				}
+
+				// then remove them (to avoid concurrent modification while looping over the keys)
+				for (i = 0; i < keysToRemove.length; i++) {
+					oStorageImpl.removeItem(keysToRemove[i]);
 				}
 			});
 		};
@@ -244,7 +250,7 @@ sap.ui.define(["sap/base/assert"], function (assert) {
 	 *
 	 * @enum {string}
 	 * @public
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 */
 	Storage.Type = {
 		/**

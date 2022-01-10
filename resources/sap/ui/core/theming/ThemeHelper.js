@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["sap/base/Log"],function(e){"use strict";var t={};var a={};a.reset=function(){t={}};a.getMetadata=function(a){if(!a){return null}var r=a.replace("sap-ui-theme-","").replace(/\./g,"-");if(t[r]){return t[r]}var n,u;var c=window.getComputedStyle(document.body||document.documentElement);var o=c.getPropertyValue("--sapUiTheme-"+r).trim();if(o){u=c.getPropertyValue("--sapThemeMetaData-UI5-"+r).trim()}if(!u){var d=document.createElement("span");d.classList.add("sapThemeMetaData-UI5-"+r);document.documentElement.appendChild(d);var i=window.getComputedStyle(d).getPropertyValue("background-image");document.documentElement.removeChild(d);var l=/\(["']?data:text\/plain;utf-8,(.*?)['"]?\)/i.exec(i);if(!l||l.length<2){return null}var m=l[1];if(m.charAt(0)!=="{"&&m.charAt(m.length-1)!=="}"){try{m=decodeURI(m)}catch(e){}}m=m.replace(/\\"/g,'"');u=m.replace(/%20/g," ")}try{n=JSON.parse(u);t[r]=n}catch(t){e.error("Could not parse theme metadata for library "+r+".")}return n};return a});

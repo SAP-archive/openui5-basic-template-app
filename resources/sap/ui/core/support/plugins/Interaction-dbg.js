@@ -38,7 +38,7 @@ sap.ui.define([
 		 * With this plugIn the performance measurements are displayed
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 * @private
 		 * @alias sap.ui.core.support.plugins.Interaction
 		 */
@@ -117,7 +117,7 @@ sap.ui.define([
 			rm.write("</div>");
 
 			rm.write('<div class="sapUiPerformanceStatsDiv sapUiSupportIntHidden">');
-			rm.write('<div class="sapUiPerformanceTimeline" style="height: 50px;"></div>');
+			rm.write('<div class="sapUiPerformanceTimeline"></div>');
 			rm.write('<div class="sapUiPerformanceTop">');
 			rm.write('</div>');
 

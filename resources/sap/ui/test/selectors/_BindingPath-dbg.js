@@ -6,11 +6,9 @@
 
 sap.ui.define([
     "sap/ui/test/selectors/_Selector",
-    "sap/ui/thirdparty/jquery",
     "sap/ui/model/resource/ResourceModel",
-    "sap/m/ListBase",
-    "sap/m/ListItemBase"
-], function (_Selector, $, ResourceModel, ListBase, ListItemBase) {
+    "sap/ui/model/StaticBinding"
+], function (_Selector, ResourceModel, StaticBinding) {
 	"use strict";
 
     /**
@@ -66,11 +64,14 @@ sap.ui.define([
                             " has data binding for model " + mBinding.model.name + " with context " + mBinding.contextPath +
                             " and path " + mBinding.path);
                         mResult = {
-                            bindingPath: {
-                                path: mBinding.contextPath,
-                                propertyPath: mBinding.path
-                            }
+                            bindingPath: {}
                         };
+                        if (mBinding.value) {
+                            mResult.bindingPath.value = mBinding.value;
+                        } else {
+                            mResult.bindingPath.path = mBinding.contextPath;
+                            mResult.bindingPath.propertyPath = mBinding.path;
+                        }
                         if (mBinding.model.name) {
                             mResult.bindingPath.modelName = mBinding.model.name;
                         }
@@ -109,6 +110,15 @@ sap.ui.define([
         _mapBindingData: function (oBinding, oBindingInfoPart) {
             var oModel = oBinding.getModel();
             var oContext = oBinding.getContext();
+
+            if (oBinding instanceof StaticBinding) {
+                return {
+                    value: oBinding.getValue(),
+                    model: {
+                        type: "static"
+                    }
+                };
+            }
 
             return {
                 path: oBinding.getPath(),

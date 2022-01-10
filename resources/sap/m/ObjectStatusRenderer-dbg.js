@@ -4,16 +4,19 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/ValueStateSupport', 'sap/ui/core/IndicationColorSupport', 'sap/ui/core/InvisibleText', 'sap/ui/core/library'],
-	function(ValueStateSupport, IndicationColorSupport, InvisibleText, coreLibrary) {
+sap.ui.define(['sap/ui/core/ValueStateSupport', 'sap/ui/core/IndicationColorSupport', 'sap/ui/core/InvisibleText', 'sap/ui/core/library', './library', 'sap/ui/core/Core'],
+	function(ValueStateSupport, IndicationColorSupport, InvisibleText, coreLibrary, library, Core) {
 	"use strict";
 
 
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
 
-	// shortcut for sap.ui.core.ValueState
-	var ValueState = coreLibrary.ValueState;
+	// shortcut for sap.m.EmptyIndicator
+	var EmptyIndicatorMode = library.EmptyIndicatorMode;
+
+	// shortcut for library resource bundle
+	var oRb = Core.getLibraryResourceBundle("sap.m");
 
 
 	/**
@@ -34,27 +37,26 @@ sap.ui.define(['sap/ui/core/ValueStateSupport', 'sap/ui/core/IndicationColorSupp
 	ObjectStatusRenderer.render = function(oRm, oObjStatus){
 		oRm.openStart("div", oObjStatus);
 
-		if (oObjStatus._isEmpty()) {
+		if (oObjStatus._isEmpty() && oObjStatus.getEmptyIndicatorMode() === EmptyIndicatorMode.Off) {
 			oRm.style("display", "none");
 			oRm.openEnd();
 		} else {
 
-			var sState = oObjStatus.getState();
-			var bInverted = oObjStatus.getInverted();
-			var sTextDir = oObjStatus.getTextDirection();
-			var oCore = sap.ui.getCore();
-			var bPageRTL = oCore.getConfiguration().getRTL();
-			var oAccAttributes = {
-				roledescription: oCore.getLibraryResourceBundle("sap.m").getText("OBJECT_STATUS")
-			};
-			var sValueStateText;
-			var accValueText;
+			var sState = oObjStatus.getState(),
+				sStateText = oObjStatus._getStateText(sState),
+				bInverted = oObjStatus.getInverted(),
+				sTextDir = oObjStatus.getTextDirection(),
+				oCore = sap.ui.getCore(),
+				bPageRTL = oCore.getConfiguration().getRTL(),
+				oAccAttributes = {
+					roledescription: oCore.getLibraryResourceBundle("sap.m").getText("OBJECT_STATUS")
+				},
+				sTooltip = oObjStatus.getTooltip_AsString();
 
 			if (sTextDir === TextDirection.Inherit) {
 				sTextDir = bPageRTL ? TextDirection.RTL : TextDirection.LTR;
 			}
 
-			var sTooltip = oObjStatus.getTooltip_AsString();
 			if (sTooltip) {
 				oRm.attr("title", sTooltip);
 			}
@@ -73,9 +75,24 @@ sap.ui.define(['sap/ui/core/ValueStateSupport', 'sap/ui/core/IndicationColorSupp
 				oAccAttributes.role = "group";
 			}
 
+			var bTooltipAndAriaDescribedBy = sTooltip && oObjStatus.getAriaDescribedBy().length,
+				sTooltipId;
+			if (bTooltipAndAriaDescribedBy) {
+				sTooltipId = oObjStatus.getId() + "-tooltip";
+				oAccAttributes["describedby"] = { value: sTooltipId, append: true };
+			}
+
 			oRm.accessibilityState(oObjStatus, oAccAttributes);
 
 			oRm.openEnd();
+
+			if (bTooltipAndAriaDescribedBy) {
+				oRm.openStart("span", sTooltipId);
+				oRm.class("sapUiInvisibleText");
+				oRm.openEnd();
+				oRm.text(sTooltip);
+				oRm.close("span");
+			}
 
 			if (oObjStatus.getTitle()) {
 
@@ -85,8 +102,11 @@ sap.ui.define(['sap/ui/core/ValueStateSupport', 'sap/ui/core/IndicationColorSupp
 				if (sTextDir) {
 					oRm.attr("dir", sTextDir.toLowerCase());
 				}
+
+				oRm.attr("data-colon", Core.getLibraryResourceBundle("sap.m").getText("LABEL_COLON"));
+
 				oRm.openEnd();
-				oRm.text(oObjStatus.getTitle() + ":");
+				oRm.text(oObjStatus.getTitle());
 				oRm.close("span");
 			}
 
@@ -118,31 +138,52 @@ sap.ui.define(['sap/ui/core/ValueStateSupport', 'sap/ui/core/IndicationColorSupp
 				oRm.openEnd();
 				oRm.text(oObjStatus.getText());
 				oRm.close("span");
+			} else if (oObjStatus.getEmptyIndicatorMode() !== EmptyIndicatorMode.Off && !oObjStatus.getText()) {
+				this.renderEmptyIndicator(oRm, oObjStatus);
 			}
 
 			if (oObjStatus._isActive()) {
 				oRm.close("span");
 			}
-			/* ARIA adding hidden node in span element */
-			if (sState != ValueState.None) {
-				sValueStateText = ValueStateSupport.getAdditionalText(sState);
-				if (sValueStateText) {
-					accValueText = sValueStateText;
-				} else {
-					accValueText = IndicationColorSupport.getAdditionalText(sState);
-				}
-				if (accValueText) {
-					oRm.openStart("span", oObjStatus.getId() + "sapSRH");
-					oRm.class("sapUiPseudoInvisibleText");
-					oRm.openEnd();
-					oRm.text(accValueText);
-					oRm.close("span");
-				}
+
+			if (sStateText) {
+				oRm.openStart("span", oObjStatus.getId() + "-state");
+				oRm.class("sapUiPseudoInvisibleText");
+				oRm.openEnd();
+				oRm.text(sStateText);
+				oRm.close("span");
 			}
 
 		}
 
 		oRm.close("div");
+	};
+
+	/**
+	 * Renders the empty text indicator.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
+	 * @param {sap.m.ObjectStatus} oOS An object representation of the control that should be rendered.
+	 */
+	ObjectStatusRenderer.renderEmptyIndicator = function(oRm, oOS) {
+		oRm.openStart("span");
+			oRm.class("sapMEmptyIndicator");
+			if (oOS.getEmptyIndicatorMode() === EmptyIndicatorMode.Auto) {
+				oRm.class("sapMEmptyIndicatorAuto");
+			}
+			oRm.openEnd();
+			oRm.openStart("span");
+			oRm.attr("aria-hidden", true);
+			oRm.openEnd();
+				oRm.text(oRb.getText("EMPTY_INDICATOR"));
+			oRm.close("span");
+			//Empty space text to be announced by screen readers
+			oRm.openStart("span");
+			oRm.class("sapUiPseudoInvisibleText");
+			oRm.openEnd();
+				oRm.text(oRb.getText("EMPTY_INDICATOR_TEXT"));
+			oRm.close("span");
+		oRm.close("span");
 	};
 
 	return ObjectStatusRenderer;

@@ -46,7 +46,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -300,6 +300,10 @@ sap.ui.define([
 
 		// inform parent delayed
 		setTimeout(function() {
+			// make sure that the column is visible
+			if (!this.getVisible()) {
+				return;
+			}
 			this.fireEvent("media", this);
 			this.informTable("Resize");
 		}.bind(this), 0);
@@ -353,8 +357,8 @@ sap.ui.define([
 	 * Returns CSS alignment according to column hAlign setting or given parameter
 	 * for Begin/End values checks the locale settings
 	 *
-	 * @param {String} [sAlign] TextAlign enumeration
-	 * @return {String} left|center|right
+	 * @param {string} [sAlign] TextAlign enumeration
+	 * @return {string} left|center|right
 	 * @protected
 	 */
 	Column.prototype.getCssAlign = function(sAlign) {
@@ -393,6 +397,14 @@ sap.ui.define([
 		this._index = +nIndex;
 	};
 
+	/**
+	 * Gets the rendering index of the column
+	 *
+	 * @protected
+	 */
+	Column.prototype.getIndex = function() {
+		return this._index;
+	};
 
 	/**
 	 * Sets the order of the column
@@ -449,7 +461,7 @@ sap.ui.define([
 	 * Display or hide the column from given table
 	 * This does not set the visibility property of the column
 	 *
-	 * @param {Object} oTableDomRef Table DOM reference
+	 * @param {Element} oTableDomRef Table DOM reference
 	 * @param {boolean} [bDisplay] whether visible or not
 	 * @protected
 	 */
@@ -490,7 +502,7 @@ sap.ui.define([
 
 		var oParent = this.getParent(),
 			oTableDomRef = oParent && oParent.getTableDomRef && oParent.getTableDomRef(),
-			bSupressInvalidate = oTableDomRef && this._index >= 0 && !oParent.getAutoPopinMode();
+			bSupressInvalidate = oTableDomRef && this._index >= 0 && !oParent.getAutoPopinMode() && !this._bForcedColumn;
 
 		if (bSupressInvalidate) {
 			this.setProperty("visible", bVisible, bSupressInvalidate);
@@ -623,7 +635,7 @@ sap.ui.define([
 	 * Sets the last value of the column if mergeDuplicates property is true
 	 *
 	 * @param {any} value Any Value
-	 * @returns {sap.m.Column}
+	 * @returns {this}
 	 * @since 1.16
 	 * @protected
 	 */
@@ -637,7 +649,7 @@ sap.ui.define([
 	/**
 	 * Clears the last value of the column if mergeDuplicates property is true
 	 *
-	 * @returns {sap.m.Column}
+	 * @returns {this}
 	 * @since 1.20.4
 	 * @protected
 	 */
@@ -669,7 +681,7 @@ sap.ui.define([
 	// hence overwriting the getFocusDomRef to restore the focus on the active column header
 	Column.prototype.getFocusDomRef = function() {
 		var oParent = this.getParent();
-		if (oParent && oParent.bActiveHeaders) {
+		if (oParent && (oParent.bActiveHeaders || oParent.bFocusableHeaders)) {
 			var oColumnDomRef = this.getDomRef();
 			if (oColumnDomRef) {
 				return oColumnDomRef.firstChild;

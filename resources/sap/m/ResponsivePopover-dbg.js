@@ -63,7 +63,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -288,7 +288,7 @@ sap.ui.define([
 	 *
 	 * @name sap.m.ResponsivePopover#close
 	 * @function
-	 * @return {sap.m.ResponsivePopover} Reference to <code>this</code> in order to allow method chaining
+	 * @return {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
@@ -581,9 +581,8 @@ sap.ui.define([
 		return -1;
 	};
 
-	ResponsivePopover.prototype._oldSetProperty = ResponsivePopover.prototype.setProperty;
 	ResponsivePopover.prototype.setProperty = function(sPropertyName, oValue, bSuppressInvalidate){
-		this._oldSetProperty(sPropertyName, oValue, true);
+		Control.prototype.setProperty.call(this, sPropertyName, oValue, true);
 		var sSetterName = "set" + this._firstLetterUpperCase(sPropertyName);
 		if (this._aNotSupportedProperties.indexOf(sPropertyName) === -1 &&
 			sSetterName in this._oControl) {
@@ -592,10 +591,9 @@ sap.ui.define([
 		return this;
 	};
 
-	ResponsivePopover.prototype._oldSetModel = ResponsivePopover.prototype.setModel;
 	ResponsivePopover.prototype.setModel = function(oModel, sName){
 		this._oControl.setModel(oModel, sName);
-		return this._oldSetModel(oModel, sName);
+		return Control.prototype.setModel.call(this, oModel, sName);
 	};
 
 	/**
@@ -683,7 +681,7 @@ sap.ui.define([
 	/**
 	 * Setter for beginButton aggregation
 	 * @param {sap.m.Button} oButton The button that will be set as an aggregation
-	 * @returns {sap.m.ResponsivePopover} Pointer to the control instance for chaining
+	 * @returns {this} Pointer to the control instance for chaining
 	 * @public
 	 */
 	ResponsivePopover.prototype.setBeginButton = function(oButton){
@@ -694,7 +692,7 @@ sap.ui.define([
 	/**
 	 * Setter for endButton aggregation
 	 * @param {sap.m.Button} oButton The button that will be set as an aggregation
-	 * @returns {sap.m.ResponsivePopover} Pointer to the control instance for chaining
+	 * @returns {this} Pointer to the control instance for chaining
 	 * @public
 	 */
 	ResponsivePopover.prototype.setEndButton = function(oButton){
@@ -705,7 +703,7 @@ sap.ui.define([
 	/**
 	 * Determines if the close button to the ResponsivePopover is shown or not. Works only when ResponsivePopover is used as a dialog
 	 * @param {boolean} bShowCloseButton Defines whether the close button is shown
-	 * @returns {sap.m.ResponsivePopover} Pointer to the control instance for chaining
+	 * @returns {this} Pointer to the control instance for chaining
 	 * @public
 	 */
 	ResponsivePopover.prototype.setShowCloseButton = function(bShowCloseButton) {

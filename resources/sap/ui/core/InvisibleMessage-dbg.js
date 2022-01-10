@@ -32,10 +32,9 @@ function (coreLibrary, ManagedObject, Log) {
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @hideconstructor
 	 * @public
-	 * @experimental Since 1.78. This class is experimental and the API might be changed in future.
 	 * @since 1.78
 	 * @alias sap.ui.core.InvisibleMessage
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
@@ -106,6 +105,14 @@ function (coreLibrary, ManagedObject, Log) {
 				'You have entered an invalid mode. Valid values are: ' + '"Polite" ' + 'and "Assertive".'
 				+ ' The framework will automatically set the mode to "Polite".');
 		}
+
+		// clear the span in order to avoid reading it out while in JAWS reading node
+		setTimeout(function () {
+			// ensure that we clear the text node only if no announce is made in the meantime
+			if (oNode.textContent === sText) {
+				oNode.textContent = "";
+			}
+		}, 3000);
 	};
 
 	/**

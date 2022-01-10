@@ -26,7 +26,7 @@ function (library, Log, Element) {
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -48,7 +48,7 @@ function (library, Log, Element) {
 				/**
 				 * Adds a title for the view
 				 */
-				title : { type : "string", group : "Appereance" }
+				title : { type : "string", group : "Appearance" }
 
 			}
 		}

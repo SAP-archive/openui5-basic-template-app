@@ -11,7 +11,8 @@ sap.ui.define([
 	"./Popup",
 	"./InvisibleText",
 	"sap/ui/dom/containsOrEquals",
-	"sap/ui/events/checkMouseEnterOrLeave"
+	"sap/ui/events/checkMouseEnterOrLeave",
+	"sap/ui/Device"
 ],
 	function(
 		EventProvider,
@@ -20,7 +21,8 @@ sap.ui.define([
 		Popup,
 		InvisibleText,
 		containsOrEquals,
-		checkMouseEnterOrLeave
+		checkMouseEnterOrLeave,
+		Device
 	) {
 	"use strict";
 
@@ -68,6 +70,10 @@ sap.ui.define([
 	 * (e.g. the shortcut of a command registered to it)
 	 */
 	ShortcutHintsMixin.addConfig = function(oControl, oConfig, oHintProviderControl) {
+		if (Device.system.phone) {
+			return;
+		}
+
 		if (/sap-ui-xx-noshortcuthints=true/.test(document.location.search)) {
 			return;
 		}
@@ -382,19 +388,21 @@ sap.ui.define([
 			return;
 		}
 
-		oInvText = getInvisibleText();
+		oControl = Element.registry.get(this.sControlId);
+
+		if (!oControl.getAriaDescribedBy) {
+			return;
+		}
+
+		oInvText = getInvisibleText(oControl);
 		sInvTextId = oInvText.getId();
 
 		oInvText.setText(_getShortcutHintText(oHintInfo.id));
 
-		oControl = Element.registry.get(this.sControlId);
-
-		if (oInvText.getText()) {
-			if (oControl.getAriaDescribedBy().indexOf(sInvTextId) === -1) {
-				oControl.addAriaDescribedBy(sInvTextId);
-			}
-		} else {
+		if (!oInvText.getText()) {
 			oControl.removeAriaDescribedBy(sInvTextId);
+		} else if (oControl.getAriaDescribedBy().indexOf(sInvTextId) === -1) {
+			oControl.addAriaDescribedBy(sInvTextId);
 		}
 	};
 
@@ -494,15 +502,22 @@ sap.ui.define([
 	}
 
 	/**
-	 * Gets or creates an InvisibleText for the shortcut's accessiblity.
+	 * Gets or creates an InvisibleText for the control's shortcut accessiblity.
+	 *
+	 * @param {sap.ui.core.Control} oControl A control that have shortcut assigned
 	 */
-	function getInvisibleText() {
-		if (!ShortcutHintsMixin._invisibleText) {
-			ShortcutHintsMixin._invisibleText = new InvisibleText();
-			ShortcutHintsMixin._invisibleText.toStatic();
+	function getInvisibleText(oControl) {
+		if (!oControl._shortcutInvisibleText) {
+			var oFunc = oControl.exit;
+			oControl._shortcutInvisibleText = new InvisibleText();
+			oControl._shortcutInvisibleText.toStatic();
+			oControl.exit = function() {
+				this._shortcutInvisibleText.destroy();
+				oFunc.call(this);
+			};
 		}
 
-		return ShortcutHintsMixin._invisibleText;
+		return oControl._shortcutInvisibleText;
 	}
 
 	/**

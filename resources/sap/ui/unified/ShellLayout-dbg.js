@@ -48,7 +48,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -60,6 +60,7 @@ sap.ui.define([
 	var ShellLayout = Control.extend("sap.ui.unified.ShellLayout", /** @lends sap.ui.unified.ShellLayout.prototype */ { metadata : {
 
 		library : "sap.ui.unified",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -467,7 +468,7 @@ sap.ui.define([
 		}
 
 		var duration = parseInt(Parameters.get("_sap_ui_unified_ShellLayout_AnimDuration"));
-		if (!this._animation || (Device.browser.internet_explorer && Device.browser.version < 10)) {
+		if (!this._animation) {
 			duration = 0;
 		}
 

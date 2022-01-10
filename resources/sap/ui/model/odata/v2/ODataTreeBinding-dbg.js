@@ -3,195 +3,100 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the OData model implementation of a tree binding
 sap.ui.define([
-	'sap/ui/model/TreeBinding',
-	'sap/ui/model/odata/CountMode',
-	'sap/ui/model/ChangeReason',
-	'sap/ui/model/Filter',
-	'sap/ui/model/Sorter',
-	'sap/ui/model/odata/ODataUtils',
-	'sap/ui/model/TreeBindingUtils',
-	'sap/ui/model/odata/OperationMode',
-	'sap/ui/model/SorterProcessor',
-	'sap/ui/model/FilterProcessor',
-	'sap/ui/model/FilterType',
-	'sap/ui/model/Context',
-	"sap/base/Log",
 	"sap/base/assert",
-	"sap/ui/thirdparty/jquery",
-	"sap/base/util/isEmptyObject"
-],
-	function(
-		TreeBinding,
-		CountMode,
-		ChangeReason,
-		Filter,
-		Sorter,
-		ODataUtils,
-		TreeBindingUtils,
-		OperationMode,
-		SorterProcessor,
-		FilterProcessor,
-		FilterType,
-		Context,
-		Log,
-		assert,
-		jQuery,
-		isEmptyObject
-	) {
+	"sap/base/Log",
+	"sap/base/util/deepExtend",
+	"sap/base/util/each",
+	"sap/base/util/includes",
+	"sap/base/util/isEmptyObject",
+	"sap/ui/model/ChangeReason",
+	"sap/ui/model/Context",
+	"sap/ui/model/Filter",
+	"sap/ui/model/FilterProcessor",
+	"sap/ui/model/FilterType",
+	"sap/ui/model/Sorter",
+	"sap/ui/model/SorterProcessor",
+	"sap/ui/model/TreeBinding",
+	"sap/ui/model/TreeBindingUtils",
+	"sap/ui/model/odata/CountMode",
+	"sap/ui/model/odata/ODataUtils",
+	"sap/ui/model/odata/OperationMode"
+], function(assert, Log, deepExtend, each, includes, isEmptyObject, ChangeReason, Context, Filter,
+		FilterProcessor, FilterType, Sorter, SorterProcessor, TreeBinding, TreeBindingUtils,
+		CountMode, ODataUtils, OperationMode) {
 	"use strict";
 
-
 	/**
+	 * Do <strong>NOT</strong> call this private constructor, but rather use
+	 * {@link sap.ui.model.odata.v2.ODataModel#bindTree} instead!
 	 *
-	 * @class
-	 * Tree binding implementation for OData models.
-	 *
-	 * <h3>Hierarchy Annotations</h3>
-	 * To use the v2.ODataTreeBinding with an OData service which exposes hierarchy annotations, see the
-	 * <b>"SAP Annotations for OData Version 2.0"</b> specification. The required property annotations as well
-	 * as accepted/default values are documented in this specification.
-	 *
-	 * Services which include the <code>hierarchy-node-descendant-count-for</code> annotation and expose the data
-	 * points sorted in a depth-first, pre-order manner, can use an optimized auto-expand feature by specifying the
-	 * <code>numberOfExpandedLevels</code> in the binding parameters. This will pre-expand the hierarchy to the given
-	 * number of levels, with only a single initial OData request.
-	 *
-	 * For services without the <code>hierarchy-node-descendant-count-for</code> annotation, the
-	 * <code>numberOfExpandedLevels</code> property is not supported and deprecated.
-	 *
-	 *
-	 * <h3>Navigation Properties</h3>
-	 * <b>Note:</b> The use of navigation properties to build up the hierarchy structure is deprecated and it is
-	 * recommended to use the hierarchy annotations mentioned above instead.
-	 *
-	 * In addition to the hierarchy annotations, the <code>ODataTreeBinding</code> also supports (cyclic) references
-	 * between entities based on navigation properties. They have to be specified with the binding parameter
-	 * <code>navigation</code>. The value for that parameter has to be structured as a map object where the keys
-	 * are entity names and the values are names of navigation properties.
-	 *
-	 * Example:
-	 * <pre>
-	 *   oTree.bindItems({
-	 *
-	 *     path: "Employees",
-	 *     template: ...
-	 *
-	 *	   parameters: {
-	 *       navigation: {
-	 *         "Employees": "toColleagues"
-	 *       }
-	 *     }
-	 *   });
-	 * </pre>
-	 *
-	 *
-	 * <h3>Operation Modes</h3>
-	 * For a full definition and explanation of all OData binding operation modes see {@link sap.ui.model.odata.OperationMode}.
-	 *
-	 * <h4>OperationMode.Server</h4>
-	 * Filtering on the <code>ODataTreeBinding</code> is only supported with ({@link sap.ui.model.FilterType.Application application filters}).
-	 * However please be aware that this applies only to filters which do not prevent the creation of a hierarchy.
-	 * So filtering on a property (e.g. a "Customer") is fine, as long as the application can ensure that the responses
-	 * from the backend are sufficient to create a valid hierarchy on the client. Subsequent paging requests for
-	 * sibling and child nodes must also return responses since the filters will be sent with every request.
-	 * Using control-defined filters ({@link sap.ui.model.FilterType.Control FilterType.Control}) via the
-	 * <code>filter()</code> function is not supported for the operation mode <code>Server</code>.
-	 *
-	 * <h4>OperationMode.Client and OperationMode.Auto</h4>
-	 * The ODataTreeBinding supports control-defined filters only in operation modes <code>Client</code> and
-	 * <code>Auto</code>. In these operation modes, the filters and sorters will be applied on the client, like for
-	 * the <code>v2.ODataListBinding</code>.
-	 *
-	 * The operation modes <code>Client</code> and <code>Auto</code> are only supported for services which expose the
-	 * hierarchy annotations mentioned above, but do <b>not</b> expose the <code>hierarchy-node-descendant-count-for</code>
-	 * annotation. Services with hierarchy annotations including the <code>hierarchy-node-descendant-count-for</code>
-	 * annotation, do <b>not</b> support the operation modes <code>Client</code> and <code>Auto</code>.
-	 *
-	 * @param {sap.ui.model.Model} oModel
+	 * @param {sap.ui.model.odata.v2.ODataModel} oModel
+	 *   The OData V2 model
 	 * @param {string} sPath
-	 * @param {sap.ui.model.Context} oContext
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aApplicationFilters]
-	 *               Predefined filter/s (can be either a filter or an array of filters). All these filters will be sent
-	 *               with every request. Filtering on the <code>ODataTreeBinding</code> is only supported with initial filters.
+	 *   The binding path, either absolute or relative to a given <code>oContext</code>
+	 * @param {sap.ui.model.Context} [oContext]
+	 *   The parent context which is required as base for a relative path
+	 * @param {sap.ui.model.Filter | sap.ui.model.Filter[]} [vFilters]
+	 *   The application filters to be used initially
 	 * @param {object} [mParameters]
-	 *               Parameter Object
+	 *   Map of binding parameters
 	 * @param {object} [mParameters.treeAnnotationProperties]
-	 *               This parameter defines the mapping between data properties and the hierarchy used to visualize the tree,
-	 *               if not provided by the services metadata. For the correct metadata annotations, please check the
-	 *               "SAP Annotations for OData Version 2.0" specification.
-	 * @param {int} [mParameters.treeAnnotationProperties.hierarchyLevelFor]
-	 *               Mapping to the property holding the hierarchy level information
+	 *   The mapping between data properties and the hierarchy used to visualize the tree, if not
+	 *   provided by the service's metadata
+	 * @param {string} [mParameters.treeAnnotationProperties.hierarchyLevelFor]
+	 *   The property name in the same type holding the hierarchy level information
 	 * @param {string} [mParameters.treeAnnotationProperties.hierarchyNodeFor]
-	 *               Mapping to the property holding the hierarchy node id
+	 *   The property name in the same type holding the hierarchy node id
 	 * @param {string} [mParameters.treeAnnotationProperties.hierarchyParentNodeFor]
-	 *               Mapping to the property holding the parent node id
+	 *   The property name in the same type holding the parent node id
 	 * @param {string} [mParameters.treeAnnotationProperties.hierarchyDrillStateFor]
-	 *               Mapping to the property holding the drill state for the node
+	 *   The property name in the same type holding the drill state for the node
 	 * @param {string} [mParameters.treeAnnotationProperties.hierarchyNodeDescendantCountFor]
-	 *               Mapping to the property holding the descendant count for the node
-	 * @param {object} [mParameters.navigation]
-	 *               A map describing the navigation properties between entity sets, which should be used for constructing and
-	 *               paging the tree. Keys in this object are entity names whereas the values name the navigation property
-	 * @param {int} [mParameters.numberOfExpandedLevels=0]
-	 *               This property defines the number of levels, which will be auto-expanded initially. Setting this property
-	 *               might leads to multiple backend requests. Default value is 0. The auto-expand feature is deprecated for
-	 *               services without the <code>hierarchy-node-descendant-count-for</code> annotation.
-	 * @param {int} [mParameters.rootLevel=0]
-	 *               The root level is the level of the topmost tree nodes, which will be used as an entry point for OData
-	 *               services. According to the "SAP Annotations for OData Version 2.0" specification, the root level must
-	 *               start at 0, default value thus is 0.
-	 * @param {string} [mParameters.batchGroupId]
-	 *               Deprecated - use <code>groupId</code> instead. Sets the batch group id to be used for requests
-	 *               originating from this binding
+	 *   The property name in the same type holding the descendant count for the node
+	 * @param {number} [mParameters.numberOfExpandedLevels=0]
+	 *   The number of levels that are auto-expanded initially
+	 * @param {number} [mParameters.rootLevel=0]
+	 *   The level of the topmost tree nodes
 	 * @param {string} [mParameters.groupId]
-	 *               Sets the group id to be used for requests originating from this binding
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters]
-	 *               Predefined sorters, can be either a sorter or an array of sorters
+	 *   The group id to be used for requests originating from this binding
 	 * @param {sap.ui.model.odata.OperationMode} [mParameters.operationMode]
-	 *               Operation mode for this binding; defaults to the model's default operation mode when not specified
-	 * @param {int} [mParameters.threshold]
-	 *               A threshold, which will be used in {@link sap.ui.model.odata.OperationMode.Auto OpeationMode.Auto}.
-	 *               The binding tries to fetch (at least) as many entries as specified by the threshold value.
-	 *               <code>OperationMode.Auto</code> is only supported for services which expose the hierarchy-annotations,
-	 *               yet do <b>NOT</b> expose the <code>hierarchy-node-descendant-count-for</code> annotation.
+	 *   The operation mode for this binding
+	 * @param {number} [mParameters.threshold]
+	 *   The threshold used if the operation mode is set to
+	 *   {@link sap.ui.model.odata.OperationMode.Auto OperationMode.Auto}
 	 * @param {boolean} [mParameters.useServersideApplicationFilters]
-	 *               Whether <code>$filter</code> statements should be used for the <code>$count/$inlinecount</code> and
-	 *               data-retrieval in the <code>OperationMode.Auto</code>. Only use this if your backend supports pre-
-	 *               filtering the tree and is capable of responding with a complete tree hierarchy, including all inner
-	 *               nodes. To construct the hierarchy on the client, it is mandatory that all filter-matches include
-	 *               their complete parent chain up to the root level.
-	 *               <code>OperationMode.Client</code> will still request the complete collection without filters, since
-	 *               they will be applied on the client side.
+	 *   Whether <code>$filter</code> statements should be used for the <code>$count</code> /
+	 *   <code>$inlinecount</code> requests and for the data request if the operation mode is
+	 *   {@link sap.ui.model.odata.OperationMode.Auto OperationMode.Auto}
 	 * @param {any} [mParameters.treeState]
-	 *               A tree state handle can be given to the <code>ODataTreeBinding</code> when two conditions are met:
-	 *               The binding is running in <code>OperationMode.Client</code> AND the {@link sap.ui.table.TreeTable}
-	 *               is used. The feature is only available when using the <code>ODataTreeBindingAdapter</code>, which is
-	 *               automatically applied when using the <code>sap.ui.table.TreeTable</code>. The tree state handle will
-	 *               contain all necessary information to expand the tree to the given state.
-	 *
-	 *               This feature is not supported in <code>OperationMode.Server</code> and <code>OperationMode.Auto</code>.
-	 *               Please see also the {@link sap.ui.model.odata.ODataTreeBindingAdapter#getCurrentTreeState getCurrentTreeState}
-	 *               method in class <code>ODataTreeBindingAdapter</code>.
+	 *   A tree state handle
 	 *  @param {sap.ui.model.odata.CountMode} [mParameters.countMode]
-	 *    Defines the count mode of this binding; if not specified, the default count mode of the
-	 *    binding's model is applied. The resulting count mode must not be
-	 *    {@link sap.ui.model.odata.CountMode.None}.
+	 *    The count mode of this binding
 	 *  @param {boolean} [mParameters.usePreliminaryContext]
-	 *    Whether a preliminary context is used; defaults to the value of the parameter
-	 *    <code>preliminaryContext</code> given on construction of the binding's model, see
-	 *    {@link sap.ui.model.odata.v2.ODataModel}
+	 *    Whether a preliminary context is used
+	 * @param {string} [mParameters.batchGroupId]
+	 *   <b>Deprecated</b>, use <code>groupId</code> instead
+	 * @param {object} [mParameters.navigation]
+	 *   <b>Deprecated since 1.44:</b> A map describing the navigation properties between entity
+	 *   sets, which is used for constructing and paging the tree
+	 * @param {sap.ui.model.Sorter | sap.ui.model.Sorter[]} [vSorters]
+	 *   The dynamic sorters to be used initially
 	 *
-	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataTreeBinding
+	 * @author SAP SE
+	 * @class Tree binding implementation for the {@link sap.ui.model.odata.v2.ODataModel}. Use
+	 *   {@link sap.ui.model.odata.v2.ODataModel#bindTree} for creating an instance.
 	 * @extends sap.ui.model.TreeBinding
-	 * @see {@link https://wiki.scn.sap.com/wiki/display/EmTech/SAP+Annotations+for+OData+Version+2.0 "SAP Annotations for OData Version 2.0" Specification}
+	 * @hideconstructor
+	 * @public
+	 * @version 1.96.2
 	 */
 	var ODataTreeBinding = TreeBinding.extend("sap.ui.model.odata.v2.ODataTreeBinding", /** @lends sap.ui.model.odata.v2.ODataTreeBinding.prototype */ {
 
-		constructor : function(oModel, sPath, oContext, aApplicationFilters, mParameters, aSorters){
+		constructor : function (oModel, sPath, oContext, vFilters, mParameters, vSorters) {
 			TreeBinding.apply(this, arguments);
 
 			//make sure we have at least an empty parameter object
@@ -206,17 +111,20 @@ sap.ui.define([
 			this._bRootMissing = false;
 			this.bSkipDataEvents = false;
 
-			this.aSorters = aSorters || [];
+			if (vSorters instanceof Sorter) {
+				vSorters = [vSorters];
+			}
+			this.aSorters = vSorters || [];
 			this.sFilterParams = "";
 
 			this.mNormalizeCache = {};
 
 			// The ODataTreeBinding expects there to be only an array in this.aApplicationFilters later on.
 			// Wrap the given application filters inside an array if necessary
-			if (aApplicationFilters instanceof Filter) {
-				aApplicationFilters = [aApplicationFilters];
+			if (vFilters instanceof Filter) {
+				vFilters = [vFilters];
 			}
-			this.aApplicationFilters = aApplicationFilters;
+			this.aApplicationFilters = vFilters;
 
 			// check filter integrity
 			this.oModel.checkFilterOperation(this.aApplicationFilters);
@@ -327,7 +235,7 @@ sap.ui.define([
 			this.mRequestHandles[sRequestKey].abort();
 		}
 		sGroupId = this.sRefreshGroupId ? this.sRefreshGroupId : this.sGroupId;
-		var sAbsolutePath = this.oModel.resolve(this.getPath(), this.getContext());
+		var sAbsolutePath = this.getResolvedPath();
 		if (sAbsolutePath) {
 			this.mRequestHandles[sRequestKey] = this.oModel.read(sAbsolutePath, {
 				groupId: sGroupId,
@@ -367,20 +275,24 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns root contexts for the tree. You can specify the start index and the length for paging requests.
-	 * This function is not available when the annotation "hierarchy-node-descendant-count-for" is exposed on the service.
+	 * Returns root contexts for the tree. You can specify the start index and the length for paging
+	 * requests. This function is not available when the annotation
+	 * "hierarchy-node-descendant-count-for" is exposed on the service.
 	 *
-	 * @param {int} [iStartIndex=0] the start index of the requested contexts
-	 * @param {int} [iLength=v2.ODataModel.sizeLimit] the requested amount of contexts. If none given, the default value is the size limit of the underlying
-	 *												 sap.ui.model.odata.v2.ODataModel instance.
-	 * @param {int} [iThreshold=0] the number of entities which should be retrieved in addition to the given length.
-	 *				  A higher threshold reduces the number of backend requests, yet these request blow up in size, since more data is loaded.
-	 * @return {sap.ui.model.Context[]} an array containing the contexts for the entities returned by the backend, might be fewer than requested
-	 *								  if the backend does not have enough data.
+	 * @param {int} [iStartIndex=0]
+	 *   The start index of the requested contexts
+	 * @param {int} [iLength=v2.ODataModel.sizeLimit]
+	 *   The requested amount of contexts. If none given, the default value is the size limit of the
+	 *   underlying sap.ui.model.odata.v2.ODataModel instance.
+	 * @param {int} [iThreshold=0]
+	 *   The number of entities which should be retrieved in addition to the given length. A higher
+	 *   threshold reduces the number of backend requests, yet these request blow up in size, since
+	 *   more data is loaded.
+	 * @return {sap.ui.model.odata.v2.Context[]}
+	 *   The root contexts for the tree
 	 * @public
 	 */
 	ODataTreeBinding.prototype.getRootContexts = function(iStartIndex, iLength, iThreshold) {
-
 		var sNodeId = null,
 			mRequestParameters = {
 				numberOfExpandedLevels: this.iNumberOfExpandedLevels
@@ -408,7 +320,7 @@ sap.ui.define([
 			aRootContexts = this._getContextsForNodeId(null, iStartIndex, iLength, iThreshold);
 
 		} else {
-			sNodeId = this.oModel.resolve(this.getPath(), this.getContext());
+			sNodeId = this.getResolvedPath();
 
 			var bIsList = this.oModel.isList(this.sPath, this.getContext());
 			if (bIsList) {
@@ -440,14 +352,21 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the contexts of the child nodes for the given context. This function is not available when the annotation "hierarchy-node-descendant-count-for"
-	 * is exposed on the service.
+	 * Returns the contexts of the child nodes for the given context. This function is not available
+	 * when the annotation "hierarchy-node-descendant-count-for" is exposed on the service.
 	 *
-	 * @param {sap.ui.model.Context} oContext the context for which the child nodes should be retrieved
-	 * @param {int} iStartIndex the start index of the requested contexts
-	 * @param {int} iLength the requested amount of contexts
-	 * @param {int} iThreshold
-	 * @return {sap.ui.model.Context[]} the contexts array
+	 * @param {sap.ui.model.Context} oContext
+	 *   The context for which the child nodes should be retrieved
+	 * @param {int} iStartIndex
+	 *   The start index of the requested contexts
+	 * @param {int} iLength
+	 *   The requested amount of contexts
+	 * @param {int} [iThreshold=0]
+	 *   The maximum number of contexts to read before and after the given range; with this,
+	 *   controls can prefetch data that is likely to be needed soon, e.g. when scrolling down in a
+	 *   table.
+	 * @return {sap.ui.model.odata.v2.Context[]}
+	 *   The contexts of the child nodes for the given context
 	 * @public
 	 */
 	ODataTreeBinding.prototype.getNodeContexts = function(oContext, iStartIndex, iLength, iThreshold) {
@@ -508,7 +427,7 @@ sap.ui.define([
 			if (iLength === 0 && this.oFinalLengths[sNodeKey]) {
 				return false;
 			}
-			// leaves do not have childre, only "expanded" and "collapsed" nodes
+			// leaves do not have children, only "expanded" and "collapsed" nodes
 			// Beware: the drilldownstate may be undefined/empty string,
 			//		 in case the entity (oContext) has no value for the drilldown state property
 			if (sDrilldownState === "expanded" || sDrilldownState === "collapsed") {
@@ -570,16 +489,22 @@ sap.ui.define([
 	};
 
 	/**
-	 * Gets or loads all contexts for a specified node id (dependent on mode)
+	 * Gets or loads all contexts for a specified node id (dependent on mode).
 	 *
-	 * @param {string} sNodeId the value of the hierarchy node property on which a parent node filter will be performed
-	 * @param {int} iStartIndex start index of the page
-	 * @param {int} iLength length of the page
-	 * @param {int} iThreshold additionally loaded entities
-	 * @param {object} mParameters additional request parameters
-	 *
-	 * @return {sap.ui.model.Context[]} Array of contexts
-	 *
+	 * @param {string} sNodeId
+	 *   The value of the hierarchy node property on which a parent node filter will be performed
+	 * @param {int} iStartIndex
+	 *   The start index of the page
+	 * @param {int} iLength
+	 *   The length of the page
+	 * @param {int} iThreshold
+	 *   The additionally loaded entities
+	 * @param {object} mRequestParameters
+	 *   The additional request parameters
+	 * @param {string} mRequestParameters.navPath
+	 *   The navigation path
+	 * @return {sap.ui.model.odata.v2.Context[]}
+	 *   Contexts for the given node ID
 	 * @private
 	 */
 	ODataTreeBinding.prototype._getContextsForNodeId = function(sNodeId, iStartIndex, iLength, iThreshold, mRequestParameters) {
@@ -839,7 +764,7 @@ sap.ui.define([
 			Log.warning(sErrorMsg);
 		}
 
-		var sAbsolutePath = this.oModel.resolve(this.getPath(), this.getContext());
+		var sAbsolutePath = this.getResolvedPath();
 
 		// default filter is on the rootLevel
 		var sLevelFilter = "";
@@ -920,7 +845,7 @@ sap.ui.define([
 			var oNodeContext = this.oModel.getContext("/" + sNodeId);
 			var sHierarchyNodeId = oNodeContext.getProperty(this.oTreeProperties["hierarchy-node-for"]);
 
-			sAbsolutePath = this.oModel.resolve(this.getPath(), this.getContext());
+			sAbsolutePath = this.getResolvedPath();
 			// only filter for the parent node if the given node is not the root (null)
 			// if root and we $count the collection
 			if (sNodeId != null) {
@@ -960,7 +885,7 @@ sap.ui.define([
 	 * Retrieves parent ids from a given data set
 	 *
 	 * @param {Array} aData Lookup array to search for parent ids
-	 * @param {Boolean} bExcludeRootNodes Can be set to exclude root node elements
+	 * @param {boolean} bExcludeRootNodes Can be set to exclude root node elements
 	 * @returns {Array} Array of all parent ids
 	 *
 	 * @private
@@ -1124,7 +1049,7 @@ sap.ui.define([
 			}
 			this.bSkipDataEvents = false;
 
-			sAbsolutePath = this.oModel.resolve(this.getPath(), this.getContext());
+			sAbsolutePath = this.getResolvedPath();
 			if (sAbsolutePath) {
 				sGroupId = this.sRefreshGroupId ? this.sRefreshGroupId : this.sGroupId;
 				this.mRequestHandles[sRequestKey] = this.oModel.read(sAbsolutePath, {
@@ -1148,8 +1073,6 @@ sap.ui.define([
 	 * @param {array} aParams OData URL parameters, already concatenated with "="
 	 * @param {object} mParameters additional request parameters
 	 * @param {object} mParameters.navPath the navigation path
-	 *
-	 * @return {sap.ui.model.Context[]} Array of contexts
 	 *
 	 * @private
 	 */
@@ -1278,7 +1201,7 @@ sap.ui.define([
 
 			var sAbsolutePath;
 			if (this.bHasTreeAnnotations) {
-				sAbsolutePath = this.oModel.resolve(this.getPath(), this.getContext());
+				sAbsolutePath = this.getResolvedPath();
 			} else {
 				sAbsolutePath = sNodeId;
 			}
@@ -1322,7 +1245,7 @@ sap.ui.define([
 				for (var k = 0; k < oData.results.length; k++) {
 					oDataObj = oData.results[k];
 					var sDataKey = oDataObj[that.oTreeProperties["hierarchy-node-for"]];
-					// sanity check: if we have duplicate keys, the data is messed up. Has already happend...
+					// sanity check: if we have duplicate keys, the data is messed up. Has already happened...
 					if (mParentIds[sDataKey]) {
 						Log.warning("ODataTreeBinding - Duplicate data entry for key: " + sDataKey + "!");
 					}
@@ -1365,9 +1288,9 @@ sap.ui.define([
 				that.oFinalLengths["null"] = true;
 			}
 
-			that.oAllKeys = jQuery.extend(true, {}, that.oKeys);
-			that.oAllLengths = jQuery.extend(true, {}, that.oLengths);
-			that.oAllFinalLengths = jQuery.extend(true, {}, that.oFinalLengths);
+			that.oAllKeys = deepExtend({}, that.oKeys);
+			that.oAllLengths = deepExtend({}, that.oLengths);
+			that.oAllFinalLengths = deepExtend({}, that.oFinalLengths);
 
 			delete that.mRequestHandles[sRequestKey];
 			that.bNeedsUpdate = true;
@@ -1414,7 +1337,7 @@ sap.ui.define([
 		if (this.mRequestHandles[sRequestKey]) {
 			this.mRequestHandles[sRequestKey].abort();
 		}
-		var sAbsolutePath = this.oModel.resolve(this.getPath(), this.getContext());
+		var sAbsolutePath = this.getResolvedPath();
 		if (sAbsolutePath) {
 			this.mRequestHandles[sRequestKey] = this.oModel.read(sAbsolutePath, {
 				urlParameters: aURLParams,
@@ -1525,7 +1448,7 @@ sap.ui.define([
 		var bChangeDetected = false;
 		if (!bForceUpdate) {
 			if (mEntityTypes){
-				var sResolvedPath = this.oModel.resolve(this.sPath, this.oContext);
+				var sResolvedPath = this.getResolvedPath();
 				if (sResolvedPath) {
 					// remove url parameters if any to get correct path for entity type resolving
 					if (sResolvedPath.indexOf("?") !== -1) {
@@ -1538,17 +1461,7 @@ sap.ui.define([
 				}
 			}
 			if (mChangedEntities && !bChangeDetected) {
-				jQuery.each(this.oKeys, function(i, aNodeKeys) {
-					jQuery.each(aNodeKeys, function(i, sKey) {
-						if (sKey in mChangedEntities) {
-							bChangeDetected = true;
-							return false;
-						}
-					});
-					if (bChangeDetected) {
-						return false;
-					}
-				});
+				bChangeDetected = this._hasChangedEntity(mChangedEntities);
 			}
 			if (!mChangedEntities && !mEntityTypes) { // default
 				bChangeDetected = true;
@@ -1563,27 +1476,58 @@ sap.ui.define([
 	};
 
 	/**
+	 * Checks whether an entry of <code>this.oKeys</code> matches an entry of
+	 * <code>mChangedEntities</code>.
+	 *
+	 * @param {Object<string,boolean>} mChangedEntities
+	 *   Maps the key of a changed entity to <code>true</code>
+	 * @return {boolean}
+	 *   Whether at least one entry matches
+	 *
+	 * @private
+	 */
+	ODataTreeBinding.prototype._hasChangedEntity = function (mChangedEntities) {
+		var sChangedEntityKey, sNodeKey;
+
+		for (sNodeKey in this.oKeys) {
+			for (sChangedEntityKey in mChangedEntities) {
+				if (includes(this.oKeys[sNodeKey], sChangedEntityKey)) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	};
+
+	/**
 	 * Applies the given filters to the ODataTreeBinding.
 	 *
-	 * Please note that filters of type <code>FilterType.Control</code> are not supported for <code>OperationMode.Server</code>,
-	 * here only filters of type <code>FilterType.Application</code> are allowed. Filters given via the constructor are always
-	 * of type <code>Application</code> and will be sent with every backend request.
-	 * See the constructor documentation for more information.
+	 * Please note that filters of type <code>FilterType.Control</code> are not supported for
+	 * <code>OperationMode.Server</code>,
+	 * here only filters of type <code>FilterType.Application</code> are allowed. Filters given via
+	 * {@link sap.ui.model.odata.v2.ODataModel#bindTree} are always
+	 * of type <code>Application</code> and will be sent with every back-end request.
+	 * For more information, see {@link sap.ui.model.odata.v2.ODataModel#bindTree}.
 	 *
-	 * Since 1.34.0, complete client-side filtering is supported for <code>OperationMode.Client</code> and also in
-	 * <code>OperationMode.Auto</code> if the backend count is lower than the threshold.
+	 * Since 1.34.0, complete client-side filtering is supported for
+	 * <code>OperationMode.Client</code> and also in <code>OperationMode.Auto</code> if the
+	 * back-end count is lower than the threshold.
 	 * In this case, all types of filters will be applied on the client.
-	 * See also: {@link sap.ui.model.odata.OperationMode.Auto}, {@link sap.ui.model.FilterType}.
+	 * See also: {@link sap.ui.model.odata.OperationMode.Auto} and {@link sap.ui.model.FilterType}.
 	 *
-	 * For the <code>OperationMode.Client</code> and <code>OperationMode.Auto</code>, you may also specify the
-	 * binding parameter <code>useServersideApplicationFilters</code> in the constructor. If it is set, the filters of type
-	 * <code>Application</code> will always be applied on the backend and trigger an OData request.
-	 * See the constructor documentation for more information.
+	 * For the <code>OperationMode.Client</code> and <code>OperationMode.Auto</code>, you may also
+	 * specify the <code>useServersideApplicationFilters</code>  binding parameter when creating an
+	 * instance. If it is set, the filters of type <code>Application</code> will always be applied
+	 * on the back end and trigger an OData request.
+	 * For more information, see {@link sap.ui.model.odata.v2.ODataModel#bindTree}.
 	 *
-	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} aFilters Filter or array of filters to apply
-	 * @param {sap.ui.model.FilterType} sFilterType Type of the filter which should be adjusted. If it is not given,
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} aFilters
+	 *   Filter or array of filters to apply
+	 * @param {sap.ui.model.FilterType} sFilterType
+	 *   Type of the filter which should be adjusted. If it is not given,
 	 *   the type <code>FilterType.Control</code> is assumed
-	 * @return {sap.ui.model.odata.v2.ODataTreeBinding} Returns <code>this</code> to facilitate method chaining
+	 * @return {this} Returns <code>this</code> to facilitate method chaining
 	 * @see sap.ui.model.TreeBinding.prototype.filter
 	 * @public
 	 */
@@ -1625,9 +1569,9 @@ sap.ui.define([
 			if (this.bClientOperation && (sFilterType === FilterType.Control || (sFilterType === FilterType.Application && !this.bUseServersideApplicationFilters))) {
 
 				if (this.oAllKeys) {
-					this.oKeys = jQuery.extend(true, {}, this.oAllKeys);
-					this.oLengths = jQuery.extend(true, {}, this.oAllLengths);
-					this.oFinalLengths = jQuery.extend(true, {}, this.oAllFinalLengths);
+					this.oKeys = deepExtend({}, this.oAllKeys);
+					this.oLengths = deepExtend({}, this.oAllLengths);
+					this.oFinalLengths = deepExtend({}, this.oAllFinalLengths);
 
 					this._applyFilter();
 					this._applySort();
@@ -1738,7 +1682,7 @@ sap.ui.define([
 	 * In OperationMode.Client or OperationMode.Auto (if the given threshold is satisfied), the sorters are applied locally on the client.
 	 *
 	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} aSorters the Sorter or an Array of sap.ui.model.Sorter instances
-	 * @return {sap.ui.model.odata.v2.ODataTreeBinding} returns <code>this</code> to facilitate method chaining
+	 * @return {this} returns <code>this</code> to facilitate method chaining
 	 * @public
 	 */
 	ODataTreeBinding.prototype.sort = function(aSorters, bReturnSuccess) {
@@ -1788,10 +1732,10 @@ sap.ui.define([
 		var oPropertyMetadata, sType;
 
 		if (!oEntityType) {
-			Log.warning("Cannot determine sort comparators, as entitytype of the collection is unkown!");
+			Log.warning("Cannot determine sort comparators, as entitytype of the collection is unknown!");
 			return;
 		}
-		jQuery.each(aSorters, function(i, oSorter) {
+		each(aSorters, function(i, oSorter) {
 			if (!oSorter.fnCompare) {
 				oPropertyMetadata = this.oModel.oMetadata._getPropertyMetadata(oEntityType, oSorter.sPath);
 				sType = oPropertyMetadata && oPropertyMetadata.type;
@@ -1838,8 +1782,8 @@ sap.ui.define([
 			if (this.bNeedsUpdate || !mChangedEntities) {
 				bChangeDetected = true;
 			} else {
-				jQuery.each(this.oKeys, function(i, aNodeKeys) {
-					jQuery.each(aNodeKeys, function(i, sKey) {
+				each(this.oKeys, function(i, aNodeKeys) {
+					each(aNodeKeys, function(i, sKey) {
 						if (sKey in mChangedEntities) {
 							bChangeDetected = true;
 							return false;
@@ -1938,9 +1882,8 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataTreeBinding.prototype._hasTreeAnnotations = function() {
-		var oModel = this.oModel,
-			oMetadata = oModel.oMetadata,
-			sAbsolutePath = oModel.resolve(this.getPath(), this.getContext()),
+		var oMetadata = this.oModel.oMetadata,
+			sAbsolutePath = this.getResolvedPath(),
 			oEntityType,
 			sTreeAnnotationNamespace = oMetadata.mNamespaces["sap"],
 			that = this;
@@ -1954,13 +1897,13 @@ sap.ui.define([
 		};
 
 		// Checks if no tree annotations are missing
-		// true: everythings fine
+		// true: everything is fine
 		// false: we can't proceed
 		var fnSanityCheckTreeAnnotations = function () {
 
 			var iFoundAnnotations = 0;
 			var iMaxAnnotationLength = 0;
-			jQuery.each(that.oTreeProperties, function (sPropName, sPropValue) {
+			each(that.oTreeProperties, function (sPropName, sPropValue) {
 				iMaxAnnotationLength++;
 
 				if (sPropValue) {
@@ -1973,7 +1916,7 @@ sap.ui.define([
 			} else if (iFoundAnnotations > 0 && iFoundAnnotations < iMaxAnnotationLength) {
 				Log.warning("Incomplete hierarchy tree annotations. Please check your service metadata definition!");
 			}
-			//if no annotations where found -> we are in the navigtion property mode
+			//if no annotations where found -> we are in the navigation property mode
 			return false;
 		};
 
@@ -2000,11 +1943,11 @@ sap.ui.define([
 		}
 
 		//Check if all required properties are available
-		jQuery.each(oEntityType.property, function(iIndex, oProperty) {
+		each(oEntityType.property, function(iIndex, oProperty) {
 			if (!oProperty.extensions) {
 				return true;
 			}
-			jQuery.each(oProperty.extensions, function(iIndex, oExtension) {
+			each(oProperty.extensions, function(iIndex, oExtension) {
 				var sName = oExtension.name;
 				if (oExtension.namespace === sTreeAnnotationNamespace &&
 						sName in that.oTreeProperties &&
@@ -2018,41 +1961,41 @@ sap.ui.define([
 	};
 
 	/**
-	 * Initialize binding. Fires a change if data is already available ($expand) or a refresh.
-	 * If metadata is not yet available, do nothing, method will be called again when
-	 * metadata is loaded.
+	 * Initializes the binding. Fires a refresh event once initialization is completed in case the
+	 * binding is resolved, or immediately in case it is unresolved.
 	 *
 	 * @returns {sap.ui.model.odata.v2.ODataTreeBinding} The binding instance
+	 *
 	 * @public
 	 */
-	ODataTreeBinding.prototype.initialize = function() {
+	ODataTreeBinding.prototype.initialize = function () {
 		if (this.oModel.oMetadata && this.oModel.oMetadata.isLoaded() && this.bInitial) {
-
-			// relative bindings will be properly initialized once the context is set
-			var bIsRelative = this.isRelative();
-			if (!bIsRelative || (bIsRelative && this.oContext)) {
-				this._initialize();
+			if (this.isResolved()) {
+				this._initialize(this._fireRefresh.bind(this, {reason : ChangeReason.Refresh}));
+			} else {
+				this._fireRefresh({reason : ChangeReason.Refresh});
 			}
-
-			this._fireRefresh({reason: ChangeReason.Refresh});
 		}
 		return this;
 	};
 
 	/**
 	 * Private initialize.
-	 * Triggers metadata checks for annotations and applys adapters if necessary.
+	 * Triggers metadata checks for annotations and applies adapters if necessary.
+	 *
+	 * @param {function} fnFireEvent
+	 *   A function which fires an event once the adapter has been applied
+	 * @returns {sap.ui.model.odata.v2.ODataTreeBinding}
+	 *   The binding instance
+	 *
 	 * @private
 	 */
-	ODataTreeBinding.prototype._initialize = function () {
+	ODataTreeBinding.prototype._initialize = function (fnFireEvent) {
 		this.bInitial = false;
 		this.bHasTreeAnnotations = this._hasTreeAnnotations();
 		this.oEntityType = this._getEntityType();
-
-		// build up the $select, based on the given select-properties and the known/necessary annotated properties
 		this._processSelectParameters();
-
-		this._applyAdapter();
+		this._applyAdapter(fnFireEvent);
 
 		return this;
 	};
@@ -2061,9 +2004,10 @@ sap.ui.define([
 	 * Sets the binding context.
 	 *
 	 * @param {sap.ui.model.Context} [oContext] The new binding context
+	 *
 	 * @private
 	 */
-	ODataTreeBinding.prototype.setContext = function(oContext) {
+	ODataTreeBinding.prototype.setContext = function (oContext) {
 		if (oContext && oContext.isPreliminary() && !this.bUsePreliminaryContext) {
 			return;
 		}
@@ -2076,21 +2020,17 @@ sap.ui.define([
 
 		if (Context.hasChanged(this.oContext, oContext)) {
 			this.oContext = oContext;
-
 			if (!this.isRelative()) {
 				return;
 			}
 
-			if (this.oModel.resolve(this.sPath, this.oContext)) {
+			if (this.getResolvedPath()) {
 				this.resetData();
-				this._initialize(); // triggers metadata/annotation check
-				this._fireChange({ reason: ChangeReason.Context });
-			} else {
-				// path could not be resolved, but some data was already available, so we fire a context-change
-				if (!isEmptyObject(this.oAllKeys) || !isEmptyObject(this.oKeys) || !isEmptyObject(this._aNodes)) {
-					this.resetData();
-					this._fireChange({ reason: ChangeReason.Context });
-				}
+				this._initialize(this._fireChange.bind(this, {reason : ChangeReason.Context}));
+			} else if (!isEmptyObject(this.oAllKeys) || !isEmptyObject(this.oKeys)
+					|| !isEmptyObject(this._aNodes)) { // binding is now unresolved, but has data
+				this.resetData();
+				this._fireChange({reason : ChangeReason.Context});
 			}
 		}
 	};
@@ -2141,57 +2081,68 @@ sap.ui.define([
 	};
 
 	/**
-	 * Applies a TreeBindingAdapter, depending on the metadata.
-	 * Either a hierarchical paging adapter (nav-props & annotations) or a
-	 * flat paging adapter (magnitude) is applied.
+	 * Applies a TreeBindingAdapter, depending on the metadata. Either a hierarchical paging adapter
+	 * (nav-props & annotations) or a flat paging adapter (magnitude) is applied.
+	 *
+	 * @param {function} fnFireEvent A function which is called after the adapter has been applied
 	 * @private
 	 */
-	ODataTreeBinding.prototype._applyAdapter = function () {
-		var sMagnitudeAnnotation = "hierarchy-node-descendant-count-for";
-		var sSiblingRankAnnotation = "hierarchy-sibling-rank-for";
-		var sPreorderRankAnnotation = "hierarchy-preorder-rank-for";
+	ODataTreeBinding.prototype._applyAdapter = function (fnFireEvent) {
+		var sAbsolutePath, oEntityType, i, j, sKeyProperty, sName,
+			sAdapterModuleName = "sap/ui/model/odata/ODataTreeBindingAdapter",
+			sMagnitudeAnnotation = "hierarchy-node-descendant-count-for",
+			sPreorderRankAnnotation = "hierarchy-preorder-rank-for",
+			sSiblingRankAnnotation = "hierarchy-sibling-rank-for",
+			that = this;
+
+		if (!this.bHasTreeAnnotations && !this.oNavigationPaths) {
+			Log.error("Neither hierarchy annotations, "
+				 + "nor navigation properties are specified to build the tree.", this);
+			return;
+		}
 
 		if (this.bHasTreeAnnotations) {
-
-			var sAbsolutePath = this.oModel.resolve(this.getPath(), this.getContext());
+			sAbsolutePath = this.getResolvedPath();
 			// remove url parameters if any to get correct path for entity type resolving
 			if (sAbsolutePath.indexOf("?") !== -1) {
 				sAbsolutePath = sAbsolutePath.split("?")[0];
 			}
-			var oEntityType = this.oModel.oMetadata._getEntityTypeByPath(sAbsolutePath);
-			var that = this;
-
+			oEntityType = this.oModel.oMetadata._getEntityTypeByPath(sAbsolutePath);
 			//Check if all required properties are available
-			jQuery.each(oEntityType.property, function(iIndex, oProperty) {
+			each(oEntityType.property, function(iIndex, oProperty) {
 				if (!oProperty.extensions) {
 					return true;
 				}
-				jQuery.each(oProperty.extensions, function(iIndex, oExtension) {
-					var sName = oExtension.name;
+				each(oProperty.extensions, function(iIndex, oExtension) {
+					sName = oExtension.name;
 					if (oExtension.namespace === that.oModel.oMetadata.mNamespaces["sap"] &&
-							(sName == sMagnitudeAnnotation || sName == sSiblingRankAnnotation || sName == sPreorderRankAnnotation)) {
+							(sName == sMagnitudeAnnotation || sName == sSiblingRankAnnotation
+								|| sName == sPreorderRankAnnotation)) {
 						that.oTreeProperties[sName] = oProperty.name;
 					}
 				});
 			});
-
 			//perform magnitude annotation check
-			this.oTreeProperties[sMagnitudeAnnotation] = this.oTreeProperties[sMagnitudeAnnotation] ||
-				(this.mParameters.treeAnnotationProperties && this.mParameters.treeAnnotationProperties.hierarchyNodeDescendantCountFor);
-
-			// apply the flat auto-expand mixin if the necessary annotations were found (in Server-Mode)
-			// exception: the binding runs in operation-mode "Client"
-			// In this case there is no need for the advanced auto expand, since everything is loaded anyway.
-			if (this.oTreeProperties[sMagnitudeAnnotation] && this.sOperationMode == OperationMode.Server) {
-				var i, j, sKeyProperty;
+			this.oTreeProperties[sMagnitudeAnnotation] = this.oTreeProperties[sMagnitudeAnnotation]
+				|| (this.mParameters.treeAnnotationProperties
+					&& this.mParameters.treeAnnotationProperties.hierarchyNodeDescendantCountFor);
+			// apply flat auto-expand mixin if the necessary annotations were found (in Server-Mode)
+			// exception: the binding runs in operation-mode "Client". In this case, there is no
+			// need for the advanced auto expand, since everything is loaded anyway.
+			if (this.oTreeProperties[sMagnitudeAnnotation]
+					&& this.sOperationMode == OperationMode.Server) {
 				// Add Flat-specific tree properties
-				this.oTreeProperties[sSiblingRankAnnotation] = this.oTreeProperties[sSiblingRankAnnotation] ||
-					(this.mParameters.treeAnnotationProperties && this.mParameters.treeAnnotationProperties.hierarchySiblingRankFor);
-				this.oTreeProperties[sPreorderRankAnnotation] = this.oTreeProperties[sPreorderRankAnnotation] ||
-					(this.mParameters.treeAnnotationProperties && this.mParameters.treeAnnotationProperties.hierarchyPreorderRankFor);
-
+				this.oTreeProperties[sSiblingRankAnnotation] =
+					this.oTreeProperties[sSiblingRankAnnotation]
+					|| (this.mParameters.treeAnnotationProperties
+						&& this.mParameters.treeAnnotationProperties.hierarchySiblingRankFor);
+				this.oTreeProperties[sPreorderRankAnnotation] =
+					this.oTreeProperties[sPreorderRankAnnotation]
+					|| (this.mParameters.treeAnnotationProperties
+						&& this.mParameters.treeAnnotationProperties.hierarchyPreorderRankFor);
 				if (this.mParameters.restoreTreeStateAfterChange) {
-					if (this.oTreeProperties[sSiblingRankAnnotation] && this.oTreeProperties[sPreorderRankAnnotation]) {
+					if (this.oTreeProperties[sSiblingRankAnnotation]
+							&& this.oTreeProperties[sPreorderRankAnnotation]) {
 						this._bRestoreTreeStateAfterChange = true;
 						// Collect entity type key properties
 						this._aTreeKeyProperties = [];
@@ -2199,21 +2150,23 @@ sap.ui.define([
 							this._aTreeKeyProperties.push(oEntityType.key.propertyRef[i].name);
 						}
 					} else {
-						Log.warning("Tree state restoration not possible: Missing annotation \"hierarchy-sibling-rank-for\" and/or \"hierarchy-preorder-rank-for\"");
+						Log.warning("Tree state restoration not possible: Missing annotation "
+							+ "\"hierarchy-sibling-rank-for\" and/or "
+							+ "\"hierarchy-preorder-rank-for\"");
 						this._bRestoreTreeStateAfterChange = false;
 					}
 				} else {
 					this._bRestoreTreeStateAfterChange = false;
 				}
-
-
-				// make sure the magnitude is added to the $select if it was not added by the application anyway
+				// make sure magnitude is added to $select if not added by the application anyway
 				if (this.mParameters && this.mParameters.select) {
-					if (this.mParameters.select.indexOf(this.oTreeProperties[sMagnitudeAnnotation]) === -1) {
+					if (this.mParameters.select.indexOf(this.oTreeProperties[sMagnitudeAnnotation])
+							=== -1) {
 						this.mParameters.select += "," + this.oTreeProperties[sMagnitudeAnnotation];
 					}
 					if (this._bRestoreTreeStateAfterChange) {
-						// Retrieve all key properties to allow filtering on them during tree state restoration (PreorderPosition requests)
+						// Retrieve all key properties to allow filtering on them during tree state
+						// restoration (PreorderPosition requests)
 						for (j = this._aTreeKeyProperties.length - 1; j >= 0; j--) {
 							sKeyProperty = this._aTreeKeyProperties[j];
 							if (this.mParameters.select.indexOf(sKeyProperty) === -1) {
@@ -2223,25 +2176,19 @@ sap.ui.define([
 					}
 					this.sCustomParams = this.oModel.createCustomParams(this.mParameters);
 				}
-				// apply flat paging adapter
-				var ODataTreeBindingFlat = sap.ui.requireSync("sap/ui/model/odata/ODataTreeBindingFlat");
-				ODataTreeBindingFlat.apply(this);
-			} else {
-				// apply hierarchical paging adapter
-				var ODataTreeBindingAdapter = sap.ui.requireSync("sap/ui/model/odata/ODataTreeBindingAdapter");
-				ODataTreeBindingAdapter.apply(this);
+				sAdapterModuleName = "sap/ui/model/odata/ODataTreeBindingFlat";
 			}
-		} else if (this.oNavigationPaths) {
-			// apply hierarchical paging adapter
-			var ODataTreeBindingAdapter = sap.ui.requireSync("sap/ui/model/odata/ODataTreeBindingAdapter");
-			ODataTreeBindingAdapter.apply(this);
-		} else {
-			Log.error("Neither hierarchy annotations, nor navigation properties are specified to build the tree.", this);
 		}
+		sap.ui.require([sAdapterModuleName], function (oAdapterModule) {
+			oAdapterModule.apply(that);
+			fnFireEvent();
+		});
 	};
 
 	/**
-	 * Internal function to evaluate the select parameters for the binding.
+	 * Internal function to build up the $select, based on the select from the binding parameters
+	 * and the properties being the target of the tree annotations.
+	 *
 	 * @private
 	 */
 	ODataTreeBinding.prototype._processSelectParameters = function () {
@@ -2255,7 +2202,7 @@ sap.ui.define([
 				var aNewSelectParams = [];
 
 				if (this.oNavigationPaths) {
-					jQuery.each(this.oNavigationPaths, function(sParamKey, sParamName){
+					each(this.oNavigationPaths, function(sParamKey, sParamName){
 						if (aNewSelectParams.indexOf(sParamName) == -1) {
 							aNewSelectParams.push(sParamName);
 						}
@@ -2263,14 +2210,14 @@ sap.ui.define([
 				}
 
 				// add new select params to custom select params
-				jQuery.each(aNewSelectParams, function(sParamKey, sParamName){
+				each(aNewSelectParams, function(sParamKey, sParamName){
 					if (aSelectParams.indexOf(sParamName) == -1) {
 						aSelectParams.push(sParamName);
 					}
 				});
 				// add hierarchy annotation properties to select params if not there already
 				if (this.bHasTreeAnnotations) {
-					jQuery.each(this.oTreeProperties, function(sAnnotationName, sTreePropName){
+					each(this.oTreeProperties, function(sAnnotationName, sTreePropName){
 						if (sTreePropName) {
 							if (aSelectParams.indexOf(sTreePropName) == -1) {
 								aSelectParams.push(sTreePropName);
@@ -2330,13 +2277,13 @@ sap.ui.define([
 		if (this.getFilterParams()) {
 			aParams.push("$filter=" + this.getFilterParams());
 		}
-		//also includes the selct parameters
+		//also includes the select parameters
 		//in hierarchy annotated trees, the mapping properties are mandatory
 		if (this.sCustomParams) {
 			aParams.push(this.sCustomParams);
 		}
 
-		sPath = this.oModel.resolve(this.sPath,this.oContext);
+		sPath = this.getResolvedPath();
 
 		if (sPath) {
 			return this.oModel._createRequestUrl(sPath, null, aParams);
@@ -2376,10 +2323,13 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets the rootLevel
-	 * The root level is the level of the topmost tree nodes, which will be used as an entry point for OData services.
-	 * This is only possible (and necessary) for OData services implementing the hierarchy annotation specification,
-	 * or when providing the annotation information locally as a binding parameter. See the constructor for API documentation on this.
+	 * Sets the <code>rootLevel</code>.
+	 * The root level is the level of the topmost tree nodes that will be used as an entry point
+	 * for OData services.
+	 * This is only possible (and necessary) for OData services implementing the hierarchy
+	 * annotation specification,
+	 * or when providing the annotation information locally as a binding parameter.
+	 * For more information, see {@link sap.ui.model.odata.v2.ODataModel#bindTree}.
 	 * @param {int} iRootLevel
 	 *
 	 * @public
@@ -2410,7 +2360,7 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataTreeBinding.prototype._getEntityType = function(){
-		var sResolvedPath = this.oModel.resolve(this.sPath, this.oContext);
+		var sResolvedPath = this.getResolvedPath();
 
 		if (sResolvedPath) {
 			var oEntityType = this.oModel.oMetadata._getEntityTypeByPath(sResolvedPath);
@@ -2451,7 +2401,7 @@ sap.ui.define([
 			this.bSkipDataEvents = true;
 
 			// abort running request and clear the map afterwards
-			jQuery.each(this.mRequestHandles, function (sRequestKey, oRequestHandle) {
+			each(this.mRequestHandles, function (sRequestKey, oRequestHandle) {
 				if (oRequestHandle) {
 					oRequestHandle.abort();
 				}

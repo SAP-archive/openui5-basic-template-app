@@ -95,7 +95,7 @@ function(
 		 * @implements sap.ui.core.IFormContent
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -530,7 +530,7 @@ function(
 			var sPerValue = Math.max(this._getPercentOfValue(+sNewValue), 0) + "%",
 				oHandleDomRef = this.getDomRef("handle");
 
-			if (!!this.getName()) {
+			if (this.getName()) {
 				this.getDomRef("input").setAttribute("value", sScaleLabel);
 			}
 
@@ -1518,8 +1518,7 @@ function(
 		 * Increments the value by multiplying the <code>step</code> with the given parameter.
 		 *
 		 * @param {int} [iStep=1] The number of steps the slider goes up.
-		 * @returns {sap.m.Slider} <code>this</code> to allow method chaining.
-		 * @type {sap.m.Slider}
+		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		Slider.prototype.stepUp = function(iStep) {
@@ -1530,8 +1529,7 @@ function(
 		 * Decrements the value by multiplying the step the <code>step</code> with the given parameter.
 		 *
 		 * @param {int} [iStep=1] The number of steps the slider goes down.
-		 * @returns {sap.m.Slider} <code>this</code> to allow method chaining.
-		 * @type {sap.m.Slider}
+		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		Slider.prototype.stepDown = function(iStep) {
@@ -1545,7 +1543,7 @@ function(
 		 *
 		 * @param {float} fNewValue new value for property <code>value</code>.
 		 * @param {object} mOptions The options object
-		 * @returns {sap.m.Slider} <code>this</code> to allow method chaining.
+		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		Slider.prototype.setValue = function(fNewValue, mOptions) {

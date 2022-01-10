@@ -8,24 +8,23 @@
 sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/core/DeclarativeSupport',
-	'sap/ui/core/library',
 	'sap/ui/core/UIArea',
 	'./DOMElement',
-	'./Template',
 	"./TemplateControlRenderer",
+	"./_parsePath",
 	"sap/base/strings/capitalize",
 	"sap/base/strings/hyphenate",
 	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	'sap/ui/core/library'
 ],
 	function(
 		Control,
 		DeclarativeSupport,
-		library,
 		UIArea,
 		DOMElement,
-		Template,
 		TemplateControlRenderer,
+		parsePath,
 		capitalize,
 		hyphenate,
 		Log,
@@ -44,7 +43,7 @@ sap.ui.define([
 	 * @class
 	 * This is the base class for all template controls. Template controls are declared based on templates.
 	 * @extends sap.ui.core.Control
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @since 1.15
@@ -52,43 +51,46 @@ sap.ui.define([
 	 * @alias sap.ui.core.tmpl.TemplateControl
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var TemplateControl = Control.extend("sap.ui.core.tmpl.TemplateControl", /** @lends sap.ui.core.tmpl.TemplateControl.prototype */ { metadata : {
+	var TemplateControl = Control.extend("sap.ui.core.tmpl.TemplateControl", /** @lends sap.ui.core.tmpl.TemplateControl.prototype */ {
+		metadata : {
 
-		library : "sap.ui.core",
-		properties : {
+			library : "sap.ui.core",
+			properties : {
 
-			/**
-			 * The context is a data object. It can be used for default template expressions. A change of the context object leads to a re-rendering whereas a change of a nested property of the context object doesn't. By default the context is an empty object.
-			 */
-			context : {type : "object", group : "Data", defaultValue : null}
+				/**
+				 * The context is a data object. It can be used for default template expressions. A change of the context object leads to a re-rendering whereas a change of a nested property of the context object doesn't. By default the context is an empty object.
+				 */
+				context : {type : "object", group : "Data", defaultValue : null}
+			},
+			aggregations : {
+
+				/**
+				 * The nested controls of the template control
+				 */
+				controls : {type : "sap.ui.core.Control", multiple : true, singularName : "control", visibility : "hidden"}
+			},
+			associations : {
+
+				/**
+				 * The template on which the template control is based on.
+				 */
+				template : {type : "sap.ui.core.tmpl.Template", multiple : false}
+			},
+			events : {
+
+				/**
+				 * Fired when the Template Control has been (re-)rendered and its HTML is present in the DOM.
+				 */
+				afterRendering : {},
+
+				/**
+				 * Fired before this Template Control is re-rendered. Use to unbind event handlers from HTML elements etc.
+				 */
+				beforeRendering : {}
+			}
 		},
-		aggregations : {
-
-			/**
-			 * The nested controls of the template control
-			 */
-			controls : {type : "sap.ui.core.Control", multiple : true, singularName : "control", visibility : "hidden"}
-		},
-		associations : {
-
-			/**
-			 * The template on which the template control is based on.
-			 */
-			template : {type : "sap.ui.core.tmpl.Template", multiple : false}
-		},
-		events : {
-
-			/**
-			 * Fired when the Template Control has been (re-)rendered and its HTML is present in the DOM.
-			 */
-			afterRendering : {},
-
-			/**
-			 * Fired before this Template Control is re-rendered. Use to unbind event handlers from HTML elements etc.
-			 */
-			beforeRendering : {}
-		}
-	}});
+		renderer: TemplateControlRenderer
+	});
 
 
 
@@ -157,7 +159,7 @@ sap.ui.define([
 	 * Sets the instance specific renderer for an anonymous template control.
 	 *
 	 * @param {function} fnRenderer the instance specific renderer function
-	 * @return {sap.ui.core.tmpl.Template} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @protected
 	 */
 	TemplateControl.prototype.setTemplateRenderer = function(fnRenderer) {
@@ -261,7 +263,7 @@ sap.ui.define([
 	TemplateControl.prototype.bind = function(sPath, sType) {
 
 		// parse the path and create the binding
-		var oPathInfo = Template.parsePath(sPath),
+		var oPathInfo = parsePath(sPath),
 			oModel = this.getModel(oPathInfo.model),
 			sPath = oPathInfo.path,
 			sModelFunc = sType ? "bind" + capitalize(sType) : "bindProperty",

@@ -3,19 +3,10 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
-sap.ui.define(['./Filter', 'sap/base/Log', 'sap/ui/Device'],
-	function(Filter, Log, Device) {
+/*eslint-disable max-len */
+sap.ui.define(['./Filter', 'sap/base/Log'],
+	function(Filter, Log) {
 	"use strict";
-
-	// only use unorm and apply polyfill if needed and when not in a mobile browser
-	// String.prototype.normalize is not available in IE nor in Android webview
-	// As this functionality is used for filtering user input:
-	//  Special characters which require normalization are a rare case for a mobile device keyboard, hence the mobile check
-	if (!String.prototype.normalize && Device.system.desktop) {
-		var NormalizePolyfill = sap.ui.requireSync('sap/base/strings/NormalizePolyfill');
-		NormalizePolyfill.apply();
-	}
 
 	/**
 	 * Helper class for processing of filter objects
@@ -207,58 +198,63 @@ sap.ui.define(['./Filter', 'sap/base/Log', 'sap/ui/Device'],
 					bResult = false;
 					break;
 				}
-			} else {
+			} else if (bMatch) {
 				// if operator is OR, first matching filter breaks
-				if (bMatch) {
-					bResult = true;
-					break;
-				}
+				bResult = true;
+				break;
 			}
 		}
 		return bResult;
 	};
 
 	/**
-	 * Normalize filter value
+	 * Normalize filter value.
+	 *
+	 * @param {any} vValue
+	 *   The value to normalize
+	 * @param {boolean} [bCaseSensitive=false]
+	 *   Whether the case should be considered when normalizing; only relevant when
+	 *   <code>oValue</code> is a string
+	 *
+	 * @returns {any} The normalized value
 	 *
 	 * @private
 	 * @static
 	 */
-	FilterProcessor.normalizeFilterValue = function(oValue, bCaseSensitive){
-		if (typeof oValue == "string") {
-			var sResult;
+	FilterProcessor.normalizeFilterValue = function(vValue, bCaseSensitive){
+		var sResult;
+
+		if (typeof vValue == "string") {
 			if (bCaseSensitive === undefined) {
 				bCaseSensitive = false;
 			}
-			sResult = this._normalizeCache[bCaseSensitive][oValue];
-			if (sResult !== undefined) {
-				return sResult;
+			if (this._normalizeCache[bCaseSensitive].hasOwnProperty(vValue)) {
+				return this._normalizeCache[bCaseSensitive][vValue];
 			}
-			sResult = oValue;
+			sResult = vValue;
 			if (!bCaseSensitive) {
-				// Internet Explorer and Edge cannot uppercase properly on composed characters
-				if (String.prototype.normalize && (Device.browser.msie || Device.browser.edge)) {
-					sResult = sResult.normalize("NFKD");
-				}
 				sResult = sResult.toUpperCase();
 			}
 
 			// use canonical composition as recommended by W3C
 			// http://www.w3.org/TR/2012/WD-charmod-norm-20120501/#sec-ChoiceNFC
-			if (String.prototype.normalize) {
-				sResult = sResult.normalize("NFC");
-			}
-			this._normalizeCache[bCaseSensitive][oValue] = sResult;
+			sResult = sResult.normalize("NFC");
+
+			this._normalizeCache[bCaseSensitive][vValue] = sResult;
 			return sResult;
 		}
-		if (oValue instanceof Date) {
-			return oValue.getTime();
+		if (vValue instanceof Date) {
+			return vValue.getTime();
 		}
-		return oValue;
+		return vValue;
 	};
 
 	/**
-	 * Provides a JS filter function for the given filter
+	 * Provides a JS filter function for the given filter.
+	 *
+	 * @param {sap.ui.model.Filter} oFilter The filter to provide the function for
+	 *
+	 * @returns {function} The filter function
 	 * @private
 	 * @static
 	 */

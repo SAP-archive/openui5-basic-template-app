@@ -184,7 +184,7 @@ sap.ui.define([
 	function getOrFetchSchema(oMetaModel, mScope, sSchema, fnLog) {
 		var oPromise, sUrl, aUrls, mUrls;
 
-		/**
+		/*
 		 * Include the schema (and all of its children) with namespace <code>sSchema</code> from
 		 * the given referenced scope.
 		 *
@@ -258,7 +258,7 @@ sap.ui.define([
 			return "";
 		}
 		if (sTerm.startsWith(sExpectedTerm) && sTerm[sExpectedTerm.length] === "#"
-				&& sTerm.indexOf("@", sExpectedTerm.length) < 0) {
+				&& !sTerm.includes("@", sExpectedTerm.length)) {
 			return sTerm.slice(sExpectedTerm.length + 1);
 		}
 	}
@@ -306,7 +306,7 @@ sap.ui.define([
 	 *   a schema; schema children are ignored because they do not contain $Annotations
 	 * @param {object} mAnnotations
 	 *   the root scope's $Annotations
-	 * @param {boolean} [bPrivileged=false]
+	 * @param {boolean} [bPrivileged]
 	 *   whether the schema has been loaded from a privileged source and thus may overwrite
 	 *   existing annotations
 	 */
@@ -448,7 +448,7 @@ sap.ui.define([
 			this.update();
 			// the data cannot change, only new items may be added due to lazy loading of references
 			if (bForceUpdate || this.oList.length !== iPreviousLength) {
-				this._fireChange({reason: ChangeReason.Change});
+				this._fireChange({reason : ChangeReason.Change});
 			}
 		},
 
@@ -460,7 +460,7 @@ sap.ui.define([
 		 */
 		fetchContexts : function () {
 			var bIterateAnnotations,
-				sResolvedPath = this.oModel.resolve(this.sPath, this.oContext),
+				sResolvedPath = this.getResolvedPath(),
 				that = this;
 
 			if (!sResolvedPath) {
@@ -543,7 +543,7 @@ sap.ui.define([
 			} else {
 				oPromise.then(function (aContexts) {
 					that.setContexts(aContexts);
-					that._fireChange({reason: ChangeReason.Change});
+					that._fireChange({reason : ChangeReason.Change});
 				});
 				aContexts.dataRequested = true;
 			}
@@ -571,7 +571,7 @@ sap.ui.define([
 			// <code>Promise</code> resolving with the value. After the value is resolved a second
 			// change event is fired and <code>getValue</code> returns the value itself.
 			//
-			// @param {boolean} [bForceUpdate=false]
+			// @param {boolean} [bForceUpdate]
 			//   If <code>true</code>, the change event is always fired.
 			// @param {sap.ui.model.ChangeReason} [sChangeReason=ChangeReason.Change]
 			//   The change reason for the change event
@@ -652,11 +652,13 @@ sap.ui.define([
 	 *
 	 *   This model is read-only.
 	 *
+	 *   This model is not prepared to be inherited from.
+	 *
 	 * @extends sap.ui.model.MetaModel
 	 * @hideconstructor
 	 * @public
 	 * @since 1.37.0
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 */
 	var ODataMetaModel = MetaModel.extend("sap.ui.model.odata.v4.ODataMetaModel", {
 		/*
@@ -668,7 +670,7 @@ sap.ui.define([
 				? [vAnnotationUri] : vAnnotationUri;
 			this.sDefaultBindingMode = BindingMode.OneTime;
 			this.mETags = {};
-			this.dLastModified = new Date(0);
+			this.oLastModified = new Date(0);
 			this.oMetadataPromise = null;
 			this.oModel = oModel;
 			this.mMetadataUrl2Promise = {};
@@ -755,12 +757,18 @@ sap.ui.define([
 	/**
 	 * See {@link sap.ui.base.EventProvider#attachEvent}
 	 *
+	 * @param {string} sEventId The identifier of the event to listen for
+	 * @param {object} [_oData]
+	 * @param {function} [_fnFunction]
+	 * @param {object} [_oListener]
+	 * @returns {this} <code>this</code> to allow method chaining
+	 *
 	 * @public
 	 * @see sap.ui.base.EventProvider#attachEvent
 	 * @since 1.37.0
 	 */
 	// @override sap.ui.base.EventProvider#attachEvent
-	ODataMetaModel.prototype.attachEvent = function (sEventId) {
+	ODataMetaModel.prototype.attachEvent = function (sEventId, _oData, _fnFunction, _oListener) {
 		if (!(sEventId in mSupportedEvents)) {
 			throw new Error("Unsupported event '" + sEventId
 				+ "': v4.ODataMetaModel#attachEvent");
@@ -770,6 +778,11 @@ sap.ui.define([
 
 	/**
 	 * See <code>sap.ui.model.Model#bindContext</code>
+	 *
+	 * @param {string} sPath
+	 * @param {sap.ui.model.Context} [oContext]
+	 *
+	 * @returns {sap.ui.model.ContextBinding}
 	 *
 	 * @public
 	 * @see sap.ui.model.Model#bindContext
@@ -846,6 +859,12 @@ sap.ui.define([
 	/**
 	 * Method not supported
 	 *
+	 * @param {string} _sPath
+	 * @param {sap.ui.model.Context} [_oContext]
+	 * @param {sap.ui.model.Filter[]} [_aFilters]
+	 * @param {object} [_mParameters]
+	 * @param {sap.ui.model.Sorter[]} [_aSorters]
+	 * @returns {sap.ui.model.TreeBinding}
 	 * @throws {Error}
 	 *
 	 * @public
@@ -853,7 +872,8 @@ sap.ui.define([
 	 * @since 1.37.0
 	 */
 	// @override sap.ui.model.Model#bindTree
-	ODataMetaModel.prototype.bindTree = function () {
+	ODataMetaModel.prototype.bindTree = function (_sPath, _oContext, _aFilters, _mParameters,
+			_aSorters) {
 		throw new Error("Unsupported operation: v4.ODataMetaModel#bindTree");
 	};
 
@@ -905,7 +925,7 @@ sap.ui.define([
 	 * of qualified names to their corresponding metadata, with the special key "$EntityContainer"
 	 * mapped to the entity container's qualified name as a starting point.
 	 *
-	 * @param {boolean} [bPrefetch=false]
+	 * @param {boolean} [bPrefetch]
 	 *   Whether to just read the $metadata document and annotations, but not yet convert them from
 	 *   XML to JSON; this is useful at most once in an early call that precedes all other normal
 	 *   calls and ignored after the first call without this.
@@ -1271,11 +1291,12 @@ sap.ui.define([
 			 *   Whether to continue after this step
 			 */
 			function step(sSegment, i, aSegments) {
-				var iIndexOfAt, bSplitSegment;
+				var iIndexOfAt, bResultIsObject, bSplitSegment;
 
 				if (sSegment === "$Annotations") {
 					return log(WARNING, "Invalid segment: $Annotations");
 				}
+				sSegment = sSegment.replaceAll("%2F", "/");
 
 				if (i && typeof vResult === "object" && sSegment in vResult) {
 					// fast path for pure "JSON" drill-down, but this cannot replace scopeLookup()!
@@ -1309,8 +1330,9 @@ sap.ui.define([
 
 					if (typeof vResult === "string"
 						&& !(bSplitSegment && (sSegment === "@sapui.name" || sSegment[1] === "@"))
+						&& !(bODataMode && oSchemaChild && oSchemaChild.$kind === "EnumType")
 						// indirection: treat string content as a meta model path unless followed by
-						// a computed annotation
+						// a computed annotation or if it is an (Edm.Int64) enum member value
 						&& !steps(vResult, aSegments.slice(0, i))) {
 						return false;
 					}
@@ -1322,23 +1344,24 @@ sap.ui.define([
 							// technical property, switch to pure "JSON" drill-down
 							bODataMode = false;
 						} else {
+							bResultIsObject = typeof vResult === "object";
 							if (bSplitSegment) {
 								// no special preparations needed, but handle overloads below!
-							} else if (sSegment[0] !== "@" && sSegment.indexOf(".") > 0) {
+							} else if (sSegment[0] !== "@" && sSegment.includes(".", 1)) {
 								// "17.3 QualifiedName": scope lookup
 								return scopeLookup(sSegment);
-							} else if (vResult && "$Type" in vResult) {
+							} else if (bResultIsObject && "$Type" in vResult) {
 								// implicit $Type insertion, e.g. at (navigation) property
 								if (!scopeLookup(vResult.$Type, "$Type")) {
 									return false;
 								}
-							} else if (vResult && "$Action" in vResult) {
+							} else if (bResultIsObject && "$Action" in vResult) {
 								// implicit $Action insertion at action import
 								if (!scopeLookup(vResult.$Action, "$Action")) {
 									return false;
 								}
 								vBindingParameterType = UNBOUND;
-							} else if (vResult && "$Function" in vResult) {
+							} else if (bResultIsObject && "$Function" in vResult) {
 								// implicit $Function insertion at function import
 								if (!scopeLookup(vResult.$Function, "$Function")) {
 									return false;
@@ -1443,19 +1466,18 @@ sap.ui.define([
 								aSegments[i].slice(0, iIndexOfAt)).join("/"));
 						}
 					}
-					if (!vResult || typeof vResult !== "object") {
-						// Note: even an OData path cannot continue here (e.g. by type cast)
-						vResult = undefined;
-						return !bInsideAnnotation && log(DEBUG, "Invalid segment: ", sSegment);
-					}
 					if (bODataMode && sSegment[0] === "@") { // annotation(s) via external targeting
 						// Note: inline annotations are reached via above fast path for pure "JSON"
 						// drill-down
-						vBindingParameterType = vResult.$Type || vBindingParameterType;
+						vBindingParameterType = vResult && vResult.$Type || vBindingParameterType;
 						vResult = mScope.$Annotations[sTarget] || {};
 						bODataMode = false; // switch to pure "JSON" drill-down
 					} else if (sSegment === "$" && i + 1 < aSegments.length) {
 						return log(WARNING, "Unsupported path after $");
+					} else if (!vResult || typeof vResult !== "object") {
+						// Note: even an OData path cannot continue here (e.g. by type cast)
+						vResult = undefined;
+						return !bInsideAnnotation && log(DEBUG, "Invalid segment: ", sSegment);
 					}
 				}
 
@@ -1552,9 +1574,9 @@ sap.ui.define([
 			return SyncPromise.resolve(oCountType);
 		}
 		// Note: undefined is more efficient than "" here
-		return this.fetchObject(undefined, oMetaContext).catch(function () {
-			// do not log, we log a warning "No metadata for path..." afterwards
-		}).then(function (oProperty) {
+		return this.fetchObject(undefined, oMetaContext).catch(
+			this.oModel.getReporter()
+		).then(function (oProperty) {
 			var oType = oRawType,
 				oTypeInfo;
 
@@ -1641,7 +1663,7 @@ sap.ui.define([
 
 		// First fetch the complete metapath to ensure that everything is in mScope
 		// This also ensures that the metadata is valid
-		return this.fetchObject(this.getMetaPath(sResolvedPath)).then(function () {
+		return this.fetchObject(_Helper.getMetaPath(sResolvedPath)).then(function () {
 			// Then fetch mScope
 			return that.fetchEntityContainer();
 		}).then(function (mScope) {
@@ -1823,7 +1845,7 @@ sap.ui.define([
 		var that = this,
 			oValueListMetaModel = oValueListModel.getMetaModel();
 
-		/**
+		/*
 		 * Determines the annotation target for the specific overload.
 		 *
 		 * @returns {string} The annotation target
@@ -2026,7 +2048,7 @@ sap.ui.define([
 
 		// adds all reduced paths for the range iBasePathLength..iMaxIndex of the given segments
 		function reduce(aSegments0, aMetadataForPathPrefix0, iMaxIndex, bCopyOnWrite) {
-			var i, iPotentialPartner, aOverloadMetadata;
+			var iPotentialPartner, aOverloadMetadata, i;
 
 			// A match has been found at i, allowing to reduce iLength segments. First try to
 			// find other matches in the unreduced path, then reduce and add the match.
@@ -2059,7 +2081,8 @@ sap.ui.define([
 						&& aSegments0[i + 1] === "$Parameter") {
 					// Filter via the binding parameter
 					aOverloadMetadata = that.getObject(
-						that.getMetaPath(aSegments0.slice(0, i + 1).join("/") + "/@$ui5.overload")
+						_Helper.getMetaPath(aSegments0.slice(0, i + 1).join("/")
+							+ "/@$ui5.overload")
 					);
 					// Note: This must be a bound operation with a binding parameter; otherwise it
 					// would be in the first segment and the loop would not touch it due to
@@ -2078,7 +2101,7 @@ sap.ui.define([
 			return j < iBasePathLength || sSegment[0] === "#" || sSegment[0] === "@"
 					|| rNumber.test(sSegment) || sSegment === "$Parameter"
 				? {} // simply an object w/o $Partner and $isCollection
-				: that.getObject(that.getMetaPath(aSegments.slice(0, j + 1).join("/"))) || {};
+				: that.getObject(_Helper.getMetaPath(aSegments.slice(0, j + 1).join("/"))) || {};
 		});
 		mPaths[sPath] = true;
 		if (!(bNoReduceBeforeCollection
@@ -2190,7 +2213,7 @@ sap.ui.define([
 	 * @since 1.47.0
 	 */
 	ODataMetaModel.prototype.getLastModified = function () {
-		return this.dLastModified;
+		return this.oLastModified;
 	};
 
 	/**
@@ -2207,7 +2230,7 @@ sap.ui.define([
 	 * @since 1.37.0
 	 */
 	ODataMetaModel.prototype.getMetaContext = function (sPath) {
-		return new BaseContext(this, this.getMetaPath(sPath));
+		return new BaseContext(this, _Helper.getMetaPath(sPath));
 	};
 
 	/**
@@ -2261,7 +2284,7 @@ sap.ui.define([
 	 *   The (relative) $metadata URL, for example "../ValueListService/$metadata"
 	 * @param {string} [sGroupId]
 	 *   The group ID, for example "$direct"
-	 * @param {boolean} [bAutoExpandSelect=false]
+	 * @param {boolean} [bAutoExpandSelect]
 	 *   Whether the model is to be created with autoExpandSelect
 	 * @returns {sap.ui.model.odata.v4.ODataModel}
 	 *   The value list model
@@ -2903,7 +2926,10 @@ sap.ui.define([
 	 * calls a computed annotation on the navigation property itself, not on the corresponding type.
 	 *
 	 * Any other segment, including an OData simple identifier, is looked up as a property of the
-	 * current object.
+	 * current object. Segments which themselves represent a path, such as the keys for the
+	 * "$ReferentialConstraint" and "$NavigationPropertyBinding" maps, need to use URL encoding for
+	 * the slash character ("%2F"), for example
+	 * "/TEAMS/$NavigationPropertyBinding/Address%2FCountries/...".
 	 *
 	 * @param {string} sPath
 	 *   A relative or absolute path within the metadata model
@@ -3039,7 +3065,7 @@ sap.ui.define([
 	 * @param {string} sPropertyPath
 	 *   An absolute path to an OData property within the OData data model or a (meta) path to an
 	 *   operation parameter, for example "/TEAMS(1)/acme.NewAction/Team_ID"
-	 * @param {boolean} [bAutoExpandSelect=false]
+	 * @param {boolean} [bAutoExpandSelect]
 	 *   The value of the parameter <code>autoExpandSelect</code> for value list models created by
 	 *   this method. If the value list model is the data model associated with this meta model,
 	 *   this flag has no effect. Supported since 1.68.0
@@ -3060,7 +3086,8 @@ sap.ui.define([
 	 *   instead, see {@link sap.ui.model.odata.v4.ODataModel#bindList}.
 	 *
 	 *   For fixed values, only one mapping is expected and the qualifier is ignored. The mapping
-	 *   is available with key "".
+	 *   is available with key "" and has an additional property "$qualifier" which is the original
+	 *   qualifier (useful in case of "ValueListRelevantQualifiers" annotation).
 	 *
 	 *   The promise is rejected with an error if there is no value list information available
 	 *   for the given property path. Use {@link #getValueListType} to determine if value list
@@ -3088,7 +3115,7 @@ sap.ui.define([
 	 */
 	ODataMetaModel.prototype.requestValueListInfo = function (sPropertyPath, bAutoExpandSelect,
 			oContext) {
-		var sPropertyMetaPath = this.getMetaPath(sPropertyPath),
+		var sPropertyMetaPath = _Helper.getMetaPath(sPropertyPath),
 			sParentMetaPath = sPropertyMetaPath.slice(0, sPropertyMetaPath.lastIndexOf("/"))
 				.replace("/$Parameter", ""),
 			sQualifiedName = sParentMetaPath.slice(sParentMetaPath.lastIndexOf("/") + 1),
@@ -3171,15 +3198,24 @@ sap.ui.define([
 					return that.fetchValueListMappings(oValueListModel,
 						/*sQualifiedParentName*/aResults[0], oProperty, /*aOverloads*/aResults[4]
 					).then(function (mValueListMappingByQualifier) {
-						// insert the returned mappings into oValueListInfo
-						Object.keys(mValueListMappingByQualifier).forEach(function (sQualifier) {
-							addMapping(mValueListMappingByQualifier[sQualifier], sQualifier,
-								sMappingUrl, oValueListModel);
+						// enrich with oValueListModel
+						return {
+							valueListMappingByQualifier : mValueListMappingByQualifier,
+							$model : oValueListModel
+						};
+					});
+				})).then(function (aResults) {
+					// insert the returned mappings into oValueListInfo in the order of aMappingUrls
+					aMappingUrls.forEach(function (sMappingUrl, i) {
+						var mvalueListMappingByQualifier = aResults[i].valueListMappingByQualifier;
+						Object.keys(mvalueListMappingByQualifier).forEach(function (sQualifier) {
+							addMapping(mvalueListMappingByQualifier[sQualifier], sQualifier,
+								sMappingUrl, aResults[i].$model);
 						});
 					});
-				}));
+				});
 			})).then(function () {
-				var aQualifiers;
+				var aRelevantQualifiers = mAnnotationByTerm[sValueListRelevantQualifiers];
 
 				// add all mappings in the data service (or local annotation files)
 				Object.keys(mAnnotationByTerm).filter(function (sTerm) {
@@ -3188,28 +3224,36 @@ sap.ui.define([
 					addMapping(mAnnotationByTerm[sTerm], getValueListQualifier(sTerm), that.sUrl,
 						that.oModel);
 				});
-				aQualifiers = Object.keys(oValueListInfo);
 
 				// Each reference must have contributed at least one qualifier. So if oValueListInfo
 				// is empty, there cannot have been a reference.
-				if (!aQualifiers.length) {
+				if (isEmptyObject(oValueListInfo)) {
 					throw new Error("No annotation '" + sValueListReferences.slice(1) + "' for " +
 						sPropertyPath);
 				}
-				if (bFixedValues) {
-					// With fixed values, only one mapping may exist. Return it for qualifier "".
-					if (aQualifiers.length > 1) {
-						throw new Error("Annotation '" + sValueListWithFixedValues.slice(1)
-							+ "' but multiple '" + sValueList.slice(1)
-							+ "' for property " + sPropertyPath);
-					}
-					return {"" : oValueListInfo[aQualifiers[0]]};
-				}
-				aQualifiers = mAnnotationByTerm[sValueListRelevantQualifiers];
-				return aQualifiers && oContext && oContext.getBinding
-					? that.filterValueListRelevantQualifiers(oValueListInfo, aQualifiers,
+
+				return aRelevantQualifiers && oContext && oContext.getBinding
+					? that.filterValueListRelevantQualifiers(oValueListInfo, aRelevantQualifiers,
 						sPropertyMetaPath + sValueListRelevantQualifiers, oContext)
 					: oValueListInfo;
+			}).then(function (mValueListByRelevantQualifier) {
+				var aQualifiers, mValueListMapping;
+
+				if (bFixedValues) {
+					aQualifiers = Object.keys(mValueListByRelevantQualifier);
+					// With fixed values, only one mapping should exist. Return it for qualifier "".
+					if (aQualifiers.length !== 1) {
+						throw new Error("Annotation '" + sValueListWithFixedValues.slice(1)
+							+ "' but not exactly one '" + sValueList.slice(1)
+							+ "' for property " + sPropertyPath);
+					}
+					mValueListMapping = mValueListByRelevantQualifier[aQualifiers[0]];
+					mValueListMapping.$qualifier = aQualifiers[0];
+
+					return {"" : mValueListMapping};
+				}
+
+				return mValueListByRelevantQualifier;
 			});
 		});
 	};
@@ -3353,7 +3397,7 @@ sap.ui.define([
 	/**
 	 * Validates the given scope. Checks the OData version, searches for forbidden
 	 * $IncludeAnnotations and conflicting $Include. Uses and fills
-	 * <code>this.mSchema2MetadataUrl</code>. Computes <code>this.dLastModified</code> and
+	 * <code>this.mSchema2MetadataUrl</code>. Computes <code>this.oLastModified</code> and
 	 * <code>this.mETags</code>.
 	 *
 	 * @param {string} sUrl
@@ -3368,12 +3412,7 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataMetaModel.prototype.validate = function (sUrl, mScope) {
-		var i,
-			dDate,
-			dLastModified,
-			sSchema,
-			oReference,
-			sReferenceUri;
+		var oDate, oLastModified, sSchema, oReference, sReferenceUri, i;
 
 		if (!this.bSupportReferences) {
 			return mScope;
@@ -3399,12 +3438,12 @@ sap.ui.define([
 		}
 
 		// handle & remove Date, ETag and Last-Modified headers
-		dLastModified = mScope.$LastModified ? new Date(mScope.$LastModified) : null;
-		this.mETags[sUrl] = mScope.$ETag ? mScope.$ETag : dLastModified;
-		dDate = mScope.$Date ? new Date(mScope.$Date) : new Date();
-		dLastModified = dLastModified || dDate; // @see #getLastModified
-		if (this.dLastModified < dLastModified) {
-			this.dLastModified = dLastModified;
+		oLastModified = mScope.$LastModified ? new Date(mScope.$LastModified) : null;
+		this.mETags[sUrl] = mScope.$ETag ? mScope.$ETag : oLastModified;
+		oDate = mScope.$Date ? new Date(mScope.$Date) : new Date();
+		oLastModified = oLastModified || oDate; // @see #getLastModified
+		if (this.oLastModified < oLastModified) {
+			this.oLastModified = oLastModified;
 		}
 		delete mScope.$Date;
 		delete mScope.$ETag;

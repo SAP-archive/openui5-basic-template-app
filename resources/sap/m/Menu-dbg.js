@@ -4,11 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Ensure that sap.ui.unified is loaded before the module dependencies will be required.
-// Loading it synchronously is the only compatible option and doesn't harm when sap.ui.unified
-// already has been loaded asynchronously (e.g. via a dependency declared in the manifest)
-sap.ui.getCore().loadLibrary("sap.ui.unified");
-
 // Provides control sap.m.Menu.
 sap.ui.define([
 	'./library',
@@ -62,11 +57,18 @@ sap.ui.define([
 		 * @class
 		 * The <code>sap.m.Menu</code> control represents a hierarchical menu.
 		 * When opened on mobile devices it occupies the whole screen.
+		 *
+		 * <b>Note:</b> The application developer should add dependency to <code>sap.ui.unified</code> library
+		 * on application level to ensure that the library is loaded before the module dependencies will be required.
+		 * If the <code>sap.ui.unified</code> library is not loaded in advance, this
+		 * could lead to CSP compliance issues and adds an additional waiting time.
+		 * To prevent this, ensure that the <code>sap.ui.unified</code> library is loaded in advance.
+		 *
 		 * @extends sap.ui.core.Control
 		 * @implements sap.ui.core.IContextMenu
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -192,8 +194,8 @@ sap.ui.define([
 
 		/**
 		 * Sets the title of the <code>Menu</code>.
-		 * @param {String} sTitle The new title of the <code>Menu</code>
-		 * @returns {sap.m.Menu} <code>this</code> to allow method chaining
+		 * @param {string} sTitle The new title of the <code>Menu</code>
+		 * @returns {this} <code>this</code> to allow method chaining
 		 * @public
 		 */
 		Menu.prototype.setTitle = function(sTitle) {
@@ -270,7 +272,7 @@ sap.ui.define([
 			});
 			oDialog.addStyleClass("sapMRespMenuDialog");
 			// remove padding for the menu on phone
-			oDialog.removeStyleClass("sapUiPopupWithPadding");
+			oDialog.addStyleClass("sapUiNoContentPadding");
 			this.setAggregation("_dialog", oDialog, true);
 			oDialog.attachAfterClose(this._menuClosed, this);
 		};
@@ -455,13 +457,14 @@ sap.ui.define([
 		Menu.prototype._createMenuListItemFromItem = function(oItem) {
 			return new MenuListItem({
 				id  : this._generateListItemId(oItem.getId()),
-				type: ListType.Active,
+				type: oItem.getEnabled() ? ListType.Active : ListType.Inactive,
 				icon: oItem.getIcon(),
 				title: oItem.getText(),
 				startsSection: oItem.getStartsSection(),
 				menuItem: oItem,
 				tooltip: oItem.getTooltip(),
-				visible: oItem.getVisible()
+				visible: oItem.getVisible(),
+				enabled: oItem.getEnabled()
 			});
 		};
 
@@ -933,7 +936,7 @@ sap.ui.define([
 		 * Opens the menu as a context menu.
 		 * @param {jQuery.Event | object} oEvent The event object or an object containing offsetX, offsetY
 		 * values and left, top values of the element's position
-		 * @param {object} oOpenerRef The reference of the opener
+		 * @param {sap.ui.core.Element|HTMLElement} oOpenerRef The reference of the opener
 		 * @public
 		 */
 		Menu.prototype.openAsContextMenu = function(oEvent, oOpenerRef) {

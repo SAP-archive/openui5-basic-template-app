@@ -7,8 +7,9 @@
 sap.ui.define([
 	"./_AnnotationHelperBasics",
 	"sap/base/Log",
-	"sap/ui/thirdparty/jquery"
-], function (_AnnotationHelperBasics, Log, jQuery) {
+	"sap/base/util/deepExtend",
+	"sap/base/util/extend"
+], function (_AnnotationHelperBasics, Log, deepExtend, extend) {
 	"use strict";
 
 	var oBoolFalse = { "Bool" : "false" },
@@ -184,10 +185,10 @@ sap.ui.define([
 			if (sTypeClass === "EntitySet" && oExtension.value === sNonDefaultValue) {
 				// potentially nested structure so do deep copy
 				if (bDeepCopy) {
-					jQuery.extend(true, o, mV2ToV4[oExtension.name]);
+					deepExtend(o, mV2ToV4[oExtension.name]);
 				} else {
 					// Warning: Passing false for the first argument is not supported!
-					jQuery.extend(o, mV2ToV4[oExtension.name]);
+					extend(o, mV2ToV4[oExtension.name]);
 				}
 			}
 		},
@@ -973,7 +974,7 @@ sap.ui.define([
 						String : sSchemaVersion
 					};
 				}
-				jQuery.extend(oSchema, oAnnotations[oSchema.namespace]);
+				extend(oSchema, oAnnotations[oSchema.namespace]);
 
 				Utils.visitParents(oSchema, oAnnotations, "association",
 					function (oAssociation, mChildAnnotations) {
@@ -1051,7 +1052,7 @@ sap.ui.define([
 					fnCallback(oChild);
 				}
 				// merge V4 annotations after child annotations are processed
-				jQuery.extend(oChild, mChildAnnotations[oChild.name || oChild.role]);
+				extend(oChild, mChildAnnotations[oChild.name || oChild.role]);
 			});
 		},
 
@@ -1092,8 +1093,7 @@ sap.ui.define([
 			oFunctionImport.parameter.forEach(
 				function (oParam) {
 					Utils.liftSAPData(oParam);
-					jQuery.extend(oParam,
-						mAnnotations[oFunctionImport.name + "/" + oParam.name]);
+					extend(oParam, mAnnotations[oFunctionImport.name + "/" + oParam.name]);
 				}
 			);
 		},
@@ -1129,7 +1129,7 @@ sap.ui.define([
 
 				fnCallback(oParent, mChildAnnotations);
 				// merge V4 annotations after child annotations are processed
-				jQuery.extend(oParent, oAnnotations[sQualifiedName]);
+				extend(oParent, oAnnotations[sQualifiedName]);
 			}
 
 			if (!aParents) {

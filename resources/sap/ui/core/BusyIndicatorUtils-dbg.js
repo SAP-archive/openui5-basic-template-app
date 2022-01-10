@@ -5,8 +5,8 @@
  */
 
 // Provides utility class sap.ui.core.BusyIndicatorUtils
-sap.ui.define(['./BlockLayerUtils', "sap/ui/thirdparty/jquery"], //require of sap/ui/core/library not possible due to cyclic dependencies
-	function(BlockLayerUtils, jQuery) {
+sap.ui.define(['./BlockLayerUtils'], //require of sap/ui/core/library not possible due to cyclic dependencies
+	function(BlockLayerUtils) {
 	"use strict";
 
 	// Static class
@@ -14,7 +14,8 @@ sap.ui.define(['./BlockLayerUtils', "sap/ui/thirdparty/jquery"], //require of sa
 	/**
 	 * @alias sap.ui.core.BusyIndicatorUtils
 	 * @namespace
-	 * @public
+	 * @private
+	 * @ui5-restricted sap.ui.core, sap.chart
 	 */
 	var BusyIndicatorUtils = function() {};
 
@@ -24,6 +25,8 @@ sap.ui.define(['./BlockLayerUtils', "sap/ui/thirdparty/jquery"], //require of sa
 	 *
 	 * @param {string} sSize either "Large" or "Medium". Other sizes will be mapped to "Medium"
 	 * @returns {DOM.element} the element for the busy indicator
+	 * @private
+	 * @ui5-restricted sap.ui.core, sap.chart
 	 */
 	BusyIndicatorUtils.getElement = function(sSize) {
 		//default size is medium
@@ -121,15 +124,6 @@ sap.ui.define(['./BlockLayerUtils', "sap/ui/thirdparty/jquery"], //require of sa
 		if (sSize === BusyIndicatorSize.Auto) {
 			handleAutoAnimationSize(oBusyBlockState);
 		}
-	};
-
-	/**
-	 * Obsolete IE9 support, kept for some more time to avoid issues with custom controls,
-	 * start/stop now are 'noop's.
-	 */
-	BusyIndicatorUtils.animateIE9 = {
-		start: function () {},
-		stop: function () {}
 	};
 
 	return BusyIndicatorUtils;

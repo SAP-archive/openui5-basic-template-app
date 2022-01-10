@@ -11,13 +11,13 @@ sap.ui.define([
 	'./SearchField',
 	'./Table',
 	'./library',
-	'sap/ui/core/Control',
+	'./SelectDialogBase',
+	'sap/ui/core/InvisibleText',
 	'sap/ui/Device',
 	'sap/m/Toolbar',
 	'sap/m/Text',
 	'sap/m/BusyIndicator',
 	'sap/m/Bar',
-	'sap/ui/core/theming/Parameters',
 	'sap/m/Title',
 	'sap/base/Log'
 ], function (
@@ -26,16 +26,16 @@ sap.ui.define([
 	SearchField,
 	Table,
 	library,
-	Control,
+	SelectDialogBase,
+	InvisibleText,
 	Device,
 	Toolbar,
 	Text,
 	BusyIndicator,
 	Bar,
-	Parameters,
 	Title,
-	Log) {
-
+	Log
+) {
 	"use strict";
 
 	// shortcut for sap.m.ListMode
@@ -96,9 +96,9 @@ sap.ui.define([
 	 * <li>On smaller screens, the columns of the table wrap and build a list that shows all the information.</li>
 	 * </ul>
 	 * When using the <code>sap.m.TableSelectDialog</code> in SAP Quartz themes, the breakpoints and layout paddings could be determined by the dialog's width. To enable this concept and add responsive paddings to an element of the control, you have to add the following classes depending on your use case: <code>sapUiResponsivePadding--header</code>, <code>sapUiResponsivePadding--subHeader</code>, <code>sapUiResponsivePadding--content</code>, <code>sapUiResponsivePadding--footer</code>.
-	 * @extends sap.ui.core.Control
+	 * @extends sap.m.SelectDialogBase
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -107,7 +107,7 @@ sap.ui.define([
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/table-select-dialog/ Table Select Dialog}
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var TableSelectDialog = Control.extend("sap.m.TableSelectDialog", /** @lends sap.m.TableSelectDialog.prototype */ {
+	var TableSelectDialog = SelectDialogBase.extend("sap.m.TableSelectDialog", /** @lends sap.m.TableSelectDialog.prototype */ {
 		metadata : {
 
 			library : "sap.m",
@@ -353,6 +353,8 @@ sap.ui.define([
 				]
 			}),
 			selectionChange: function (oEvent) {
+				that.fireSelectionChange(oEvent.getParameters());
+
 				if (that._oDialog) {
 					if (!that.getMultiSelect()) {
 						// attach the reset function to afterClose to hide the dialog changes from the end user
@@ -363,7 +365,9 @@ sap.ui.define([
 						that._updateSelectionIndicator();
 					}
 				}
-			}
+			},
+			updateStarted: this._updateStarted.bind(this),
+			updateFinished: this._updateFinished.bind(this)
 		});
 
 
@@ -381,6 +385,7 @@ sap.ui.define([
 		// store a reference to the searchField for filtering
 		this._oSearchField = new SearchField(this.getId() + "-searchField", {
 			width: "100%",
+			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "SELECTDIALOG_SEARCH"),
 			liveChange: function (oEvent) {
 				var sValue = oEvent.getSource().getValue(),
 				iDelay = (sValue ? 300 : 0); // no delay if value is empty
@@ -429,7 +434,6 @@ sap.ui.define([
 			subHeader: this._oSubHeader,
 			content: [this._oBusyIndicator, this._oTable],
 			endButton: this._getCancelButton(),
-			initialFocus: ((Device.system.desktop && this._oSearchField) ? this._oSearchField : null),
 			draggable: this.getDraggable() && Device.system.desktop,
 			resizable: this.getResizable() && Device.system.desktop,
 			escapeHandler: function (oPromiseWrapper) {
@@ -441,20 +445,15 @@ sap.ui.define([
 		this._dialog = this._oDialog; // for downward compatibility
 		this.setAggregation("_dialog", this._oDialog);
 
-		// internally set top and bottom margin of the dialog to 8rem respectively
-		// CSN# 333642/2014: in base theme the parameter sapUiFontSize is "medium", implement a fallback
-		this._oDialog._iVMargin = 8 * (parseInt(Parameters.get("sapUiFontSize")) || 16); //128
-
 		// helper variables for search update behaviour
 		this._sSearchFieldValue = "";
 
 		// flags to control the busy indicator behaviour because the growing table will always show the no data text when updating
-		this._bFirstRequest = true; // to only show the busy indicator for the first request when the dialog has been openend
 		this._iTableUpdateRequested = 0; // to only show the busy indicator when we initiated the change
 
 		this._oDialog.getProperty = function (sName) {
 				if (sName !== "title") {
-					return Control.prototype.getProperty.call(this, sName);
+					return SelectDialogBase.prototype.getProperty.call(this, sName);
 				}
 
 				return this.getCustomHeader().getAggregation("contentMiddle")[0].getText();
@@ -474,7 +473,6 @@ sap.ui.define([
 		this._oBusyIndicator = null;
 		this._sSearchFieldValue = null;
 		this._iTableUpdateRequested = null;
-		this._bFirstRequest = false;
 		this._bInitBusy = false;
 		this._bFirstRender = false;
 
@@ -511,7 +509,7 @@ sap.ui.define([
 	* Shows the busy state and is called after the renderer is finished.
 	* @overwrite
 	* @protected
-	* @returns {sap.m.TableSelectDialog} this pointer for chaining
+	* @returns {this} this pointer for chaining
 	*/
 	TableSelectDialog.prototype.onAfterRendering = function () {
 		if (this._bInitBusy && this._bFirstRender) {
@@ -527,14 +525,14 @@ sap.ui.define([
 	* Invalidates the dialog instead of this control, as there is no renderer.
 	* @overwrite
 	* @protected
-	* @returns {sap.m.TableSelectDialog} this pointer for chaining
+	* @returns {this} this pointer for chaining
 	*/
 	TableSelectDialog.prototype.invalidate = function () {
 		// CSN #80686/2014: only invalidate inner dialog if call does not come from inside
 		if (this._oDialog && (!arguments[0] || arguments[0] && arguments[0].getId() !== this.getId() + "-dialog")) {
 			this._oDialog.invalidate(arguments);
 		} else {
-			Control.prototype.invalidate.apply(this, arguments);
+			SelectDialogBase.prototype.invalidate.apply(this, arguments);
 		}
 
 		return this;
@@ -545,7 +543,7 @@ sap.ui.define([
 	 * @public
 	 * @param {string} sSearchValue
 	 *         Value for the search. The table will be automatically trigger the search event if this parameter is set.
-	 * @returns {sap.m.TableSelectDialog} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TableSelectDialog.prototype.open = function (sSearchValue) {
@@ -556,16 +554,13 @@ sap.ui.define([
 			this._bAppendedToUIArea = true;
 		}
 
-		// reset internal variables
-		this._bFirstRequest = true;
-
 		// set search field value
 		this._oSearchField.setValue(sSearchValue);
 		this._sSearchFieldValue = sSearchValue || "";
 
 		// open the dialog
+		this._setInitialFocus();
 		this._oDialog.open();
-
 
 		// open dialog with busy state if a list update is still in progress
 		if (this._bInitBusy) {
@@ -586,7 +581,7 @@ sap.ui.define([
 	* Sets the growing  to the internal table
 	* @public
 	* @param {boolean} bValue Value for the table's growing.
-	* @returns {sap.m.TableSelectDialog} this pointer for chaining
+	* @returns {this} this pointer for chaining
 	*/
 	TableSelectDialog.prototype.setGrowing = function (bValue) {
 		this._oTable.setGrowing(bValue);
@@ -600,7 +595,7 @@ sap.ui.define([
 	* Sets the growing threshold to the internal table
 	* @public
 	* @param {int} iValue Value for the table's growing threshold.
-	* @returns {sap.m.TableSelectDialog} this pointer for chaining
+	* @returns {this} this pointer for chaining
 	*/
 	TableSelectDialog.prototype.setGrowingThreshold = function (iValue) {
 		this._oTable.setGrowingThreshold(iValue);
@@ -657,7 +652,7 @@ sap.ui.define([
 	 * @overwrite
 	 * @public
 	 * @param {boolean} flag for enabling busy indicator
-	 * @returns {sap.m.TableSelectDialog} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	TableSelectDialog.prototype.setBusy = function (bBusy) {
 		this._oSearchField.setEnabled(!bBusy);
@@ -684,7 +679,7 @@ sap.ui.define([
 	 * Sets the busyIndicatorDelay value to the internal table
 	 * @public
 	 * @param {int} iValue Value for the busyIndicatorDelay.
-	 * @returns {sap.m.TableSelectDialog} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	TableSelectDialog.prototype.setBusyIndicatorDelay = function (iValue) {
 		this._oTable.setBusyIndicatorDelay(iValue);
@@ -699,7 +694,7 @@ sap.ui.define([
 	 * @overwrite
 	 * @public
 	 * @param {boolean} bMulti flag for multi selection mode
-	 * @returns {sap.m.TableSelectDialog} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	TableSelectDialog.prototype.setMultiSelect = function (bMulti) {
 		this.setProperty("multiSelect", bMulti, true);
@@ -723,7 +718,7 @@ sap.ui.define([
 	 * @overwrite
 	 * @public
 	 * @param {string} sTitle the title text for the dialog
-	 * @returns {sap.m.TableSelectDialog} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	TableSelectDialog.prototype.setTitle = function (sTitle) {
 		this.setProperty("title", sTitle, true);
@@ -744,7 +739,7 @@ sap.ui.define([
 	 * @override
 	 * @public
 	 * @param {string} sText The text for the confirm button
-	 * @returns {sap.m.TableSelectDialog} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 */
 	TableSelectDialog.prototype.setConfirmButtonText = function (sText) {
 		this.setProperty("confirmButtonText", sText, true);
@@ -790,7 +785,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.CSSSize} sWidth the new content width value for the dialog
 	 * @public
 	 * @overwrite
-	 * @returns {sap.m.TableSelectDialog} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	TableSelectDialog.prototype.setContentWidth = function (sWidth) {
 		this._oDialog.setContentWidth(sWidth);
@@ -813,7 +808,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.CSSSize} sHeight the new content height value for the dialog
 	 * @public
 	 * @overwrite
-	 * @returns {sap.m.TableSelectDialog} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	TableSelectDialog.prototype.setContentHeight = function (sHeight) {
 		this._oDialog.setContentHeight(sHeight);
@@ -825,7 +820,8 @@ sap.ui.define([
 	 * Transfers method to the inner dialog: addStyleClass
 	 * @public
 	 * @override
-	 * @returns {sap.m.TableSelectDialog} this pointer for chaining
+	 * @param {string} sStyleClass CSS class name to add
+	 * @returns {this} this pointer for chaining
 	 */
 	TableSelectDialog.prototype.addStyleClass = function () {
 		this._oDialog.addStyleClass.apply(this._oDialog, arguments);
@@ -836,7 +832,8 @@ sap.ui.define([
 	 * Transfers method to the inner dialog: removeStyleClass
 	 * @public
 	 * @override
-	 * @returns {sap.m.TableSelectDialog} this pointer for chaining
+	 * @param {string} sStyleClass CSS class name to remove
+	 * @returns {this} this pointer for chaining
 	 */
 	TableSelectDialog.prototype.removeStyleClass = function () {
 		this._oDialog.removeStyleClass.apply(this._oDialog, arguments);
@@ -847,7 +844,9 @@ sap.ui.define([
 	 * Transfers method to the inner dialog: toggleStyleClass
 	 * @public
 	 * @override
-	 * @returns {sap.m.TableSelectDialog} this pointer for chaining
+	 * @param {string} sStyleClass CSS class name to add or remove
+	 * @param {boolean} [bAdd] Whether style class should be added (or removed); when this parameter is not given, the given style class will be toggled (removed, if present, and added if not present)
+	 * @returns {this} this pointer for chaining
 	 */
 	TableSelectDialog.prototype.toggleStyleClass = function () {
 		this._oDialog.toggleStyleClass.apply(this._oDialog, arguments);
@@ -882,7 +881,7 @@ sap.ui.define([
 	 * Sets the Clear button visible state
 	 * @public
 	 * @param {boolean} bVisible Value for the Clear button visible state.
-	 * @returns {sap.m.TableSelectDialog} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	TableSelectDialog.prototype.setShowClearButton = function (bVisible) {
 		this.setProperty("showClearButton", bVisible, true);
@@ -906,14 +905,11 @@ sap.ui.define([
 	 * Sets the model for the internal table and the current control, so that both controls can be used with data binding.
 	 * @overwrite
 	 * @public
-	 * @param {sap.ui.Model} oModel The model that holds the data for the table
-	 * @param {string} sName The optional model name
-	 * @returns {sap.m.TableSelectDialog} This pointer for chaining
+	 * @param {sap.ui.model.Model} oModel The model that holds the data for the table
+	 * @param {string} [sName] The optional model name
+	 * @returns {this} This pointer for chaining
 	 */
-	TableSelectDialog.prototype._setModel = TableSelectDialog.prototype.setModel;
 	TableSelectDialog.prototype.setModel = function (oModel, sModelName) {
-		var aArgs = Array.prototype.slice.call(arguments);
-
 		// reset busy mode if model was changed
 		this._setBusy(false);
 		this._bInitBusy = false;
@@ -921,13 +917,9 @@ sap.ui.define([
 		// we made a request in this control, so we update the counter
 		this._iTableUpdateRequested += 1;
 
-		// attach events to listen to model updates and show/hide a busy indicator
-		this._oTable.attachUpdateStarted(this._updateStarted, this);
-		this._oTable.attachUpdateFinished(this._updateFinished, this);
-
 		// pass the model to the table and also to the local control to allow binding of own properties
 		this._oTable.setModel(oModel, sModelName);
-		TableSelectDialog.prototype._setModel.apply(this, aArgs);
+		SelectDialogBase.prototype.setModel.apply(this, arguments);
 
 		// clear the selection label when setting the model
 		this._updateSelectionIndicator();
@@ -941,15 +933,12 @@ sap.ui.define([
 	 * @public
 	 * @param {sap.ui.model.Context} oContext The new context
 	 * @param {string} [sModelName] The optional model name
-	 * @returns {sap.m.TableSelectDialog} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 */
-	TableSelectDialog.prototype._setBindingContext = TableSelectDialog.prototype.setBindingContext;
 	TableSelectDialog.prototype.setBindingContext = function (oContext, sModelName) {
-		var args = Array.prototype.slice.call(arguments);
-
 		// pass the model to the table and also to the local control to allow binding of own properties
 		this._oTable.setBindingContext(oContext, sModelName);
-		TableSelectDialog.prototype._setBindingContext.apply(this, args);
+		SelectDialogBase.prototype.setBindingContext.apply(this, arguments);
 
 		return this;
 	};
@@ -969,7 +958,7 @@ sap.ui.define([
 	 * @param {string} sValue The new Search value or undefined if called by management functions
 	 * @param {boolean} bClearButtonPressed Indicates if the clear button is pressed
 	 * @param {string} sEventType The search field event type that has been called (liveChange / search)
-	 * @returns {sap.m.TableSelectDialog} this pointer for chaining
+	 * @returns {this} this pointer for chaining
 	 */
 	TableSelectDialog.prototype._executeSearch = function (sValue, bClearButtonPressed, sEventType) {
 		var oTable = this._oTable,
@@ -1043,6 +1032,8 @@ sap.ui.define([
 	 * @param {jQuery.Event} oEvent The event object
 	 */
 	TableSelectDialog.prototype._updateStarted = function (oEvent) {
+		this.fireUpdateStarted(oEvent.getParameters());
+
 		if (this.getModel() && this.getModel() instanceof sap.ui.model.odata.ODataModel) {
 			if (this._oDialog.isOpen() && this._iTableUpdateRequested) {
 				// only set busy mode when we have an OData model
@@ -1060,6 +1051,8 @@ sap.ui.define([
 	 * @param {jQuery.Event} oEvent The event object
 	 */
 	TableSelectDialog.prototype._updateFinished = function (oEvent) {
+		this.fireUpdateFinished(oEvent.getParameters());
+
 		this._updateSelectionIndicator();
 		// only reset busy mode when we have an OData model
 		if (this.getModel() && this.getModel() instanceof sap.ui.model.odata.ODataModel) {
@@ -1067,31 +1060,8 @@ sap.ui.define([
 			this._bInitBusy = false;
 		}
 
-		if (Device.system.desktop) {
-
-			if (this._oTable.getItems()[0]) {
-				this._oDialog.setInitialFocus(this._oTable.getItems()[0]);
-			} else {
-				this._oDialog.setInitialFocus(this._oSearchField);
-			}
-
-			// set initial focus manually after all items are visible
-			if (this._bFirstRequest) {
-				var oFocusControl = this._oTable.getItems()[0];
-				if (!oFocusControl) {
-				oFocusControl = this._oSearchField;
-				}
-
-				if (oFocusControl.getFocusDomRef()) {
-					oFocusControl.getFocusDomRef().focus();
-				}
-			}
-		}
-
-	this._bFirstRequest = false;
-
-	// we received a request (from this or from another control) so set the counter to 0
-	this._iTableUpdateRequested = 0;
+		// we received a request (from this or from another control) so set the counter to 0
+		this._iTableUpdateRequested = 0;
 	};
 
 	/**

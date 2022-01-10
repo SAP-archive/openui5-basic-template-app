@@ -24,7 +24,7 @@ sap.ui.define(["sap/ui/base/Object", "sap/base/Log"],
  * @extends sap.ui.base.Object
  *
  * @author SAP SE
- * @version 1.84.11
+ * @version 1.96.2
  * @public
  * @abstract
  * @alias sap.ui.core.message.MessageParser
@@ -45,7 +45,7 @@ var MessageParser = Object.extend("sap.ui.core.message.MessageParser", {
  * This method is used by the model to register itself as MessageProcessor for this parser
  *
  * @param {sap.ui.core.message.MessageProcessor} oProcessor - The MessageProcessor that can be used to fire events
- * @return {sap.ui.core.message.MessageParser} Instance reference for method chaining
+ * @return {this} Instance reference for method chaining
  * @protected
  */
 MessageParser.prototype.setProcessor = function(oProcessor) {
@@ -63,20 +63,21 @@ MessageParser.prototype.getProcessor = function() {
 	return this._processor;
 };
 
-
 /**
  * Abstract parse method must be implemented in the inheriting class.
  *
+ * @param {object} oResponse
+ *   The response from the server containing body and headers
+ * @param {object} oRequest
+ *   The original request that lead to this response
  * @public
- * @abstract
  */
-MessageParser.prototype.parse = function(oResponse) {
+MessageParser.prototype.parse = function(oResponse, oRequest) {
 	Log.error(
 		"MessageParser: parse-method must be implemented in the specific parser class. Messages " +
 		"have been ignored."
 	);
 };
-
 
 ////////////////////////////////////////// onEvent Methods /////////////////////////////////////////
 ////////////////////////////////////////// Private Methods /////////////////////////////////////////

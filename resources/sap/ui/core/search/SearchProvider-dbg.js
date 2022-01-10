@@ -5,8 +5,8 @@
  */
 
 // Provides control sap.ui.core.search.SearchProvider.
-sap.ui.define(['sap/ui/core/Element', 'sap/ui/core/library', "sap/base/Log"],
-	function(Element, library, Log) {
+sap.ui.define(['sap/ui/core/Element', "sap/base/Log", 'sap/ui/core/library'],
+	function(Element, Log) {
 	"use strict";
 
 
@@ -23,7 +23,7 @@ sap.ui.define(['sap/ui/core/Element', 'sap/ui/core/library', "sap/base/Log"],
 	 *
 	 * Do not create instances of this class, but use a concrete subclass instead.
 	 * @extends sap.ui.core.Element
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @alias sap.ui.core.search.SearchProvider

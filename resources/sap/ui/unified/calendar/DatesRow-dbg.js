@@ -32,7 +32,7 @@ sap.ui.define([
 	 * If used inside the calendar the properties and aggregation are directly taken from the parent
 	 * (To not duplicate and sync DateRanges and so on...)
 	 * @extends sap.ui.unified.calendar.Month
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -78,6 +78,8 @@ sap.ui.define([
 		//example: [{ len: 3, number: 12 }, { len: 7, number: 13 }, ...]
 		this._aWeekNumbers = [];
 
+		this._bAlwaysShowSpecialDates = true;
+
 	};
 
 	DatesRow.prototype._setAriaRole = function(sRole){
@@ -94,7 +96,7 @@ sap.ui.define([
 	/*
 	 * Sets a start date.
 	 * @param {Date} oStartDate A JavaScript date
-	 * @return {sap.ui.unified.calendar.DatesRow} <code>this</code> for method chaining
+	 * @return {this} <code>this</code> for method chaining
 	 */
 	DatesRow.prototype.setStartDate = function(oStartDate){
 
@@ -103,7 +105,7 @@ sap.ui.define([
 		var iYear = oStartDate.getFullYear();
 		CalendarUtils._checkYearInValidRange(iYear);
 
-		this.setProperty("startDate", oStartDate, true);
+		this.setProperty("startDate", oStartDate);
 		this._oStartDate = CalendarDate.fromLocalJSDate(oStartDate, this.getPrimaryCalendarType());
 
 		if (this.getDomRef()) {
@@ -141,7 +143,7 @@ sap.ui.define([
 	 * So set this properties before setting the date.
 	 *
 	 * @param {object} oDate JavaScript date object for start date.
-	 * @returns {sap.ui.unified.calendar.DatesRow} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @public
 	 */
 	DatesRow.prototype.setDate = function(oDate){
@@ -165,7 +167,7 @@ sap.ui.define([
 	 * So set this properties before setting the date.
 	 *
 	 * @param {object} oDate JavaScript date object for focused date.
-	 * @returns {sap.ui.unified.calendar.DatesRow} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @public
 	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
@@ -201,28 +203,19 @@ sap.ui.define([
 	};
 
 	/**
-	 * Setter for property <code>firstDayOfWeek</code>.
+	 * Handler used for controling the behaviour when border is reached.
 	 *
-	 * Property <code>firstDayOfWeek</code> is not supported in <code>sap.ui.unified.calendar.DatesRow</code> control.
+	 * The method this._getRelativeInfo provides information from the PlanningCalendar about the relative views.
 	 *
-	 * @protected
-	 * @param {int} iFirstDayOfWeek The first day of the week
-	 * @returns {sap.ui.unified.calendar.DatesRow} <code>this</code> to allow method chaining
+	 * @private
+	 * @param {int} oControlEvent The control event.
+	 * @returns {this} <code>this</code> to allow method chaining
 	 */
-	DatesRow.prototype.setFirstDayOfWeek = function(iFirstDayOfWeek){
-
-		if (iFirstDayOfWeek == -1) {
-			return this.setProperty("firstDayOfWeek", iFirstDayOfWeek, false); // rerender
-		} else {
-			throw new Error("Property firstDayOfWeek not supported " + this);
-		}
-
-	};
-
 	DatesRow.prototype._handleBorderReached = function(oControlEvent){
 
 		var oEvent = oControlEvent.getParameter("event");
-		var iDays = this.getDays();
+		var iDays = this._getRelativeInfo ? this.getDays() * this._getRelativeInfo().iIntervalSize : this.getDays();
+		var iStep = this._getRelativeInfo ? this._getRelativeInfo().iIntervalSize : 1;
 		var oOldDate = this._getDate();
 		var oFocusedDate = new CalendarDate(oOldDate, this.getPrimaryCalendarType());
 
@@ -231,13 +224,13 @@ sap.ui.define([
 			case "sapnext":
 			case "sapnextmodifiers":
 				//go to next day
-				oFocusedDate.setDate(oFocusedDate.getDate() + 1);
+				oFocusedDate.setDate(oFocusedDate.getDate() + iStep);
 				break;
 
 			case "sapprevious":
 			case "sappreviousmodifiers":
 				//go to previous day
-				oFocusedDate.setDate(oFocusedDate.getDate() - 1);
+				oFocusedDate.setDate(oFocusedDate.getDate() - iStep);
 				break;
 
 			case "sappagedown":
@@ -277,7 +270,13 @@ sap.ui.define([
 		var oStartDate = this._getStartDate();
 
 		var oEndDate = new CalendarDate(oStartDate, this.getPrimaryCalendarType());
-		oEndDate.setDate(oEndDate.getDate() + this.getDays());
+		var iAdditionalDays = this.getDays();
+
+		if (this._getRelativeInfo && this._getRelativeInfo().bIsRelative) {
+			iAdditionalDays = this.getDays() * this._getRelativeInfo().iIntervalSize;
+		}
+
+		oEndDate.setDate(oEndDate.getDate() + iAdditionalDays);
 		var oCalDate = CalendarDate.fromLocalJSDate(oDate, this.getPrimaryCalendarType());
 
 		return oCalDate.isSameOrAfter(oStartDate) && oCalDate.isBefore(oEndDate);

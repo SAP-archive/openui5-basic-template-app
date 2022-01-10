@@ -145,7 +145,6 @@ sap.ui.define([
 	/**
 	 * Returns whether <code>oDomRefChild</code> is contained in or equal to <code>oDomRefContainer</code>.
 	 *
-	 * This is a browser-independent version of the .contains method of Internet Explorer.
 	 * For compatibility reasons it returns <code>true</code> if <code>oDomRefContainer</code> and
 	 * <code>oDomRefChild</code> are equal.
 	 *
@@ -210,7 +209,7 @@ sap.ui.define([
 	jQuery.sap.denormalizeScrollBeginRTL = domDenormalizeScrollBeginRTL;
 
 	/*
-	 * The following methods are taken from jQuery UI core but modified.
+	 * The following implementation of jQuery.support.selectstart is taken from jQuery UI core but modified.
 	 *
 	 * jQuery UI Core
 	 * http://jqueryui.com

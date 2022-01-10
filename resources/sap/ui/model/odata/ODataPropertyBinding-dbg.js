@@ -3,16 +3,17 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides class sap.ui.model.odata.ODataPropertyBinding
 sap.ui.define([
+	'./ODataMetaModel',
 	'sap/ui/model/Context',
 	'sap/ui/model/ChangeReason',
 	'sap/ui/model/PropertyBinding',
 	"sap/base/util/deepEqual",
 	'sap/ui/model/ChangeReason'
 ],
-	function(Context, ChangeReason, PropertyBinding, deepEqual) {
+	function(ODataMetaModel, Context, ChangeReason, PropertyBinding, deepEqual) {
 	"use strict";
 
 
@@ -122,7 +123,24 @@ sap.ui.define([
 	 *
 	 */
 	ODataPropertyBinding.prototype.checkUpdate = function(bForceUpdate){
+		var sCodeListTerm,
+			that = this;
+
 		if (this.bSuspended && !bForceUpdate) {
+			return;
+		}
+
+		sCodeListTerm = ODataMetaModel.getCodeListTerm(this.sPath);
+		if (sCodeListTerm) {
+			if (this.bInitial) {
+				this.oModel.getMetaModel().fetchCodeList(sCodeListTerm).then(function (mCodeList) {
+					that.oValue = mCodeList;
+					that._fireChange({reason: ChangeReason.Change});
+				}, function () {
+					// if the code list promise rejects the binding's value remains undefined; we
+					// rely on error logging in ODataMetaModel#fetchCodeList
+				});
+			}
 			return;
 		}
 
@@ -158,7 +176,7 @@ sap.ui.define([
 	 */
 	ODataPropertyBinding.prototype.checkDataState = function(mPaths) {
 		var sCanonicalPath = this.oModel.resolve(this.sPath, this.oContext, true)
-			|| this.oModel.resolve(this.sPath, this.oContext);
+			|| this.getResolvedPath();
 
 		this.getDataState().setLaundering(!!mPaths && !!(sCanonicalPath in mPaths));
 		PropertyBinding.prototype._checkDataState.call(this, sCanonicalPath, mPaths);

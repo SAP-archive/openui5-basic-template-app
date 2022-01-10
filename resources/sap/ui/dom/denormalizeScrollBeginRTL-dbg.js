@@ -3,23 +3,16 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/Device", "sap/ui/util/_FeatureDetection"], function(Device, _FeatureDetection) {
+sap.ui.define(["sap/ui/util/_FeatureDetection"], function(_FeatureDetection) {
 	"use strict";
 
 	var fnDenormalize;
 
 	if (_FeatureDetection.initialScrollPositionIsZero()) {
-		if (_FeatureDetection.canScrollToNegative()) {
-			//actual chrome/safari
-			fnDenormalize = function(iNormalizedScrollBegin, oDomRef) {
-				return -iNormalizedScrollBegin;
-			};
-		} else {
-			//IE
-			fnDenormalize = function(iNormalizedScrollBegin, oDomRef) {
-				return iNormalizedScrollBegin;
-			};
-		}
+		//actual chrome/safari/ff
+		fnDenormalize = function(iNormalizedScrollBegin, oDomRef) {
+			return -iNormalizedScrollBegin;
+		};
 	} else {
 		//legacy chrome
 		fnDenormalize = function(iNormalizedScrollBegin, oDomRef) {

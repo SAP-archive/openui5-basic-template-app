@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -52,6 +52,7 @@ sap.ui.define([
 	var ShellOverlay = Control.extend("sap.ui.unified.ShellOverlay", /** @lends sap.ui.unified.ShellOverlay.prototype */ { metadata : {
 
 		library : "sap.ui.unified",
+		deprecated : true,
 		defaultAggregation : "content",
 		aggregations : {
 
@@ -155,7 +156,7 @@ sap.ui.define([
 
 	ShellOverlay.prototype.setSearch = function(oSearch){
 		this.setAggregation("search", oSearch, true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._headRenderer.render();
 		}
 		return this;
@@ -163,35 +164,35 @@ sap.ui.define([
 
 	ShellOverlay.prototype.insertContent = function(oContent, iIndex) {
 		var res = this.insertAggregation("content", oContent, iIndex, true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._contentRenderer.render();
 		}
 		return res;
 	};
 	ShellOverlay.prototype.addContent = function(oContent) {
 		var res = this.addAggregation("content", oContent, true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._contentRenderer.render();
 		}
 		return res;
 	};
 	ShellOverlay.prototype.removeContent = function(vIndex) {
 		var res = this.removeAggregation("content", vIndex, true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._contentRenderer.render();
 		}
 		return res;
 	};
 	ShellOverlay.prototype.removeAllContent = function() {
 		var res = this.removeAllAggregation("content", true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._contentRenderer.render();
 		}
 		return res;
 	};
 	ShellOverlay.prototype.destroyContent = function() {
 		var res = this.destroyAggregation("content", true);
-		if (!!this.getDomRef()) {
+		if (this.getDomRef()) {
 			this._contentRenderer.render();
 		}
 		return res;
@@ -305,7 +306,7 @@ sap.ui.define([
 	};
 
 	ShellOverlay.prototype._getAnimActive = function(){
-		if (!this._animation || (Device.browser.internet_explorer && Device.browser.version < 10)) {
+		if (!this._animation) {
 			return false;
 		}
 		return true;

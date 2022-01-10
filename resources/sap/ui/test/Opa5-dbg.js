@@ -87,7 +87,6 @@ sap.ui.define([
 		Opa5._oPlugin = new OpaPlugin();
 
 		function iStartMyAppInAFrame() {
-			var that = this;
 			var oOptions = {};
 			var aOptions = ["source", "timeout", "autoWait", "width", "height"];
 			// allow separate arguments for backwards compatibility
@@ -124,13 +123,13 @@ sap.ui.define([
 			oFrameCreatedOptions.check = iFrameLauncher.hasLaunched;
 			oFrameCreatedOptions.timeout = oOptions.timeout || 80;
 			oFrameCreatedOptions.errorMessage = "unable to load the IFrame with the url: " + oOptions.source;
-			that.waitFor(oFrameCreatedOptions);
+			this.waitFor(oFrameCreatedOptions);
 
 			// load extensions
 			var oLoadExtensionOptions = createWaitForObjectWithoutDefaults();
 			oLoadExtensionOptions.success = function () {
-				that._loadExtensions(iFrameLauncher.getWindow());
-			};
+				this._loadExtensions(iFrameLauncher.getWindow());
+			}.bind(this);
 			this.waitFor(oLoadExtensionOptions);
 
 			// wait for the app to load
@@ -202,8 +201,8 @@ sap.ui.define([
 			// load extensions
 			var oLoadExtensionOptions = createWaitForObjectWithoutDefaults();
 			oLoadExtensionOptions.success = function () {
-				that._loadExtensions(window);
-			};
+				this._loadExtensions(window);
+			}.bind(this);
 			this.waitFor(oLoadExtensionOptions);
 
 			// wait for the entire app to load
@@ -574,7 +573,7 @@ sap.ui.define([
 		 * @param {string} [options.errorMessage] Will be displayed as an errorMessage depending on your unit test framework.
 		 * Currently the only adapter for Opa5 is QUnit.
 		 * This message is displayed if Opa5 has reached its timeout before QUnit has reached it.
-		 * @param {function|function[]|sap.ui.test.actions.Action|sap.ui.test.actions.Action[]} options.actions
+		 * @param {function|function[]|sap.ui.test.actions.Action|sap.ui.test.actions.Action[]} [options.actions]
 		 * Available since 1.34.0. An array of functions or Actions or a mixture of both.
 		 * An action has an 'executeOn' function that will receive a single control as a parameter.
 		 * If there are multiple actions defined all of them
@@ -692,8 +691,8 @@ sap.ui.define([
 		Opa5.prototype.waitFor = function (options) {
 			// if there are any declarative matchers, first, find the ancestors and descendants.
 			// do this recursively, until every expanded declaration is resolved,
-			// and then continue to finding the dependant control.
-			// the actual queueing of waitFors will be ensured by sap.ui.test.Opa.waitFor (see function ensureNewlyAddedWaitForStatementsPrepended)
+			// and then continue to finding the dependent control.
+			// the actual queueing of waitFors will be ensured by sap.ui.test.Opa#waitFor (see function ensureNewlyAddedWaitForStatementsPrepended)
 			var aPath = _getPathToExpansion(options);
 			var mExpansion = _getExpansion(options, aPath);
 			if (mExpansion) {
@@ -749,7 +748,7 @@ sap.ui.define([
 				// even if we have no control the matchers may provide a value for vControl
 				vResult = oPlugin._getFilteredControls(oPluginOptions, vControl);
 
-				if (iFrameLauncher.hasLaunched() && $.isArray(vResult)) {
+				if (iFrameLauncher.hasLaunched() && Array.isArray(vResult)) {
 					// People are using instanceof Array in their check so i need to make sure the Array
 					// comes from the current document. I cannot use slice(0) or map because the original array is kept
 					// so i need to use the slowest way to create a swallow copy of the array
@@ -1228,8 +1227,8 @@ sap.ui.define([
 		 * The promise is not directly chained, but instead its result is awaited in a new waitFor statement.
 		 * This means that any "thenable" should be acceptable.
 		 * @public
-		 * @param {jQuery.promise|Promise} oPromise promise to schedule on the OPA5 queue
-		 * @returns {jQuery.promise} promise which is the result of a {@link sap.ui.test.Opa5.waitFor}
+		 * @param {jQuery.promise|Promise} oPromise promise to schedule on the Opa5 queue
+		 * @returns {jQuery.promise} promise which is the result of a {@link sap.ui.test.Opa5#waitFor}
 		 */
 		Opa5.prototype.iWaitForPromise = function (oPromise) {
 			var oOptions = createWaitForObjectWithoutDefaults();
@@ -1279,44 +1278,33 @@ sap.ui.define([
 
 		//// Extensions
 		Opa5.prototype._loadExtensions = function (oAppWindow) {
-			var that = this;
-
-			// get extension names from config
-			var aExtensionNames =
-				Opa.config.extensions ? Opa.config.extensions : [];
-
+			var aExtensionNames =  Opa.config.extensions ? Opa.config.extensions : [];
 			// load all required extensions in the app frame
-			var oExtensionsPromise = $.when($.map(aExtensionNames, function (sExtensionName) {
-				var oExtension;
+			var oExtensionsPromise = $.when.apply($, $.map(aExtensionNames, function (sExtension) {
 				var oExtensionDeferred = $.Deferred();
-
-				oAppWindow.sap.ui.require([
-					sExtensionName
-				], function (oOpaExtension) {
-					oExtension = new oOpaExtension();
-					oExtension.name = sExtensionName;
-
+				oAppWindow.sap.ui.require([sExtension], function (Extension) {
+					var oExtension = new Extension();
+					oExtension.name = oExtension.getMetadata ? oExtension.getMetadata().getName() : sExtension;
 					// execute the onAfterInit hook
-					that._executeExtensionOnAfterInit(oExtension, oAppWindow)
+					this._executeExtensionOnAfterInit(oExtension, oAppWindow)
 						.done(function () {
 							// notify test framework adapters so it could hook custom assertions
 							Opa5._getEventProvider().fireEvent('onExtensionAfterInit', {
 								extension: oExtension,
 								appWindow: oAppWindow
 							});
-							that._addExtension(oExtension);
+							this._addExtension(oExtension);
 							oExtensionDeferred.resolve();
-						}).fail(function (error) {
+						}.bind(this)).fail(function (error) {
 							// log the error and continue with other extensions
 							oLogger.error(new Error("Error during extension init: " +
 								error), "Opa");
 							oExtensionDeferred.resolve();
 						});
-
-				});
+				}.bind(this));
 
 				return oExtensionDeferred.promise();
-			}));
+			}.bind(this)));
 
 			// schedule the extension loading promise on flow so waitFor's are synchronized
 			// return waitFor-like promise to comply with the caller return
@@ -1326,7 +1314,7 @@ sap.ui.define([
 		Opa5.prototype._unloadExtensions = function (oAppWindow) {
 			var that = this;
 
-			var oExtensionsPromise = $.when($.map(this._getExtensions(), function (oExtension) {
+			var oExtensionsPromise = $.when.apply($, $.map(this._getExtensions(), function (oExtension) {
 				var oExtensionDeferred = $.Deferred();
 
 				Opa5._getEventProvider().fireEvent('onExtensionBeforeExit', {
@@ -1396,22 +1384,19 @@ sap.ui.define([
 			return oDeferred.promise();
 		};
 
-		// in the declarative matcher syntax, there can be two types of expanded declaration: for an ancestor and for a descendant
+		// in the declarative matcher syntax, there can be 3 types of expanded declaration: ancestor, descendant, sibling.
 		// they can be found on the root level of "options" or under the "matchers" key
 		// return the path to one such expanded declaration, if it exists
 		function _getPathToExpansion(options) {
-			var sMatchers = "matchers";
-			var sAncestor = "ancestor";
-			var sDescendant = "descendant";
-			if (options[sAncestor] && jQuery.isPlainObject(options[sAncestor])) {
-				return [sAncestor];
-			} else if (options[sMatchers] && options[sMatchers][sAncestor] && jQuery.isPlainObject(options[sMatchers][sAncestor])) {
-				return [sMatchers, sAncestor];
-			} else if (options[sDescendant] && jQuery.isPlainObject(options[sDescendant])) {
-				return [sDescendant];
-			} else if (options[sMatchers] && options[sMatchers][sDescendant] && jQuery.isPlainObject(options[sMatchers][sDescendant])) {
-				return [sMatchers, sDescendant];
-			}
+			var aPath;
+			["ancestor", "descendant", "sibling"].forEach(function (sMatcher) {
+				if (options[sMatcher] && jQuery.isPlainObject(options[sMatcher])) {
+					aPath = [sMatcher];
+				} else if (options.matchers && options.matchers[sMatcher] && jQuery.isPlainObject(options.matchers[sMatcher])) {
+					aPath = ["matchers", sMatcher];
+				}
+			});
+			return aPath;
 		}
 
 		// gets the value in path "aPath" of object "options"

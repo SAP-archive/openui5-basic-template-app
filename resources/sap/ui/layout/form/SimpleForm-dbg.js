@@ -67,7 +67,7 @@ sap.ui.define([
 	 * <b>Note:</b> If a more complex form is needed, use the <code>{@link sap.ui.layout.form.Form Form}</code> control instead.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -131,10 +131,12 @@ sap.ui.define([
 			/**
 			 * The <code>FormLayout</code> that is used to render the <code>SimpleForm</code>.
 			 *
-			 * We recommend using the <code>ResponsiveGridLayout</code> for rendering a <code>SimpleForm</code>,
+			 * We recommend using the <code>ColumnLayout</code> for rendering a <code>SimpleForm</code>,
 			 * as its responsiveness uses the space available in the best way possible.
 			 *
 			 * <b>Note</b> If possible, set the <code>layout</code> before adding content to prevent calculations for the default layout.
+			 *
+			 * <b>Note</b> The <code>ResponsiveLayout</code> has been deprecated and must no longer be used. For compatibility reasons the default could not be changed.
 			 */
 			layout : {type : "sap.ui.layout.form.SimpleFormLayout", group : "Misc", defaultValue : SimpleFormLayout.ResponsiveLayout},
 
@@ -309,19 +311,19 @@ sap.ui.define([
 			 * <li>Add a <code>Label</code> control to start a new row (<code>{@link sap.ui.layout.form.FormElement FormElement}</code>).</li>
 			 * <li>Add controls as input fields, text fields or other as needed.</li>
 			 * <li>Use <code>LayoutData</code> to influence the layout for special cases in the single controls.
-			 * For example, if a <code>ResponsiveLayout</code> is used as a layout,
-			 * the form content is weighted using weight 3 for the labels and weight 5 for the fields part.
-			 * By default the label column is 192 pixels wide.
-			 * If your input controls should influence their width, you can add <code>sap.ui.layout.ResponsiveFlowLayoutData</code>
+			 * For example, if a <code>ColumnLayout</code> is used as a layout,
+			 * the form content is weighted using 4 cells for the labels and 8 cells for the field part, for large size.
+			 * If there is only little space, the labels are above the fields and each field uses 12 cells.
+			 * If your input controls should influence their width, you can add <code>sap.ui.layout.ColumnElementData</code>
 			 * to them via <code>setLayoutData</code> method.
-			 * Ensure that the sum of the weights in the <code>ResponsiveFlowLayoutData</code> is not more than 5,
+			 * Ensure that the sum of the weights in the <code>ColumnElementData</code> is not more than 12,
 			 * as this is the total width of the input control part of each form row.</li>
 			 * </ul>
-			 * Example for a row where the <code>Input</code> weight 4 and the second <code>Input</code> weight 1 (using <code>ResponsiveLayout</code>):
+			 * Example for a row where the <code>Input</code> uses 6 cells and the second <code>Input</code> uses 2 cells (using <code>ColumnElementData</code>):
 			 * <pre>
 			 * new sap.m.Label({text:"Label"});
-			 * new sap.m.Input({value:"Weight 4", layoutData: new sap.ui.layout.ResponsiveFlowLayoutData({weight:4})}),
-			 * new sap.m.Input({value:"Weight 1", layoutData: new sap.ui.layout.ResponsiveFlowLayoutData({weight:1})}),
+			 * new sap.m.Input({value:"6 cells", layoutData: new sap.ui.layout.ColumnElementData({cellsLarge: 6, cellsSmall: 8})}),
+			 * new sap.m.Input({value:"2 cells", layoutData: new sap.ui.layout.ColumnElementData({cellsLarge: 2, cellsSmall: 4})}),
 			 * </pre>
 			 *
 			 * For example, if a <code>ResponsiveGridLayout</code> is used as a layout, there are 12 cells in one row.
@@ -410,7 +412,7 @@ sap.ui.define([
 			var oSimpleForm = this.getParent();
 			if (oSimpleForm) {
 				return oSimpleForm.getAriaLabelledBy();
-			}else {
+			} else  {
 				return null;
 			}
 		};
@@ -1986,7 +1988,7 @@ sap.ui.define([
 	 * So the <code>SimpleForm</code> must not have an own title.
 	 * @param {string} sTitleID <code>Title</code> control ID
 	 * @private
-	 * @return {sap.ui.layout.form.SimpleForm} Reference to <code>this</code> to allow method chaining
+	 * @return {this} Reference to <code>this</code> to allow method chaining
 	 */
 	SimpleForm.prototype._suggestTitleId = function (sTitleID) {
 

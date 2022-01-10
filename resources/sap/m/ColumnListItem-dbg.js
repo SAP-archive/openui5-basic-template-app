@@ -42,7 +42,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -243,7 +243,13 @@ sap.ui.define([
 			aCells = this.getCells(),
 			aColumns = oTable.getColumns(true);
 
-		aColumns.forEach(function(oColumn) {
+		aColumns.sort(function(oCol1, oCol2) {
+			var iCol1Index = oCol1.getIndex(), iCol2Index = oCol2.getIndex(), iIndexDiff = iCol1Index - iCol2Index;
+			if (iIndexDiff == 0) { return 0; }
+		    if (iCol1Index < 0) { return 1; }
+		    if (iCol2Index < 0) { return -1; }
+		    return iIndexDiff;
+		}).forEach(function(oColumn) {
 			var oCell = aCells[oColumn.getInitialOrder()];
 			if (!oCell || !oColumn.getVisible() || (oColumn.isHidden() && !oColumn.isPopin())) {
 				return;

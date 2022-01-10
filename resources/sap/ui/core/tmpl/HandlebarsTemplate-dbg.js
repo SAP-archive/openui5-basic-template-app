@@ -5,25 +5,22 @@
  */
 
 sap.ui.define([
-	'sap/ui/core/Core',
 	'./Template',
 	'./TemplateControl',
 	'sap/ui/thirdparty/handlebars',
 	'sap/ui/base/ManagedObject',
 	'sap/base/util/ObjectPath',
 	"sap/base/security/encodeXML",
-	"sap/ui/thirdparty/jquery",
-	"sap/base/util/isEmptyObject"
+	"sap/base/util/isEmptyObject",
+	'sap/ui/core/Core' // provides sap.ui.getCore()
 ],
 	function(
-		Core,
 		Template,
 		TemplateControl,
 		Handlebars,
 		ManagedObject,
 		ObjectPath,
 		encodeXML,
-		jQuery,
 		isEmptyObject
 	) {
 	"use strict";
@@ -49,7 +46,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.tmpl.Template
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @alias sap.ui.core.tmpl.HandlebarsTemplate
 	 * @since 1.15
 	 * @deprecated since 1.56

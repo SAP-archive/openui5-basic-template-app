@@ -11,10 +11,9 @@ sap.ui.define([
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
 	"sap/ui/model/odata/ODataUtils",
-	"sap/ui/model/odata/type/ODataType",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/model/odata/type/ODataType"
 ], function (Log, NumberFormat, FormatException, ParseException, ValidateException, BaseODataUtils,
-		ODataType, jQuery) {
+		ODataType) {
 	"use strict";
 
 	var rDecimal = /^[-+]?(\d+)(?:\.(\d+))?$/,
@@ -28,7 +27,7 @@ sap.ui.define([
 	 *   the formatter
 	 */
 	function getFormatter(oType) {
-		var oFormatOptions, iScale;
+		var oFormatOptions, iScale, oTypeFormatOptions;
 
 		if (!oType.oFormat) {
 			oFormatOptions = {
@@ -39,7 +38,11 @@ sap.ui.define([
 			if (iScale !== Infinity) {
 				oFormatOptions.minFractionDigits = oFormatOptions.maxFractionDigits = iScale;
 			}
-			oFormatOptions = jQuery.extend(oFormatOptions, oType.oFormatOptions);
+			oTypeFormatOptions = oType.oFormatOptions || {};
+			if (oTypeFormatOptions.style !== "short" && oTypeFormatOptions.style !== "long") {
+				oFormatOptions.preserveDecimals = true;
+			}
+			Object.assign(oFormatOptions, oType.oFormatOptions);
 			oFormatOptions.parseAsString = true;
 			oType.oFormat = NumberFormat.getFloatInstance(oFormatOptions);
 		}
@@ -158,8 +161,8 @@ sap.ui.define([
 
 			iScale = vScale === "variable" ? Infinity : validateInt(vScale, 0, 0, "scale");
 			iPrecision = validateInt(vPrecision, Infinity, 1, "precision");
-			if (iScale !== Infinity && iPrecision <= iScale) {
-				Log.warning("Illegal scale: must be less than precision (precision="
+			if (iScale !== Infinity && iPrecision < iScale) {
+				Log.warning("Illegal scale: must be less than or equal to precision (precision="
 					+ vPrecision + ", scale=" + vScale + ")", null, oType.getName());
 				iScale = Infinity; // "variable"
 			}
@@ -194,7 +197,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @alias sap.ui.model.odata.type.Decimal
 	 * @param {object} [oFormatOptions]
@@ -203,6 +206,9 @@ sap.ui.define([
 	 *   Note that <code>maxFractionDigits</code> and <code>minFractionDigits</code> are set to
 	 *   the value of the constraint <code>scale</code> unless it is "variable". They can however
 	 *   be overwritten.
+	 * @param {boolean} [oFormatOptions.preserveDecimals=true]
+	 *   by default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
+	 *   "short" or "long"; since 1.89.0
 	 * @param {object} [oConstraints]
 	 *   constraints; {@link #validateValue validateValue} throws an error if any constraint is
 	 *   violated
@@ -220,11 +226,13 @@ sap.ui.define([
 	 *   the maximum number of digits allowed
 	 * @param {int|string} [oConstraints.scale=0]
 	 *   the maximum number of digits allowed to the right of the decimal point; the number must be
-	 *   less than <code>precision</code> (if given). As a special case, "variable" is supported.
+	 *   less than or equal to <code>precision</code> (if given). As a special case, "variable" is
+	 *   supported.
 	 *
 	 *   The number of digits to the right of the decimal point may vary from zero to
 	 *   <code>scale</code>, and the number of digits to the left of the decimal point may vary
-	 *   from one to <code>precision</code> minus <code>scale</code>.
+	 *   from one to <code>precision</code> minus <code>scale</code>. If <code>scale</code> is equal
+	 *   to <code>precision</code>, a single zero has to precede the decimal point.
 	 *
 	 *   The number is always displayed with exactly <code>scale</code> digits to the right of the
 	 *   decimal point (unless <code>scale</code> is "variable").
@@ -262,17 +270,17 @@ sap.ui.define([
 			return null;
 		}
 		switch (this.getPrimitiveType(sTargetType)) {
-		case "any":
-			return sValue;
-		case "float":
-			return parseFloat(sValue);
-		case "int":
-			return Math.floor(parseFloat(sValue));
-		case "string":
-			return getFormatter(this).format(removeTrailingZeroes(String(sValue)));
-		default:
-			throw new FormatException("Don't know how to format " + this.getName() + " to "
-				+ sTargetType);
+			case "any":
+				return sValue;
+			case "float":
+				return parseFloat(sValue);
+			case "int":
+				return Math.floor(parseFloat(sValue));
+			case "string":
+				return getFormatter(this).format(removeTrailingZeroes(String(sValue)));
+			default:
+				throw new FormatException("Don't know how to format " + this.getName() + " to "
+					+ sTargetType);
 		}
 	};
 
@@ -302,26 +310,26 @@ sap.ui.define([
 			return null;
 		}
 		switch (this.getPrimitiveType(sSourceType)) {
-		case "string":
-			sResult = getFormatter(this).parse(vValue);
-			if (!sResult) {
-				throw new ParseException(sap.ui.getCore().getLibraryResourceBundle()
-					.getText("EnterNumber"));
-			}
-			// NumberFormat.parse does not remove trailing decimal zeroes and separator
-			sResult = removeTrailingZeroes(sResult);
-			break;
-		case "int":
-		case "float":
-			sResult = NumberFormat.getFloatInstance({
-				maxIntegerDigits: Infinity,
-				decimalSeparator: ".",
-				groupingEnabled: false
-			}).format(vValue);
-			break;
-		default:
-			throw new ParseException("Don't know how to parse " + this.getName() + " from "
-				+ sSourceType);
+			case "string":
+				sResult = getFormatter(this).parse(vValue);
+				if (!sResult) {
+					throw new ParseException(sap.ui.getCore().getLibraryResourceBundle()
+						.getText("EnterNumber"));
+				}
+				// NumberFormat.parse does not remove trailing decimal zeroes and separator
+				sResult = removeTrailingZeroes(sResult);
+				break;
+			case "int":
+			case "float":
+				sResult = NumberFormat.getFloatInstance({
+					maxIntegerDigits: Infinity,
+					decimalSeparator: ".",
+					groupingEnabled: false
+				}).format(vValue);
+				break;
+			default:
+				throw new ParseException("Don't know how to parse " + this.getName() + " from "
+					+ sSourceType);
 		}
 		return sResult;
 	};
@@ -368,8 +376,13 @@ sap.ui.define([
 			if (iScale === 0) {
 				throw new ValidateException(getText("EnterInt"));
 			} else if (iIntegerDigits + iScale > iPrecision) {
-				throw new ValidateException(getText("EnterNumberIntegerFraction",
-					[iPrecision - iScale, iScale]));
+				if (iScale !== iPrecision) {
+					throw new ValidateException(getText("EnterNumberIntegerFraction",
+						[iPrecision - iScale, iScale]));
+				}
+				if (aMatches[1] !== "0") {
+					throw new ValidateException(getText("EnterNumberFractionOnly", [iScale]));
+				}
 			}
 			throw new ValidateException(getText("EnterNumberFraction", [iScale]));
 		}
@@ -378,10 +391,15 @@ sap.ui.define([
 				throw new ValidateException(getText("EnterNumberPrecision", [iPrecision]));
 			}
 		} else if (iIntegerDigits > iPrecision - iScale) {
-			if (iScale) {
-				throw new ValidateException(getText("EnterNumberInteger", [iPrecision - iScale]));
-			} else {
+			if (iScale !== iPrecision) {
+				if (iScale) {
+					throw new ValidateException(getText("EnterNumberInteger",
+						[iPrecision - iScale]));
+				}
 				throw new ValidateException(getText("EnterMaximumOfDigits", [iPrecision]));
+			}
+			if (aMatches[1] !== "0") {
+				throw new ValidateException(getText("EnterNumberFractionOnly", [iScale]));
 			}
 		}
 		if (sMinimum) {

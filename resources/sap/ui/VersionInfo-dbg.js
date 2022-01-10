@@ -217,6 +217,7 @@ sap.ui.define(['sap/base/util/LoaderExtensions'], function (LoaderExtensions) {
 
 				mKnownComponents[sComponentName] = {
 					library: oComponentInfo.library,
+					hasOwnPreload: oComponentInfo.hasOwnPreload || false,
 					dependencies: []
 				};
 

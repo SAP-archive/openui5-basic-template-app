@@ -97,7 +97,7 @@ sap.ui.define([
 	 * OData V2 Edm Types}). All subtypes implement the interface of
 	 * {@link sap.ui.model.SimpleType}. That means they implement next to the constructor:
 	 * <ul>
-	 * <li>{@link sap.ui.model.SimpleType#getName getName}</li>
+	 * <li>{@link sap.ui.model.Type#getName getName}</li>
 	 * <li>{@link sap.ui.model.SimpleType#formatValue formatValue}</li>
 	 * <li>{@link sap.ui.model.SimpleType#parseValue parseValue}</li>
 	 * <li>{@link sap.ui.model.SimpleType#validateValue validateValue}</li>
@@ -115,7 +115,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @abstract
 	 * @alias sap.ui.model.odata.type.ODataType
@@ -135,16 +135,6 @@ sap.ui.define([
 				}
 			}
 		);
-
-	/**
-	 * @see sap.ui.base.Object#getInterface
-	 *
-	 * @returns {object} this
-	 * @public
-	 */
-	ODataType.prototype.getInterface = function () {
-		return this;
-	};
 
 	/**
 	 * ODataTypes are immutable and do not allow modifying the type's constraints.

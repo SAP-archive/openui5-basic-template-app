@@ -19,7 +19,7 @@ sap.ui.define(["sap/ui/core/Element"],
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -44,7 +44,16 @@ sap.ui.define(["sap/ui/core/Element"],
 				/**
 				 * The key of the item.
 				 */
-				key: { type: "string", group: "Misc", defaultValue: "" }
+				key: { type: "string", group: "Misc", defaultValue: "" },
+				/**
+				 * Hides or shows a button on the UI.
+				 */
+				visible: { type: "boolean", group: "Appearance", defaultValue: true },
+				/**
+				 * Enables or disables a button on the UI. All buttons are enabled by default.
+				 * Disabled buttons are colored differently as per the theme of the UI.
+				 */
+				enabled: { type: "boolean", group: "Appearance", defaultValue: true }
 			},
 			events: {
 				/**

@@ -31,7 +31,7 @@ sap.ui.define([
 	 * @class
 	 * Abstract class that can be extended in order to implement any extended tooltip. For example, RichTooltip Control is based on it. It provides the opening/closing behavior and the main "text" property.
 	 * @extends sap.ui.core.Control
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @alias sap.ui.core.TooltipBase
@@ -103,9 +103,9 @@ sap.ui.define([
 
 
 	/**
-	 * Return the popup to use but do not expose it to the outside.
-	 * @type sap.ui.commons.Popup
-	 * @return The popup to use
+	 * Determines the popup to use but do not expose it to the outside.
+	 *
+	 * @returns {sap.ui.core.Popup} The popup to use
 	 * @private
 	 */
 	TooltipBase.prototype._getPopup = function() {
@@ -186,12 +186,15 @@ sap.ui.define([
 	};
 
 	/**
-	 *	Check if the parameter is a standard browser Tooltip.
-	 * @return {boolean} - true if the Tooltip is a standard tooltip type of string. False if not a string or empty.
+	 * Check if the parameter is a standard browser Tooltip.
+	 *
+	 * @param {string|sap.ui.core.TooltipBase} vTooltip The tooltip can be either a simple string or a subclass of
+	 *  {@link sap.ui.core.TooltipBase}.
+	 * @return {boolean} <code>true</code> if the Tooltip is a standard tooltip type of string. <code>false</code> if not a string or empty.
 	 * @private
 	 */
-	TooltipBase.prototype.isStandardTooltip = function(oTooltip) {
-		return typeof oTooltip === "string"  &&  !!oTooltip.trim();
+	TooltipBase.prototype.isStandardTooltip = function(vTooltip) {
+		return typeof vTooltip === "string"  &&  !!vTooltip.trim();
 	};
 
 	/**
@@ -341,9 +344,6 @@ sap.ui.define([
 				return;
 			}
 
-			// Tooltip will be displayed. Ensure the content is rendered. As this is no control, the popup will not take care of rendering.
-			sap.ui.getCore().getRenderManager().render(this, sap.ui.getCore().getStaticAreaRef(), true);
-
 			// Open popup
 			var oDomRef = oSC.getDomRef();
 			oPopup.setContent(this);
@@ -418,9 +418,6 @@ sap.ui.define([
 		this.aStoredTooltips = null;
 	};
 
-	/* Store reference to original setParent function */
-	TooltipBase.prototype._setParent = TooltipBase.prototype.setParent;
-
 	/**
 	 * Defines the new parent of this TooltipBase using {@link sap.ui.core.Element#setParent}.
 	 * Additionally closes the Tooltip.
@@ -435,7 +432,7 @@ sap.ui.define([
 		if (_oPopup && _oPopup.isOpen()) {
 			this.closePopup();
 		}
-		this._setParent.apply(this, arguments);
+		Control.prototype.setParent.apply(this, arguments);
 	};
 	/**
 	 * Handle the key down event Ctrl+i and ESCAPE.

@@ -6,15 +6,15 @@
 
 sap.ui.define([
 	"sap/base/Log",
+	"sap/base/util/extend",
 	"sap/ui/core/CalendarType",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
-	"sap/ui/model/odata/type/ODataType",
-	"sap/ui/thirdparty/jquery"
-], function (Log, CalendarType, DateFormat, FormatException, ParseException, ValidateException,
-		ODataType, jQuery) {
+	"sap/ui/model/odata/type/ODataType"
+], function (Log, extend, CalendarType, DateFormat, FormatException, ParseException,
+		ValidateException, ODataType) {
 	"use strict";
 
 	var rDate = /\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])/,
@@ -45,7 +45,7 @@ sap.ui.define([
 		var oFormatOptions;
 
 		if (!oType.oFormat) {
-			oFormatOptions = jQuery.extend({strictParsing : true}, oType.oFormatOptions);
+			oFormatOptions = extend({strictParsing : true}, oType.oFormatOptions);
 			oFormatOptions.UTC = true;
 			oType.oFormat = DateFormat.getDateInstance(oFormatOptions);
 		}
@@ -106,7 +106,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @alias sap.ui.model.odata.type.Date
 	 * @param {object} [oFormatOptions]
@@ -165,18 +165,18 @@ sap.ui.define([
 			return null;
 		}
 		switch (this.getPrimitiveType(sTargetType)) {
-		case "any":
-			return vValue;
-		case "object":
-			return vValue instanceof Date
-				? new Date(vValue.getUTCFullYear(), vValue.getUTCMonth(), vValue.getUTCDate())
-				: getModelFormatter().parse(vValue, false);
-		case "string":
-			oDate = vValue instanceof Date ? vValue : getModelFormatter().parse(vValue);
-			return oDate ? getFormatter(this).format(oDate) : vValue;
-		default:
-			throw new FormatException("Don't know how to format " + this.getName() + " to "
-				+ sTargetType);
+			case "any":
+				return vValue;
+			case "object":
+				return vValue instanceof Date
+					? new Date(vValue.getUTCFullYear(), vValue.getUTCMonth(), vValue.getUTCDate())
+					: getModelFormatter().parse(vValue, false);
+			case "string":
+				oDate = vValue instanceof Date ? vValue : getModelFormatter().parse(vValue);
+				return oDate ? getFormatter(this).format(oDate) : vValue;
+			default:
+				throw new FormatException("Don't know how to format " + this.getName() + " to "
+					+ sTargetType);
 		}
 	};
 
@@ -230,17 +230,17 @@ sap.ui.define([
 			return null;
 		}
 		switch (this.getPrimitiveType(sSourceType)) {
-		case "object":
-			return getModelFormatter().format(vValue, false);
-		case "string":
-			oResult = getFormatter(this).parse(vValue);
-			if (!oResult) {
-				throw new ParseException(getErrorMessage(this));
-			}
-			return getModelFormatter().format(oResult);
-		default:
-			throw new ParseException("Don't know how to parse " + this.getName() + " from "
-				+ sSourceType);
+			case "object":
+				return getModelFormatter().format(vValue, false);
+			case "string":
+				oResult = getFormatter(this).parse(vValue);
+				if (!oResult) {
+					throw new ParseException(getErrorMessage(this));
+				}
+				return getModelFormatter().format(oResult);
+			default:
+				throw new ParseException("Don't know how to parse " + this.getName() + " from "
+					+ sSourceType);
 		}
 	};
 

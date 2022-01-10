@@ -17,7 +17,9 @@ sap.ui.define([
 	"sap/ui/core/IconPool",
 	"sap/ui/Device",
 	"sap/m/library",
-	"./BreadcrumbsRenderer"
+	"./BreadcrumbsRenderer",
+	'sap/ui/base/ManagedObject',
+	'sap/ui/core/InvisibleText'
 ], function(
 	Control,
 	openWindow,
@@ -30,7 +32,9 @@ sap.ui.define([
 	IconPool,
 	Device,
 	library,
-	BreadcrumbsRenderer
+	BreadcrumbsRenderer,
+	ManagedObject,
+	InvisibleText
 ) {
 	"use strict";
 
@@ -56,7 +60,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -104,7 +108,17 @@ sap.ui.define([
 				_currentLocation: {type: "sap.m.Text", multiple: false, visibility: "hidden"},
 				_select: {type: "sap.m.Select", multiple: false, visibility: "hidden"}
 			},
-			defaultAggregation: "links"
+			defaultAggregation: "links",
+			associations: {
+
+				/**
+				 * Association to controls / IDs which label this control (see WAI-ARIA attribute <code>aria-labelledby</code>).
+				 * @since 1.92
+				 */
+				ariaLabelledBy: {
+					type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"
+				}
+			}
 		}
 	});
 
@@ -125,6 +139,7 @@ sap.ui.define([
 
 	Breadcrumbs.prototype.init = function () {
 		this._sSeparatorSymbol = Breadcrumbs.STYLE_MAPPER[this.getSeparatorStyle()];
+		this._getInvisibleText();
 	};
 
 	Breadcrumbs.prototype.onBeforeRendering = function () {
@@ -162,6 +177,11 @@ sap.ui.define([
 	Breadcrumbs.prototype.exit = function () {
 		this._resetControl();
 		this._destroyItemNavigation();
+
+		if (this._oInvisibleText) {
+			this._oInvisibleText.destroy();
+			this._oInvisibleText = null;
+		}
 	};
 
 	/*************************************** Static members ******************************************/
@@ -172,6 +192,18 @@ sap.ui.define([
 
 	Breadcrumbs.prototype._getAugmentedId = function (sSuffix) {
 		return this.getId() + "-" + sSuffix;
+	};
+
+
+	Breadcrumbs.prototype._getInvisibleText = function() {
+		var oAriaLabelText = BreadcrumbsRenderer._getResourceBundleText("BREADCRUMB_LABEL");
+
+		if (!this._oInvisibleText) {
+			this._oInvisibleText = new InvisibleText({ id: this.getId() + "-InvisibleText"});
+			this._oInvisibleText.setText(oAriaLabelText).toStatic();
+		}
+
+		return this._oInvisibleText;
 	};
 
 	Breadcrumbs.prototype._getSelect = function () {
@@ -200,6 +232,7 @@ sap.ui.define([
 			oCurrentLocation.addEventDelegate({
 				onAfterRendering: function () {
 					oCurrentLocation.$().attr("aria-current", "page");
+					oCurrentLocation.$().attr("tabindex", 0);
 				}
 			});
 
@@ -305,7 +338,7 @@ sap.ui.define([
 	Breadcrumbs.prototype._createSelectItem = function (oItem) {
 		return new Item({
 			key: oItem.getId(),
-			text: oItem.getText()
+			text: ManagedObject.escapeSettingsValue(oItem.getText())
 		});
 	};
 
@@ -346,7 +379,7 @@ sap.ui.define([
 
 		if (sLinkHref) {
 			if (sLinkTarget) {
-				// TODO: take oLink.getRel() value into account ('links' is a PUBLIC aggregation)
+				// TODO: take oLink.getRel() value into account ('links' is a public aggregation)
 				openWindow(sLinkHref, sLinkTarget);
 			} else {
 				window.location.href = sLinkHref;
@@ -355,7 +388,7 @@ sap.ui.define([
 	};
 
 	Breadcrumbs.prototype._getItemsForMobile = function () {
-		var oItems = this.getLinks();
+		var oItems = this.getLinks().filter(function (oLink) { return oLink.getVisible(); });
 
 		if (this.getCurrentLocationText()) {
 			oItems.push(this._getCurrentLocation());
@@ -472,7 +505,9 @@ sap.ui.define([
 		if (!this._bControlsInfoCached) {
 			this._iSelectWidth = getElementWidth(this._getSelect().$().parent()) || 0;
 			this._aControlInfo = this._getControlsForBreadcrumbTrail().map(this._getControlInfo);
-			this._iContainerSize = getElementWidth(this.$());
+			// ceil the container width to prevent unnecessary overflow of a link due to rounding issues
+			// (when the available space appears insufficient with less than a pixel
+			this._iContainerSize = Math.ceil(getElementWidth(this.$()));
 			this._bControlsInfoCached = true;
 		}
 
@@ -487,13 +522,23 @@ sap.ui.define([
 	 * Handles the resize event of the Breadcrumbs control container
 	 *
 	 * @param {jQuery.Event} oEvent
-	 * @returns {object} this
+	 * @returns {this} this
 	 * @private
 	 */
 	Breadcrumbs.prototype._handleScreenResize = function (oEvent) {
-		var iCachedControlsForBreadcrumbTrailCount = this._oDistributedControls.aControlsForBreadcrumbTrail.length,
-			oControlsDistribution = this._getControlDistribution(oEvent.size.width),
-			iCalculatedControlsForBreadcrumbTrailCount = oControlsDistribution.aControlsForBreadcrumbTrail.length;
+		var iCachedControlsForBreadcrumbTrailCount,
+			oControlsDistribution,
+			iCalculatedControlsForBreadcrumbTrailCount;
+
+		if (oEvent.size.width === oEvent.oldSize.width || oEvent.size.width === 0) {
+			return this;
+		}
+
+		iCachedControlsForBreadcrumbTrailCount = this._oDistributedControls.aControlsForBreadcrumbTrail.length;
+		// ceil the container width to prevent unnecessary overflow of a link due to rounding issues
+		// (when the available space appears insufficient with less than a pixel
+		oControlsDistribution = this._getControlDistribution(Math.ceil(getElementWidth(this.$())));
+		iCalculatedControlsForBreadcrumbTrailCount = oControlsDistribution.aControlsForBreadcrumbTrail.length;
 
 		if (iCachedControlsForBreadcrumbTrailCount !== iCalculatedControlsForBreadcrumbTrailCount) {
 			this._updateSelect(true);

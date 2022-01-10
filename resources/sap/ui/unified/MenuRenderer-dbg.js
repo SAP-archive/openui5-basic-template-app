@@ -15,7 +15,7 @@ sap.ui.define([],
 	 * Menu renderer.
 	 * @author SAP - TD Core UI&AM UI Infra
 	 *
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @namespace
 	 */
 	var MenuRenderer = {
@@ -51,12 +51,16 @@ sap.ui.define([],
 		// ARIA
 		if (bAccessible) {
 			oRm.accessibilityState(oMenu, {
-				disabled: null,
-				labelledby: {value: oMenu.getId() + "-label", append: true}
+				disabled: null
 			});
 		}
 
 		oRm.class("sapUiMnu");
+
+		//do not remove - the class is only to distinguish between menu and submenu
+		if (oMenu.isSubMenu()) {
+			oRm.class("sapUiSubmenu");
+		}
 
 		if (oRootMenu.bUseTopStyle) {
 			oRm.class("sapUiMnuTop");
@@ -72,14 +76,6 @@ sap.ui.define([],
 
 		oRm.openEnd();
 		MenuRenderer.renderItems(oRm, oMenu);
-		if (bAccessible) {
-			oRm.openStart("span", oMenu.getId() + "-label");
-			oRm.class("sapUiInvisibleText");
-			oRm.attr("aria-hidden", true);
-			oRm.openEnd();
-			oRm.text(oMenu.getAriaDescription() ? oMenu.getAriaDescription() : "");
-			oRm.close("span");
-		}
 		oRm.close("div");
 	};
 

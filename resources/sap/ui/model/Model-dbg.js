@@ -3,7 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the base implementation for all model implementations
 sap.ui.define([
 	'sap/ui/core/message/MessageProcessor',
@@ -16,17 +16,19 @@ sap.ui.define([
 	function(MessageProcessor, BindingMode, Context, Filter, deepEqual, each) {
 	"use strict";
 
-	/*global Set */
 
 	/**
 	 * The SAPUI5 Data Binding API.
 	 *
-	 * The default binding mode for model implementations (if not implemented otherwise) is two way and the supported binding modes by the model
-	 * are one way, two way and one time. The default binding mode can be changed by the application for each model instance.
-	 * A model implementation should specify its supported binding modes and set the default binding mode accordingly
-	 * (e.g. if the model supports only one way binding the default binding mode should also be set to one way).
+	 * The default binding mode for model implementations (if not implemented otherwise) is two-way
+	 * and the supported binding modes by the model are one-way, two-way and one-time. The default
+	 * binding mode can be changed by the application for each model instance. A model
+	 * implementation should specify its supported binding modes and set the default binding mode
+	 * accordingly (e.g. if the model supports only one-way binding the default binding mode should
+	 * also be set to one-way).
 	 *
-	 * The default size limit for models is 100. The size limit determines the number of entries used for the list bindings.
+	 * The default size limit for models is 100. The size limit determines the number of entries
+	 * used for the list bindings.
 	 *
 	 *
 	 * @namespace
@@ -37,7 +39,8 @@ sap.ui.define([
 	/**
 	 * Constructor for a new Model.
 	 *
-	 * Every Model is a MessageProcessor that is able to handle Messages with the normal binding path syntax in the target.
+	 * Every Model is a MessageProcessor that is able to handle Messages with the normal binding
+	 * path syntax in the target.
 	 *
 	 * @class
 	 * This is an abstract base class for model objects.
@@ -46,7 +49,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.message.MessageProcessor
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @alias sap.ui.model.Model
@@ -96,14 +99,6 @@ sap.ui.define([
 				"attachRequestCompleted", "detachRequestCompleted", "attachRequestFailed", "detachRequestFailed", "attachRequestSent",
 				"detachRequestSent", "attachPropertyChange", "detachPropertyChange", "setSizeLimit", "refresh", "isList", "getObject"
 			]
-			/* the following would save code, but requires the new ManagedObject (1.9.1)
-			, events : {
-				"parseError" : {},
-				"requestFailed" : {},
-				"requestSent" : {},
-				"requestCompleted" ; {}
-			}
-			*/
 		}
 	});
 
@@ -113,40 +108,44 @@ sap.ui.define([
 	 */
 	Model.M_EVENTS = {
 		/**
-		 * Depending on the model implementation a ParseError should be fired if a parse error occurred.
+		 * Depending on the model implementation a ParseError should be fired if a parse error
+		 * occurred.
 		 * Contains the parameters:
 		 * errorCode, url, reason, srcText, line, linepos, filepos
 		 */
 		ParseError : "parseError",
 
 		/**
-		 * Depending on the model implementation a RequestFailed should be fired if a request to a backend failed.
+		 * Depending on the model implementation a RequestFailed should be fired if a request to a
+		 * backend failed.
 		 * Contains the parameters:
 		 * message, statusCode, statusText and responseText
-		 *
 		 */
 		RequestFailed : "requestFailed",
 
 		/**
-		 * Depending on the model implementation a RequestSent should be fired when a request to a backend is sent.
-		 * Contains Parameters: url, type, async, info (<strong>deprecated</strong>), infoObject
-		 *
+		 * Depending on the model implementation a RequestSent should be fired when a request to a
+		 * backend is sent.
+		 * Contains Parameters:
+		 * url, type, async, info (<strong>deprecated</strong>), infoObject
 		 */
 		RequestSent : "requestSent",
 
 		/**
-		 * Depending on the model implementation a RequestCompleted should be fired when a request to a backend is completed regardless if the request failed or succeeded.
-		 * Contains Parameters: url, type, async, info (<strong>deprecated</strong>), infoObject, success, errorobject
-		 *
+		 * Depending on the model implementation a RequestCompleted should be fired when a request
+		 * to a backend is completed regardless if the request failed or succeeded.
+		 * Contains Parameters:
+		 * url, type, async, info (<strong>deprecated</strong>), infoObject, success, errorobject
 		 */
 		RequestCompleted : "requestCompleted",
 
 		/**
-		 * Event is fired when changes occur to a property value in the model. The event contains a reason parameter which describes the cause of the property value change.
-		 * Currently the event is only fired with reason <code>sap.ui.model.ChangeReason.Binding</code> which is fired when two way changes occur to a value of a property binding.
+		 * Event is fired when changes occur to a property value in the model. The event contains a
+		 * reason parameter which describes the cause of the property value change. Currently the
+		 * event is only fired with reason <code>sap.ui.model.ChangeReason.Binding</code> which is
+		 * fired when two way changes occur to a value of a property binding.
 		 * Contains the parameters:
 		 * reason, path, context, value
-		 *
 		 */
 		PropertyChange : "propertyChange"
 	};
@@ -154,38 +153,44 @@ sap.ui.define([
 	/**
 	 * The <code>requestFailed</code> event is fired, when data retrieval from a backend failed.
 	 *
-	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can be omitted.
+	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can
+	 * be omitted.
 	 *
 	 * @name sap.ui.model.Model#requestFailed
 	 * @event
 	 * @param {sap.ui.base.Event} oEvent
 	 * @param {sap.ui.base.EventProvider} oEvent.getSource
 	 * @param {object} oEvent.getParameters
-
-	 * @param {string} oEvent.getParameters.message A text that describes the failure.
-	 * @param {string} oEvent.getParameters.statusCode HTTP status code returned by the request (if available)
-	 * @param {string} oEvent.getParameters.statusText The status as a text, details not specified, intended only for diagnosis output
-	 * @param {string} [oEvent.getParameters.responseText] Response that has been received for the request, as a text string
+	 * @param {string} oEvent.getParameters.message
+	 *   A text that describes the failure.
+	 * @param {string} oEvent.getParameters.statusCode
+	 *   HTTP status code returned by the request (if available)
+	 * @param {string} oEvent.getParameters.statusText
+	 *   The status as a text, details not specified, intended only for diagnosis output
+	 * @param {string} [oEvent.getParameters.responseText]
+	 *   Response that has been received for the request, as a text string
 	 * @public
 	 */
 
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:requestFailed requestFailed} event of this
-	 * <code>sap.ui.model.Model</code>.
+	 * Attaches event handler <code>fnFunction</code> to the
+	 * {@link #event:requestFailed requestFailed} event of this <code>sap.ui.model.Model</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.Model</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.Model</code> itself.
 	 *
-	 * @param {object}
-	 *            [oData] An application-specific payload object that will be passed to the event handler
-	 *            along with the event object when firing the event
-	 * @param {function}
-	 *            fnFunction The function to be called, when the event occurs
-	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
-	 *            <code>sap.ui.model.Model</code> itself
+	 * @param {object} [oData]
+	 *   An application-specific payload object that will be passed to the event handler along with
+	 *   the event object when firing the event
+	 * @param {function} fnFunction
+	 *   The function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with. Defaults to this
+	 *   <code>sap.ui.model.Model</code> itself
 	 *
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this}
+	 *   Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	Model.prototype.attachRequestFailed = function(oData, fnFunction, oListener) {
@@ -194,16 +199,15 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:requestFailed requestFailed} event of this
-	 * <code>sap.ui.model.Model</code>.
+	 * Detaches event handler <code>fnFunction</code> from the
+	 * {@link #event:requestFailed requestFailed} event of this <code>sap.ui.model.Model</code>.
 	 *
 	 * The passed function and listener object must match the ones used for event registration.
 	 *
-	 * @param {function}
-	 *            fnFunction The function to be called, when the event occurs
-	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @param {function} fnFunction The function to be called when the event occurs
+	 * @param {object} [oListener] Context object on which the given function had to be called
+	 *
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	Model.prototype.detachRequestFailed = function(fnFunction, oListener) {
@@ -214,13 +218,19 @@ sap.ui.define([
 	/**
 	 * Fires event {@link #event:requestFailed requestFailed} to attached listeners.
 	 *
-	 * @param {object} [oParameters] Parameters to pass along with the event
-	 * @param {string} [oParameters.message]  A text that describes the failure.
-	 * @param {string} [oParameters.statusCode]  HTTP status code returned by the request (if available)
-	 * @param {string} [oParameters.statusText] The status as a text, details not specified, intended only for diagnosis output
-	 * @param {string} [oParameters.responseText] Response that has been received for the request ,as a text string
+	 * @param {object} [oParameters]
+	 *   Parameters to pass along with the event
+	 * @param {string} [oParameters.message]
+	 *   A text that describes the failure.
+	 * @param {string} [oParameters.statusCode]
+	 *   HTTP status code returned by the request (if available)
+	 * @param {string} [oParameters.statusText]
+	 *   The status as a text, details not specified, intended only for diagnosis output
+	 * @param {string} [oParameters.responseText]
+	 *   Response that has been received for the request, as a text string
 	 *
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this}
+	 *   Reference to <code>this</code> in order to allow method chaining
 	 * @protected
 	 */
 	Model.prototype.fireRequestFailed = function(oParameters) {
@@ -230,7 +240,8 @@ sap.ui.define([
 
 
 	/**
-	 * The <code>parseError</code> event is fired when parsing of a model document (e.g. XML response) fails.
+	 * The <code>parseError</code> event is fired when parsing of a model document (e.g. XML
+	 * response) fails.
 	 *
 	 * @name sap.ui.model.Model#parseError
 	 * @event
@@ -248,22 +259,24 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:parseError parseError} event of this
-	 * <code>sap.ui.model.Model</code>.
+	 * Attaches event handler <code>fnFunction</code> to the
+	 * {@link #event:parseError parseError} event of this <code>sap.ui.model.Model</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.Model</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.Model</code> itself.
 	 *
-	 * @param {object}
-	 *            [oData] An application-specific payload object that will be passed to the event handler
-	 *            along with the event object when firing the event
-	 * @param {function}
-	 *            fnFunction The function to be called, when the event occurs
-	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
-	 *            <code>sap.ui.model.Model</code> itself.
+	 * @param {object} [oData]
+	 *   An application-specific payload object that will be passed to the event handler along with
+	 *   the event object when firing the event
+	 * @param {function} fnFunction
+	 *   The function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with. Defaults to this
+	 *   <code>sap.ui.model.Model</code> itself.
 	 *
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this}
+	 *   Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	Model.prototype.attachParseError = function(oData, fnFunction, oListener) {
@@ -272,16 +285,18 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:parseError parseError} event of this
-	 * <code>sap.ui.model.Model</code>.
+	 * Detaches event handler <code>fnFunction</code> from the
+	 * {@link #event:parseError parseError} event of this <code>sap.ui.model.Model</code>.
 	 *
 	 * The passed function and listener object must match the ones used for event registration.
 	 *
-	 * @param {function}
-	 *            fnFunction The function to be called, when the event occurs
-	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @param {function} fnFunction
+	 *   The function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object on which the given function had to be called
+	 *
+	 * @returns {this}
+	 *   Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	Model.prototype.detachParseError = function(fnFunction, oListener) {
@@ -301,7 +316,7 @@ sap.ui.define([
 	 * @param {int} [oParameters.linepos]
 	 * @param {int} [oParameters.filepos]
 	 *
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
 	 */
 	Model.prototype.fireParseError = function(oParameters) {
@@ -312,38 +327,46 @@ sap.ui.define([
 	/**
 	 * The <code>requestSent</code> event is fired, after a request has been sent to a backend.
 	 *
-	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can be omitted.
+	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can
+	 * be omitted.
 	 *
 	 * @name sap.ui.model.Model#requestSent
 	 * @event
 	 * @param {sap.ui.base.Event} oEvent
 	 * @param {sap.ui.base.EventProvider} oEvent.getSource
 	 * @param {object} oEvent.getParameters
-	 * @param {string} oEvent.getParameters.url The url which is sent to the backend
-	 * @param {string} [oEvent.getParameters.type] The type of the request (if available)
-	 * @param {boolean} [oEvent.getParameters.async] If the request is synchronous or asynchronous (if available)
-	 * @param {string} [oEvent.getParameters.info] Additional information for the request (if available) <strong>deprecated</strong>
-	 * @param {object} [oEvent.getParameters.infoObject] Additional information for the request (if available)
+	 * @param {string} oEvent.getParameters.url
+	 *   The url which is sent to the back end
+	 * @param {string} [oEvent.getParameters.type]
+	 *   The type of the request (if available)
+	 * @param {boolean} [oEvent.getParameters.async]
+	 *   If the request is synchronous or asynchronous (if available)
+	 * @param {string} [oEvent.getParameters.info]
+	 *   Additional information for the request (if available) <strong>deprecated</strong>
+	 * @param {object} [oEvent.getParameters.infoObject]
+	 *   Additional information for the request (if available)
 	 * @public
 	 */
 
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:requestSent requestSent} event of this
-	 * <code>sap.ui.model.Model</code>.
+	 * Attaches event handler <code>fnFunction</code> to the
+	 * {@link #event:requestSent requestSent} event of this <code>sap.ui.model.Model</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.Model</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.Model</code> itself.
 	 *
-	 * @param {object}
-	 *            [oData] An application-specific payload object that will be passed to the event handler
-	 *            along with the event object when firing the event
-	 * @param {function}
-	 *            fnFunction The function to be called, when the event occurs
-	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
-	 *            <code>sap.ui.model.Model</code> itself
+	 * @param {object} [oData]
+	 *   An application-specific payload object that will be passed to the event handler along with
+	 *   the event object when firing the event
+	 * @param {function} fnFunction
+	 *   The function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with. Defaults to this
+	 *   <code>sap.ui.model.Model</code> itself
 	 *
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this}
+	 *   Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	Model.prototype.attachRequestSent = function(oData, fnFunction, oListener) {
@@ -352,16 +375,15 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:requestSent requestSent} event of this
-	 * <code>sap.ui.model.Model</code>.
+	 * Detaches event handler <code>fnFunction</code> from the
+	 * {@link #event:requestSent requestSent} event of this <code>sap.ui.model.Model</code>.
 	 *
 	 * The passed function and listener object must match the ones used for event registration.
 	 *
-	 * @param {function}
-	 *            fnFunction The function to be called, when the event occurs
-	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {object} [oListener] Context object on which the given function had to be called
+	 *
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	Model.prototype.detachRequestSent = function(fnFunction, oListener) {
@@ -372,13 +394,20 @@ sap.ui.define([
 	/**
 	 * Fires event {@link #event:requestSent requestSent} to attached listeners.
 	 *
-	 * @param {object} [oParameters] Parameters to pass along with the event
-	 * @param {string} [oParameters.url] The url which is sent to the backend.
-	 * @param {string} [oParameters.type] The type of the request (if available)
-	 * @param {boolean} [oParameters.async] If the request is synchronous or asynchronous (if available)
-	 * @param {string} [oParameters.info] additional information for the request (if available) <strong>deprecated</strong>
-	 * @param {object} [oParameters.infoObject] Additional information for the request (if available)
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @param {object} [oParameters]
+	 *   Parameters to pass along with the event
+	 * @param {string} [oParameters.url]
+	 *   The url which is sent to the back end.
+	 * @param {string} [oParameters.type]
+	 *   The type of the request (if available)
+	 * @param {boolean} [oParameters.async]
+	 *   If the request is synchronous or asynchronous (if available)
+	 * @param {string} [oParameters.info]
+	 *   Additional information for the request (if available) <strong>deprecated</strong>
+	 * @param {object} [oParameters.infoObject]
+	 *   Additional information for the request (if available)
+	 *
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
 	 */
 	Model.prototype.fireRequestSent = function(oParameters) {
@@ -387,49 +416,58 @@ sap.ui.define([
 	};
 
 	/**
-	 * The <code>requestCompleted</code> event is fired, after a request has been completed (includes receiving
-	 * a response), no matter whether the request succeeded or not.
+	 * The <code>requestCompleted</code> event is fired, after a request has been completed
+	 * (includes receiving a response), no matter whether the request succeeded or not.
 	 *
-	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can be omitted.
+	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can
+	 * be omitted.
 	 *
 	 * @name sap.ui.model.Model#requestCompleted
 	 * @event
 	 * @param {sap.ui.base.Event} oEvent
+	 *   The <code>requestCompleted</code> event
 	 * @param {sap.ui.base.EventProvider} oEvent.getSource
+	 *   The source of the request
 	 * @param {object} oEvent.getParameters
-	 * @param {string} oEvent.getParameters.url URL which was sent to the backend
-	 * @param {string} [oEvent.getParameters.type] Type of the request (if available)
+	 *   The request parameters
+	 * @param {string} oEvent.getParameters.url
+	 *   URL which was sent to the back end
+	 * @param {string} [oEvent.getParameters.type]
+	 *   Type of the request (if available)
 	 * @param {boolean} oEvent.getParameters.success
-	 *                      Whether the request has been successful or not. In case of errors, consult the optional
-	 *                      <code>errorobject</code> parameter.
+	 *   Whether the request has been successful or not. In case of errors, consult the optional
+	 *   <code>errorobject</code> parameter.
 	 * @param {object} [oEvent.getParameters.errorobject]
-	 *                      If the request failed the error if any can be accessed in this property.
+	 *   If the request failed the error if any can be accessed in this property.
 	 * @param {boolean} [oEvent.getParameters.async]
-	 *                      If the request is synchronous or asynchronous (if available)
+	 *   If the request is synchronous or asynchronous (if available)
 	 * @param {string} [oEvent.getParameters.info]
-	 *                      Additional information for the request (if available) <strong>deprecated</strong>
+	 *   Additional information for the request (if available) <strong>deprecated</strong>
 	 * @param {object} [oEvent.getParameters.infoObject]
-	 *                      Additional information for the request (if available)
+	 *   Additional information for the request (if available)
 	 * @public
 	 */
 
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:requestCompleted requestCompleted} event of this
+	 * Attaches event handler <code>fnFunction</code> to the
+	 * {@link #event:requestCompleted requestCompleted} event of this
 	 * <code>sap.ui.model.Model</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.Model</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.Model</code> itself.
 	 *
-	 * @param {object}
-	 *            [oData] An application-specific payload object that will be passed to the event handler
-	 *            along with the event object when firing the event
-	 * @param {function}
-	 *            fnFunction The function to be called, when the event occurs
-	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
-	 *            <code>sap.ui.model.Model</code> itself
+	 * @param {object} [oData]
+	 *   An application-specific payload object that will be passed to the event handler along with
+	 *   the event object when firing the event
+	 * @param {function} fnFunction
+	 *   The function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with. Defaults to this
+	 *   <code>sap.ui.model.Model</code> itself
 	 *
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this}
+	 *   Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	Model.prototype.attachRequestCompleted = function(oData, fnFunction, oListener) {
@@ -438,16 +476,17 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:requestCompleted requestCompleted} event of this
+	 * Detaches event handler <code>fnFunction</code> from the
+	 * {@link #event:requestCompleted requestCompleted} event of this
 	 * <code>sap.ui.model.Model</code>.
 	 *
 	 * The passed function and listener object must match the ones used for event registration.
 	 *
-	 * @param {function}
-	 *            fnFunction The function to be called, when the event occurs
-	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @param {function} fnFunction The function to be called, when the event occurs
+	 * @param {object} [oListener] Context object on which the given function had to be called
+	 *
+	 * @returns {this}
+	 *   Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	Model.prototype.detachRequestCompleted = function(fnFunction, oListener) {
@@ -458,14 +497,21 @@ sap.ui.define([
 	/**
 	 * Fires event {@link #event:requestCompleted requestCompleted} to attached listeners.
 	 *
-	 * @param {object} [oParameters] Parameters to pass along with the event
-	 * @param {string} [oParameters.url] The url which was sent to the backend.
-	 * @param {string} [oParameters.type] The type of the request (if available)
-	 * @param {boolean} [oParameters.async] If the request was synchronous or asynchronous (if available)
-	 * @param {string} [oParameters.info] additional information for the request (if available) <strong>deprecated</strong>
-	 * @param {object} [oParameters.infoObject] Additional information for the request (if available)
+	 * @param {object} [oParameters]
+	 *   Parameters to pass along with the event
+	 * @param {string} [oParameters.url]
+	 *   The url which was sent to the back end.
+	 * @param {string} [oParameters.type]
+	 *   The type of the request (if available)
+	 * @param {boolean} [oParameters.async]
+	 *   If the request was synchronous or asynchronous (if available)
+	 * @param {string} [oParameters.info]
+	 *   additional information for the request (if available) <strong>deprecated</strong>
+	 * @param {object} [oParameters.infoObject]
+	 *   Additional information for the request (if available)
 	 *
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this}
+	 *   Reference to <code>this</code> in order to allow method chaining
 	 * @protected
 	 */
 	Model.prototype.fireRequestCompleted = function(oParameters) {
@@ -489,10 +535,10 @@ sap.ui.define([
 	 * @param {object} [oParameters] Parameters to pass along with the event
 	 * @param {sap.ui.model.ChangeReason} [oParameters.reason] The reason of the property change
 	 * @param {string} [oParameters.path] The path of the property
-	 * @param {object} [oParameters.context] the context of the property
-	 * @param {object} [oParameters.value] the value of the property
+	 * @param {object} [oParameters.context] The context of the property
+	 * @param {object} [oParameters.value] The value of the property
 	 *
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @protected
 	 */
 	Model.prototype.firePropertyChange = function(oParameters) {
@@ -501,43 +547,53 @@ sap.ui.define([
 	};
 
 	/**
-	 * The <code>propertyChange</code> event is fired when changes occur to a property value in the model.
+	 * The <code>propertyChange</code> event is fired when changes occur to a property value in the
+	 * model.
 	 *
-	 * The event contains a <code>reason</code> parameter which describes the cause of the property value change.
-	 * Currently the event is only fired with reason <code>sap.ui.model.ChangeReason.Binding</code> which is fired
-	 * when two way changes occur to a value of a property binding.
+	 * The event contains a <code>reason</code> parameter which describes the cause of the property
+	 * value change. Currently the event is only fired with reason
+	 * <code>sap.ui.model.ChangeReason.Binding</code> which is fired when two way changes occur to a
+	 * value of a property binding.
 	 *
-	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can be omitted.
+	 * Note: Subclasses might add additional parameters to the event object. Optional parameters can
+	 * be omitted.
 	 *
 	 * @name sap.ui.model.Model#propertyChange
 	 * @event
 	 * @param {sap.ui.base.Event} oEvent
 	 * @param {sap.ui.base.EventProvider} oEvent.getSource
 	 * @param {object} oEvent.getParameters
-	 * @param {sap.ui.model.ChangeReason} oEvent.getParameters.reason The cause of the property value change
-	 * @param {string} oEvent.getParameters.path The path of the property
-	 * @param {sap.ui.model.Context} [oEvent.getParameters.context] The binding context (if available)
-	 * @param {object} oEvent.getParameters.value The current value of the property
+	 * @param {sap.ui.model.ChangeReason} oEvent.getParameters.reason
+	 *   The cause of the property value change
+	 * @param {string} oEvent.getParameters.path
+	 *   The path of the property
+	 * @param {sap.ui.model.Context} [oEvent.getParameters.context]
+	 *   The binding context (if available)
+	 * @param {object} oEvent.getParameters.value
+	 *   The current value of the property
 	 * @public
+	 * @since 1.40
 	 */
 
 	/**
-	 * Attaches event handler <code>fnFunction</code> to the {@link #event:propertyChange propertyChange} event of this
-	 * <code>sap.ui.model.Model</code>.
+	 * Attaches event handler <code>fnFunction</code> to the
+	 * {@link #event:propertyChange propertyChange} event of this <code>sap.ui.model.Model</code>.
 	 *
-	 * When called, the context of the event handler (its <code>this</code>) will be bound to <code>oListener</code>
-	 * if specified, otherwise it will be bound to this <code>sap.ui.model.Model</code> itself.
+	 * When called, the context of the event handler (its <code>this</code>) will be bound to
+	 * <code>oListener</code> if specified, otherwise it will be bound to this
+	 * <code>sap.ui.model.Model</code> itself.
 	 *
-	 * @param {object}
-	 *            [oData] An application-specific payload object that will be passed to the event handler
-	 *            along with the event object when firing the event
-	 * @param {function}
-	 *            fnFunction The function to be called, when the event occurs
-	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
-	 *            <code>sap.ui.model.Model</code> itself
+	 * @param {object} [oData]
+	 *   An application-specific payload object that will be passed to the event handler along with
+	 *   the event object when firing the event
+	 * @param {function} fnFunction
+	 *   The function to be called when the event occurs
+	 * @param {object} [oListener]
+	 *   Context object to call the event handler with. Defaults to this
+	 *   <code>sap.ui.model.Model</code> itself
 	 *
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this}
+	 *   Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	Model.prototype.attachPropertyChange = function(oData, fnFunction, oListener) {
@@ -546,16 +602,16 @@ sap.ui.define([
 	};
 
 	/**
-	 * Detaches event handler <code>fnFunction</code> from the {@link #event:propertyChange propertyChange} event of this
-	 * <code>sap.ui.model.Model</code>.
+	 * Detaches event handler <code>fnFunction</code> from the
+	 * {@link #event:propertyChange propertyChange} event of this <code>sap.ui.model.Model</code>.
 	 *
 	 * The passed function and listener object must match the ones used for event registration.
 	 *
-	 * @param {function}
-	 *            fnFunction The function to be called, when the event occurs
-	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @param {function} fnFunction The function to be called when the event occurs
+	 * @param {object} [oListener] Context object on which the given function had to be called
+	 *
+	 * @returns {this}
+	 *   Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	Model.prototype.detachPropertyChange = function(fnFunction, oListener) {
@@ -563,126 +619,113 @@ sap.ui.define([
 		return this;
 	};
 
-	// the 'abstract methods' to be implemented by child classes
-
 	/**
-	 * Implement in inheriting classes.
 	 * @abstract
 	 *
 	 * @name sap.ui.model.Model.prototype.bindProperty
 	 * @function
-	 * @param {string}
-	 *         sPath the path pointing to the property that should be bound
-	 * @param {object}
-	 *         [oContext=null] the context object for this databinding (optional)
-	 * @param {object}
-	 *         [mParameters=null] additional model specific parameters (optional)
-	 * @return {sap.ui.model.PropertyBinding}
+	 * @param {string} sPath The path pointing to the property that should be bound
+	 * @param {sap.ui.model.Context} [oContext] The context object for this databinding
+	 * @param {object} [mParameters] Additional model-specific parameters
 	 *
+	 * @return {sap.ui.model.PropertyBinding} The newly created binding
 	 * @public
 	 */
 
 	/**
-	 * Implement in inheriting classes.
 	 * @abstract
 	 *
 	 * @name sap.ui.model.Model.prototype.bindList
 	 * @function
-	 * @param {string}
-	 *         sPath the path pointing to the list / array that should be bound
-	 * @param {object}
-	 *         [oContext=null] the context object for this databinding (optional)
-	 * @param {sap.ui.model.Sorter}
-	 *         [aSorters=null] initial sort order (can be either a sorter or an array of sorters) (optional)
-	 * @param {array}
-	 *         [aFilters=null] predefined filter/s (can be either a filter or an array of filters) (optional)
-	 * @param {object}
-	 *         [mParameters=null] additional model specific parameters (optional)
+	 * @param {string} sPath
+	 *   The path pointing to the list / array that should be bound
+	 * @param {sap.ui.model.Context} [oContext]
+	 *   The context object for this databinding
+	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters]
+	 *   Initial sort order (can be either a sorter or an array of sorters)
+	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters]
+	 *   Predefined filter/s (can be either a filter or an array of filters)
+	 * @param {object} [mParameters]
+	 *   Additional model-specific parameters
+	 *
 	 * @return {sap.ui.model.ListBinding}
-
+	 *   The newly created binding
 	 * @public
 	 */
 
 	/**
-	 * Implement in inheriting classes.
 	 * @abstract
 	 *
 	 * @name sap.ui.model.Model.prototype.bindTree
 	 * @function
-	 * @param {string}
-	 *         sPath the path pointing to the tree / array that should be bound
-	 * @param {object}
-	 *         [oContext=null] the context object for this databinding (optional)
-	 * @param {array}
-	 *         [aFilters=null] predefined filter/s contained in an array (optional)
-	 * @param {object}
-	 *         [mParameters=null] additional model specific parameters (optional)
-	 * @param {array}
-	 *         [aSorters=null] predefined sap.ui.model.sorter/s contained in an array (optional)
+	 * @param {string} sPath
+	 *   The path pointing to the tree / array that should be bound
+	 * @param {sap.ui.model.Context} [oContext]
+	 *   The context object for this databinding
+	 * @param {sap.ui.model.Filter[]} [aFilters]
+	 *   Predefined filter/s contained in an array
+	 * @param {object} [mParameters]
+	 *   Additional model specific parameters
+	 * @param {sap.ui.model.Sorter[]} [aSorters]
+	 *   Predefined sap.ui.model.sorter/s contained in an array
+	 *
 	 * @return {sap.ui.model.TreeBinding}
-
+	 *   The newly created binding
 	 * @public
 	 */
 
 	/**
-	 * Implement in inheriting classes.
 	 * @abstract
 	 *
 	 * @name sap.ui.model.Model.prototype.createBindingContext
 	 * @function
-	 * @param {string}
-	 *         sPath the path to create the new context from
-	 * @param {object}
-	 *		   [oContext=null] the context which should be used to create the new binding context
-	 * @param {object}
-	 *		   [mParameters=null] the parameters used to create the new binding context
-	 * @param {function}
-	 *         [fnCallBack] the function which should be called after the binding context has been created
-	 * @param {boolean}
-	 *         [bReload] force reload even if data is already available. For server side models this should
-	 *                   refetch the data from the server
-	 * @return {sap.ui.model.Context} the binding context, if it could be created synchronously
+	 * @param {string} sPath
+	 *   The path to create the new context from
+	 * @param {sap.ui.model.Context} [oContext]
+	 *   The context which should be used to create the new binding context
+	 * @param {object} [mParameters]
+	 *   The parameters used to create the new binding context
+	 * @param {function} [fnCallBack]
+	 *   The function which should be called after the binding context has been created
+	 * @param {boolean} [bReload]
+	 *   Force reload even if data is already available; for server-side models this should refetch
+	 *   the data from the server
 	 *
+	 * @return {sap.ui.model.Context}
+	 *   The binding context, if it could be created synchronously
 	 * @public
 	 */
 
 	/**
-	 * Implement in inheriting classes.
 	 * @abstract
 	 *
 	 * @name sap.ui.model.Model.prototype.destroyBindingContext
 	 * @function
-	 * @param {object}
-	 *         oContext to destroy
-
+	 * @param {sap.ui.model.Context} oContext The context to destroy
 	 * @public
 	 */
 
 	/**
-	 * Implement in inheriting classes.
 	 * @abstract
 	 *
 	 * @name sap.ui.model.Model.prototype.getProperty
 	 * @function
-	 * @param {string}
-	 *         sPath the path to where to read the attribute value
-	 * @param {object}
-	 *		   [oContext=null] the context with which the path should be resolved
+	 * @param {string} sPath The path to where to read the attribute value
+	 * @param {sap.ui.model.Context} [oContext] The context with which the path should be resolved
+	 *
 	 * @returns {any} Value of the addressed property
 	 * @public
 	 */
 
 	/**
-	 * Implement in inheriting classes.
 	 * @abstract
 	 *
-	 * @param {string}
-	 *         sPath Path to where to read the object
-	 * @param {object}
-	 *		   [oContext=null] Context with which the path should be resolved
-	 * @param {object}
-	 *         [mParameters] Additional model specific parameters
-	 * @returns {any} The value for the given path/context or <code>undefined</code> if data could not be found
+	 * @param {string} sPath Path to where to read the object
+	 * @param {sap.ui.model.Context} [oContext] Context with which the path should be resolved
+	 * @param {object} [mParameters] Additional model-specific parameters
+	 *
+	 * @returns {any}
+	 *   The value for the given path/context or <code>undefined</code> if data could not be found
 	 * @public
 	 */
 	Model.prototype.getObject = function(sPath, oContext, mParameters) {
@@ -696,25 +739,22 @@ sap.ui.define([
 	 *
 	 * @name sap.ui.model.Model.prototype.bindContext
 	 * @function
-	 * @param {string | object}
-	 *         sPath the path pointing to the property that should be bound or an object
-	 *         which contains the following parameter properties: path, context, parameters
-	 * @param {object}
-	 *         [oContext=null] the context object for this databinding (optional)
-	 * @param {object}
-	 *         [mParameters=null] additional model specific parameters (optional)
-	 * @param {object}
-	 *         [oEvents=null] event handlers can be passed to the binding ({change:myHandler})
-	 * @return {sap.ui.model.ContextBinding}
+	 * @param {string} sPath The path pointing to the property that should be bound
+	 * @param {sap.ui.model.Context} [oContext] The context object for this databinding
+	 * @param {object} [mParameters] Additional model-specific parameters
+	 * @param {object} [oEvents] Event handlers can be passed to the binding ({change:myHandler})
 	 *
+	 * @return {sap.ui.model.ContextBinding} The newly created binding
 	 * @public
 	 */
 
 	/**
-	 * Gets a binding context. If context already exists, return it from the map,
-	 * otherwise create one using the context constructor.
+	 * Gets a binding context. If the context already exists, return it from the map, otherwise create
+	 * one using the context constructor.
 	 *
-	 * @param {string} sPath the path
+	 * @param {string} sPath The path
+	 *
+	 * @returns {sap.ui.model.Context} The context for the path
 	 */
 	Model.prototype.getContext = function(sPath) {
 		if (!sPath.startsWith("/")) {
@@ -738,9 +778,10 @@ sap.ui.define([
 	 * setting the 'legacySyntax' property. Then an unresolvable, relative path
 	 * is automatically converted into an absolute path.
 	 *
-	 * @param {string} sPath path to resolve
-	 * @param {sap.ui.core.Context} [oContext] context to resolve a relative path against
-	 * @return {string} resolved path or undefined
+	 * @param {string} sPath Path to resolve
+	 * @param {sap.ui.model.Context} [oContext] Context to resolve a relative path against
+	 *
+	 * @return {string} Resolved path or undefined
 	 */
 	Model.prototype.resolve = function(sPath, oContext) {
 		var bIsRelative = typeof sPath == "string" && !sPath.startsWith("/"),
@@ -780,7 +821,7 @@ sap.ui.define([
 	/**
 	 * Add a binding to this model.
 	 *
-	 * @param {sap.ui.model.Binding} oBinding the binding to be added
+	 * @param {sap.ui.model.Binding} oBinding The binding to be added
 	 */
 	Model.prototype.addBinding = function(oBinding) {
 		this._cleanUpBindings();
@@ -790,7 +831,7 @@ sap.ui.define([
 	/**
 	 * Returns a copy of all active bindings of the model.
 	 *
-	 * @return {array} aBindings The active bindings of the model
+	 * @return {sap.ui.model.Binding[]} The active bindings of the model
 	 * @private
 	 */
 	Model.prototype.getBindings = function() {
@@ -827,12 +868,12 @@ sap.ui.define([
 	/**
 	 * Set the default binding mode for the model.
 	 *
-	 * If the default binding mode should be changed, this method should be called directly after model instance
-	 * creation and before any binding creation. Otherwise it is not guaranteed that the existing bindings will
-	 * be updated with the new binding mode.
+	 * If the default binding mode should be changed, this method should be called directly after
+	 * model instance creation and before any binding creation. Otherwise it is not guaranteed that
+	 * the existing bindings will be updated with the new binding mode.
 	 *
 	 * @param {sap.ui.model.BindingMode} sMode The default binding mode to set for the model
-	 * @returns {sap.ui.model.Model} Reference to <code>this</code> in order to allow method chaining
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
 	Model.prototype.setDefaultBindingMode = function(sMode) {
@@ -848,6 +889,7 @@ sap.ui.define([
 	 * Check if the specified binding mode is supported by the model.
 	 *
 	 * @param {sap.ui.model.BindingMode} sMode The binding mode to check
+	 * @returns {boolean} Whether the given binding mode is supported
 	 *
 	 * @public
 	 */
@@ -865,6 +907,7 @@ sap.ui.define([
 	 *
 	 * @param {boolean} bLegacySyntax The path syntax to use
 	 *
+	 * @deprecated since 1.88.0, legacy path syntax is not supported by most model implementations.
 	 * @public
 	 */
 	Model.prototype.setLegacySyntax = function(bLegacySyntax) {
@@ -874,8 +917,9 @@ sap.ui.define([
 	/**
 	 * Returns whether legacy path syntax is used.
 	 *
-	 * @return {boolean}
+	 * @returns {boolean} Whether legacy path syntax is used
 	 *
+	 * @deprecated since 1.88.0, legacy path syntax is not supported by most model implementations.
 	 * @public
 	 */
 	Model.prototype.isLegacySyntax = function() {
@@ -896,6 +940,7 @@ sap.ui.define([
 
 	/**
 	 * Override getInterface method to avoid creating an Interface object for models.
+	 * @returns {sap.ui.model.Model} Returns a reference to this model
 	 */
 	Model.prototype.getInterface = function() {
 		return this;
@@ -904,9 +949,10 @@ sap.ui.define([
 	/**
 	 * Refresh the model.
 	 *
-	 * This will check all bindings for updated data and update the controls if data has been changed.
+	 * This will check all bindings for updated data and update the controls if data has been
+	 * changed.
 	 *
-	 * @param {boolean} bForceUpdate Update controls even if data has not been changed
+	 * @param {boolean} [bForceUpdate=false] Update controls even if data has not been changed
 	 * @public
 	 */
 	Model.prototype.refresh = function(bForceUpdate) {
@@ -929,10 +975,10 @@ sap.ui.define([
 	 * <code>bForceUpdate</code> is <code>true</code> if at least one of the asynchronous calls was
 	 * with <code>bForceUpdate=true</code>.
 	 *
-	 * @param {boolean} bForceUpdate
+	 * @param {boolean} [bForceUpdate=false]
 	 *   The parameter <code>bForceUpdate</code> for the <code>checkUpdate</code> call on the
 	 *   bindings
-	 * @param {boolean} bAsync
+	 * @param {boolean} [bAsync=false]
 	 *   Whether this function is called in a new task via <code>setTimeout</code>
 	 *
 	 * @private
@@ -947,6 +993,7 @@ sap.ui.define([
 			}
 			return;
 		}
+		bForceUpdate = this.bForceUpdate || bForceUpdate;
 		if (this.sUpdateTimer) {
 			clearTimeout(this.sUpdateTimer);
 			this.sUpdateTimer = null;
@@ -981,7 +1028,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sPath
 	 *   The resolved binding path
-	 * @param {boolean} [bPrefixMatch]
+	 * @param {boolean} [bPrefixMatch=false]
 	 *   Whether also messages with a target starting with the given path are returned, not just the
 	 *   messages with a target identical to the given path
 	 * @returns {sap.ui.core.message.Message[]}
@@ -1029,7 +1076,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Private method iterating the registered bindings of this model instance and initiating their check for messages.
+	 * Private method iterating the registered bindings of this model instance and initiating their
+	 * check for messages.
 	 * @private
 	 */
 	Model.prototype.checkMessages = function() {
@@ -1043,8 +1091,8 @@ sap.ui.define([
 	/**
 	 * Destroys the model and clears the model data.
 	 *
-	 * A model implementation may override this function and perform model specific cleanup tasks e.g.
-	 * abort requests, prevent new requests, etc.
+	 * A model implementation may override this function and perform model-specific cleanup tasks
+	 * e.g. abort requests, prevent new requests, etc.
 	 *
 	 * @see sap.ui.base.Object.prototype.destroy
 	 * @public
@@ -1072,7 +1120,8 @@ sap.ui.define([
 	 * model type.
 	 * @abstract
 	 * @public
-	 * @returns {sap.ui.model.MetaModel} The meta model or <code>undefined</code> if no meta model exists.
+	 * @returns {sap.ui.model.MetaModel}
+	 *   The meta model or <code>undefined</code> if no meta model exists.
 	 */
 	Model.prototype.getMetaModel = function() {
 		return undefined;
@@ -1081,10 +1130,11 @@ sap.ui.define([
 	/**
 	 * Returns the original value for the property with the given path and context.
 	 *
-	 * The original value is the value that was last responded by a server if using a server model implementation.
+	 * The original value is the value that was last responded by a server if using a server model
+	 * implementation.
 	 *
 	 * @param {string} sPath Path/name of the property
-	 * @param {object} [oContext] Context if available to access the property value
+	 * @param {sap.ui.model.Context} [oContext] Context if available to access the property value
 	 * @returns {any} vValue The value of the property
 	 * @public
 	 */
@@ -1099,7 +1149,7 @@ sap.ui.define([
 	 * data was accepted or rejected
 	 *
 	 * @param {string} sPath Path to resolve
-	 * @param {sap.ui.core.Context} [oContext] Context to resolve a relative path against
+	 * @param {sap.ui.model.Context} [oContext] Context to resolve a relative path against
 	 * @returns {boolean} true if the data in this path is laundering
 	 */
 	Model.prototype.isLaundering = function(sPath, oContext) {
@@ -1109,15 +1159,18 @@ sap.ui.define([
 	/**
 	 * Checks whether the given filters contain an unsupported operator.
 	 *
-	 * OData v1, v2 and Client Bindings cannot be filtered with <code>sap.ui.model.FilterOperator</code>s
-	 * <code>"Any"</code> and <code>"All"</code>. The model property <code>mUnsupportedFilterOperators</code>
-	 * can be configured in each model subclass to describe the unsupported operators.
+	 * OData v1, v2 and Client Bindings cannot be filtered with
+	 * <code>sap.ui.model.FilterOperator</code>s, <code>"Any"</code> and <code>"All"</code>. The
+	 * model property <code>mUnsupportedFilterOperators</code> can be configured in each model
+	 * subclass to describe the unsupported operators.
 	 *
 	 * If any of the given filters contains nested filters, those are checked recursively.
 	 *
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} vFilters Single filter or an array of filter instances
-	 * @throws {Error} if at least one filter uses an <code>sap.ui.model.FilterOperator</code>
-	 *               that is not supported by the related model instance
+	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} vFilters
+	 *   Single filter or an array of filter instances
+	 * @throws {Error}
+	 *   If at least one filter uses an <code>sap.ui.model.FilterOperator</code> that is not
+	 *   supported by the related model instance
 	 * @private
 	 * @ui5-restricted sap.ui.model
 	 */
@@ -1150,8 +1203,11 @@ sap.ui.define([
 	/**
 	 * Traverses the given filter tree.
 	 *
-	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} vFilters Array of filters or a single filter instance, which will be checked for unsupported filter operators
-	 * @param {function} fnCheck Check function which is called for each filter instance in the tree
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} vFilters
+	 *   Array of filters or a single filter instance, which will be checked for unsupported filter
+	 *   operators
+	 * @param {function} fnCheck
+	 *   Check function which is called for each filter instance in the tree
 	 * @private
 	 */
 	function _traverseFilter (vFilters, fnCheck) {

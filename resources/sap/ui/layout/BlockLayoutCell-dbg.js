@@ -6,14 +6,13 @@
 
 sap.ui.define([
 	'sap/ui/core/Control',
-	'sap/ui/Device',
 	'./library',
 	"./BlockLayoutCellRenderer",
 	"sap/base/Log",
 	"./BlockLayoutCellData",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(Control, Device, library, BlockLayoutCellRenderer, Log, BlockLayoutCellData, jQuery) {
+	function(Control, library, BlockLayoutCellRenderer, Log, BlockLayoutCellData, jQuery) {
 		"use strict";
 
 		/**
@@ -28,7 +27,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -126,7 +125,7 @@ sap.ui.define([
 		 *
 		 * @public
 		 * @param {number} iWidth value.
-		 * @returns {sap.ui.layout.BlockLayoutCell} this BlockLayoutCell reference for chaining.
+		 * @returns {this} this BlockLayoutCell reference for chaining.
 		 */
 		BlockLayoutCell.prototype.setWidth = function (iWidth) {
 			this.setProperty("width", iWidth);
@@ -151,24 +150,6 @@ sap.ui.define([
 
 		BlockLayoutCell.prototype._setParentRowScrollable = function (scrollable) {
 			this._parentRowScrollable = scrollable;
-		};
-
-		BlockLayoutCell.prototype.onAfterRendering = function (oEvent) {
-
-			// fixes the issue in IE when the block layout size is auto
-			// like BlockLayout in a Dialog
-			if (Device.browser.internet_explorer) {
-
-				 var bHasParentDialog = this.$().parents().toArray().some(function (element) {
-					if (element.className.indexOf("sapMDialogScroll") !== -1) {
-						return true;
-					}
-				});
-
-				if (bHasParentDialog) {
-					this.$()[0].style.flex = this._flexWidth + " 1 auto";
-				}
-			}
 		};
 
 		BlockLayoutCell.prototype._getParentRowScrollable = function () {

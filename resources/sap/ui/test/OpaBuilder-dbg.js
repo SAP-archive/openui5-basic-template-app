@@ -69,6 +69,7 @@ sap.ui.define(
                     return vToTest instanceof vTypeToCheck;
                 }
 
+                // eslint-disable-next-line valid-typeof
                 return typeof vToTest === vTypeToCheck;
             }, false);
         }
@@ -317,7 +318,7 @@ sap.ui.define(
          * Apply custom options. The options might override previously defined options of the OpaBuilder.
          *
          * @param {object} oOptions the {@link sap.ui.test.Opa5#waitFor} options to apply
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.options = function (oOptions) {
@@ -329,7 +330,7 @@ sap.ui.define(
          * Sets the <code>viewId</code> parameter.
          *
          * @param {string} sViewId the viewId
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.viewId = function (sViewId) {
@@ -340,7 +341,7 @@ sap.ui.define(
          * Sets the <code>viewName</code> parameter.
          *
          * @param {string} sViewName the viewName
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.viewName = function (sViewName) {
@@ -351,7 +352,7 @@ sap.ui.define(
          * Sets the <code>viewNamespace</code> parameter.
          *
          * @param {string} sViewNamespace the viewNamespace
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.viewNamespace = function (sViewNamespace) {
@@ -362,7 +363,7 @@ sap.ui.define(
          * Sets the <code>fragmentId</code> parameter.
          *
          * @param {string} sFragmentId the fragment id
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.fragmentId = function (sFragmentId) {
@@ -373,7 +374,7 @@ sap.ui.define(
          * Sets the <code>timeout</code> parameter.
          *
          * @param {int} iTimeout the timeout in seconds
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.timeout = function (iTimeout) {
@@ -384,7 +385,7 @@ sap.ui.define(
          * Sets the <code>debugTimeout</code> parameter.
          *
          * @param {int} iDebugTimeout the debug timeout in seconds
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.debugTimeout = function (iDebugTimeout) {
@@ -395,7 +396,7 @@ sap.ui.define(
          * Sets the <code>pollingInterval</code> parameter.
          *
          * @param {int} iPollingInterval the polling interval in milliseconds
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.pollingInterval = function (iPollingInterval) {
@@ -406,7 +407,7 @@ sap.ui.define(
          * Defines the id of the target control(s).
          *
          * @param {string | RegExp} vId the id of the target control(s)
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.hasId = function (vId) {
@@ -417,7 +418,7 @@ sap.ui.define(
          * Defines the control type of the target control(s).
          *
          * @param {string} vControlType the type of the target control(s)
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.hasType = function (vControlType) {
@@ -429,7 +430,7 @@ sap.ui.define(
          *
          * @param {sap.ui.test.matchers.Matcher | function | Array | Object} vMatchers additional matchers to filter target control(s)
          * @param {boolean} [bReplace] true to replace all previous defined matchers, false to add it (default)
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.has = function (vMatchers, bReplace) {
@@ -440,7 +441,7 @@ sap.ui.define(
          * Adds a matcher for given properties.
          *
          * @param {object} oProperties map of properties that target control(s) must match
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.hasProperties = function (oProperties) {
@@ -453,7 +454,7 @@ sap.ui.define(
          * @param {string} sPropertyName the name of the property to check for i18n text
          * @param {string} sModelTokenPath the path to the I18N text. If model is omitted, <code>i18n</code> is used as model name.
          * @param {any[]} [aParameters=[]] the values to be used instead of the placeholders
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.hasI18NText = function (sPropertyName, sModelTokenPath, aParameters) {
@@ -465,7 +466,7 @@ sap.ui.define(
          *
          * @param {string} sAggregationName the aggregation name
          * @param {sap.ui.test.matchers.Matcher | function | Array | Object} [vMatchers] matchers to filter aggregation items
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.hasAggregation = function (sAggregationName, vMatchers) {
@@ -478,7 +479,7 @@ sap.ui.define(
          *
          * @param {string} sAggregationName the aggregation name
          * @param {object} oProperties map of properties that aggregation item must match
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.hasAggregationProperties = function (sAggregationName, oProperties) {
@@ -490,7 +491,7 @@ sap.ui.define(
          *
          * @param {string} sAggregationName the aggregation name
          * @param [int] iNumber length to check against
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.hasAggregationLength = function (sAggregationName, iNumber) {
@@ -503,7 +504,7 @@ sap.ui.define(
          * @param {sap.ui.test.matchers.Matcher | function | Array | Object | sap.ui.test.OpaBuilder}
          *                [vBuilderOrMatcher] the matchers to filter child items
          * @param {boolean} [bDirect] specifies if the ancestor should be a direct ancestor (parent)
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.hasChildren = function (vBuilderOrMatcher, bDirect) {
@@ -511,12 +512,12 @@ sap.ui.define(
         };
 
         /**
-         * Adds a matcher that checks states for given conditions. It is internally using {@link OpaBuilder.Matchers.conditional}.
+         * Adds a matcher that checks states for given conditions. It is internally using {@link sap.ui.test.OpaBuilder.Matchers.conditional}.
          *
          * @param {sap.ui.test.matchers.Matcher | function | Array | Object | boolean} vConditions conditions to pre-check
          * @param {sap.ui.test.matchers.Matcher | function | Array | Object} vSuccessMatcher actual matcher that is executed if conditions are met
          * @param {sap.ui.test.matchers.Matcher | function | Array | Object} [vElseMatcher] actual matcher that is executed if conditions are not met
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.hasConditional = function (vConditions, vSuccessMatcher, vElseMatcher) {
@@ -524,10 +525,10 @@ sap.ui.define(
         };
 
         /**
-         * Adds a group of matchers that requires only one of them to actually match. It is internally using {@link OpaBuilder.Matchers.some}.
+         * Adds a group of matchers that requires only one of them to actually match. It is internally using {@link sap.ui.test.OpaBuilder.Matchers.some}.
          *
          * @param [aMatchers=[{sap.ui.test.matchers.Matcher | function | Array | Object}]] aMatchers list of matchers were one must be met
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.hasSome = function (aMatchers) {
@@ -538,7 +539,7 @@ sap.ui.define(
          * Sets the <code>enabled</code> parameter.
          *
          * @param {boolean} [bEnabled] can be set to false to prevent <code>enabled</code> check, set to true if omitted
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.mustBeEnabled = function (bEnabled) {
@@ -549,7 +550,7 @@ sap.ui.define(
          * Sets the <code>visible</code> parameter.
          *
          * @param {boolean} [bVisible] can be set to false to prevent <code>visible</code> check, set to true if omitted
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.mustBeVisible = function (bVisible) {
@@ -560,7 +561,7 @@ sap.ui.define(
          * Sets the <code>autoWait</code> parameter.
          *
          * @param {boolean} [bReady] can be set to false to prevent <code>autoWait</code>, set to true if omitted
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.mustBeReady = function (bReady) {
@@ -571,7 +572,7 @@ sap.ui.define(
          * Defines whether target control is part of a popover or dialog (sets <code>searchOpenDialogs</code> property).
          *
          * @param {boolean} [bDialog] can be set to false to disable <code>searchOpenDialogs</code>, set to true if omitted
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.isDialogElement = function (bDialog) {
@@ -583,7 +584,7 @@ sap.ui.define(
          *
          * @param {function} fnCheck the check that is executed on matched controls
          * @param {boolean} [bReplace] true to replace all previous defined matchers, false to add it (default)
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.check = function (fnCheck, bReplace) {
@@ -594,7 +595,7 @@ sap.ui.define(
          * Adds a check for the expected number of matching controls.
          *
          * @param {number} iExpectedNumber the number of expected matching controls
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.checkNumberOfMatches = function (iExpectedNumber) {
@@ -615,7 +616,7 @@ sap.ui.define(
          * @param {sap.ui.test.actions.Action | function | Array}
          *            vActions the action(s) to be performed on matched controls
          * @param {boolean} [bReplace] true to replace all previous defined actions, false to add it (default)
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.do = function (vActions, bReplace) {
@@ -635,7 +636,7 @@ sap.ui.define(
          *            vSuccessActions the actions to be performed when conditions are fulfilled
          * @param {sap.ui.test.actions.Action | function | Array}
          *            [vElseActions] the action(s) to be performed when conditions are not fulfilled
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.doConditional = function (vConditions, vSuccessActions, vElseActions) {
@@ -650,7 +651,7 @@ sap.ui.define(
          * Executes a {@link sap.ui.test.actions.Press} action on target control(s).
          *
          * @param {string} [sIdSuffix] the id suffix of the DOM Element the press action will be executed on
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.doPress = function (sIdSuffix) {
@@ -665,7 +666,7 @@ sap.ui.define(
          * @param {boolean} [bKeepFocus] defines the {@link sap.ui.test.actions.EnterText#setKeepFocus} setting
          * @param {boolean} [bPressEnterKey] defines the {@link sap.ui.test.actions.EnterText#setPressEnterKey} setting
          * @param {string} [sIdSuffix] defines the {@link sap.ui.test.actions.Action#setIdSuffix} setting
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.doEnterText = function (sText, bClearFirst, bKeepFocus, bPressEnterKey, sIdSuffix) {
@@ -680,7 +681,7 @@ sap.ui.define(
          *                [vMatchers] the matchers to filter aggregation items
          * @param {sap.ui.test.actions.Action | function | Array}
          *                vActions the actions to be performed on matching aggregation items
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.doOnAggregation = function (sAggregationName, vMatchers, vActions) {
@@ -703,7 +704,7 @@ sap.ui.define(
          * @param {sap.ui.test.actions.Action | function | Array}
          *                [vActions] the actions to be performed on matching child items
          * @param {boolean} [bDirect] specifies if the ancestor should be a direct ancestor (parent)
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.doOnChildren = function (vChildBuilderOrMatcher, vActions, bDirect) {
@@ -729,7 +730,7 @@ sap.ui.define(
          * Set a output text that will be used as success and error message base message.
          *
          * @param {string} sDescription a descriptive text
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.description = function (sDescription) {
@@ -741,7 +742,7 @@ sap.ui.define(
          *
          * @param {string | function | sap.ui.test.OpaBuilder} vSuccess the message that will be shown (or function executed) on success
          * @param {boolean} [bReplace] true to replace all previous defined success functions, false to add it (default)
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.success = function (vSuccess, bReplace) {
@@ -754,7 +755,7 @@ sap.ui.define(
          *
          * @param {string | function} vErrorMessage the message to be shown (or function executed) on failure
          * @param {boolean} [bReplace] true to replace all previous defined error functions, false to add it (default)
-         * @returns {sap.ui.test.OpaBuilder} this OpaBuilder instance
+         * @returns {this} this OpaBuilder instance
          * @public
          */
         OpaBuilder.prototype.error = function (vErrorMessage, bReplace) {
@@ -796,7 +797,7 @@ sap.ui.define(
         /**
          * Set the Opa5 instance to be used for {@link sap.ui.test.OpaBuilder#execute}.
          * Please note that this function does not return the OpaBuilder instance and can therefore not be chained.
-         * Use the <code>oOpaInstance</code> argument of {@link sap.ui.test.OpaBuilder#create}, {@link sap.ui.test.OpaBuilder#constructor}
+         * Use the <code>oOpaInstance</code> argument of {@link sap.ui.test.OpaBuilder.create}, {@link sap.ui.test.OpaBuilder#constructor}
          * or {@link sap.ui.test.OpaBuilder#execute} to provide the Opa5 instance within the builder chain.
          * @param {sap.ui.test.Opa5} [oOpaInstance] the Opa5 instance to operate on
          * @public

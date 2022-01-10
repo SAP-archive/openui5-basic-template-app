@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IContextMenu
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -84,7 +84,7 @@ sap.ui.define([
 			 * Accessible label / description of the menu for assistive technologies like screenreaders.
 			 * @deprecated as of version 1.27.0, replaced by <code>ariaLabelledBy</code> association
 			 */
-			ariaDescription : {type : "string", group : "Accessibility", defaultValue : null},
+			ariaDescription : {type : "string", group : "Accessibility", defaultValue : null, deprecated: true},
 
 			/**
 			 * The maximum number of items which are displayed before an overflow mechanism takes effect.
@@ -187,12 +187,19 @@ sap.ui.define([
 	 * Enables any consumer of the menu to enhance its accessibility state by calling
 	 * back its custom provided function Menu#_setCustomEnhanceAccStateFunction.
 	 *
+	 * @param {sap.ui.core.Element} oElement
+	 *   The Control/Element for which ARIA properties are collected
+	 * @param {object} mAriaProps
+	 *   Map of ARIA properties keyed by their name (without prefix "aria-"); the method
+	 *   implementation can enhance this map in any way (add or remove properties, modify values)
 	 * @overrides sap.ui.core.Element.prototype.enhanceAccessibilityState
 	 */
 	Menu.prototype.enhanceAccessibilityState = function(oElement, mAriaProps) {
 		var bIsAccFunctionValid = typeof this._fnCustomEnhanceAccStateFunction === "function";
 
-		return bIsAccFunctionValid ? this._fnCustomEnhanceAccStateFunction(oElement, mAriaProps) : mAriaProps;
+		if (bIsAccFunctionValid) {
+			this._fnCustomEnhanceAccStateFunction(oElement, mAriaProps);
+		}
 	};
 
 	/**
@@ -825,11 +832,12 @@ sap.ui.define([
 
 		if (checkMouseEnterOrLeave(oEvent, this.getDomRef())) {
 			this.setHoveredItem(null);
-		} else {
-			this.setHoveredItem(this.oHoveredItem);
-		}
+			if (!this.oOpenedSubMenu || !(this.oOpenedSubMenu.getParent() === this.oHoveredItem)) {
+				this.setHoveredItem(this.oHoveredItem);
 
-		this._discardOpenSubMenuDelayed();
+			}
+			this._discardOpenSubMenuDelayed();
+		}
 	};
 
 	/**

@@ -37,7 +37,7 @@ sap.ui.define([
 	 * @param {string} [sIdPrefix] Prefix used for the Ids. If not set a default prefix is used.
 	 * @returns {jQuery.sap.storage.Storage}
 	 *
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @since 0.11.0
 	 * @namespace
 	 * @public
@@ -61,8 +61,11 @@ sap.ui.define([
 			if (sIdPrefix && sIdPrefix != "state.key_") {
 				sKey = oStorage + "_" + sIdPrefix;
 			}
+			if (!mStorages[sKey]) {
+				mStorages[sKey] = new Storage(oStorage, sIdPrefix);
+			}
 
-			return mStorages[sKey] || (mStorages[sKey] = new Storage(oStorage, sIdPrefix));
+			return mStorages[sKey];
 		}
 
 		// OK, tough but probably good for issue identification. As something was passed in, let's at least ensure our used API is fulfilled.
@@ -94,7 +97,7 @@ sap.ui.define([
 	 * should be deleted the method {@link #removeAll} should be used.
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @since 0.11.0
 	 * @public
 	 * @name jQuery.sap.storage.Storage
@@ -198,7 +201,7 @@ sap.ui.define([
 	 * Enumeration of the storage types supported by {@link jQuery.sap.storage.Storage}
 	 * @enum {string}
 	 * @public
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @since 0.11.0
 	 */
 	jQuery.sap.storage.Type = Storage.Type;

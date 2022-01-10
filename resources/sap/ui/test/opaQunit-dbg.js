@@ -8,11 +8,19 @@ sap.ui.define([
 	'sap/ui/thirdparty/URI',
 	'sap/ui/test/Opa',
 	'sap/ui/test/Opa5',
-	"sap/ui/thirdparty/jquery"
-], function(URI, Opa, Opa5, jQueryDOM) {
+	"sap/ui/thirdparty/jquery",
+	'sap/ui/test/qunitPause'
+], function(URI, Opa, Opa5, jQueryDOM, QUnitPause) {
 	"use strict";
 
+	QUnitPause.setupAfterQUnit();
+
 	QUnit.begin(function (oDetails) {
+		// add ui5 version in the user agent string bar
+		if (sap && sap.ui && jQueryDOM('#qunit-userAgent').length > 0) {
+			jQueryDOM('#qunit-userAgent')[0].innerText += "; UI5: " + sap.ui.version;
+		}
+
 		Opa._usageReport.begin({uri: new URI().toString(), totalTests: oDetails.totalTests});
 	});
 
@@ -87,12 +95,11 @@ sap.ui.define([
 	 * @function
 	 * @static
 	 * @param {string} testName name of the QUnit test.
-	 * @param {int|function} expected integer value only supported in QUnit v1.x: denotes how many assertions are expected to be made in the test.
-	 * If a function is passed instead, it is considered to be the callback parameter
+	 * @param {int} [expected] only supported in QUnit v1.x: denotes how many assertions are expected to be made in the test.
 	 * @param {function} callback the test function. Expects 3 arguments, in order:
 	 * {@link sap.ui.test.Opa.config}.arrangements, {@link sap.ui.test.Opa.config}.actions, {@link sap.ui.test.Opa.config}.assertions.
 	 * These arguments will be prefilled by OPA
-	 * @param {boolean} async available only in QUnit v1.x. Indicates whether the test is asynchronous. False by default.
+	 * @param {boolean} [async=false] available only in QUnit v1.x. Indicates whether the test is asynchronous. False by default.
 	 */
 	function opaTest() {
 		callQUnit("test", arguments, function (assert, fnDone) {
@@ -108,11 +115,22 @@ sap.ui.define([
 			assert.ok(false, oOptions.errorMessage);
 
 			resetOPA();
-			// let OPA finish before QUnit starts executing the next test
-			// call fnStart only if QUnit did not timeout
-			if (!oOptions.qunitTimeout) {
-				setTimeout(fnDone, 0);
+
+			if (!QUnitPause.shouldPauseOnAssert()) {
+				QUnitPause.emitPause();
 			}
+
+			var oPauseDeferred = jQueryDOM.Deferred();
+			QUnitPause.onResume(function () {
+				// let OPA finish before QUnit starts executing the next test
+				// call fnStart only if QUnit did not timeout
+				if (!oOptions.qunitTimeout) {
+					setTimeout(fnDone, 0);
+				}
+				oPauseDeferred.resolve();
+			});
+
+			return oPauseDeferred.promise();
 		});
 	}
 
@@ -125,12 +143,11 @@ sap.ui.define([
 	 * @function
 	 * @static
 	 * @param {string} testName name of the QUnit test.
-	 * @param {int|function} expected integer value only supported in QUnit v1.x: denotes how many assertions are expected to be made in the test.
-	 * If a function is passed instead, it is considered to be the callback parameter
+	 * @param {int} [expected] only supported in QUnit v1.x: denotes how many assertions are expected to be made in the test.
 	 * @param {function} callback the test function. Expects 3 arguments, in order:
 	 * {@link sap.ui.test.Opa.config}.arrangements, {@link sap.ui.test.Opa.config}.actions, {@link sap.ui.test.Opa.config}.assertions.
 	 * These arguments will be prefilled by OPA
-	 * @param {boolean} async available only in QUnit v1.x. Indicates whether the test is asynchronous. False by default.
+	 * @param {boolean} [async=false] available only in QUnit v1.x. Indicates whether the test is asynchronous. False by default.
 	 */
 	function opaTodo() {
 		callQUnit("todo", arguments, function (assert, fnDone) {
@@ -158,12 +175,11 @@ sap.ui.define([
 	 * @function
 	 * @static
 	 * @param {string} testName name of the QUnit test.
-	 * @param {int|function} expected integer value only supported in QUnit v1.x: denotes how many assertions are expected to be made in the test.
-	 * If a function is passed instead, it is considered to be the callback parameter
+	 * @param {int} [expected] only supported in QUnit v1.x: denotes how many assertions are expected to be made in the test.
 	 * @param {function} callback the test function. Expects 3 arguments, in order:
 	 * {@link sap.ui.test.Opa.config}.arrangements, {@link sap.ui.test.Opa.config}.actions, {@link sap.ui.test.Opa.config}.assertions.
 	 * These arguments will be prefilled by OPA
-	 * @param {boolean} async available only in QUnit v1.x. Indicates whether the test is asynchronous. False by default.
+	 * @param {boolean} [async=false] available only in QUnit v1.x. Indicates whether the test is asynchronous. False by default.
 	 */
 	function opaSkip(testName, expected, callback, async) {
 		configQUnit();
@@ -220,6 +236,8 @@ sap.ui.define([
 			// preserve QUnit 'this' in order to access it from waitFor statements
 			mConfig.callback.call(this, Opa.config.arrangements, Opa.config.actions, Opa.config.assertions);
 
+			QUnitPause.setupBeforeOpaTest();
+
 			Opa.emptyQueue()
 				.done(function () {
 					fnDone(assert, fnAsync);
@@ -271,7 +289,7 @@ sap.ui.define([
 					var qunitThis = this;
 					// call the assertion in the app window
 					// assertion is async, push results when ready
-					var oAssertionPromise = fnAssertion.bind(oParams.appWindow)(arguments)
+					var oAssertionPromise = fnAssertion.apply(oParams.appWindow, arguments)
 						.always(function (oResult) {
 							qunitThis.push(
 								oResult.result,

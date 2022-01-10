@@ -62,7 +62,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -146,13 +146,6 @@ sap.ui.define([
 	});
 
 	/**
-	 * Library internationalization resource bundle.
-	 *
-	 * @type {module:sap/base/i18n/ResourceBundle}
-	 */
-	var oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m");
-
-	/**
 	 * Map of predefined <code>ObjectMarker</code> types.
 	 *
 	 * @static
@@ -167,7 +160,7 @@ sap.ui.define([
 				}
 			},
 			text: {
-				value: oRB.getText("OM_FLAG"),
+				value: "OM_FLAG",
 				visibility: {
 					small: false,
 					large: false
@@ -183,7 +176,7 @@ sap.ui.define([
 				}
 			},
 			text: {
-				value: oRB.getText("OM_FAVORITE"),
+				value: "OM_FAVORITE",
 				visibility: {
 					small: false,
 					large: false
@@ -199,7 +192,7 @@ sap.ui.define([
 				}
 			},
 			text: {
-				value: oRB.getText("OM_DRAFT"),
+				value: "OM_DRAFT",
 				visibility: {
 					small: true,
 					large: true
@@ -215,7 +208,7 @@ sap.ui.define([
 				}
 			},
 			text: {
-				value: oRB.getText("OM_LOCKED"),
+				value: "OM_LOCKED",
 				visibility: {
 					small: false,
 					large: true
@@ -231,7 +224,7 @@ sap.ui.define([
 				}
 			},
 			text: {
-				value: oRB.getText("OM_UNSAVED"),
+				value: "OM_UNSAVED",
 				visibility: {
 					small: false,
 					large: true
@@ -247,7 +240,7 @@ sap.ui.define([
 				}
 			},
 			text: {
-				value: oRB.getText("OM_LOCKED_BY"),
+				value: "OM_LOCKED_BY",
 				visibility: {
 					small: false,
 					large: true
@@ -263,7 +256,7 @@ sap.ui.define([
 				}
 			},
 			text: {
-				value: oRB.getText("OM_UNSAVED_BY"),
+				value: "OM_UNSAVED_BY",
 				visibility: {
 					small: false,
 					large: true
@@ -319,7 +312,7 @@ sap.ui.define([
 	 * If <code>press</code> event is attached and the control is rendered as text, than the control will be
 	 * re-rendered as link.
 	 *
-	 * @returns {sap.m.ObjectMarker} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 */
 	ObjectMarker.prototype.attachPress = function () {
 		var oInnerControl = this._getInnerControl();
@@ -341,7 +334,7 @@ sap.ui.define([
 	 * If <code>press</code> event is detached and the control is rendered as a link, than the control will be
 	 * re-rendered as a text.
 	 *
-	 * @returns {sap.m.ObjectMarker} <code>this</code> pointer for chaining
+	 * @returns {this} <code>this</code> pointer for chaining
 	 */
 	ObjectMarker.prototype.detachPress = function() {
 		var oInnerControl = this._getInnerControl();
@@ -390,6 +383,7 @@ sap.ui.define([
 
 		var oType = ObjectMarker.M_PREDEFINED_TYPES[this.getType()],
 			oInnerControl = this._getInnerControl(),
+			oInnerIcon = oInnerControl && oInnerControl._getIconAggregation(),
 			sAdditionalInfo = this.getAdditionalInfo(),
 			bIsIconVisible = this._isIconVisible(),
 			bIsTextVisible = this._isTextVisible(),
@@ -408,7 +402,9 @@ sap.ui.define([
 
 		if (bIsIconVisible) {
 			oInnerControl.setIcon(oType.icon.src, bSuppressInvalidate);
-			oInnerControl._getIconAggregation().setDecorative(!bIsIconOnly); // icon should be decorative if we have text
+			oInnerIcon.setDecorative(!bIsIconOnly); // icon should be decorative if we have text
+			oInnerIcon.setAlt(sText);
+			oInnerIcon.setUseIconTooltip(false);
 			this.addStyleClass("sapMObjectMarkerIcon");
 		} else {
 			oInnerControl.setIcon(null, bSuppressInvalidate);
@@ -420,7 +416,7 @@ sap.ui.define([
 			oInnerControl.setText(sText, bSuppressInvalidate);
 			this.addStyleClass("sapMObjectMarkerText");
 		} else {
-			if (oInnerControl.getIcon()) {
+			if (oInnerIcon) {
 				oInnerControl.setAggregation("tooltip", sText, bSuppressInvalidate);
 			}
 			oInnerControl.setText(null, bSuppressInvalidate);
@@ -451,6 +447,7 @@ sap.ui.define([
 	 * @private
 	 */
 	ObjectMarker.prototype._getMarkerText = function (oType, sType, sAdditionalInfo) {
+		var oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m");
 
 		switch (sType) {
 			case "LockedBy":
@@ -458,9 +455,10 @@ sap.ui.define([
 			case "UnsavedBy":
 				return (sAdditionalInfo === "") ? oRB.getText('OM_UNSAVED_BY_ANOTHER_USER') : oRB.getText('OM_UNSAVED_BY', [sAdditionalInfo]);
 			default:
-				return (sAdditionalInfo === "") ? oType.text.value : oType.text.value + " " + sAdditionalInfo;
+				return (sAdditionalInfo === "") ? oRB.getText(oType.text.value) : oRB.getText(oType.text.value) + " " + sAdditionalInfo;
 		}
 	};
+
 
 	/**
 	 * Determines if the icon of the control should be visible or not.

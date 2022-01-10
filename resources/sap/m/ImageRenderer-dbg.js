@@ -5,12 +5,15 @@
  */
 
 // Provides default renderer for control sap.m.Image
-sap.ui.define(['sap/m/library', "sap/base/security/encodeCSS"],
-	function(library, encodeCSS) {
+sap.ui.define(['sap/m/library', "sap/base/security/encodeCSS", "sap/ui/core/library"],
+	function(library, encodeCSS, coreLibrary) {
 	"use strict";
 
 	// shortcut for sap.m.ImageMode
 	var ImageMode = library.ImageMode;
+
+	// shortcut for sap.ui.core.aria.HasPopup
+	var AriaHasPopup = coreLibrary.aria.HasPopup;
 
 	/**
 	 * Image renderer.
@@ -38,7 +41,9 @@ sap.ui.define(['sap/m/library', "sap/base/security/encodeCSS"],
 			aLabelledBy = oImage.getAriaLabelledBy(),
 			aDescribedBy = oImage.getAriaDescribedBy(),
 			aDetails = oImage.getAriaDetails(),
-			bIsImageMode = sMode === ImageMode.Image;
+			bIsImageMode = sMode === ImageMode.Image,
+			bLazyLoading = oImage.getLazyLoading(),
+			sAriaHasPopup = oImage.getAriaHasPopup();
 
 		// Additional element for Image with LightBox
 		if (oLightBox) {
@@ -52,6 +57,10 @@ sap.ui.define(['sap/m/library', "sap/base/security/encodeCSS"],
 
 		if (bIsImageMode) {
 			oRm.voidStart("img", !oLightBox ? oImage : oImage.getId() + "-inner");
+			if (bLazyLoading) {
+				oRm.attr("loading", "lazy");
+			}
+
 		} else {
 			oRm.openStart("span", !oLightBox ? oImage : oImage.getId() + "-inner");
 		}
@@ -118,6 +127,10 @@ sap.ui.define(['sap/m/library', "sap/base/security/encodeCSS"],
 
 		if (tooltip) {
 			oRm.attr("title", tooltip);
+		}
+
+		if (sAriaHasPopup !== AriaHasPopup.None) {
+			oRm.attr("aria-haspopup", sAriaHasPopup.toLowerCase());
 		}
 
 		if (bHasPressHandlers) {

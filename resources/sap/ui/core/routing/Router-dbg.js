@@ -141,8 +141,8 @@ sap.ui.define([
 		 * </pre>
 		 *
 		 * Since the xmlTarget does not specify its viewType, XML is taken from the config object. The jsTarget is specifying it, so the viewType will be JS.
-		 * @param {object} [oConfig.bypassed] @since 1.28. Settings which are used when no route of the router is matched after a hash change.
-		 * @param {string|string[]} [oConfig.bypassed.target] @since 1.28. One or multiple names of targets that will be displayed, if no route of the router is matched.<br/>
+		 * @param {object} [oConfig.bypassed] Since 1.28. Settings which are used when no route of the router is matched after a hash change.
+		 * @param {string|string[]} [oConfig.bypassed.target] Since 1.28. One or multiple names of targets that will be displayed, if no route of the router is matched.<br/>
 		 * A typical use case is a not found page.<br/>
 		 * The current hash will be passed to the display event of the target.<br/>
 		 * <b>Example:</b>
@@ -170,12 +170,12 @@ sap.ui.define([
 		 *          }
 		 *     });
 		 * </pre>
-		 * @param {boolean} [oConfig.async=false] @since 1.34. Whether the views which are loaded within this router instance asyncly
+		 * @param {boolean} [oConfig.async=false] Since 1.34. Whether views are loaded asynchronously within this router instance.
+		 * As of 1.90 synchronous routing is deprecated. Therefore, you should explicitly set <code>oConfig.async</code> to <code>true</code>.
 		 * @param {sap.ui.core.UIComponent} [oOwner] the Component of all the views that will be created by this Router,<br/>
 		 * will get forwarded to the {@link sap.ui.core.routing.Views#constructor}.<br/>
 		 * If you are using the componentMetadata to define your routes you should skip this parameter.
-		 * @param {object} [oTargetsConfig]
-		 * available @since 1.28 the target configuration, see {@link sap.ui.core.routing.Targets#constructor} documentation (the options object).<br/>
+		 * @param {object} [oTargetsConfig] Since 1.28 the target configuration, see {@link sap.ui.core.routing.Targets#constructor} documentation (the options object).<br/>
 		 * You should use Targets to create and display views. Since 1.28 the route should only contain routing relevant properties.<br/>
 		 * <b>Example:</b>
 		 * <pre>
@@ -265,7 +265,7 @@ sap.ui.define([
 							if (oHashChanger instanceof RouterHashChanger && !bIsRouteRelevant) {
 								// reset the hash to allow the match with the previous route after
 								// displaying a target without involving the router
-								oHashChanger.resetHash();
+								oHashChanger.resetHash(this);
 							}
 						}
 					}, this);
@@ -380,9 +380,9 @@ sap.ui.define([
 			 *
 			 * See {@link sap.ui.core.routing.HashChanger}.
 			 *
-			 * @param {boolean} [bIgnoreInitialHash=false] @since 1.48.0 Whether the current URL hash shouldn't be parsed after the router is initialized
+			 * @param {boolean} [bIgnoreInitialHash=false] Since 1.48.0. Whether the current URL hash shouldn't be parsed after the router is initialized
 			 * @public
-			 * @returns {sap.ui.core.routing.Router} this for chaining.
+			 * @returns {this} this for chaining.
 			 */
 			initialize : function (bIgnoreInitialHash) {
 				var that = this,
@@ -422,6 +422,10 @@ sap.ui.define([
 					}
 				}
 
+				if (this.oHashChanger instanceof RouterHashChanger) {
+					this.oHashChanger._setActiveRouter(this);
+				}
+
 				this.oHashChanger.init();
 				sHash = this.oHashChanger.getHash();
 
@@ -431,10 +435,14 @@ sap.ui.define([
 				// shouldn't be processed.
 				this.oHashChanger.attachEvent("hashChanged", this.fnHashChanged);
 
-				// The HashChanger returns an InvalidHash when one of its ancestors is currently in
-				// the collect mode of preparing the next hash change. In this case, the Router should
-				// not be initialized and wait for the next 'hashChanged' event.
-				if (!bIgnoreInitialHash && sHash !== RouterHashChanger.InvalidHash) {
+				if (bIgnoreInitialHash) {
+					if (this._oMatchedRoute) {
+						this._oMatchedRoute._resume();
+					}
+				} else if (sHash !== RouterHashChanger.InvalidHash) {
+					// The HashChanger returns an InvalidHash when one of its ancestors is currently in
+					// the collect mode of preparing the next hash change. In this case, the Router should
+					// not parse the current hash and wait for the next 'hashChanged' event.
 					this.parse(sHash);
 				}
 
@@ -486,7 +494,6 @@ sap.ui.define([
 
 				if (this._oMatchedRoute) {
 					this._oMatchedRoute._routeSwitched();
-					this._oMatchedRoute = null;
 				}
 
 				this._bIsInitialized = false;
@@ -652,11 +659,18 @@ sap.ui.define([
 			},
 
 			/**
+			 * @typedef {Object} sap.ui.core.routing.RouteInfo
+			 * @property {string} name The route name
+			 * @property {Object.<string, string>} arguments The route data
+			 * @public
+			 */
+
+			/**
 			 * Returns a route info object containing the name and arguments of the route
 			 * which matches the given hash or <code>undefined</code>.
 			 *
 			 * @param {string} sHash The hash to be matched
-			 * @returns {object|undefined} An object containing the route <code>name</code> and the <code>arguments</code> or <code>undefined</code>
+			 * @returns {sap.ui.core.routing.RouteInfo|undefined} An object containing the route <code>name</code> and the <code>arguments</code> or <code>undefined</code>
 			 * @public
 			 * @since 1.75
 			 */
@@ -745,7 +759,7 @@ sap.ui.define([
 			 * @param {sap.ui.core.mvc.View} oView The view instance
 			 * @since 1.22
 			 * @public
-			 * @returns {sap.ui.core.routing.Router} @since 1.28 the this pointer for chaining
+			 * @returns {this} Since 1.28, the <code>this</code> pointer for chaining
 			 */
 			setView : function (sViewName, oView) {
 				this._oViews.setView(sViewName, oView);
@@ -821,13 +835,18 @@ sap.ui.define([
 			*             history. If set to <code>false</code>, the hash is set and the entry is stored in the browser
 			*             history.
 			 * @public
-			 * @returns {sap.ui.core.routing.Router} this for chaining.
+			 * @returns {this} this for chaining.
 			 */
 			navTo : function (sName, oParameters, oComponentTargetInfo, bReplace) {
 				var that = this,
 					bRouteSwitched = this._getLastMatchedRouteName() !== sName,
 					oRoute = this.getRoute(sName),
 					pComponentHashChange, sHash;
+
+				if (this.isStopped()){
+					Log.info("The router instance " + this._sId + " is stopped. No navigation can be performed.");
+					return this;
+				}
 
 				if (!oRoute) {
 					Log.warning("Route with name " + sName + " does not exist", this);
@@ -954,7 +973,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with, defaults to this
 			 *            <code>sap.ui.core.routing.Router</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			attachRouteMatched : function(oData, fnFunction, oListener) {
@@ -972,7 +991,7 @@ sap.ui.define([
 			 *            fnFunction The function to be called when the event occurs
 			 * @param {object}
 			 *            oListener Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			detachRouteMatched : function(fnFunction, oListener) {
@@ -985,7 +1004,7 @@ sap.ui.define([
 			 *
 			 * @param {object} [oParameters] Parameters to pass along with the event
 			 *
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @protected
 			 */
 			fireRouteMatched : function(oParameters) {
@@ -1041,7 +1060,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with, defaults to this
 			 *            <code>sap.ui.core.routing.Router</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			attachBeforeRouteMatched : function(oData, fnFunction, oListener) {
@@ -1059,7 +1078,7 @@ sap.ui.define([
 			 *            fnFunction The function to be called when the event occurs
 			 * @param {object}
 			 *            oListener Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			detachBeforeRouteMatched : function(fnFunction, oListener) {
@@ -1072,7 +1091,7 @@ sap.ui.define([
 			 *
 			 * @param {object} [oParameters] Parameters to pass along with the event
 			 *
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @protected
 			 */
 			fireBeforeRouteMatched : function(oParameters) {
@@ -1096,7 +1115,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with, defaults to this
 			 *            <code>sap.ui.core.routing.Router</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 * @deprecated Since 1.28 use {@link #getViews} instead.
 			 */
@@ -1115,7 +1134,7 @@ sap.ui.define([
 			 *            fnFunction The function to be called when the event occurs
 			 * @param {object}
 			 *            oListener Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 * @deprecated Since 1.28 use {@link #getViews} instead.
 			 */
@@ -1129,7 +1148,7 @@ sap.ui.define([
 			 *
 			 * @param {object} [oParameters] Parameters to pass along with the event
 			 *
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @protected
 			 * @deprecated As of 1.28 use {@link #getViews} instead.
 			 */
@@ -1181,7 +1200,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with, defaults to this
 			 *            <code>sap.ui.core.routing.Router</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			attachRoutePatternMatched : function(oData, fnFunction, oListener) {
@@ -1202,7 +1221,7 @@ sap.ui.define([
 			 *            fnFunction The function to be called when the event occurs
 			 * @param {object}
 			 *            oListener Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			detachRoutePatternMatched : function(fnFunction, oListener) {
@@ -1218,7 +1237,7 @@ sap.ui.define([
 			 *
 			 * @param {object} [oParameters] Parameters to pass along with the event
 			 *
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @protected
 			 */
 			fireRoutePatternMatched : function(oParameters) {
@@ -1256,7 +1275,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with, defaults to this
 			 *            <code>sap.ui.core.routing.Router</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			attachBypassed : function(oData, fnFunction, oListener) {
@@ -1275,7 +1294,7 @@ sap.ui.define([
 			 *            fnFunction The function to be called when the event occurs
 			 * @param {object}
 			 *            oListener Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			detachBypassed : function(fnFunction, oListener) {
@@ -1289,7 +1308,7 @@ sap.ui.define([
 			 *
 			 * @param {object} [oParameters] Parameters to pass along with the event
 			 *
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @protected
 			 */
 			fireBypassed : function(oParameters) {
@@ -1348,7 +1367,7 @@ sap.ui.define([
 			 *            [oListener] Context object to call the event handler with, defaults to this
 			 *            <code>sap.ui.core.routing.Router</code> itself
 			 *
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
  			 * @public
  			 */
 			attachTitleChanged : function(oData, fnFunction, oListener) {
@@ -1366,7 +1385,7 @@ sap.ui.define([
 			 *            fnFunction The function to be called when the event occurs
 			 * @param {object}
 			 *            oListener Context object on which the given function had to be called
-			 * @returns {sap.ui.core.routing.Router} Reference to <code>this</code> in order to allow method chaining
+			 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 			 * @public
 			 */
 			detachTitleChanged : function(fnFunction, oListener) {
@@ -1512,7 +1531,7 @@ sap.ui.define([
 			 * Use {@link sap.ui.core.routing.Router.getRouter Router.getRouter()} to retrieve the instance.
 			 *
 			 * @param {string} sName Name of the router instance
-			 * @returns {sap.ui.core.routing.Router} The router instance
+			 * @returns {this} The router instance
 			 * @public
 			 */
 			register : function (sName) {

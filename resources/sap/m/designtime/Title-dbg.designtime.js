@@ -20,6 +20,11 @@ sap.ui.define([],
 					svg: "sap/m/designtime/Title.icon.svg"
 				}
 			},
+			aggregations: {
+                content: {
+                    ignore: true
+                }
+            },
 			actions: {
 				remove: {
 					changeType: "hideControl"
@@ -27,7 +32,8 @@ sap.ui.define([],
 				rename: {
 					changeType: "rename",
 					domRef: function (oControl) {
-						return oControl.$().find("span")[0];
+						var oLink = oControl.$().find("span .sapMLnk");
+						return oLink.length ? oLink[0] : oControl.$().find("span")[0];
 					}
 				},
 				reveal: {

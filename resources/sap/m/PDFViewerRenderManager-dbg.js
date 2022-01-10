@@ -79,7 +79,7 @@ sap.ui.define([
 					}
 
 					var oPopup = new Dialog(sPopupId, oOptions);
-					oPopup.addStyleClass("sapUiPopupWithPadding");
+					oPopup.addStyleClass("sapUiContentPadding");
 
 					that._objectsRegister[sPopupFactoryFunctionName] = function () {
 						return oPopup;
@@ -110,10 +110,10 @@ sap.ui.define([
 				});
 
 				oPopup.setShowHeader(true);
-				if (!!this.getPopupHeaderTitle()) {
+				if (this.getPopupHeaderTitle()) {
 					oPopup.setTitle(this.getPopupHeaderTitle());
 				}
-				if (!!this.getTitle()) {
+				if (this.getTitle()) {
 					oPopup.setTitle(this.getTitle());
 				}
 			};

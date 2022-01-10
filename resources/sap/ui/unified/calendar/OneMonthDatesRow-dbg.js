@@ -34,7 +34,7 @@ sap.ui.define([
 	 * Other usages are not supported.
 	 *
 	 * @extends sap.ui.unified.calendar.DatesRow
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @private
@@ -71,6 +71,8 @@ sap.ui.define([
 			oSelectedDates[0].setProperty('startDate', oStartDate);
 		}
 
+		this.iMode < 2 ? this._bAlwaysShowSpecialDates = false : this._bAlwaysShowSpecialDates = true;
+
 		return this;
 	};
 
@@ -85,7 +87,7 @@ sap.ui.define([
 	/**
 	 * Selects a given date.
 	 * @param {Date} oDate a JavaScript date
-	 * @return {sap.ui.unified.calendar.OneMonthDatesRow} <code>this</code> for method chaining
+	 * @return {this} <code>this</code> for method chaining
 	 */
 	OneMonthDatesRow.prototype.selectDate = function(oDate) {
 		if (this.iMode < 2 && this.getSelectedDates().length) {
@@ -97,7 +99,7 @@ sap.ui.define([
 	/**
 	 * Sets a given date.
 	 * @param {Date} oDate a JavaScript date
-	 * @return {sap.ui.unified.calendar.OneMonthDatesRow} <code>this</code> for method chaining
+	 * @return {this} <code>this</code> for method chaining
 	 */
 	OneMonthDatesRow.prototype.setDate = function(oDate) {
 		// check if in visible date range
@@ -121,7 +123,7 @@ sap.ui.define([
 	/**
 	 * Displays a given date.
 	 * @param {Date} oDate a JavaScript date
-	 * @return {sap.ui.unified.calendar.OneMonthDatesRow} <code>this</code> for method chaining
+	 * @return {this} <code>this</code> for method chaining
 	 */
 	OneMonthDatesRow.prototype.displayDate = function(oDate){
 		// check if in visible date range
@@ -145,7 +147,7 @@ sap.ui.define([
 		//prevent item navigation to focus the 1st visible item, because this item may correspond to an item from other month
 		interruptEvent(oEvent);
 
-		this._setDate(oCalStartDate);//Can we reuse setDate (see checkDateFocusable that prevents setting the date).
+		this.setDate(oCalStartDate.toLocalJSDate());//Can we reuse setDate (see checkDateFocusable that prevents setting the date).
 		this._focusDate(oCalStartDate);
 
 		this.fireFocus({date: oCalStartDate.toLocalJSDate(), otherMonth: false});
@@ -165,7 +167,7 @@ sap.ui.define([
 		//prevent item navigation to focus the last visible item, because this item may correspond to an item from other month
 		interruptEvent(oEvent);
 
-		this._setDate(oLastDay); //Can we reuse setDate (see checkDateFocusable that prevents setting the date).
+		this.setDate(oLastDay.toLocalJSDate()); //Can we reuse setDate (see checkDateFocusable that prevents setting the date).
 		this._focusDate(oLastDay);
 
 		this.fireFocus({date: oLastDay.toLocalJSDate(), otherMonth: false});

@@ -13,7 +13,6 @@ sap.ui.define([
 	'sap/base/util/ObjectPath',
 	'sap/base/strings/escapeRegExp',
 	'sap/base/util/merge',
-	'sap/base/util/extend',
 	'sap/base/util/isPlainObject'
 ],
 function(
@@ -24,7 +23,6 @@ function(
 	ObjectPath,
 	escapeRegExp,
 	merge,
-	extend,
 	isPlainObject
 ) {
 	"use strict";
@@ -75,7 +73,7 @@ function(
 	 *
 	 *
 	 * @author Frank Weigel
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @since 0.8.6
 	 * @alias sap.ui.base.ManagedObjectMetadata
 	 * @extends sap.ui.base.Metadata
@@ -213,7 +211,10 @@ function(
 	};
 
 	Property.prototype.getType = function() {
-		return this._oType || (this._oType = DataType.getType(this.type));
+		if (!this._oType) {
+			this._oType = DataType.getType(this.type);
+		}
+		return this._oType;
 	};
 
 	Property.prototype.getDefaultValue = function() {
@@ -325,7 +326,10 @@ function(
 	};
 
 	Aggregation.prototype.getType = function() {
-		return this._oType || (this._oType = DataType.getType(this.type));
+		if (!this._oType) {
+			this._oType = DataType.getType(this.type);
+		}
+		return this._oType;
 	};
 
 	Aggregation.prototype.get = function(instance) {
@@ -598,7 +602,7 @@ function(
 	 * @protected
 	 */
 	ManagedObjectMetadata.addAPIParentInfoEnd = function(oAggregatedObject) {
-		oAggregatedObject && oAggregatedObject.aAPIParentInfos.forwardingCounter--;
+		oAggregatedObject && oAggregatedObject.aAPIParentInfos && oAggregatedObject.aAPIParentInfos.forwardingCounter--;
 	};
 
 	AggregationForwarder.prototype.remove = function(oInstance, vAggregatedObject) {
@@ -706,7 +710,10 @@ function(
 	};
 
 	Association.prototype.getType = function() {
-		return this._oType || (this._oType = DataType.getType(this.type));
+		if (!this._oType) {
+			this._oType = DataType.getType(this.type);
+		}
+		return this._oType;
 	};
 
 	Association.prototype.get = function(instance) {
@@ -935,6 +942,12 @@ function(
 		var oProp = this._mProperties[sName] = new Property(this, sName, oInfo);
 		if (!this._mAllProperties[sName]) {// ensure extended AllProperties meta-data is also enriched
 			this._mAllProperties[sName] = oProp;
+		}
+
+		if (this._fnPropertyBagFactory) {
+			// after the property bag class is already created that has the default values of the properties, the
+			// default value of the added property needs to be added to the property bag class as well
+			this._fnPropertyBagFactory.prototype[sName] = oProp.getDefaultValue();
 		}
 		// TODO notify listeners (subclasses) about change
 	};
@@ -1914,7 +1927,7 @@ function(
 	 * @param {string} [sScopeKey] scope name for which metadata will be resolved, see sap.ui.base.ManagedObjectMetadataScope
 	 * @return {Promise} A promise which will return the loaded design time metadata
 	 * @private
-	 * @ui5-restricted sap.ui.dt com.sap.webide
+	 * @ui5-restricted sap.ui.dt, com.sap.webide
 	 * @since 1.48.0
 	 */
 	ManagedObjectMetadata.prototype.loadDesignTime = function(oManagedObject, sScopeKey) {

@@ -15,8 +15,6 @@ sap.ui.define([
 	"sap/ui/core/Renderer",
 	"sap/ui/core/IconPool",
 	'sap/ui/core/InvisibleMessage',
-	"sap/ui/core/InvisibleText",
-	"sap/ui/core/Control",
 	'sap/ui/Device',
 	"sap/m/BadgeCustomData",
 	"sap/m/Button",
@@ -33,8 +31,6 @@ sap.ui.define([
 	Renderer,
 	IconPool,
 	InvisibleMessage,
-	InvisibleText,
-	Control,
 	Device,
 	BadgeCustomData,
 	Button,
@@ -71,14 +67,19 @@ sap.ui.define([
 	// shortcut for sap.ui.core.IconColor
 	var IconColor = coreLibrary.IconColor;
 
+	// shortcut for sap.ui.core.aria.HasPopup
+	var AriaHasPopup = coreLibrary.aria.HasPopup;
+
 	/**
 	 * The time between tab activation and the disappearance of the badge.
-	 * @constant {integer}
+	 * @constant {int}
 	 */
 	var BADGE_AUTOHIDE_TIME = 3000;
 
 	// shortcut for sap.ui.core.InvisibleMessageMode
 	var InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
+
+	var POPOVER_OFFSET_Y_TOOL_HEADER = -8;
 
 	/**
 	 * Constructor for a new IconTabFilter.
@@ -93,7 +94,7 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -185,7 +186,8 @@ sap.ui.define([
 			 */
 			_expandButton : {type : "sap.m.Button", multiple : false, visibility : "hidden"},
 
-			/** The badge of the expand button
+			/**
+			 * The badge of the expand button
 			 * @since 1.83
 			 */
 			_expandButtonBadge : {type : "sap.ui.core.Control", multiple : false, visibility : "hidden"}
@@ -273,11 +275,6 @@ sap.ui.define([
 			Item.prototype.exit.call(this, oEvent);
 		}
 
-		if (this._invisibleText) {
-			this._invisibleText.destroy();
-			this._invisibleText = null;
-		}
-
 		if (this._oPopover) {
 			this._oPopover.destroy();
 			this._oPopover = null;
@@ -339,7 +336,7 @@ sap.ui.define([
 				if (this.getProperty(sPropertyName) === oValue) {
 					return this;
 				}
-				Control.prototype.setProperty.call(this, sPropertyName, oValue, true);
+				Item.prototype.setProperty.call(this, sPropertyName, oValue, true);
 				if (!bSuppressInvalidate) {
 					var oIconTabHeader = this.getParent();
 					if (oIconTabHeader instanceof sap.m.IconTabHeader) {
@@ -348,7 +345,7 @@ sap.ui.define([
 				}
 				break;
 			default:
-				Control.prototype.setProperty.apply(this, arguments);
+				Item.prototype.setProperty.apply(this, arguments);
 				break;
 		}
 
@@ -422,23 +419,27 @@ sap.ui.define([
 		if (!this.getVisible()) {
 			return;
 		}
-
-		this._prepareDragEventDelegate();
-
 		var oIconTabHeader = this.getParent(),
-			oIconTabBar = oIconTabHeader.getParent(),
-			bHasIconTabBar = oIconTabHeader._isInsideIconTabBar(),
+			oIconTabBar = oIconTabHeader.getParent();
+
+		if (oIconTabHeader.getEnableTabReordering()) {
+			this._prepareDragEventDelegate();
+		}
+
+		var bHasIconTabBar = oIconTabHeader._isInsideIconTabBar(),
 			mAriaParams = { role: "tab" },
 			sId = this.getId(),
 			sCount = this.getCount(),
 			sText = this.getText(),
 			oIcon = this.getIcon(),
-			oIconColor = this.getIconColor(),
-			bShouldReadIconColor = oIconColor === 'Positive' || oIconColor === 'Critical' || oIconColor === 'Negative' || oIconColor === 'Neutral',
+			sIconColor = this.getIconColor(),
+			bEnabled = this.getEnabled(),
+			bShouldReadIconColor = this._shouldReadIconColor(),
 			bHorizontalDesign = this.getDesign() === IconTabFilterDesign.Horizontal,
 			bTextOnly = oIconTabHeader._bTextOnly,
 			bInLine = oIconTabHeader._bInLine || oIconTabHeader.isInlineMode(),
-			bShowAll = this.getShowAll();
+			bShowAll = this.getShowAll(),
+			sTextDir = this.getTextDirection();
 
 		if (bHasIconTabBar) {
 			mAriaParams.controls = oIconTabBar.getId() + "-content";
@@ -454,7 +455,7 @@ sap.ui.define([
 
 			var aId = [];
 
-			if (sCount !== "") {
+			if (sCount !== "" && !bInLine) {
 				aId.push(sId + "-count");
 			}
 			if (sText.length) {
@@ -494,8 +495,11 @@ sap.ui.define([
 		if (bShowAll) {
 			oRM.class("sapMITBAll");
 		} else {
-			oRM.class("sapMITBFilter")
-				.class("sapMITBFilter" + oIconColor);
+			oRM.class("sapMITBFilter");
+		}
+
+		if (!bShowAll && bEnabled) {
+			oRM.class("sapMITBFilter" + sIconColor);
 		}
 
 		if (oIconTabHeader._isUnselectable(this)) {
@@ -506,7 +510,7 @@ sap.ui.define([
 			oRM.class("sapMITBFilterWithItems");
 		}
 
-		if (!this.getEnabled()) {
+		if (!bEnabled) {
 			oRM.class("sapMITBDisabled")
 				.attr("aria-disabled", true);
 		}
@@ -518,11 +522,15 @@ sap.ui.define([
 			oRM.attr("title", sTooltip);
 		}
 
-		if (this._bIsOverflow || this.getItems().length) {
+		if (this._isOverflow() || this.getItems().length) {
 			oRM.attr("aria-haspopup", "menu");
 		}
 
 		oRM.openEnd();
+
+		if (bShouldReadIconColor) {
+			this._renderIconColorDescription(oRM);
+		}
 
 		oRM.openStart("div")
 			.class("sapMITBFilterWrapper")
@@ -534,15 +542,12 @@ sap.ui.define([
 				.openEnd();
 
 			if (!bShowAll || !oIcon) {
-				if (bShouldReadIconColor) {
-					oRM.openStart("div", sId + "-iconColor")
-						.style("display", "none")
-						.openEnd()
-						.text(oResourceBundle.getText('ICONTABBAR_ICONCOLOR_' + oIconColor.toUpperCase()))
-						.close("div");
+				var aCssClasses = ["sapMITBFilterIcon", "sapMITBBadgeHolder"];
+				if (bEnabled) {
+					aCssClasses.push("sapMITBFilter" + sIconColor);
 				}
 
-				oRM.renderControl(this._getImageControl(['sapMITBFilterIcon', "sapMITBBadgeHolder", 'sapMITBFilter' + oIconColor], oIconTabHeader, IconTabFilter._aAllIconColors));
+				oRM.renderControl(this._getImageControl(aCssClasses, oIconTabHeader, IconTabFilter._aAllIconColors));
 			}
 
 			if (!bShowAll && !oIcon && !bTextOnly) {
@@ -584,32 +589,30 @@ sap.ui.define([
 			oRM.openStart("div", sId + "-text")
 				.class("sapMITBText");
 
+			if (!oIcon && !bShowAll) {
+				oRM.class("sapMITBBadgeHolder");
+			}
+
 			// Check for upperCase property on IconTabBar
 			if (bHasIconTabBar && oIconTabBar.getUpperCase()) {
 				oRM.class("sapMITBTextUpperCase");
 			}
 
-			if (bInLine) {
-				oRM.attr("dir", "ltr");
-			}
-
 			oRM.openEnd();
 
+			if (bInLine && oIcon) {
+				this._renderIcon(oRM);
+			}
 
 			oRM.openStart("span")
-				.class("sapMITHTextContent");
+				.class("sapMITHTextContent")
+				.attr("dir", sTextDir !== TextDirection.Inherit ? sTextDir.toLowerCase() : "auto");
 
-			if (!oIcon && !bShowAll) {
-				oRM.class("sapMITBBadgeHolder");
-			}
+			oRM.openEnd()
+				.text(oIconTabHeader._getDisplayText(this))
+				.close("span");
 
-			oRM.openEnd();
-
-			oRM.text(oIconTabHeader._getDisplayText(this));
-
-			oRM.close("span");
-
-			if (this._bIsOverflow || this.getItems().length && oIconTabHeader._isUnselectable(this)) {
+			if (this._isOverflow() || this.getItems().length && oIconTabHeader._isUnselectable(this)) {
 				oRM.openStart("span", this.getId() + "-expandButton").class("sapMITHShowSubItemsIcon").openEnd();
 				oRM.icon(IconPool.getIconURI("slim-arrow-down"), null, {
 					"title": null,
@@ -656,18 +659,15 @@ sap.ui.define([
 	 * @protected
 	 */
 	IconTabFilter.prototype.renderInSelectList = function (oRM, oSelectList, iIndexInSet, iSetSize, fPaddingValue) {
-		if (this._invisibleText) {
-			this._invisibleText.destroy();
-			this._invisibleText = null;
-		}
-
 		if (!this.getVisible()) {
 			return;
 		}
 
 		var bTextOnly = true,
 			bIconOnly = oSelectList._bIconOnly,
-			oIconTabHeader = oSelectList._oIconTabHeader;
+			oIconTabHeader = oSelectList._oIconTabHeader,
+			sIconColor = this.getIconColor(),
+			bEnabled = this.getEnabled();
 
 		if (oIconTabHeader) {
 			bTextOnly = oIconTabHeader._bTextOnly;
@@ -697,7 +697,7 @@ sap.ui.define([
 			oRM.class("sapMITHUnselectable");
 		}
 
-		if (!this.getEnabled()) {
+		if (!bEnabled) {
 			oRM.class("sapMITBDisabled")
 				.attr("aria-disabled", true);
 		}
@@ -708,12 +708,12 @@ sap.ui.define([
 			oRM.attr("aria-selected", true);
 		}
 
-		var oIconColor = this.getIconColor();
-		oRM.class("sapMITBFilter" + oIconColor);
-
+		if (bEnabled) {
+			oRM.class("sapMITBFilter" + sIconColor);
+		}
 
 		var sItemId = this.getId(),
-			bShouldReadIconColor = oIconColor == 'Positive' || oIconColor == 'Critical' || oIconColor == 'Negative' || oIconColor == 'Neutral',
+			bShouldReadIconColor = this._shouldReadIconColor(),
 			aLabelledByIds = [];
 
 		if (!bIconOnly) {
@@ -725,18 +725,14 @@ sap.ui.define([
 		}
 
 		if (bShouldReadIconColor) {
-			this._invisibleText = new InvisibleText({
-				text: oResourceBundle.getText('ICONTABBAR_ICONCOLOR_' + oIconColor.toUpperCase())
-			});
-
-			aLabelledByIds.push(this._invisibleText.getId());
+			aLabelledByIds.push(sItemId + "-iconColor");
 		}
 
 		oRM.accessibilityState({ labelledby: aLabelledByIds.join(" ") })
 			.openEnd();
 
-		if (this._invisibleText) {
-			oRM.renderControl(this._invisibleText);
+		if (bShouldReadIconColor) {
+			this._renderIconColorDescription(oRM);
 		}
 
 		if (!bTextOnly) {
@@ -775,6 +771,10 @@ sap.ui.define([
 				aClasses.push("sapMITBBadgeHolder");
 			}
 
+			if (this._getIconTabHeader().isInlineMode()) {
+				aClasses.push("sapMITBInlineIcon");
+			}
+
 			oRM.icon(oIcon, aClasses, {
 				id: this.getId() + "-icon",
 				"aria-hidden": true
@@ -784,8 +784,16 @@ sap.ui.define([
 		}
 	};
 
+	IconTabFilter.prototype._renderIconColorDescription = function (oRM) {
+		oRM.openStart("div", this.getId() + "-iconColor")
+			.style("display", "none")
+			.openEnd()
+			.text(oResourceBundle.getText("ICONTABBAR_ICONCOLOR_" + this.getIconColor().toUpperCase()))
+			.close("div");
+	};
+
 	/**
-	 * Renders a text.
+	 * Renders text in SelectList.
 	 * @private
 	 */
 	IconTabFilter.prototype._renderText =  function (oRM) {
@@ -795,15 +803,12 @@ sap.ui.define([
 			sTextDir = this.getTextDirection();
 
 		oRM.openStart("span", this.getId() + "-text")
-			.attr("dir", "ltr")
+			.attr("dir", sTextDir !== TextDirection.Inherit ? sTextDir.toLowerCase() : "auto")
 			.class("sapMText")
 			.class("sapMTextNoWrap")
 			.class("sapMITBText")
 			.class("sapMITBBadgeHolder");
 
-		if (sTextDir !== TextDirection.Inherit){
-			oRM.attr('dir', sTextDir.toLowerCase());
-		}
 
 		var sTextAlign = Renderer.getTextAlign(TextAlign.Begin, sTextDir);
 		if (sTextAlign) {
@@ -834,7 +839,7 @@ sap.ui.define([
 			});
 			this._oSelectList._oIconTabHeader = this.getParent();
 			this._oSelectList._oTabFilter = this;
-			this._oSelectList._bIsOverflow = this._bIsOverflow;
+			this._oSelectList._bIsOverflow = this._isOverflow();
 		}
 		return this._oSelectList;
 	};
@@ -854,6 +859,19 @@ sap.ui.define([
 		}
 	};
 
+	IconTabFilter.prototype._updateTabCountText = function () {
+		if (!this._isOverflow()) {
+			return;
+		}
+
+		var iTabFilters = this._getIconTabHeader()
+			._getItemsForOverflow(this._bIsStartOverflow)
+			.filter(function (oItem) { return oItem.isA("sap.m.IconTabFilter"); })
+			.length;
+
+		this.setText("+" + iTabFilters);
+	};
+
 	/**
 	 * Returns the expand button for this instance.
 	 * This button is conditionally shown in the DOM
@@ -869,6 +887,7 @@ sap.ui.define([
 				icon: IconPool.getIconURI("slim-arrow-down"),
 				tooltip: oResourceBundle.getText("ICONTABHEADER_OVERFLOW_MORE"),
 				tabIndex: "-1",
+				ariaHasPopup: AriaHasPopup.Menu,
 				press: this._expandButtonPress.bind(this)
 			}).addStyleClass("sapMITBFilterExpandBtn");
 
@@ -894,7 +913,7 @@ sap.ui.define([
 	};
 
 	IconTabFilter.prototype._hasChildWithBadge = function () {
-		var aItems = this._bIsOverflow ? this._getIconTabHeader()._getItemsForOverflow() : this._getAllSubItems();
+		var aItems = this._isOverflow() ? this._getIconTabHeader()._getItemsForOverflow(this._bIsStartOverflow) : this._getAllSubItems();
 
 		return aItems.some(function (oIT) {
 			return oIT.isA("sap.m.IBadge") && oIT.getBadgeCustomData() && oIT.getBadgeCustomData().getVisible();
@@ -930,6 +949,19 @@ sap.ui.define([
 				this._oPopover._oControl.addButton(this._createPopoverCloseButton());
 			}
 
+			if (this._getIconTabHeader()._isInsideToolHeader()) {
+				this._oPopover.addStyleClass("sapMITBFilterPopoverInToolHeader");
+				this._oPopover.setOffsetY(POPOVER_OFFSET_Y_TOOL_HEADER);
+
+				if (!Device.system.phone) {
+					this._oPopover.addEventDelegate({
+						onAfterRendering: function (oEvent) {
+							this._oPopover.getDomRef().style.minWidth = this.$().outerWidth(true) + "px";
+						}.bind(this)
+					});
+				}
+			}
+
 			this.addDependent(this._oPopover);
 
 			this._oPopover._oControl._adaptPositionParams = function () {
@@ -950,7 +982,7 @@ sap.ui.define([
 
 		this._oPopover.removeAllContent();
 
-		if (this.getItems().length || this._bIsOverflow) {
+		if (this.getItems().length || this._isOverflow()) {
 			this._oPopover.addContent(oSelectList);
 			this._oPopover.setInitialFocus(bHasSelectedItem ? oSelectList.getSelectedItem() : oSelectList.getVisibleTabFilters()[0]);
 			this._oPopover.openBy(this);
@@ -1038,8 +1070,8 @@ sap.ui.define([
 			this._oPopover.removeAllContent();
 		}
 
-		if (this._bIsOverflow && this.getParent().oSelectedItem) {
-			(this.getParent()._oSelectedRootItem || this.getParent().oSelectedItem).$().focus();
+		if (this._isOverflow() && this.getParent().oSelectedItem) {
+			(this.getParent()._oSelectedRootItem || this.getParent().oSelectedItem._getRootTab()).$().trigger("focus");
 		}
 	};
 
@@ -1104,12 +1136,12 @@ sap.ui.define([
 			return false;
 		}
 
-		if (!this._bIsOverflow && !oIconTabHeader.getMaxNestingLevel()) {
+		if (!this._isOverflow() && !oIconTabHeader.getMaxNestingLevel()) {
 			return false;
 		}
 
 		// disable dragging selected item to the overflow
-		if (this._bIsOverflow && oSelectedItem && (oSelectedItem === oDragControl || oSelectedItem._getRootTab() === oDragControl)) {
+		if (this._isOverflow() && oSelectedItem && (oSelectedItem === oDragControl || oSelectedItem._getRootTab() === oDragControl)) {
 			return false;
 		}
 
@@ -1134,8 +1166,8 @@ sap.ui.define([
 			i,
 			iCustomDataItemIndex;
 
-		if (this._bIsOverflow) {
-			aItemsForList = oIconTabHeader._getItemsForOverflow();
+		if (this._isOverflow()) {
+			aItemsForList = oIconTabHeader._getItemsForOverflow(this._bIsStartOverflow);
 		}
 
 		oSelectList.destroyItems();
@@ -1174,6 +1206,10 @@ sap.ui.define([
 		return bHasSelectedItem;
 	};
 
+	IconTabFilter.prototype._isOverflow = function () {
+		return this._bIsOverflow || this._bIsStartOverflow;
+	};
+
 	/**
 	 * Returns the IconTabHeader instance which holds all the TabFilters.
 	 */
@@ -1186,7 +1222,7 @@ sap.ui.define([
 			return;
 		}
 
-		if (this._bIsOverflow ||
+		if (this._isOverflow() ||
 				((this._getNestedLevel() === 1 && this._getRealTab() === this) && this._getRealTab().getItems().length !== 0)) {
 
 					oEvent.stopImmediatePropagation();
@@ -1227,6 +1263,9 @@ sap.ui.define([
 		if (this._isInOverflow()) {
 			this._getIconTabHeader()._getOverflow()._updateExpandButtonBadge();
 		}
+		if (this._isInStartOverflow()) {
+			this._getIconTabHeader()._getStartOverflow()._updateExpandButtonBadge();
+		}
 
 		this._iHideBadgeTimeout = null;
 	};
@@ -1239,6 +1278,10 @@ sap.ui.define([
 		return !this._bIsOverflow && this._getIconTabHeader()._getItemsInStrip().indexOf(this._getRealTab()) === -1;
 	};
 
+	IconTabFilter.prototype._isInStartOverflow = function () {
+		return !this._bIsStartOverflow && this._getIconTabHeader()._getItemsInStrip().indexOf(this._getRealTab()) === -1;
+	};
+
 	IconTabFilter.prototype.onBadgeUpdate = function (sValue, sState, sBadgeId) {
 
 		var oDomRef = this.getDomRef(),
@@ -1248,6 +1291,7 @@ sap.ui.define([
 			sAriaLabelledBy,
 			sText,
 			oOverflow,
+			oStartOverflow,
 			sRbKey,
 			oRbArgs;
 
@@ -1279,6 +1323,10 @@ sap.ui.define([
 		if (oRootTab._isInOverflow()) {
 			oOverflow = this._getIconTabHeader()._getOverflow();
 			oOverflow._updateExpandButtonBadge();
+		}
+		if (oRootTab._isInStartOverflow()) {
+			oStartOverflow = this._getIconTabHeader()._getStartOverflow();
+			oStartOverflow._updateExpandButtonBadge();
 		} else if (oRootTab !== this) {
 			oRootTab._updateExpandButtonBadge();
 		}
@@ -1289,7 +1337,7 @@ sap.ui.define([
 
 		this._enableMotion();
 
-		if (this._isInOverflow() && this._oCloneInList) {
+		if ((this._isInOverflow() || this._isInStartOverflow()) && this._oCloneInList) {
 			this._oCloneInList.addCustomData(new BadgeCustomData());
 		}
 
@@ -1299,6 +1347,10 @@ sap.ui.define([
 		if (oRootTab._isInOverflow()) {
 			sRbKey = "ICONTABFILTER_SUB_ITEM_BADGE";
 			oRbArgs = [sText, oOverflow.getText()];
+		}
+		if (oRootTab._isInStartOverflow()) {
+			sRbKey = "ICONTABFILTER_SUB_ITEM_BADGE";
+			oRbArgs = [sText, oStartOverflow.getText()];
 		} else {
 			if (oRootTab !== this) {
 				sRbKey = "ICONTABFILTER_SUB_ITEM_BADGE";
@@ -1317,13 +1369,20 @@ sap.ui.define([
 	};
 
 	IconTabFilter.prototype._enableMotion = function () {
-		if (this._getRealTab()._isInOverflow()) {
+		if (this._getRealTab()._isInOverflow() || this._getRealTab()._isInStartOverflow()) {
 			if (this._oCloneInList && this._oCloneInList.getDomRef()) {
 				this._oCloneInList.getDomRef().classList.add("sapMITBFilterBadgeMotion");
 			}
 		} else if (this.getDomRef()) {
 			this.getDomRef().classList.add("sapMITBFilterBadgeMotion");
 		}
+	};
+
+	IconTabFilter.prototype._shouldReadIconColor = function () {
+		var sIconColor = this.getIconColor();
+
+		return this.getEnabled() &&
+			(sIconColor === "Positive" || sIconColor === "Critical" || sIconColor === "Negative" || sIconColor === "Neutral");
 	};
 
 	return IconTabFilter;

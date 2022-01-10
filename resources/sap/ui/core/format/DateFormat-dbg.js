@@ -143,7 +143,7 @@ sap.ui.define([
 	 *
 	 * @param {object} [oFormatOptions] Object which defines the format options
 	 * @param {string} [oFormatOptions.format] @since 1.34.0 contains pattern symbols (e.g. "yMMMd" or "Hms") which will be converted into the pattern in the used locale, which matches the wanted symbols best.
-	 *  The symbols must be in canonical order, that is: Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w/W), Day-Of-Week (E/e/c), Day (d/D), Hour (h/H/k/K/j/J), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
+	 *  The symbols must be in canonical order, that is: Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w), Day-Of-Week (E/e/c), Day (d), Hour (h/H/k/K/j/J), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
 	 *  See {@link http://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems}
 	 * @param {string} [oFormatOptions.pattern] a data pattern in LDML format. It is not verified whether the pattern represents only a date.
 	 * @param {string} [oFormatOptions.style] can be either 'short, 'medium', 'long' or 'full'. If no pattern is given, a locale dependent default date pattern of that style is used from the LocaleData class.
@@ -171,7 +171,7 @@ sap.ui.define([
 	 *
 	 * @param {object} [oFormatOptions] Object which defines the format options
 	 * @param {string} [oFormatOptions.format] @since 1.34.0 contains pattern symbols (e.g. "yMMMd" or "Hms") which will be converted into the pattern in the used locale, which matches the wanted symbols best.
-	 *  The symbols must be in canonical order, that is: Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w/W), Day-Of-Week (E/e/c), Day (d/D), Hour (h/H/k/K/j/J), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
+	 *  The symbols must be in canonical order, that is: Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w), Day-Of-Week (E/e/c), Day (d), Hour (h/H/k/K/j/J), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
 	 *  See http://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
 	 * @param {string} [oFormatOptions.pattern] a datetime pattern in LDML format. It is not verified whether the pattern represents a full datetime.
 	 * @param {string} [oFormatOptions.style] can be either 'short, 'medium', 'long' or 'full'. For datetime you can also define mixed styles, separated with a slash, where the first part is the date style and the second part is the time style (e.g. "medium/short"). If no pattern is given, a locale dependent default datetime pattern of that style is used from the LocaleData class.
@@ -199,7 +199,7 @@ sap.ui.define([
 	 *
 	 * @param {object} [oFormatOptions] Object which defines the format options
 	 * @param {string} [oFormatOptions.format] @since 1.34.0 contains pattern symbols (e.g. "yMMMd" or "Hms") which will be converted into the pattern in the used locale, which matches the wanted symbols best.
-	 *  The symbols must be in canonical order, that is: Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w/W), Day-Of-Week (E/e/c), Day (d/D), Hour (h/H/k/K/j/J), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
+	 *  The symbols must be in canonical order, that is: Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w), Day-Of-Week (E/e/c), Day (d), Hour (h/H/k/K/j/J), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
 	 *  See http://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
 	 * @param {string} [oFormatOptions.pattern] a time pattern in LDML format. It is not verified whether the pattern only represents a time.
 	 * @param {string} [oFormatOptions.style] can be either 'short, 'medium', 'long' or 'full'. If no pattern is given, a locale dependent default time pattern of that style is used from the LocaleData class.
@@ -1109,17 +1109,25 @@ sap.ui.define([
 					sPM = oFormat.aDayPeriods[1];
 
 				// check whether the value is one of the ASCII variants for AM/PM
-				// for example: "am", "a.m.", "am." (and their case variants)
-				// if true, remove the '.' and compare with the defined am/pm case
+				// for example: "am", "a.m.", "am.", "a. m." (and their case variants)
+				// if true, remove the '.', the spaces and compare with the defined am/pm case
 				// insensitive
-				var rAMPM = /[aApP](?:\.)?[mM](?:\.)?/;
+				var rAMPM = /[aApP](?:\.)?[\x20\xA0]?[mM](?:\.)?/;
 				var aMatch = sValue.match(rAMPM);
 				var bVariant = (aMatch && aMatch.index === 0);
 
 				if (bVariant) {
-					sValue = aMatch[0].replace(/\./g, "").toLowerCase() + sValue.substring(aMatch[0].length);
+					sValue = aMatch[0];
+
+					// Remove normal and non-breaking spaces
+					sAM = sAM.replace(/[\x20\xA0]/g, "");
+					sPM = sPM.replace(/[\x20\xA0]/g, "");
+					sValue = sValue.replace(/[\x20\xA0]/g, "");
+
+					// Remove dots and make it lowercase
 					sAM = sAM.replace(/\./g, "").toLowerCase();
 					sPM = sPM.replace(/\./g, "").toLowerCase();
+					sValue = sValue.replace(/\./g, "").toLowerCase();
 				}
 				if (sValue.indexOf(sAM) === 0) {
 					bPM = false;
@@ -1371,7 +1379,7 @@ sap.ui.define([
 					iTZDiff = 0;
 				} else {
 					return {
-						error: "cannot be parsed correcly by sap.ui.core.format.DateFormat: The given timezone is not supported!"
+						error: "cannot be parsed correctly by sap.ui.core.format.DateFormat: The given timezone is not supported!"
 					};
 				}
 
@@ -1504,6 +1512,8 @@ sap.ui.define([
 		sResult = aBuffer.join("");
 
 		if (sap.ui.getCore().getConfiguration().getOriginInfo()) {
+			// String object is created on purpose and must not be a string literal
+			// eslint-disable-next-line no-new-wrappers
 			sResult = new String(sResult);
 			sResult.originInfo = {
 				source: "Common Locale Data Repository",
@@ -1520,7 +1530,7 @@ sap.ui.define([
 	 * Format a date according to the given format options.
 	 *
 	 * @param {Date|Date[]} vJSDate the value to format
-	 * @param {boolean} bUTC whether to use UTC
+	 * @param {boolean} [bUTC=false] whether to use UTC
 	 * @return {string} the formatted output value. If an invalid date is given, an empty string is returned.
 	 * @public
 	 */
@@ -1722,7 +1732,7 @@ sap.ui.define([
 			iRepeat,
 			oDateValue;
 
-		// Try out with all possible patterns until succesfully parse has been done or the end of the array is reached
+		// Try out with all possible patterns until successfully parse has been done or the end of the array is reached
 		this.intervalPatterns.some(function(sPattern) {
 			var aFormatArray = this.parseCldrDatePattern(sPattern);
 
@@ -2390,7 +2400,7 @@ sap.ui.define([
 						sAllowedCharacters += "0123456789";
 						bNumbers = true;
 					}
-				}else {
+				} else {
 					bAll = true;
 				}
 				break;

@@ -8,16 +8,12 @@ sap.ui.define([
 	"./HyphenationTestingWords",
 	"sap/ui/base/ManagedObject",
 	"sap/base/Log",
-	"sap/base/util/deepEqual",
-	"sap/ui/core/Locale",
-	"sap/ui/Device"
+	"sap/ui/core/Locale"
 ], function (
 	HyphenationTestingWords,
 	ManagedObject,
 	Log,
-	deepEqual,
-	Locale,
-	Device
+	Locale
 ) {
 	"use strict";
 
@@ -98,119 +94,59 @@ sap.ui.define([
 	var oHyphenationInstance = null;
 	var fakeBody = null;
 	var oHyphenateMethods = {};
-	var oPromisesForLang = {};
-	var aLanguagesQueue = [];
-	var mLanguageConfigs = {};
 
 	/**
 	 * Calls Hyphenopoly to initialize a language.
 	 * Loads language-specific resources.
 	 *
 	 * @param {string} sLanguage What language to initialize
-	 * @param {object} oConfig What config to sent to Hyphenopoly
-	 * @param {function} resolve Callback to resolve the promise created on initialize
+	 * @returns {Promise} Promise that resolves with the hyphenator function for that language
 	 * @private
 	 */
-	function initializeLanguage(sLanguage, oConfig, resolve) {
+	function initializeLanguage(sLanguage) {
 		Log.info(
 			"[UI5 Hyphenation] Initializing third-party module for language " + getLanguageDisplayName(sLanguage),
 			"sap.ui.core.hyphenation.Hyphenation.initialize()"
 		);
 
-		window.hyphenopoly.initializeLanguage(oConfig)
-			.then(onLanguageInitialized.bind(this, sLanguage, resolve));
-	}
+		var oHyphenopolyConfig = createHyphenopolyConfig();
+		oHyphenopolyConfig.require[sLanguage] = "FORCEHYPHENOPOLY"; // force loading of the engine for this language
 
-	/**
-	 * Applies new config to a language.
-	 *
-	 * @param {string} sLanguage What language to re-initialize
-	 * @param {object} oConfig What is the new config
-	 * @param {function} resolve Callback to resolve the promise created on initialize
-	 * @private
-	 */
-	function reInitializeLanguage(sLanguage, oConfig, resolve) {
-		Log.info(
-			"[UI5 Hyphenation] Re-initializing third-party module for language " + getLanguageDisplayName(sLanguage),
-			"sap.ui.core.hyphenation.Hyphenation.initialize()"
-		);
-
-		window.hyphenopoly.reInitializeLanguage(sLanguage, oConfig)
-			.then(onLanguageInitialized.bind(this, sLanguage, resolve));
-	}
-
-	/**
-	 * A callback for when language initialization is ready.
-	 *
-	 * @param {string} sLanguage What language was initialized
-	 * @param {function} resolve Callback to resolve the promise created on initialize
-	 * @param {string} hyphenateMethod Is it asm or wasm
-	 * @private
-	 */
-	function onLanguageInitialized(sLanguage, resolve, hyphenateMethod) {
-		oHyphenateMethods[sLanguage] = hyphenateMethod;
-		oHyphenationInstance.bIsInitialized = true;
-		if (aLanguagesQueue.length > 0) {
-			aLanguagesQueue.forEach(function (oElement) {
-				initializeLanguage(oElement.sLanguage, oElement.oConfig, oElement.resolve);
+		return loadScript(sap.ui.require.toUrl("sap/ui/thirdparty/hyphenopoly/"), "Hyphenopoly_Loader.js")
+			.then(function () {
+				delete oHyphenopolyConfig.require[sLanguage];
+				return window.Hyphenopoly.hyphenators[sLanguage];
 			});
-			aLanguagesQueue = [];
-		}
-		oHyphenationInstance.bLoading = false;
-		resolve(
-			getLanguageFromPattern(sLanguage)
-		);
 	}
 
-	/**
-	 * Transforms the given config so it can be sent to Hyphenopoly.
-	 *
-	 * @param {string} sLanguage The language for which a config is prepared.
-	 * @param {object} oConfig Object map with configuration
-	 * @returns {Object} {{require: [*], hyphen: string, path: (string|*)}}
-	 * @private
-	 */
-	function prepareConfig(sLanguage, oConfig) {
-		//Creating default configuration
-		var oConfigurationForLanguage = {
-			"require": [sLanguage],
-			"hyphen": "\u00AD",
-			"leftmin": 3, // The minimum of chars to remain on the old line.
-			"rightmin": 3,// The minimum of chars to go on the new line
-			"compound": "all", // factory-made -> fac-tory-[ZWSP]made
-			"path": sap.ui.require.toUrl("sap/ui/thirdparty/hyphenopoly")
-		};
-
-		// we are passing only 3 properties to hyphenopoly: hyphen, exceptions and minWordLength
-		if (oConfig) {
-			if ("hyphen" in oConfig) {
-				oConfigurationForLanguage.hyphen = oConfig.hyphen;
-			}
-
-			if ("minWordLength" in oConfig) {
-				oConfigurationForLanguage.minWordLength = oConfig.minWordLength;
-			}
-
-			if ("exceptions" in oConfig) {
-				Log.info(
-					"[UI5 Hyphenation] Add hyphenation exceptions '" + JSON.stringify(oConfig.exceptions) + "' for language " + getLanguageDisplayName(sLanguage),
-					"sap.ui.core.hyphenation.Hyphenation"
-				);
-
-				// transform "exceptions: {word1: "w-o-r-d-1", word2: "w-o-r-d-2"}" to "exceptions: {en-us: 'w-o-r-d-1,w-o-r-d-2'}"
-				var aWordsExceptions = [];
-				Object.keys(oConfig.exceptions).forEach(function(sWord) {
-					aWordsExceptions.push(oConfig.exceptions[sWord]);
-				});
-
-				if (aWordsExceptions.length > 0) {
-					oConfigurationForLanguage.exceptions = {};
-					oConfigurationForLanguage.exceptions[sLanguage] = aWordsExceptions.join(", ");
+	function createHyphenopolyConfig() {
+		if (!window.Hyphenopoly) {
+			window.Hyphenopoly = {
+				require: {},
+				setup: {
+					selectors: {
+						".hyphenate": { // .hyphenate is the default CSS class (hence this is the default configuration for all words and langs)
+							hyphen: "\u00AD",
+							leftmin: 3,
+							rightmin: 3,
+							compound: "all" // hyphenate the parts and insert a zero-width space after the hyphen
+						}
+					},
+					hide: "DONT_HIDE" // prevent visiblity: hidden; of html tag while the engine is loading
+				},
+				handleEvent: {
+					error: function (e) {
+						// Hyphenopoly will try to find DOM elements and hyphenate them,
+						// but since we use only the hyphenators, prevent the warning
+						if (e.msg.match(/engine for language .* loaded, but no elements found./)) {
+							e.preventDefault(); //don't show error message in console
+						}
+					}
 				}
-			}
+			};
 		}
 
-		return oConfigurationForLanguage;
+		return window.Hyphenopoly;
 	}
 
 	/**
@@ -246,7 +182,6 @@ sap.ui.define([
 			"visibility:hidden;",
 			"-moz-hyphens:auto;",
 			"-webkit-hyphens:auto;",
-			"-ms-hyphens:auto;",
 			"hyphens:auto;",
 			"width:48px;",
 			"font-size:12px;",
@@ -261,19 +196,20 @@ sap.ui.define([
 	/**
 	 * Creates and appends div with CSS-hyphenated word.
 	 *
-	 * @param {string} sLang Language
+	 * @param {string} sLanguageOnThePage Language (<code>lang</code> attribute of the HTML page)
+	 * @param {string} sTestingWord Long word for that language
 	 * @private
 	 */
-	function createTest(sLang) {
-
+	function createTest(sLanguageOnThePage, sTestingWord) {
 		if (!fakeBody) {
 			fakeBody = document.createElement("body");
 		}
+
 		var testDiv = document.createElement("div");
-		testDiv.lang = sLang;
-		testDiv.id = sLang;
+		testDiv.lang = sLanguageOnThePage;
+		testDiv.id = sLanguageOnThePage;
 		testDiv.style.cssText = css;
-		testDiv.appendChild(document.createTextNode(HyphenationTestingWords[sLang.toLowerCase()]));
+		testDiv.appendChild(document.createTextNode(sTestingWord));
 		fakeBody.appendChild(testDiv);
 	}
 
@@ -336,7 +272,7 @@ sap.ui.define([
 
 		var sLanguage = oLocale.getLanguage().toLowerCase();
 
-		// adjustment of the language to corresponds to Hyphenopoly pattern files (.hpb files)
+		// adjustment of the language to correspond to Hyphenopoly pattern files (.hpb files)
 		switch (sLanguage) {
 			case "en":
 				sLanguage = "en-us";
@@ -350,13 +286,16 @@ sap.ui.define([
 			case "el":
 				sLanguage = "el-monoton";
 				break;
+			default:
+				break;
 		}
 
 		return sLanguage;
 	}
 
 	/**
-	 * The "lang" attribute of the "html" tag determines the behavior of the native hyphenation.
+	 * The <code>lang</code> attribute of the closest parent determines the behavior of the native hyphenation.
+	 * Typically this is the HTML tag and its value can be read with the <code>getLocale</code> function.
 	 *
 	 * @param {string} [sLang=sap.ui.getCore().getConfiguration().getLocale().toString()] The language to get. If left empty - the global application language will be returned
 	 * @returns {string} The language code
@@ -413,16 +352,6 @@ sap.ui.define([
 	}
 
 	/**
-	 * Checks OS and browser as native hyphenation support on Google Chrome on macOS is not working as expected
-	 *
-	 * @private
-	 * @return {boolean} Returns whether the device is on macOS and the browser is Google Chrome
-	 */
-	function nativeHyphenationWorksProperly () {
-		return !(Device.os.macintosh && Device.browser.chrome);
-	}
-
-	/**
 	 * @class
 	 * This class provides methods for evaluating the possibility of using browser-native hyphenation or initializing and using a third-party hyphenation module.
 	 *
@@ -469,7 +398,7 @@ sap.ui.define([
 	 * @see {@link topic:6322164936f047de941ec522b95d7b70 Hyphenation for Text Controls}
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @hideconstructor
 	 * @public
 	 * @since 1.60
@@ -505,19 +434,20 @@ sap.ui.define([
 	 * @public
 	 */
 	Hyphenation.prototype.canUseNativeHyphenation = function (sLang) {
-		var sLanguageOnThePage = getLanguageAsSetOnThePage(sLang);
-		var bCanUseNativeHyphenation;
+		var sLanguageOnThePage = getLanguageAsSetOnThePage(sLang),
+			sMappedLanguage = getLanguage(sLang),
+			bCanUseNativeHyphenation;
 
-		if (!this.isLanguageSupported(sLang)) {
+		if (!this.isLanguageSupported(sMappedLanguage)) {
 			return null;
 		}
 
 		if (!oBrowserSupportCSS.hasOwnProperty(sLanguageOnThePage)) {
-			createTest(sLanguageOnThePage);
+			createTest(sLanguageOnThePage, HyphenationTestingWords[sMappedLanguage.toLowerCase()]);
 			var testContainer = appendTests(document.documentElement);
 			if (testContainer !== null) {
 				var el = document.getElementById(sLanguageOnThePage);
-				if (nativeHyphenationWorksProperly() && checkCSSHyphensSupport(el) && el.offsetHeight > 12) {
+				if (checkCSSHyphensSupport(el) && el.offsetHeight > 12) {
 					bCanUseNativeHyphenation = true;
 				} else {
 					bCanUseNativeHyphenation = false;
@@ -629,6 +559,7 @@ sap.ui.define([
 			fireError("Language " + getLanguageDisplayName(sLanguage) + " is not initialized. You have to initialize it first with method 'initialize()'");
 			return sText;
 		}
+
 		return oHyphenateMethods[sLanguage](sText);
 	};
 
@@ -657,57 +588,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Gets a list of word exceptions which was added for the given language.
-	 *
-	 * A word exception is a custom-defined hyphenation for a specific word. It's useful if the hyphenation algorithm does not hyphenate a given word correctly.
-	 *
-	 * @see sap.ui.core.hyphenation.Hyphenation#addExceptions
-	 * @param {string} sLang The language for which to see the exceptions
-	 * @returns {Object<string,string>} An object map with all exceptions for the given language
-	 * @private
-	 */
-	Hyphenation.prototype.getExceptions = function (sLang) {
-		var sLang = getLanguage(sLang);
-		if (this.isLanguageInitialized(sLang)) {
-			return window.hyphenopoly.languages[sLang].exceptions;
-		} else {
-			fireError("Language " + getLanguageDisplayName(sLang) + " is not initialized. You have to initialize it first with method 'initialize()'");
-		}
-
-	};
-
-	/**
-	 * Adds a list of exceptions defining how specific words should be hyphenated.
-	 *
-	 * This way a custom-defined hyphenation for a specific word can be defined. It's useful if the hyphenation algorithm does not hyphenate a given word correctly.
-	 *
-	 * @example
-	 *
-	 *   addExceptions("en", {"academy": "a-c-a-d-e-m-y"})
-	 *
-	 * @param {string} sLang The language for which an exception is added
-	 * @param {Object<string,string>} oExceptions An object map of word exceptions. Example <code>{"academy": "a-c-a-d-e-m-y", "word": "w-o-r-d"}</code>
-	 * @throws {Error} Logs an error if the language is not initialized
-	 * @private
-	 */
-	Hyphenation.prototype.addExceptions = function (sLang, oExceptions) {
-		var sLang = getLanguage(sLang);
-		if (this.isLanguageInitialized(sLang)) {
-			Log.info(
-				"[UI5 Hyphenation] Add hyphenation exceptions '" + JSON.stringify(oExceptions) + "' for language " + getLanguageDisplayName(sLang),
-				"sap.ui.core.hyphenation.Hyphenation.addExceptions()"
-			);
-
-			Object.keys(oExceptions).forEach(function (key) {
-				window.hyphenopoly.languages[sLang].cache[key] = oExceptions[key];
-				window.hyphenopoly.languages[sLang].exceptions[key] = oExceptions[key];
-			});
-		} else {
-			fireError("Language " + getLanguageDisplayName(sLang) + " is not initialized. You have to initialize it first with method 'initialize()'");
-		}
-	};
-
-	/**
 	 * Initializes the third-party library for the given language.
 	 *
 	 * Loads required third-party resources and language-specific resources.
@@ -721,73 +601,35 @@ sap.ui.define([
 	 * @returns {Promise} A promise which resolves when all language resources are loaded. Rejects if the language is not supported
 	 * @public
 	 */
-	// Parameter oConfig is not mentioned in jsdoc on purpose. It is only for internal use for now.
-	Hyphenation.prototype.initialize = function (sLang, oConfig) {
+	Hyphenation.prototype.initialize = function (sLang) {
 		var sLanguage = getLanguage(sLang);
 
-		/**
-		 * @type map
-		 * @private
-		 * @example
-		 * {
-		 *	hyphen: "-",
-		 *	minWordLength: 6,
-		 *	exceptions: {
-		 *		"academy": "a-c-a-d-e-m-y",
-		 *		"word": "w-o-r-d"
-		 *	}
-		 * }
-		 */
-		var oConfig = prepareConfig(sLanguage, oConfig);
-
-		var bConfigChanged = true;
-		if (mLanguageConfigs[sLanguage] && deepEqual(mLanguageConfigs[sLanguage], oConfig)) {
-			bConfigChanged = false;
-		}
-
-		mLanguageConfigs[sLanguage] = oConfig;
-
-		if (oThirdPartySupportedLanguages[sLanguage]) {
-			if (!oHyphenationInstance.bIsInitialized && !oHyphenationInstance.bLoading) {
-
-				oHyphenationInstance.bLoading = true;
-				oPromisesForLang[sLanguage] = new Promise(function (resolve, reject) {
-					loadScript(oConfig.path, "/hyphenopoly.bundle.js")
-						.then(initializeLanguage.bind(this, sLanguage, oConfig, resolve));
-				});
-
-				return oPromisesForLang[sLanguage];
-
-			} else if (oHyphenationInstance.bLoading && !oHyphenateMethods[sLanguage] && oPromisesForLang[sLanguage]) {
-
-				return oPromisesForLang[sLanguage];
-
-			} else if (this.isLanguageInitialized(sLanguage)) {
-				// Reinitialize only if the config has changed.
-				if (bConfigChanged) {
-					oPromisesForLang[sLanguage] = new Promise(function (resolve) {
-						reInitializeLanguage(sLanguage, oConfig, resolve);
-					});
-				}
-			} else {
-					oPromisesForLang[sLanguage] = new Promise(function (resolve, reject) {
-						if (!oHyphenationInstance.bIsInitialized) {
-							aLanguagesQueue.push({sLanguage:sLanguage, oConfig:oConfig, resolve:resolve });
-						} else {
-							initializeLanguage(sLanguage, oConfig, resolve);
-						}
-
-					});
-			}
-			oHyphenationInstance.bLoading = true;
-			return oPromisesForLang[sLanguage];
-		} else {
+		if (!oThirdPartySupportedLanguages[sLanguage]) {
 			var sMessage = "Language " + getLanguageDisplayName(sLang) + " can not be initialized. It is either not supported by the third-party module or an error occurred";
 			fireError(sMessage);
-			return new Promise(function (resolve, reject) {
-				reject(sMessage);
-			});
+			return Promise.reject(sMessage);
 		}
+
+		if (oHyphenateMethods[sLanguage]) {
+			return Promise.resolve();
+		}
+
+		var pInitLanguage;
+
+		if (!this._pInitLanguage) {
+			pInitLanguage = this._pInitLanguage = initializeLanguage(sLanguage)
+				.then(function (fnHyphenator) {
+					oHyphenateMethods[sLanguage] = fnHyphenator;
+					this._pInitLanguage = null;
+				}.bind(this));
+		} else {
+			// await the loading of the previous language, then initialize the current
+			pInitLanguage = this._pInitLanguage.then(function () {
+				return this.initialize(sLang);
+			}.bind(this));
+		}
+
+		return pInitLanguage;
 	};
 
 	/**
@@ -801,8 +643,6 @@ sap.ui.define([
 	Hyphenation.getInstance = function () {
 		if (!oHyphenationInstance) {
 			oHyphenationInstance = new Hyphenation();
-			oHyphenationInstance.bIsInitialized = false;
-			oHyphenationInstance.bLoading = false;
 		}
 
 		return oHyphenationInstance;

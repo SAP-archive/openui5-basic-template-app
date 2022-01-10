@@ -118,9 +118,10 @@ function(
 	* <li> You can select single tokens or a range of tokens and you can copy/cut/delete them.</li>
 	* </ul>
 	* @extends sap.m.Input
+	* @implements sap.ui.core.ISemanticFormContent
 	*
 	* @author SAP SE
-	* @version 1.84.11
+	* @version 1.96.2
 	*
 	* @constructor
 	* @public
@@ -130,7 +131,9 @@ function(
 	*/
 	var MultiInput = Input.extend("sap.m.MultiInput", /** @lends sap.m.MultiInput.prototype */ {
 		metadata: {
-
+			interfaces: [
+				"sap.ui.core.ISemanticFormContent"
+			],
 			library: "sap.m",
 			designtime: "sap/m/designtime/MultiInput.designtime",
 			properties: {
@@ -144,13 +147,19 @@ function(
 				 * @deprecated Since version 1.58. Replaced with N-more/N-items labels, which work in all cases.
 				 * @since 1.28
 				 */
-				enableMultiLineMode: {type: "boolean", group: "Behavior", defaultValue: false},
+				enableMultiLineMode: {type: "boolean", group: "Behavior", defaultValue: false, deprecated: true},
 
 				/**
 				 * The max number of tokens that is allowed in MultiInput.
 				 * @since 1.36
 				 */
-				maxTokens: {type: "int", group: "Behavior"}
+				maxTokens: {type: "int", group: "Behavior"},
+
+				/**
+				 * Changed when tokens are changed. The value for sap.ui.core.ISemanticFormContent interface.
+				 * @private
+				 */
+				_semanticFormValue: {type: "string", group: "Behavior", defaultValue: "", visibility: "hidden"}
 			},
 			aggregations: {
 
@@ -204,7 +213,8 @@ function(
 						 * This parameter is used when tokenChange type is "tokenChanged".
 						 */
 						removedTokens: {type: "sap.m.Token[]"}
-					}
+					},
+					deprecated: true
 				},
 
 				/**
@@ -246,7 +256,10 @@ function(
 	MultiInput.prototype.init = function () {
 		var that = this;
 		this._bShowListWithTokens = false;
+
 		Input.prototype.init.call(this);
+
+		this._getClearIcon();
 
 		this._bIsValidating = false;
 
@@ -264,7 +277,6 @@ function(
 		this.setAggregation("tokenizer", oTokenizer);
 
 		oTokenizer.getTokensPopup()
-			.setInitialFocus(this)
 			.attachBeforeOpen(this._onBeforeOpenTokensPicker.bind(this))
 			.attachAfterClose(this._onAfterCloseTokensPicker.bind(this))
 
@@ -280,6 +292,8 @@ function(
 
 			switch (sMutation) {
 				case "insert":
+					oToken.attachEvent("_change", this.invalidate, this);
+
 					this.fireTokenChange({
 						type: sap.m.Tokenizer.TokenChangeType.Added,
 						token: oToken,
@@ -289,6 +303,7 @@ function(
 					break;
 				case "remove":
 					var sType = oChange.object.getTokens().length ? sap.m.Tokenizer.TokenChangeType.Removed : sap.m.Tokenizer.TokenChangeType.RemovedAll;
+					oToken.detachEvent("_change", this.invalidate, this);
 
 					this.fireTokenChange({
 						type: sType,
@@ -301,6 +316,7 @@ function(
 					break;
 			}
 
+			this.updateFormValueProperty();
 			this.invalidate();
 		}.bind(this));
 
@@ -390,6 +406,9 @@ function(
 	 * @private
 	 */
 	MultiInput.prototype._tokenDelete = function (oEvent) {
+		if (!this.getEditable() || !this.getEnabled()) {
+			return;
+		}
 		this._deleteTokens(oEvent.getParameter("tokens"), oEvent.getParameters());
 	};
 
@@ -579,7 +598,7 @@ function(
 				oScroll.scrollTo(0, 0, 0);
 			}
 
-			this._getSuggestionsPopoverInstance()._oPopupInput.focus();
+			this._getSuggestionsPopoverInstance().getInput().focus();
 		}
 		this._bTokenIsAdded = false;
 	};
@@ -722,6 +741,13 @@ function(
 		var aTokens = this.getTokens();
 		var oTokenToFocus = aTokens[aTokens.length - 1];
 
+		if (!this.getEnabled() || !this.getEditable()) {
+
+			// Prevent the backspace key from navigating back
+			oEvent.preventDefault();
+			return;
+		}
+
 		if (sValue === "" && isFocused && oTokenToFocus && oEvent.srcControl === this) {
 			var bAllTokensSelected = aTokens.filter(function(oToken) {
 				return oToken.getSelected();
@@ -766,6 +792,7 @@ function(
 	 */
 	MultiInput.prototype.onkeydown = function (oEvent) {
 		var oTokenizer = this.getAggregation("tokenizer");
+		Input.prototype.onkeydown.apply(this, arguments);
 
 		if (!this.getEnabled()) {
 			return;
@@ -816,14 +843,7 @@ function(
 		}
 
 		// for the purpose to copy from column in excel and paste in MultiInput/MultiComboBox
-		if (window.clipboardData) {
-			/* TODO remove after the end of support for Internet Explorer */
-			//IE
-			sOriginalText = window.clipboardData.getData("Text");
-		} else {
-			// Chrome, Firefox, Safari
-			sOriginalText = oEvent.originalEvent.clipboardData.getData('text/plain');
-		}
+		sOriginalText = oEvent.originalEvent.clipboardData.getData('text/plain');
 
 		aSeparatedText = sOriginalText.split(/\r\n|\r|\n/g);
 
@@ -876,7 +896,7 @@ function(
 	/**
 	 * A callback executed on this._validateToken call
 	 *
-	 * @param {integer} iOldLength Prior validation length of the Tokens
+	 * @param {int} iOldLength Prior validation length of the Tokens
 	 * @param {boolean} bValidated Is token/input successfully validated
 	 * @private
 	 */
@@ -888,8 +908,8 @@ function(
 		if (bValidated) {
 			this.setValue("");
 			this._bTokenIsValidated = true;
-			if (this.isMobileDevice() && oSuggestionsPopover && oSuggestionsPopover._oPopupInput && (iOldLength < iNewLength)) {
-				oSuggestionsPopover._oPopupInput.setValue("");
+			if (this.isMobileDevice() && oSuggestionsPopover && oSuggestionsPopover.getInput() && (iOldLength < iNewLength)) {
+				oSuggestionsPopover.getInput().setValue("");
 			}
 		}
 	};
@@ -930,6 +950,8 @@ function(
 		if (!this.getFocusDomRef().selectionStart) {
 			Tokenizer.prototype.onsaphome.apply(this.getAggregation("tokenizer"), arguments);
 		}
+
+		Input.prototype.onsaphome.apply(this, arguments);
 	};
 
 	/**
@@ -942,6 +964,8 @@ function(
 		if (oEvent.isMarked("forwardFocusToParent")) {
 			this.focus();
 		}
+
+		Input.prototype.onsapend.apply(this, arguments);
 	};
 
 	/**
@@ -951,16 +975,14 @@ function(
 	 * @param {jQuery.Event} oEvent The event object
 	 */
 	MultiInput.prototype.onsapenter = function (oEvent) {
-		if (Input.prototype.onsapenter) {
-			Input.prototype.onsapenter.apply(this, arguments);
-		}
+		Input.prototype.onsapenter.apply(this, arguments);
 
 		var bValidateFreeText = true,
 			oTokenizer = this.getAggregation("tokenizer");
 
 		if (this._getIsSuggestionPopupOpen()) {
 			if (this._hasTabularSuggestions()) {
-				bValidateFreeText = !this._oSuggestionTable.getSelectedItem();
+				bValidateFreeText = !this._getSuggestionsTable().getSelectedItem();
 			} else {
 				bValidateFreeText = !this._getSuggestionsList().getSelectedItem();
 			}
@@ -970,7 +992,7 @@ function(
 			this._validateCurrentText();
 		}
 
-		if (oEvent && oEvent.setMarked && this._bTokenIsValidated) {
+		if (oEvent && oEvent.setMarked && (this._bTokenIsValidated || this.getDOMValue())) {
 			oEvent.setMarked();
 		}
 
@@ -1227,7 +1249,7 @@ function(
 	 * Clones the <code>sap.m.MultiInput</code> control.
 	 *
 	 * @public
-	 * @returns {sap.m.MultiInput} reference to the newly created clone
+	 * @returns {this} reference to the newly created clone
 	 */
 	MultiInput.prototype.clone = function () {
 		var oClone;
@@ -1269,7 +1291,7 @@ function(
 	 *
 	 * @param {sap.m.Token[]} aTokens The new token set
 	 * @public
-	 * @returns {sap.m.MultiInput} Pointer to the control instance for chaining
+	 * @returns {this} Pointer to the control instance for chaining
 	 */
 	MultiInput.prototype.setTokens = function (aTokens) {
 		 if (!Array.isArray(aTokens)) {
@@ -1329,8 +1351,8 @@ function(
 
 		this.setDOMValue('');
 
-		if (oSuggestionsPopover._oPopupInput) {
-			oSuggestionsPopover._oPopupInput.setDOMValue('');
+		if (oSuggestionsPopover.getInput()) {
+			oSuggestionsPopover.getInput().setDOMValue('');
 		}
 	};
 
@@ -1381,12 +1403,51 @@ function(
 
 		var oInfo = Input.prototype.getAccessibilityInfo.apply(this, arguments);
 		oInfo.type = oRb.getText("ACC_CTR_TYPE_MULTIINPUT");
-		oInfo.description = ((oInfo.description || "") + " " + sText).trim();
+		oInfo.description = (this.getValueDescriptionInfo() + " " + sText).trim();
 		return oInfo;
 	};
 
-	MultiInput.prototype._modifyPopupInput = function (oPopupInput) {
+	/**
+	 * Gets the value of the accessibility description info field.
+	 *
+	 * @protected
+	 * @override
+	 * @returns {string} The value of the accessibility description info
+	 */
+	MultiInput.prototype.getValueDescriptionInfo = function () {
+		var iTokensLength = this.getTokens().length;
+		var sDescriptionText = this.getDescription() || "";
+		var sValue = this.getValue();
+
+		if (sValue) {
+			return sValue;
+		}
+
+		// Empty string or the description text should be set as acc description in case there are no tokens and no value.
+		// This way the tokens will be announced as the control's value.
+		if (iTokensLength > 0) {
+			return sDescriptionText;
+		} else {
+			// "Empty" or the description text should be set as acc description in case there are no tokens and no value.
+			return sDescriptionText ? sDescriptionText : sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("INPUTBASE_VALUE_EMPTY");
+		}
+	};
+
+	/**
+	 * Decorates Input
+	 *
+	 * @param oPopupInput {sap.m.InputBase}
+	 * @returns {*}
+	 * @private
+	 * @ui5-restricted
+	 */
+	MultiInput.prototype._decoratePopupInput = function (oPopupInput) {
+		Input.prototype._decoratePopupInput.apply(this, arguments);
 		var that = this;
+
+		if (!oPopupInput) {
+			return;
+		}
 
 		oPopupInput.addEventDelegate({
 			oninput: that._manageListsVisibility.bind(that, false),
@@ -1440,7 +1501,7 @@ function(
 		if (oDomRef && oPopover) {
 			// Popover's width was calculated once in its onBeforeOpen method and is set in PX
 			iCurrentWidth = parseInt(oPopover.getContentWidth());
-			iCalculatedWidth = oDomRef.offsetWidth > iCurrentWidth ? oDomRef.offsetWidth : iCurrentWidth;
+			iCalculatedWidth = isNaN(iCurrentWidth) || oDomRef.offsetWidth > iCurrentWidth ? oDomRef.offsetWidth : iCurrentWidth;
 
 			iCalculatedWidth = ((oTokenizer.getTokens().length === 1) || !bEditable) ? "auto" :
 				(iCalculatedWidth / parseFloat(library.BaseFontSize)) + "rem";
@@ -1507,7 +1568,7 @@ function(
 	MultiInput.prototype._getSuggestionsList = function() {
 		var oSuggestionsPopover = this._getSuggestionsPopoverInstance();
 
-		return oSuggestionsPopover && oSuggestionsPopover._oList;
+		return oSuggestionsPopover && oSuggestionsPopover.getItemsContainer();
 	};
 
 	/**
@@ -1549,32 +1610,32 @@ function(
 	};
 
 	/**
-	 * Adds or removes aria-labelledby attribute to indicate that you can interact with Nmore.
+	 * Adds or removes aria-describedby attribute to indicate that you can interact with Nmore.
 	 *
 	 * @private
 	 */
 	MultiInput.prototype._handleNMoreAccessibility = function () {
 		var sInvisibleTextId = InvisibleText.getStaticId("sap.m", "MULTICOMBOBOX_OPEN_NMORE_POPOVER"),
 			oFocusDomRef = this.getFocusDomRef(),
-			sAriaLabeledBy = (oFocusDomRef && oFocusDomRef.getAttribute("aria-labelledby")),
-			aAriaLabeledBy = sAriaLabeledBy ? sAriaLabeledBy.split(" ") : [],
-			iNMoreIndex = aAriaLabeledBy.indexOf(sInvisibleTextId),
+			sAriaDescribedBy = (oFocusDomRef && oFocusDomRef.getAttribute("aria-describedby")),
+			aAriaDescribedBy = sAriaDescribedBy ? sAriaDescribedBy.split(" ") : [],
+			iNMoreIndex = aAriaDescribedBy.indexOf(sInvisibleTextId),
 			bEnabled = this.getEnabled(),
 			bNMoreAriaRequirements = !this.getEditable() && this.getAggregation("tokenizer").getHiddenTokensCount();
 
 		// if the control is readonly and has a visible n-more, provide the respective aria attributes
 		if (bNMoreAriaRequirements && iNMoreIndex === -1) {
-			aAriaLabeledBy.push(sInvisibleTextId);
+			aAriaDescribedBy.push(sInvisibleTextId);
 			bEnabled && this.getFocusDomRef().setAttribute("aria-keyshortcuts", "Enter");
 		// if the control is no longer readonly or the n-more is not visible, make sure to clear out the attributes
 		} else if (iNMoreIndex !== -1 && !bNMoreAriaRequirements) {
-			aAriaLabeledBy.splice(iNMoreIndex, 1);
+			aAriaDescribedBy.splice(iNMoreIndex, 1);
 			this.getFocusDomRef().removeAttribute("aria-keyshortcuts");
 		}
 
-		// set the aria-labelledby with the updated array
-		if (oFocusDomRef && aAriaLabeledBy.length) {
-			oFocusDomRef.setAttribute("aria-labelledby", aAriaLabeledBy.join(" ").trim());
+		// set the aria-describedby with the updated array
+		if (oFocusDomRef && aAriaDescribedBy.length) {
+			oFocusDomRef.setAttribute("aria-describedby", aAriaDescribedBy.join(" ").trim());
 		}
 	};
 
@@ -1625,7 +1686,7 @@ function(
 		}
 
 		iSummedIconsWidth = this._calculateIconsSpace();
-		iTokenizerWidth = Math.ceil(oTokenizer.getDomRef().getBoundingClientRect().width);
+		iTokenizerWidth = oTokenizer.getDomRef().scrollWidth;
 		oFocusDomRef.style.width = 'calc(100% - ' + Math.floor(iSummedIconsWidth + iTokenizerWidth) + "px";
 	};
 
@@ -1634,7 +1695,7 @@ function(
 	 *
 	 * @protected
 	 * @param {HTMLElement} oTarget The target of the event.
-	 * @returns {Boolean} Boolean indicating if the target is a valid opener.
+	 * @returns {boolean} Boolean indicating if the target is a valid opener.
 	 */
 	MultiInput.prototype.isValueHelpOnlyOpener = function (oTarget) {
 		return [this._$input[0], this._getValueHelpIcon().getDomRef()].indexOf(oTarget) > -1;
@@ -1896,7 +1957,7 @@ function(
 		if (sValue && (bExactMatch || bPasted || this._getIsSuggestionPopupOpen())) { // only take item from suggestion list if popup is open, otherwise it can be
 			if (this._hasTabularSuggestions()) {
 				//if there is suggestion table, select the correct item, to avoid selecting the wrong item but with same text.
-				oItem = this._oSuggestionTable.getSelectedItem();
+				oItem = this._getSuggestionsTable().getSelectedItem();
 			} else {
 				// impossible to enter other text
 				oItem = this._getSuggestionItem(sValue, bExactMatch);
@@ -1943,6 +2004,42 @@ function(
 				fValidateCallback && fValidateCallback(false);
 			}
 		};
+	};
+
+	/**
+	 * Gets formatted form value.
+	 *
+	 * In the context of the MultiInput, this is the merged value of all the Tokens in the control.
+	 *
+	 * @since 1.94
+	 * @experimental
+	 */
+	MultiInput.prototype.getFormFormattedValue = function () {
+		return this.getTokens()
+			.map(function (oToken) {
+				return oToken.getText();
+			})
+			.join(", ");
+	};
+
+	/**
+	 * The property which triggers form display invalidation when changed
+	 *
+	 * @since 1.94
+	 * @experimental
+	 */
+	MultiInput.prototype.getFormValueProperty = function () {
+		return "_semanticFormValue";
+	};
+
+	/**
+	 * ISemanticFormContent interface works only with properties. The state of MultiInput is kept as Tokens.
+	 * Update _semanticFormValue property so it'd match MultiInput's state, but as a string which could be reused.
+	 *
+	 * @private
+	 */
+	MultiInput.prototype.updateFormValueProperty = function () {
+		this.setProperty("_semanticFormValue", this.getFormFormattedValue(), true);
 	};
 
 	return MultiInput;

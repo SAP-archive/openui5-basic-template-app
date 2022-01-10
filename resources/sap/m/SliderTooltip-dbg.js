@@ -44,7 +44,7 @@ function(
 		 * @extends sap.m.SliderTooltipBase
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @private
@@ -177,7 +177,7 @@ function(
 		 * Default value is <code>None</code>.
 		 *
 		 * @param {sap.ui.core.ValueState} sValueState New value for property <code>valueState</code>.
-		 * @return {sap.m.SliderTooltip} <code>this</code> to allow method chaining.
+		 * @return {this} <code>this</code> to allow method chaining.
 		 * @public
 		 */
 		SliderTooltip.prototype.setValueState = function (sValueState) {

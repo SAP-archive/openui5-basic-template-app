@@ -5,8 +5,8 @@
  */
 
 // Provides helper class IndicationColoreSupport
-sap.ui.define(['./Element', './library', "sap/base/assert"],
-	function(Element, library, assert) {
+sap.ui.define(['./library'],
+	function(library) {
 	"use strict";
 
 	// shortcut for enum(s)
@@ -16,7 +16,7 @@ sap.ui.define(['./Element', './library', "sap/base/assert"],
 		 * Helper functionality for indication color support.
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 * @public
 		 * @namespace sap.ui.core.IndicationColorSupport
 		 * @since 1.66

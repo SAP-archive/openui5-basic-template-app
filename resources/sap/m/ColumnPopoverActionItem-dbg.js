@@ -16,7 +16,7 @@ sap.ui.define(['./ColumnPopoverItem', 'sap/m/Button'], function(ColumnPopoverIte
 	 * @extends sap.m.ColumnPopoverItem
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @since 1.63
@@ -26,8 +26,8 @@ sap.ui.define(['./ColumnPopoverItem', 'sap/m/Button'], function(ColumnPopoverIte
 	 */
 	var ColumnPopoverActionItem = ColumnPopoverItem.extend("sap.m.ColumnPopoverActionItem", /** @lends sap.m.ColumnPopoverActionItem.prototype */
 	{
-		library: "sap.m",
 		metadata: {
+			library: "sap.m",
 			properties: {
 				/**
 				 * Actionitem button icon

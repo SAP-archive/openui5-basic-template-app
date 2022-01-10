@@ -8,6 +8,7 @@
  *
  * Date: 2017-04-18T02:19Z
  */
+
 (function (global$1) {
   'use strict';
 
@@ -21,7 +22,8 @@
   // the goal is to prevent QUnit timeouts while test is already paused.
   if (window && window.sap && window.sap.ui && window.sap.ui.require) {
     try {
-      window.sap.ui.require("sap/ui/test/qunitPause") || window.sap.ui.requireSync("sap/ui/test/qunitPause");
+      var QUnitPause = window.sap.ui.require("sap/ui/test/qunitPause") || window.sap.ui.requireSync("sap/ui/test/qunitPause"); // legacy-relevant
+      QUnitPause.setupBeforeQUnit();
     } catch (e) {
       console.warn("Could not find module sap/ui/test/qunitPause. Details: " + e);
     }
@@ -3290,10 +3292,15 @@
   		label.appendChild(moduleSearch);
 
   		actions.id = "qunit-modulefilter-actions";
-  		actions.innerHTML = "<button style='display:none'>Apply</button>" + "<button type='reset' style='display:none'>Reset</button>" + "<label class='clickable" + (config.moduleId.length ? "" : " checked") + "'><input type='checkbox'" + (config.moduleId.length ? "" : " checked='checked'") + ">All modules</label>";
+  		// ### BEGIN MODIFIED BY SAP
+  		// actions.innerHTML = "<button style='display:none'>Apply</button>" + "<button type='reset' style='display:none'>Reset</button>" + "<label class='clickable" + (config.moduleId.length ? "" : " checked") + "'><input type='checkbox'" + (config.moduleId.length ? "" : " checked='checked'") + ">All modules</label>";
+  		actions.innerHTML = "<button>Apply</button>" + "<button type='reset'>Reset</button>" + "<label class='clickable" + (config.moduleId.length ? "" : " checked") + "'><input type='checkbox'" + (config.moduleId.length ? "" : " checked='checked'") + ">All modules</label>";
+  		// ### END MODIFIED BY SAP
   		allCheckbox = actions.lastChild.firstChild;
   		commit = actions.firstChild;
+  		commit.style.display = "none"; // ### MODIFIED BY SAP
   		reset = commit.nextSibling;
+  		reset.style.display = "none"; // ### MODIFIED BY SAP
   		addEvent(commit, "click", applyUrlParams);
 
   		dropDownList.id = "qunit-modulefilter-dropdown-list";

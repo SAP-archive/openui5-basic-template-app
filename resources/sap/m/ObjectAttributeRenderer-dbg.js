@@ -31,7 +31,8 @@ sap.ui.define(["sap/ui/core/library"],
 	 */
 	ObjectAttributeRenderer.render = function(oRm, oOA) {
 		var oParent = oOA.getParent(),
-			sTooltip = oOA.getTooltip_AsString();
+			sTooltip = oOA.getTooltip_AsString(),
+			sTextDir = oOA.getTextDirection();
 
 		oRm.openStart("div", oOA);
 		if (oOA._isEmpty()) {
@@ -43,6 +44,11 @@ sap.ui.define(["sap/ui/core/library"],
 		}
 
 		oRm.class("sapMObjectAttributeDiv");
+
+		if (sTextDir !== TextDirection.Inherit) {
+			oRm.attr("dir", sTextDir.toLowerCase());
+		}
+
 		// add tabindex, "active" class and ARIA only when the ObjectAttribute is clickable
 		// e.g. when is active ot the CustomContent is sap.m.Link
 		if (oOA._isClickable()) {
@@ -72,12 +78,16 @@ sap.ui.define(["sap/ui/core/library"],
 			this.renderActiveText(oRm, oOA, oParent);
 		} else {
 			oRm.renderControl(oOA._getUpdatedTextControl());
+			if (oOA._bEmptyIndicatorMode) {
+				oRm.renderControl(oOA.getAggregation("_textControl"));
+			}
 		}
 		oRm.close("div");
 	};
 
 	ObjectAttributeRenderer.renderActiveTitle = function(oRm, oOA) {
-		var sColon;
+		var sColon,
+			bRenderBDI = oOA.getTextDirection() === TextDirection.Inherit;
 
 		if (!oOA.getProperty("title")) {
 			return;
@@ -88,7 +98,18 @@ sap.ui.define(["sap/ui/core/library"],
 		oRm.openStart("span", oOA.getId() + "-title");
 		oRm.class("sapMObjectAttributeTitle");
 		oRm.openEnd();
+
+		if (bRenderBDI) {
+			oRm.openStart("bdi");
+			oRm.openEnd();
+		}
+
 		oRm.text(oOA.getProperty("title"));
+
+		if (bRenderBDI) {
+			oRm.close("bdi");
+		}
+
 		oRm.close("span");
 
 		oRm.openStart("span", oOA.getId() + "-colon");
@@ -102,16 +123,11 @@ sap.ui.define(["sap/ui/core/library"],
 	};
 
 	ObjectAttributeRenderer.renderActiveText = function (oRm, oOA, oParent) {
-		var sTextDir = oOA.getTextDirection(),
-			oAttrAggregation = oOA.getAggregation("customContent");
+		var oAttrAggregation = oOA.getAggregation("customContent"),
+			bRenderBDI = oOA.getTextDirection() === TextDirection.Inherit;
 
 		oRm.openStart("span", oOA.getId() + "-text");
 		oRm.class("sapMObjectAttributeText");
-
-		if (sTextDir && sTextDir !== TextDirection.Inherit) {
-			oRm.attr("dir", sTextDir.toLowerCase());
-		}
-
 		oRm.openEnd();
 
 		if (oAttrAggregation && oParent) {
@@ -122,7 +138,16 @@ sap.ui.define(["sap/ui/core/library"],
 			}
 			oRm.renderControl(oAttrAggregation);
 		} else {
+			if (bRenderBDI) {
+				oRm.openStart("bdi");
+				oRm.openEnd();
+			}
+
 			oRm.text(oOA.getProperty("text"));
+
+			if (bRenderBDI) {
+				oRm.close("bdi");
+			}
 		}
 		oRm.close("span");
 	};

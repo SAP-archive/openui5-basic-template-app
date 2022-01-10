@@ -6,14 +6,14 @@
 
 sap.ui.define([
 	"sap/base/Log",
+	"sap/base/util/extend",
 	"sap/ui/core/format/NumberFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
-	"sap/ui/model/odata/type/ODataType",
-	"sap/ui/thirdparty/jquery"
-], function (Log, NumberFormat, FormatException, ParseException, ValidateException, ODataType,
-		jQuery) {
+	"sap/ui/model/odata/type/ODataType"
+], function (Log, extend, NumberFormat, FormatException, ParseException, ValidateException,
+		ODataType) {
 	"use strict";
 
 	var rInteger = /^[-+]?(\d+)$/, // user input for an Int64 w/o the sign
@@ -68,7 +68,7 @@ sap.ui.define([
 		var oFormatOptions;
 
 		if (!oType.oFormat) {
-			oFormatOptions = jQuery.extend({groupingEnabled : true}, oType.oFormatOptions);
+			oFormatOptions = extend({groupingEnabled : true}, oType.oFormatOptions);
 			oFormatOptions.parseAsString = true;
 			oType.oFormat = NumberFormat.getIntegerInstance(oFormatOptions);
 		}
@@ -137,7 +137,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @alias sap.ui.model.odata.type.Int64
 	 * @param {object} [oFormatOptions]
@@ -184,20 +184,20 @@ sap.ui.define([
 			return null;
 		}
 		switch (this.getPrimitiveType(sTargetType)) {
-		case "any":
-			return sValue;
-		case "float":
-		case "int":
-			sErrorText = checkValueRange(this, sValue, oSafeRange);
-			if (sErrorText) {
-				throw new FormatException(sErrorText);
-			}
-			return parseInt(sValue);
-		case "string":
-			return getFormatter(this).format(sValue);
-		default:
-			throw new FormatException("Don't know how to format " + this.getName() + " to "
-				+ sTargetType);
+			case "any":
+				return sValue;
+			case "float":
+			case "int":
+				sErrorText = checkValueRange(this, sValue, oSafeRange);
+				if (sErrorText) {
+					throw new FormatException(sErrorText);
+				}
+				return parseInt(sValue);
+			case "string":
+				return getFormatter(this).format(sValue);
+			default:
+				throw new FormatException("Don't know how to format " + this.getName() + " to "
+					+ sTargetType);
 		}
 	};
 
@@ -246,22 +246,22 @@ sap.ui.define([
 			return null;
 		}
 		switch (this.getPrimitiveType(sSourceType)) {
-		case "string":
-			sResult = getFormatter(this).parse(vValue);
-			if (!sResult) {
-				throw new ParseException(getText("EnterInt"));
-			}
-			break;
-		case "int":
-		case "float":
-			sResult = NumberFormat.getIntegerInstance({
-					maxIntegerDigits : Infinity,
-					groupingEnabled : false
-				}).format(vValue);
-			break;
-		default:
-			throw new ParseException("Don't know how to parse " + this.getName() + " from "
-				+ sSourceType);
+			case "string":
+				sResult = getFormatter(this).parse(vValue);
+				if (!sResult) {
+					throw new ParseException(getText("EnterInt"));
+				}
+				break;
+			case "int":
+			case "float":
+				sResult = NumberFormat.getIntegerInstance({
+						maxIntegerDigits : Infinity,
+						groupingEnabled : false
+					}).format(vValue);
+				break;
+			default:
+				throw new ParseException("Don't know how to parse " + this.getName() + " from "
+					+ sSourceType);
 		}
 		return sResult;
 	};

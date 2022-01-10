@@ -35,7 +35,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -47,6 +47,7 @@ sap.ui.define([
 	var Tile = Control.extend("sap.m.Tile", /** @lends sap.m.Tile.prototype */ { metadata : {
 
 		library : "sap.m",
+		deprecated: true,
 		properties : {
 
 			/**
@@ -257,7 +258,7 @@ sap.ui.define([
 	/**
 	 * Sets initial visibility of the Tile.
 	 * @param {boolean} bVisible visibility
-	 * @returns {sap.m.Tile} <code>this</code> to allow method chaining
+	 * @returns {this} <code>this</code> to allow method chaining
 	 * @private
 	 */
 	Tile.prototype._setVisible = function(bVisible){

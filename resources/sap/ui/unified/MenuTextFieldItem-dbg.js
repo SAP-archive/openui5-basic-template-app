@@ -9,6 +9,7 @@ sap.ui.define([
 	'sap/ui/core/ValueStateSupport',
 	'./MenuItemBase',
 	'./library',
+	'sap/ui/core/IconPool',
 	'sap/ui/core/library',
 	'sap/ui/Device',
 	'sap/base/Log',
@@ -19,6 +20,7 @@ sap.ui.define([
 		ValueStateSupport,
 		MenuItemBase,
 		library,
+		IconPool,
 		coreLibrary,
 		Device,
 		Log,
@@ -45,7 +47,7 @@ sap.ui.define([
 	 * @extends sap.ui.unified.MenuItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -88,60 +90,59 @@ sap.ui.define([
 			bIsEnabled = oMenu.checkEnabled(oItem),
 			itemId = oItem.getId();
 
-		var sClass = "sapUiMnuItm sapUiMnuTfItm";
+		rm.openStart("li", oItem);
+		rm.class("sapUiMnuItm").class("sapUiMnuTfItm");
+
 		if (oInfo.iItemNo == 1) {
-			sClass += " sapUiMnuItmFirst";
+			rm.class("sapUiMnuItmFirst");
 		} else if (oInfo.iItemNo == oInfo.iTotalItems) {
-			sClass += " sapUiMnuItmLast";
+			rm.class("sapUiMnuItmLast");
 		}
 		if (!oMenu.checkEnabled(oItem)) {
-			sClass += " sapUiMnuItmDsbl";
+			rm.class("sapUiMnuItmDsbl");
 		}
 		if (oItem.getStartsSection()) {
-			sClass += " sapUiMnuItmSepBefore";
+			rm.class("sapUiMnuItmSepBefore");
 		}
-
-		rm.write("<li ");
-		rm.writeAttribute("class", sClass);
 
 		if (!bIsEnabled) {
-			rm.writeAttribute("disabled", "disabled");
+			rm.attr("disabled", "disabled");
 		}
-
-		rm.writeElementData(oItem);
 
 		// ARIA
 		if (oInfo.bAccessible) {
-			rm.writeAttribute("role", "menuitem");
-			rm.writeAttribute("aria-posinset", oInfo.iItemNo);
-			rm.writeAttribute("aria-setsize", oInfo.iTotalItems);
+			rm.attr("role", "menuitem");
+			rm.attr("aria-posinset", oInfo.iItemNo);
+			rm.attr("aria-setsize", oInfo.iTotalItems);
 		}
+
+		rm.openEnd();
 
 		// Left border
-		rm.write("><div class=\"sapUiMnuItmL\"></div>");
+		rm.openStart("div").class("sapUiMnuItmL").openEnd().close("div");
 
 		// icon/check column
-		rm.write("<div class=\"sapUiMnuItmIco\">");
+		rm.openStart("div").class("sapUiMnuItmIco").openEnd();
 		if (oItem.getIcon()) {
-			rm.writeIcon(oItem.getIcon(), null, {title: null});
+			rm.icon(oItem.getIcon(), null, {title: null});
 		}
-		rm.write("</div>");
+		rm.close("div");
 
 		// Text filed column
-		rm.write("<div id=\"" + itemId + "-txt\" class=\"sapUiMnuItmTxt\">");
-		rm.write("<label id=\"" + itemId + "-lbl\" class=\"sapUiMnuTfItemLbl\">");
-		rm.writeEscaped(oItem.getLabel() || "");
-		rm.write("</label>");
-		rm.write("<div id=\"" + itemId + "-str\" class=\"sapUiMnuTfItmStretch\"></div>"); // Helper to strech the width if needed
-		rm.write("<div class=\"sapUiMnuTfItemWrppr\">");
-		rm.write("<input id=\"" + itemId + "-tf\" tabindex=\"-1\"");
-		rm.writeAttributeEscaped("value", oItem.getValue() || "");
-		rm.writeAttribute("class", bIsEnabled ? "sapUiMnuTfItemTf sapUiMnuTfItemTfEnbl" : "sapUiMnuTfItemTf sapUiMnuTfItemTfDsbl");
+		rm.openStart("div", itemId + "-txt").class("sapUiMnuItmTxt").openEnd();
+		rm.openStart("label", itemId + "-lbl").class("sapUiMnuTfItemLbl").openEnd();
+		rm.text(oItem.getLabel());
+		rm.close("label");
+		rm.openStart("div", itemId + "-str").class("sapUiMnuTfItmStretch").openEnd().close("div"); // Helper to strech the width if needed
+		rm.openStart("div").class("sapUiMnuTfItemWrppr").openEnd();
+		rm.voidStart("input", itemId + "-tf").attr("tabindex", "-1");
+		rm.attr("value", oItem.getValue());
+		rm.class("sapUiMnuTfItemTf").class(bIsEnabled ? "sapUiMnuTfItemTfEnbl" : "sapUiMnuTfItemTfDsbl");
 		if (!bIsEnabled) {
-			rm.writeAttribute("disabled", "disabled");
+			rm.attr("disabled", "disabled");
 		}
 		if (oInfo.bAccessible) {
-			rm.writeAccessibilityState(oItem, {
+			rm.accessibilityState(oItem, {
 				role: "textbox",
 				disabled: null, // Prevent aria-disabled as a disabled attribute is enough
 				multiline: false,
@@ -149,12 +150,12 @@ sap.ui.define([
 				labelledby: {value: /*oMenu.getId() + "-label " + */itemId + "-lbl", append: true}
 			});
 		}
-		rm.write("></div></div>");
+		rm.voidEnd().close("div").close("div");
 
 		// Right border
-		rm.write("<div class=\"sapUiMnuItmR\"></div>");
+		rm.openStart("div").class("sapUiMnuItmR").openEnd().close("div");
 
-		rm.write("</li>");
+		rm.close("li");
 	};
 
 
@@ -264,7 +265,7 @@ sap.ui.define([
 	/**
 	 * The aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
 	 *
-	 * @return {sap.ui.unified.MenuTextFieldItem} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 * @name sap.ui.unified.MenuTextFieldItem#destroySubmenu
 	 * @deprecated As of version 1.21, the aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
@@ -275,7 +276,7 @@ sap.ui.define([
 	 * The aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
 	 *
 	 * @param {sap.ui.unified.Menu} oMenu The menu to which the sap.ui.unified.Submenu should be set
-	 * @return {sap.ui.unified.MenuTextFieldItem} <code>this</code> to allow method chaining
+	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.21, the aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
 	 */

@@ -26,6 +26,9 @@ sap.ui.define([
 	// shortcut for sap.m.IconTabDensityMode
 	var IconTabDensityMode = library.IconTabDensityMode;
 
+	// shortcut for sap.m.TabsOverflowMode
+	var TabsOverflowMode = library.TabsOverflowMode;
+
 	/**
 	 * Constructor for a new IconTabBar.
 	 *
@@ -91,7 +94,7 @@ sap.ui.define([
 	 * @implements sap.m.ObjectHeaderContainer, sap.f.IDynamicPageStickyContent
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @alias sap.m.IconTabBar
@@ -170,7 +173,6 @@ sap.ui.define([
 
 			/**
 			 * Specifies the header mode.
-			 * <b>Note:</b> The Inline mode works only if no icons are set.
 			 *
 			 * @since 1.40
 			 */
@@ -189,9 +191,8 @@ sap.ui.define([
 			/**
 			 * Specifies the background color of the header.
 			 *
-			 * Depending on the theme, you can change the state of
-			 * the background color to "Solid", "Translucent", or "Transparent".
-			 * Default is "Solid".
+			 * Depending on the theme, you can change the state of the background color to "Solid", "Translucent", or "Transparent".
+			 * <b>Note:</b> In SAP Belize Deep (sap_belize_plus) theme this property should be set to "Solid".
 			 * @since 1.44
 			 */
 			headerBackgroundDesign : {type : "sap.m.BackgroundDesign", group : "Appearance", defaultValue : BackgroundDesign.Solid},
@@ -232,7 +233,17 @@ sap.ui.define([
 			 * <code>headerDescription</code> - text to serve as a description for the header.
 			 * @since 1.78
 			 */
-			ariaTexts : {type : "object", group : "Accessibility", defaultValue : null}
+			ariaTexts : {type : "object", group : "Accessibility", defaultValue : null},
+
+			/**
+			 * Specifies the overflow mode of the header.
+			 *
+			 * The default <code>End</code> mode shows as many tabs that can fit on the screen, then shows one overflow at the end
+			 * containing the remaining items.
+			 * The <code>StartAndEnd</code> is used to keep the order of tabs intact and offers two overflow tabs on both ends of the bar.
+			 * @since 1.90
+			 */
+			tabsOverflowMode: {type : "sap.m.TabsOverflowMode", group : "Behavior", defaultValue : TabsOverflowMode.End}
 		},
 		aggregations : {
 
@@ -277,6 +288,12 @@ sap.ui.define([
 					 * @since 1.15.0
 					 */
 					key : {type : "string"},
+
+					/**
+					 * The key of the previous selected item
+					 * @since 1.96
+					 */
+					previousKey : {type : "string"},
 
 					/**
 					 * The selected item
@@ -336,7 +353,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {boolean} bExpanded New parameter value.
-	 * @return {sap.m.IconTabBar} this IconTabBar reference for chaining.
+	 * @return {this} this IconTabBar reference for chaining.
 	 */
 	IconTabBar.prototype.setExpanded = function (bExpanded) {
 		// set internal property
@@ -354,7 +371,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {sap.m.IconTabHeaderMode} mode New parameter value.
-	 * @return {sap.m.IconTabBar} this IconTabBar reference for chaining.
+	 * @return {this} this IconTabBar reference for chaining.
 	 */
 	IconTabBar.prototype.setHeaderMode = function (mode) {
 		// set internal property
@@ -370,7 +387,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {sap.m.IconTabHeaderMode} mode New parameter value.
-	 * @return {sap.m.IconTabBar} this IconTabBar reference for chaining.
+	 * @return {this} this IconTabBar reference for chaining.
 	 */
 	IconTabBar.prototype.setTabDensityMode = function (mode) {
 		// set internal property
@@ -387,7 +404,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {sap.m.BackgroundDesign} headerBackgroundDesign New parameter value.
-	 * @return {sap.m.IconTabBar} this IconTabBar reference for chaining.
+	 * @return {this} this IconTabBar reference for chaining.
 	 */
 	IconTabBar.prototype.setHeaderBackgroundDesign = function (headerBackgroundDesign) {
 		// set internal property
@@ -403,7 +420,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {boolean} value New value for enableTabReordering.
-	 * @return {sap.m.IconTabBar} this IconTabBar reference for chaining.
+	 * @return {this} this IconTabBar reference for chaining.
 	 */
 	IconTabBar.prototype.setEnableTabReordering = function (value) {
 		// set internal property
@@ -419,7 +436,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {object} oAriaTexts New value for ariaTexts.
-	 * @returns {sap.m.IconTabBar} this Reference to this in order to allow method chaining
+	 * @returns {this} this Reference to this in order to allow method chaining
 	 */
 	IconTabBar.prototype.setAriaTexts = function (oAriaTexts) {
 		// set internal property
@@ -473,7 +490,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @param {boolean|undefined} bExpanded The new state of the container. If not specified, it will use the property expanded.
-	 * @return {sap.m.IconTabBar} this IconTabBar reference for chaining.
+	 * @return {this} this IconTabBar reference for chaining.
 	 */
 	IconTabBar.prototype._toggleExpandCollapse = function(bExpanded) {
 		var $content = this.$("content");
@@ -540,7 +557,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @param {boolean} bExpanded The new state of the container.
-	 * @return {sap.m.IconTabBar} this IconTabBar reference for chaining.
+	 * @return {this} this IconTabBar reference for chaining.
 	 */
 	IconTabBar.prototype.onTransitionEnded = function(bExpanded) {
 		var $content = this.$("content"),
@@ -609,12 +626,14 @@ sap.ui.define([
 			$ITH = oITH.$();
 
 		oITH.setMaxNestingLevel(this.getMaxNestingLevel());
+		oITH.setTabsOverflowMode(this.getTabsOverflowMode());
 
 		if (this._bStickyContentSticked && $ITH) {
 			delete this._bStickyContentSticked;
 			this._getIconTabHeader().$().remove();
 		}
 	};
+
 	/* =========================================================== */
 	/*           begin: reflectors for header properties           */
 	/* =========================================================== */
@@ -624,7 +643,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {boolean} bValue the new value.
-	 * @returns {sap.m.IconTabBar} this IconTabBar reference for chaining.
+	 * @returns {this} this IconTabBar reference for chaining.
 	 */
 	IconTabBar.prototype.setShowSelection = function (bValue) {
 		this._getIconTabHeader().setShowSelection(bValue);
@@ -646,7 +665,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {string} sValue The new value.
-	 * @returns {sap.m.IconTabBar} this Pointer for chaining.
+	 * @returns {this} this Pointer for chaining.
 	 */
 	IconTabBar.prototype.setSelectedKey = function (sValue) {
 		this._getIconTabHeader().setSelectedKey(sValue);

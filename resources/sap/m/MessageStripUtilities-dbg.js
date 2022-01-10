@@ -4,7 +4,11 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
-sap.ui.define(function () {
+sap.ui.define([
+	'sap/ui/core/IconPool'
+], function (
+	IconPool
+) {
 	"use strict";
 
 	/**
@@ -14,7 +18,7 @@ sap.ui.define(function () {
 	var MessageStripUtilities = {};
 
 	MessageStripUtilities.MESSAGES = {
-		TYPE_NOT_SUPPORTED: "Value 'sap.ui.core.MessageType.None' for property 'type' is not supported." +
+		TYPE_NOT_SUPPORTED: "Value 'sap.ui.core.MessageType.None' for property 'type' is not supported. " +
 		"Defaulting to 'sap.ui.core.MessageType.Information'"
 	};
 
@@ -43,7 +47,16 @@ sap.ui.define(function () {
 	MessageStripUtilities.getIconURI = function () {
 		var sType = this.getType(),
 			sCustomIconURI = this.getCustomIcon(),
-			sIconURI = "sap-icon://message-" + sType.toLowerCase();
+			sIconURI;
+
+		var oIconsMapping = {
+			"Error": "error",
+			"Warning": "alert",
+			"Success": "sys-enter-2",
+			"Information": "information"
+		};
+
+		sIconURI = IconPool.getIconURI(oIconsMapping[sType]);
 
 		return sCustomIconURI || sIconURI;
 	};

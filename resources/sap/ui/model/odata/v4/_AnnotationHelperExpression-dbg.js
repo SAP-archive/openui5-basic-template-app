@@ -20,10 +20,9 @@ sap.ui.define([
 	var sAnnotationHelper = "sap.ui.model.odata.v4.AnnotationHelper",
 		aPerformanceCategories = [sAnnotationHelper],
 		sPerformanceGetExpression = sAnnotationHelper + "/getExpression",
-		Expression,
 		// a simple binding (see sap.ui.base.BindingParser.simpleParser) to "@i18n" model
 		// w/o bad chars (see _AnnotationHelperBasics: rBadChars) inside path!
-		rI18n = /^\{@i18n>[^\\\{\}:]+\}$/,
+		rI18n = /^{@i18n>[^\\{}:]+}$/,
 		mOData2JSOperators = { // mapping of OData operator to JavaScript operator
 			And : "&&",
 			Eq : "===",
@@ -74,7 +73,46 @@ sap.ui.define([
 			"number" : false,
 			"string" : false,
 			"TimeOfDay" : false
-		};
+		},
+		/**
+		 * This object contains helper functions to process an expression in OData V4 annotations.
+		 *
+		 * The handler functions corresponding to nodes of an annotation expression all use
+		 * a parameter <code>oPathValue</code>. This parameter contains the following properties:
+		 * <ul>
+		 *   <li> <code>asExpression</code>: {boolean} parser state: if this property is
+		 *     <code>true</code>, an embedded <code>concat</code> must be rendered as an expression
+		 *     binding and not a composite binding.
+		 *   <li> <code>complexBinding</code>: {boolean} parser state: if this property is
+		 *     <code>true</code>, bindings shall have type and constraints information
+		 *   <li> <code>ignoreAsPrefix</code>: {string} an optional prefix to be ignored in a path
+		 *     expression (for example, binding parameter name)
+		 *   <li> <code>model</code>: {sap.ui.model.odata.v4.ODataMetaModel} the metamodel
+		 *   <li> <code>path</code>: {string} the path in the metamodel that leads to the value
+		 *   <li> <code>prefix</code>: {string} used in a path expression as a prefix for the
+		 *     value; is either an empty string or a path ending with a "/"
+		 *   <li> <code>value</code>: {any} the value of the (sub) expression from the metamodel
+		 * </ul>
+		 *
+		 * Unless specified otherwise all functions return a result object with the following
+		 * properties:
+		 * <ul>
+		 *   <li> <code>result</code>: "binding", "composite", "constant" or "expression"
+		 *   <li> <code>value</code>: depending on <code>result</code>:
+		 *     <ul>
+		 *       <li> when "binding": {string} the binding path
+		 *       <li> when "composite": {string} the binding string incl. the curly braces
+		 *       <li> when "constant": {any} the constant value (not escaped if string)
+		 *       <li> when "expression": {string} the expression unwrapped (no "{=" and "}")
+		 *     </ul>
+		 *   <li> <code>type</code>:  the EDM data type (like "Edm.String") if it could be
+		 *      determined
+		 *   <li> <code>constraints</code>: {object} type constraints if result is "binding"
+		 * </ul>
+		 *
+		 * @private
+		 */
+		Expression;
 
 	/*
 	 * Logs the given error message for the given path and returns a sync promise that rejects with
@@ -101,41 +139,6 @@ sap.ui.define([
 		Basics.error(oPathValue, sMessage, sAnnotationHelper);
 	}
 
-	/**
-	 * This object contains helper functions to process an expression in OData V4 annotations.
-	 *
-	 * The handler functions corresponding to nodes of an annotation expression all use
-	 * a parameter <code>oPathValue</code>. This parameter contains the following properties:
-	 * <ul>
-	 *   <li> <code>asExpression</code>: {boolean} parser state: if this property is
-	 *     <code>true</code>, an embedded <code>concat</code> must be rendered as an expression
-	 *     binding and not a composite binding.
-	 *   <li> <code>complexBinding</code>: {boolean} parser state: if this property is
-	 *     <code>true</code>, bindings shall have type and constraints information
-	 *   <li> <code>ignoreAsPrefix</code>: {string} an optional prefix to be ignored in a path
-	 *     expression (for example, binding parameter name)
-	 *   <li> <code>model</code>: {sap.ui.model.odata.v4.ODataMetaModel} the metamodel
-	 *   <li> <code>path</code>: {string} the path in the metamodel that leads to the value
-	 *   <li> <code>prefix</code>: {string} used in a path expression as a prefix for the
-	 *     value; is either an empty string or a path ending with a "/"
-	 *   <li> <code>value</code>: {any} the value of the (sub) expression from the metamodel
-	 * </ul>
-	 *
-	 * Unless specified otherwise all functions return a result object with the following
-	 * properties:
-	 * <ul>
-	 *   <li> <code>result</code>: "binding", "composite", "constant" or "expression"
-	 *   <li> <code>value</code>: depending on <code>result</code>:
-	 *     <ul>
-	 *       <li> when "binding": {string} the binding path
-	 *       <li> when "composite": {string} the binding string incl. the curly braces
-	 *       <li> when "constant": {any} the constant value (not escaped if string)
-	 *       <li> when "expression": {string} the expression unwrapped (no "{=" and "}")
-	 *     </ul>
-	 *   <li> <code>type</code>:  the EDM data type (like "Edm.String") if it could be determined
-	 *   <li> <code>constraints</code>: {object} type constraints if result is "binding"
-	 * </ul>
-	 */
 	Expression = {
 		/**
 		 * Adjusts the second operand so that both have the same category, if possible.
@@ -197,7 +200,7 @@ sap.ui.define([
 
 			// needed so that we can safely call Array#map
 			Basics.expectType(oPathValue, "array");
-			aPromises = oPathValue.value.map(function (oUnused, i) {
+			aPromises = oPathValue.value.map(function (_oValue, i) {
 				return Expression.expression(
 					Basics.descend(oPathValue, i, true/*"as expression"*/),
 					/*bInCollection*/true);
@@ -205,7 +208,7 @@ sap.ui.define([
 
 			return SyncPromise.all(aPromises).then(function (aElements) {
 				aElements = aElements.map(function (oElement) {
-					return Basics.resultToString(oElement, true);
+					return Basics.resultToString(oElement, true, false, true);
 				});
 
 				return {
@@ -228,7 +231,7 @@ sap.ui.define([
 
 			// needed so that we can safely call Array#map
 			Basics.expectType(oPathValue, "array");
-			aPromises = oPathValue.value.map(function (oUnused, i) {
+			aPromises = oPathValue.value.map(function (_oValue, i) {
 				// an embedded concat must use expression binding
 				return Expression.parameter(oPathValue, i);
 			});
@@ -288,10 +291,11 @@ sap.ui.define([
 			 * Returns the string representation of the given parameter value.
 			 * @param {object} oParameterValue the parameter value
 			 * @param {boolean} bComplex whether the result is a complex binding or a simple binding
+			 * @param {boolean} [bRaw] whether the result will contain the raw value
 			 */
-			function toString(oParameterValue, bComplex) {
+			function toString(oParameterValue, bComplex, bRaw) {
 				return Basics.resultToString(Expression.wrapExpression(oParameterValue), true,
-					bComplex);
+					bComplex, bRaw);
 			}
 
 			return SyncPromise.all([
@@ -316,7 +320,7 @@ sap.ui.define([
 				return {
 					result : "expression",
 					type : sType,
-					value : toString(oCondition, false)
+					value : toString(oCondition, false, true)
 						+ "?" + toString(oThen, bComplexBinding)
 						+ ":" + toString(oElse, bComplexBinding)
 				};
@@ -497,12 +501,9 @@ sap.ui.define([
 				sTargetPath = oModel.getObject(sPath);
 
 			function getBinding(mConstraints0, sType0, sPath0) {
-				return Basics.resultToString({
-						constraints : mConstraints0,
-						result : "binding",
-						type : sType0,
-						value : oPathValue.prefix + sPath0
-					}, false, true);
+				return Basics.resultToString(
+					Expression.pathResult(oPathValue, sType0, sPath0, mConstraints0),
+					false, true);
 			}
 
 			if (!sTargetPath) {
@@ -515,6 +516,12 @@ sap.ui.define([
 				return undefined;
 			}
 			return oModel.fetchObject(sPath + "/$").then(function (oTarget) {
+				var sCompositeConstraints =
+						oModel.getObject(oPathValue.path
+							+ "@com.sap.vocabularies.UI.v1.DoNotCheckScaleOfMeasureQuantity")
+						? ",constraints:{'skipDecimalsValidation':true}"
+						: "";
+
 				return {
 					result : "composite",
 					type : sCompositeType,
@@ -527,7 +534,7 @@ sap.ui.define([
 						+ getBinding(oModel.getConstraints(oTarget, sPath), oTarget.$Type,
 							sTargetPath)
 						+ ",{mode:'OneTime',path:'/##" + sComputedAnnotation + "',targetType:'any'}"
-						+ "],type:'" + sCompositeType + "'}"
+						+ "],type:'" + sCompositeType + "'" + sCompositeConstraints + "}"
 				};
 			});
 		},
@@ -541,9 +548,9 @@ sap.ui.define([
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		fillUriTemplate : function (oPathValue) {
-			var i,
-				aParameters = [],
-				aPromises;
+			var aParameters = [],
+				aPromises,
+				i;
 
 			// Note: it is safe to modify the caller's object here
 			oPathValue.complexBinding = false;
@@ -562,12 +569,12 @@ sap.ui.define([
 					sPrefix = "";
 
 				aParts.push('odata.fillUriTemplate(',
-					Basics.resultToString(aResults[0], true, false),
+					Basics.resultToString(aResults[0], true, false, true),
 					',{');
 				for (i = 1; i < oPathValue.value.length; i += 1) {
 					sName = Basics.property(aParameters[i], "$Name", "string");
 					aParts.push(sPrefix, Basics.toJSON(sName), ":",
-						Basics.resultToString(aResults[i], true, false));
+						Basics.resultToString(aResults[i], true, false, true));
 					sPrefix = ",";
 				}
 				aParts.push("})");
@@ -602,7 +609,7 @@ sap.ui.define([
 			if (bWrapExpression) {
 				Expression.wrapExpression(oResult);
 			}
-			return Basics.resultToString(oResult, true, false);
+			return Basics.resultToString(oResult, true, false, true);
 		},
 
 		/**
@@ -659,8 +666,8 @@ sap.ui.define([
 				return {
 					result : "expression",
 					type : "Edm.Boolean",
-					value : "!"
-						+ Basics.resultToString(Expression.wrapExpression(oParameter), true, false)
+					value : "!" + Basics.resultToString(Expression.wrapExpression(oParameter),
+							true, false, true)
 				};
 			});
 		},
@@ -797,19 +804,36 @@ sap.ui.define([
 					oCurrencyOrUnitPromise
 						= Expression.fetchCurrencyOrUnit(oPathValue, sValue, sType, mConstraints);
 				}
-				return oCurrencyOrUnitPromise || {
-					constraints : mConstraints,
-					formatOptions : sType === "Edm.String"
-						&& !(oPathValue.formatOptions
-							&& "parseKeepsEmptyString" in oPathValue.formatOptions)
-						? Object.assign({parseKeepsEmptyString : true}, oPathValue.formatOptions)
-						: oPathValue.formatOptions,
-					parameters : oPathValue.parameters,
-					result : "binding",
-					type : sType,
-					value : oPathValue.prefix + sValue
-				};
+				return oCurrencyOrUnitPromise
+					|| Expression.pathResult(oPathValue, sType, sValue, mConstraints);
 			});
+		},
+
+		/**
+		 * Returns the result of a path expression. Takes care of parseKeepsEmptyString.
+		 *
+		 * @param {object} oPathValue
+		 *   model, path and value information pointing to the path (see Expression object)
+		 * @param {string} sType
+		 *   the EDM type
+		 * @param {string} sPath
+		 *   the relative binding path
+		 * @param {object} mConstraints
+		 *   the type constraints for the property referenced by <code>sPath</code>
+		 * @returns {object}
+		 *   the result object
+		 */
+		pathResult : function (oPathValue, sType, sPath, mConstraints) {
+			return {
+				constraints : mConstraints,
+				formatOptions : sType === "Edm.String"
+					? Object.assign({parseKeepsEmptyString : true}, oPathValue.formatOptions)
+					: oPathValue.formatOptions,
+				parameters : oPathValue.parameters,
+				result : "binding",
+				type : sType,
+				value : oPathValue.prefix + sPath
+			};
 		},
 
 		/**
@@ -827,10 +851,10 @@ sap.ui.define([
 					type : "Edm.String",
 					value : oResult.type === "Edm.String"
 						// Note: odata.uriEncode() is V2, but safe for Edm.String!
-						? 'odata.uriEncode(' + Basics.resultToString(oResult, true, false) + ","
-							+ Basics.toJSON(oResult.type) + ")"
+						? 'odata.uriEncode(' + Basics.resultToString(oResult, true, false, true)
+							+ "," + Basics.toJSON(oResult.type) + ")"
 						// Note: see _Helper.formatLiteral()
-						: 'String(' + Basics.resultToString(oResult, true, false) + ")"
+						: 'String(' + Basics.resultToString(oResult, true, false, true) + ")"
 				};
 			});
 		},

@@ -48,7 +48,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -143,6 +143,11 @@ function(
 				iPosition = Switch._OFFPOSITION;
 			} else if (iPosition < Switch._ONPOSITION) {
 				iPosition = Switch._ONPOSITION;
+			}
+
+			// fix handle movement when the switch is shorter (no label) in some themes | BCP: 2170252080
+			if (iPosition > this._iNoLabelFix) {
+				iPosition = this._iNoLabelFix;
 			}
 
 			if (this._iCurrentPosition === iPosition) {
@@ -267,6 +272,9 @@ function(
 
 			// add active state
 			this.$("switch").addClass(CSS_CLASS + "Pressed");
+
+			// necessary for fixing handle movement when the switch is shorter (no label) in some themes | BCP: 2170252080
+			this._iNoLabelFix = parseInt(getComputedStyle(this.getDomRef("switch")).outlineOffset);
 		};
 
 		/**

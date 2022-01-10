@@ -5,6 +5,7 @@
 
 @_sap_m_IconTabBar_SelectListItem_PaddingLeft: 0.5rem;
 @_sap_m_IconTabBar_SelectListItem_PaddingLeftAdditional: 0;
+@_sap_m_IconTabBar_ListBorderRadius: 0px;
 
 .sapMITBSelectList {
 	margin: 0;
@@ -43,7 +44,7 @@
 }
 
 .sapMITBSelectList .sapMITBSelectItem:not(.sapMITBSep) {
-	min-height: 2.75rem;
+	padding: 0.75rem 0 0.75rem;
 }
 
 .sapMITBSelectList .sapMITBSep {
@@ -86,7 +87,6 @@
 	outline: none;
 	-webkit-user-select: none; /* Chrome all / Safari all */
 	-moz-user-select: none; /* Firefox all */
-	-ms-user-select: none; /* IE 10+ */// TODO remove after the end of support for Internet Explorer
 	user-select: none;
 }
 
@@ -107,21 +107,17 @@
 .sapMITBSelectItem:not(.sapMITBSep) .sapUiIcon {
 	font-size: 1.125rem;
 	min-width: 2.75rem;
-	height: 2.75rem;
-	line-height: 2.75rem;
 }
 
 /* Compact size */
 .sapUiSizeCompact {
 	.sapMITBSelectList .sapMITBSelectItem:not(.sapMITBSep) {
-		min-height: 2rem;
+		padding: 0.5rem 0 0.5rem;
 	}
 
 	.sapMITBSelectItem:not(.sapMITBSep) .sapUiIcon {
 		font-size: 1rem;
 		min-width: 2rem;
-		height: 2rem;
-		line-height: 2rem;
 	}
 
 	.sapMITBSelectList .sapMITBSep {
@@ -146,6 +142,14 @@
 	&.sapMITBFilterCritical {
 		.sapMITBText {
 			color: inherit;
+		}
+	}
+}
+
+.sapMITBSelectItem {
+	&.sapMITBFilterDefault {
+		.sapMITBInlineIcon {
+			color: @sapUiListTextColor
 		}
 	}
 }
@@ -175,7 +179,7 @@
 }
 
 .sapMITBSelectItem:focus::before {
-	border: @sapUiContentFocusWidth dotted @sapUiContentFocusColor;
+	border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
 	position: absolute;
 	content: " ";
 	top: 1px;
@@ -183,12 +187,8 @@
 	bottom: 1px;
 	left: 1px;
 	z-index: 2;
+	border-radius: @_sap_m_IconTabBar_ListBorderRadius;
 	pointer-events: none;
-
-	[data-sap-ui-browser^="ie"] &,
-	[data-sap-ui-browser^="ed"] & {
-		border: 1px dashed @sapUiContentFocusColor;
-	}
 }
 
 .sapMITBSelectItem.sapMITBSelectItemSelected {

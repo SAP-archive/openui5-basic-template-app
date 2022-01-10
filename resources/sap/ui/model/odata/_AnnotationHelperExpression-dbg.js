@@ -3,7 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // This module provides internal functions for dynamic expressions in OData V4 annotations. It is a
 // helper module for sap.ui.model.odata.AnnotationHelper.
 sap.ui.define([
@@ -227,7 +227,7 @@ sap.ui.define([
 
 			// needed so that we can safely call the forEach
 			Basics.expectType(oPathValue, "array");
-			oPathValue.value.forEach(function (oUnused, i) {
+			oPathValue.value.forEach(function (_oValue, i) {
 				// an embedded concat must use expression binding
 				oResult = Expression.parameter(oInterface, oPathValue, i);
 				// if any parameter is type expression, the concat must become expression, too
@@ -754,47 +754,48 @@ sap.ui.define([
 				oProperty = oModel.getProperty(oTarget.resolvedPath);
 				oResult.type = oProperty.type;
 				switch (oProperty.type) {
-				case "Edm.DateTime":
-					oConstraints.displayFormat = oProperty["sap:display-format"];
-					break;
-				case "Edm.Decimal":
-					if (oProperty.precision) {
-						oConstraints.precision = oProperty.precision;
-					}
-					if (oProperty.scale) {
-						oConstraints.scale = oProperty.scale;
-					}
-					oMinMaxAnnotation = oProperty["Org.OData.Validation.V1.Minimum"];
-					if (oMinMaxAnnotation
-							&& (oMinMaxAnnotation.Decimal || oMinMaxAnnotation.String)) {
-						oConstraints.minimum =
-							oMinMaxAnnotation.Decimal || oMinMaxAnnotation.String;
-						oExclusiveAnnotation =
-							oMinMaxAnnotation["Org.OData.Validation.V1.Exclusive"];
-						if (oExclusiveAnnotation) {
-							oConstraints.minimumExclusive = oExclusiveAnnotation.Bool || "true";
+					case "Edm.DateTime":
+						oConstraints.displayFormat = oProperty["sap:display-format"];
+						break;
+					case "Edm.Decimal":
+						if (oProperty.precision) {
+							oConstraints.precision = oProperty.precision;
 						}
-					}
-					oMinMaxAnnotation = oProperty["Org.OData.Validation.V1.Maximum"];
-					if (oMinMaxAnnotation
-							&& (oMinMaxAnnotation.Decimal || oMinMaxAnnotation.String)) {
-						oConstraints.maximum =
-							oMinMaxAnnotation.Decimal || oMinMaxAnnotation.String;
-						oExclusiveAnnotation =
-							oMinMaxAnnotation["Org.OData.Validation.V1.Exclusive"];
-						if (oExclusiveAnnotation) {
-							oConstraints.maximumExclusive = oExclusiveAnnotation.Bool || "true";
+						if (oProperty.scale) {
+							oConstraints.scale = oProperty.scale;
 						}
-					}
-					break;
-				case "Edm.String":
-					oConstraints.maxLength = oProperty.maxLength;
-					oIsDigitSequence = oProperty["com.sap.vocabularies.Common.v1.IsDigitSequence"];
-					if (oIsDigitSequence) {
-						oConstraints.isDigitSequence = oIsDigitSequence.Bool || "true";
-					}
-					break;
-				// no default
+						oMinMaxAnnotation = oProperty["Org.OData.Validation.V1.Minimum"];
+						if (oMinMaxAnnotation
+								&& (oMinMaxAnnotation.Decimal || oMinMaxAnnotation.String)) {
+							oConstraints.minimum =
+								oMinMaxAnnotation.Decimal || oMinMaxAnnotation.String;
+							oExclusiveAnnotation =
+								oMinMaxAnnotation["Org.OData.Validation.V1.Exclusive"];
+							if (oExclusiveAnnotation) {
+								oConstraints.minimumExclusive = oExclusiveAnnotation.Bool || "true";
+							}
+						}
+						oMinMaxAnnotation = oProperty["Org.OData.Validation.V1.Maximum"];
+						if (oMinMaxAnnotation
+								&& (oMinMaxAnnotation.Decimal || oMinMaxAnnotation.String)) {
+							oConstraints.maximum =
+								oMinMaxAnnotation.Decimal || oMinMaxAnnotation.String;
+							oExclusiveAnnotation =
+								oMinMaxAnnotation["Org.OData.Validation.V1.Exclusive"];
+							if (oExclusiveAnnotation) {
+								oConstraints.maximumExclusive = oExclusiveAnnotation.Bool || "true";
+							}
+						}
+						break;
+					case "Edm.String":
+						oConstraints.maxLength = oProperty.maxLength;
+						oIsDigitSequence =
+							oProperty["com.sap.vocabularies.Common.v1.IsDigitSequence"];
+						if (oIsDigitSequence) {
+							oConstraints.isDigitSequence = oIsDigitSequence.Bool || "true";
+						}
+						break;
+					// no default
 				}
 				if (oProperty.nullable === "false") {
 					oConstraints.nullable = "false";
@@ -903,8 +904,8 @@ sap.ui.define([
 				// convert V4 to V2 for sap.ui.model.odata.ODataUtils
 				if (oResult.type === "Edm.Date") {
 					oResult.type = "Edm.DateTime";
-					// Note: ODataUtils.formatValue calls Date.parse() indirectly, use UTC to make
-					// sure IE9 does not mess with time zone
+					// Note: ODataUtils.formatValue calls Date.parse() indirectly, make sure the
+					// value is interpreted in UTC
 					oResult.value = oResult.value + "T00:00:00Z";
 				} else if (oResult.type === "Edm.TimeOfDay") {
 					oResult.type = "Edm.Time";

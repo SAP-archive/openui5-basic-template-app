@@ -44,6 +44,24 @@ sap.ui.define([
 	return /** @lends sap.ui.core.util.reflection.BaseTreeModifier */{
 
 		/**
+		 * Function determining the control targeted by the change. It is also possible to pass an extensionpoint selector.
+		 * In this case an extension point is referenced in the selector but the parent control of the extensionpoint will be returned.
+		 *
+		 * @param {object} oSelector - Target of a flexibility change
+		 * @param {string} [oSelector.id] - ID of the control targeted by the change. (name or id property is mandatory for selector)
+		 * @param {boolean} [oSelector.isLocalId] - <code>true</code> if the ID within the selector is a local ID or a global ID
+		 * @param {string} [oSelector.name] - Name of the extension point targeted by the change. (name or id property is mandatory for selector)
+		 * @param {sap.ui.core.UIComponent} oAppComponent - Application component
+		 * @param {Element} oView - For XML processing only: XML node of the view
+		 * @returns {Promise<sap.ui.base.ManagedObject|Element>} Control representation targeted within the selector, wrapped in a Promise
+		 * @throws {Error} In case no control could be determined, an error is thrown
+		 * @public
+		 */
+		bySelectorExtensionPointEnabled: function (oSelector, oAppComponent, oView) {
+			return Promise.resolve(this.bySelector(oSelector, oAppComponent, oView));
+		},
+
+		/**
 		 * Function determining the control targeted by the change.
 		 *
 		 * @param {object} oSelector - Target of a flexibility change
@@ -52,18 +70,40 @@ sap.ui.define([
 		 * @param {string} [oSelector.name] - Name of the extension point targeted by the change. (name or id property is mandatory for selector)
 		 * @param {sap.ui.core.UIComponent} oAppComponent - Application component
 		 * @param {Element} oView - For XML processing only: XML node of the view
+		 * @returns {Promise<sap.ui.base.ManagedObject|Element>} Control representation targeted within the selector, wrapped in a Promise
+		 * @throws {Error} In case no control could be determined, an error is thrown
+		 * @public
+		 */
+		bySelectorTypeIndependent: function (oSelector, oAppComponent, oView) {
+			var sControlId;
+			return Promise.resolve()
+				.then(function () {
+					if (oSelector && oSelector.name) {
+						oView = oView || this.bySelector(oSelector.viewSelector, oAppComponent);
+						return this.getExtensionPointInfo(oSelector.name, oView)
+							.then(function (oExtensionPointInfo) {
+								return oExtensionPointInfo ? oExtensionPointInfo.parent : undefined;
+							});
+					}
+					sControlId = this.getControlIdBySelector(oSelector, oAppComponent);
+					return this._byId(sControlId, oView);
+				}.bind(this));
+		},
+
+		/**
+		 * Function determining the control targeted by the change.
+		 *
+		 * @param {object} oSelector - Target of a flexibility change
+		 * @param {string} [oSelector.id] - ID of the control targeted by the change. (name or id property is mandatory for selector)
+		 * @param {boolean} [oSelector.isLocalId] - <code>true</code> if the ID within the selector is a local ID or a global ID
+		 * @param {sap.ui.core.UIComponent} oAppComponent - Application component
+		 * @param {Element} oView - For XML processing only: XML node of the view
 		 * @returns {sap.ui.base.ManagedObject|Element} Control representation targeted within the selector
 		 * @throws {Error} In case no control could be determined, an error is thrown
 		 * @public
-		*/
+		 */
 		bySelector: function (oSelector, oAppComponent, oView) {
-			var sControlId;
-			if (oSelector && oSelector.name) {
-				oView = oView || this.bySelector(oSelector.viewSelector, oAppComponent);
-				var oExtensionPointInfo = this.getExtensionPointInfo(oSelector.name, oView);
-				return oExtensionPointInfo ? oExtensionPointInfo.parent : undefined;
-			}
-			sControlId = this.getControlIdBySelector(oSelector, oAppComponent);
+			var sControlId = this.getControlIdBySelector(oSelector, oAppComponent);
 			return this._byId(sControlId, oView);
 		},
 
@@ -77,7 +117,7 @@ sap.ui.define([
 		 * @returns {string} ID of the control
 		 * @throws {Error} In case no control could be determined, an error is thrown
 		 * @protected
-		*/
+		 */
 		getControlIdBySelector: function (oSelector, oAppComponent) {
 			if (!oSelector){
 				return undefined;
@@ -198,7 +238,7 @@ sap.ui.define([
 		_checkAndPrefixIdsInFragment: function(oFragment, sIdPrefix) {
 			var oParseError = XMLHelper.getParseError(oFragment);
 			if (oParseError.errorCode !== 0) {
-				throw new Error(oFragment.parseError.reason);
+				return Promise.reject(new Error(oFragment.parseError.reason));
 			}
 
 			var oControlNodes = oFragment.documentElement;
@@ -215,20 +255,23 @@ sap.ui.define([
 			function oCallback(oChild) {
 				aChildren.push(oChild);
 			}
+			var oPromiseChain = Promise.resolve();
 			for (var i = 0, n = aRootChildren.length; i < n; i++) {
-				this._traverseXmlTree(oCallback, aRootChildren[i]);
+				oPromiseChain = oPromiseChain.then(this._traverseXmlTree.bind(this, oCallback, aRootChildren[i]));
 			}
 
-			for (var j = 0, m = aChildren.length; j < m; j++) {
-				// aChildren[j].id is not available in IE11, therefore using .getAttribute/.setAttribute
-				if (aChildren[j].getAttribute("id")) {
-					aChildren[j].setAttribute("id", sIdPrefix + "." + aChildren[j].getAttribute("id"));
-				} else {
-					throw new Error("At least one control does not have a stable ID");
+			return oPromiseChain.then(function () {
+				for (var j = 0, m = aChildren.length; j < m; j++) {
+					// aChildren[j].id is not available in IE11, therefore using .getAttribute/.setAttribute
+					if (aChildren[j].getAttribute("id")) {
+						aChildren[j].setAttribute("id", sIdPrefix + "." + aChildren[j].getAttribute("id"));
+					} else {
+						throw new Error("At least one control does not have a stable ID");
+					}
 				}
-			}
 
-			return oControlNodes;
+				return oControlNodes;
+			});
 		},
 
 		/**
@@ -252,22 +295,30 @@ sap.ui.define([
 		 * Gets the metadata of an XML control.
 		 *
 		 * @param {Element} oControl - Control in XML
-		 * @returns {sap.ui.base.Metadata} Metadata of the control
+		 * @returns {Promise<sap.ui.base.Metadata>} Resolves methadata of the control
 		 */
 		_getControlMetadataInXml: function(oControl) {
 			var sControlType = this._getControlTypeInXml(oControl).replace(/\./g, "/");
-			var ControlType = sap.ui.require(sControlType);
-			if (!ControlType) {
-				ControlType = sap.ui.requireSync(sControlType);
-			}
-			return ControlType.getMetadata();
+			return new Promise(function(fnResolve, fnReject) {
+				sap.ui.require([sControlType],
+					function(ControlType) {
+						if (ControlType.getMetadata) {
+							fnResolve(ControlType.getMetadata());
+						}
+						fnReject(new Error("getMetadata function is not available on control type"));
+					},
+					function() {
+						fnReject(new Error("Required control '" + sControlType + "' couldn't be found"));
+					}
+				);
+			});
 		},
 
 		/**
 		 * Gets the metadata of a control.
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
-		 * @returns {sap.ui.base.Metadata} Metadata of the control
+		 * @returns {Promise<sap.ui.base.Metadata>} Metadata of the control wrapped in a Promise
 		 */
 		getControlMetadata: function(vControl) {},
 
@@ -275,11 +326,13 @@ sap.ui.define([
 		 * Gets the library name for a control
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
-		 * @returns {string} library name
+		 * @returns {Promise<string>} library name wrapped in a promise
 		 */
 		getLibraryName: function(vControl) {
-			var oMetadata = this.getControlMetadata(vControl);
-			return oMetadata.getLibraryName();
+			return this.getControlMetadata(vControl)
+				.then(function (oMetadata) {
+					return oMetadata.getLibraryName();
+				});
 		},
 
 
@@ -303,25 +356,41 @@ sap.ui.define([
 		 *
 		 * @param {function} fnCallback - Function that will be called for every control with the following arguments: <code>fnCallback(&lt;Element>)</code>
 		 * @param {Element} oRootNode - Root node from which we start traversing the tree
+		 * @returns {Promise} resolves when async processing is done
 		 */
-		_traverseXmlTree: function(fnCallback, oRootNode) {
+		_traverseXmlTree: function (fnCallback, oRootNode) {
 			function recurse(oParent, oCurrentNode, bIsAggregation) {
-				var oAggregations;
-				if (!bIsAggregation) {
-					var oMetadata = this._getControlMetadataInXml(oCurrentNode);
-					oAggregations = oMetadata.getAllAggregations();
-				}
-				var aChildren = this._getElementNodeChildren(oCurrentNode);
-				aChildren.forEach(function(oChild) {
-					var bIsCurrentNodeAggregation = oAggregations && oAggregations[oChild.localName];
-					recurse.call(this, oCurrentNode, oChild, bIsCurrentNodeAggregation);
-					// if it's an aggregation, we don't call the callback function
-					if (!bIsCurrentNodeAggregation) {
-						fnCallback(oChild);
-					}
-				}.bind(this));
+				return Promise.resolve()
+					.then(function () {
+						if (!bIsAggregation) {
+							return this._getControlMetadataInXml(oCurrentNode, true);
+						}
+						return undefined;
+					}.bind(this))
+
+					.then(function (oMetadata) {
+						return oMetadata && oMetadata.getAllAggregations();
+					})
+					.then(function (aAggregations) {
+						var aChildren = this._getElementNodeChildren(oCurrentNode);
+						var oPromiseChain = Promise.resolve();
+						aChildren.forEach(function(oChild) {
+							var bIsCurrentNodeAggregation = aAggregations && aAggregations[oChild.localName];
+							oPromiseChain = oPromiseChain.then(function() {
+								return recurse.call(this, oCurrentNode, oChild, bIsCurrentNodeAggregation)
+								.then(function () {
+									// if it's an aggregation, we don't call the callback function
+									if (!bIsCurrentNodeAggregation) {
+										fnCallback(oChild);
+									}
+								});
+							}.bind(this));
+						}.bind(this));
+
+						return oPromiseChain;
+					}.bind(this));
 			}
-			recurse.call(this, oRootNode, oRootNode, false);
+			return recurse.call(this, oRootNode, oRootNode, false);
 		},
 
 		_getSerializedValue: function (vPropertyValue) {
@@ -358,17 +427,21 @@ sap.ui.define([
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
 		 * @param {string} sPropertyName - Property name
-		 * @returns {any} Binding info object or value of the property
+		 * @returns {Promise<any>} Binding info object or value of the property
 		 * @public
 		 */
 		getPropertyBindingOrProperty: function(vControl, sPropertyName) {
-			return this.getPropertyBinding(vControl, sPropertyName) || this.getProperty(vControl, sPropertyName);
+			var oPropertyBinding = this.getPropertyBinding(vControl, sPropertyName);
+			if (oPropertyBinding) {
+				return Promise.resolve(oPropertyBinding);
+			}
+			return this.getProperty(vControl, sPropertyName);
 		},
 
 		/**
-		 * Calls {@link sap.ui.core.util.reflection.BaseTreeModifier#setPropertyBinding} if the passed value is a
+		 * Calls {@link sap.ui.core.util.reflection.BaseTreeModifier.setPropertyBinding} if the passed value is a
 		 * binding info object or binding string,
-		 * otherwise calls {@link sap.ui.core.util.reflection.BaseTreeModifier#setProperty}.
+		 * otherwise calls {@link sap.ui.core.util.reflection.BaseTreeModifier.setProperty}.
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
 		 * @param {string} sPropertyName - Property name
@@ -396,7 +469,7 @@ sap.ui.define([
 		 * See {@link sap.ui.core.Control#getVisible} method.
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
-		 * @returns {boolean} <code>true</code> if the control's <code>visible</code> property is set
+		 * @returns {Promise<boolean>} <code>true</code> if the control's <code>visible</code> property is set wrapped in promise
 		 * @public
 		 */
 		getVisible: function (vControl) {},
@@ -444,6 +517,7 @@ sap.ui.define([
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
 		 * @param {string} sAggregationName - Aggregation name
 		 * @param {object} vBindingInfos - Binding info
+		 * @returns {Promise} resolves when async processing is done
 		 * @public
 		 */
 		bindAggregation: function (vControl, sAggregationName, vBindingInfos) {},
@@ -453,6 +527,7 @@ sap.ui.define([
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
 		 * @param {string} sAggregationName - Aggregation name to be unbound
+		 * @returns {Promise} resolves when async processing is done
 		 * @public
 		 */
 		unbindAggregation: function (vControl, sAggregationName) {},
@@ -472,7 +547,7 @@ sap.ui.define([
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
 		 * @param {string} sPropertyName - Property name
-		 * @returns {any} Value of the property
+		 * @returns {Promise<any>} Value of the property wrapped in a Pomise
 		 * @public
 		 */
 		getProperty: function (vControl, sPropertyName)  {},
@@ -480,7 +555,7 @@ sap.ui.define([
 		/**
 		 * See {@link sap.ui.base.ManagedObject#isPropertyInitial} method.
 		 *
-		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
+		 * @param {sap.ui.base.ManagedObject|Element} oControl - Control representation
 		 * @param {string} sPropertyName - Property name
 		 * @returns {boolean} <code>true</code> if the property is initial
 		 * @public
@@ -492,7 +567,7 @@ sap.ui.define([
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
 		 * @param {string} sPropertyName - Property name
-		 * @param {any} vPropertyBinding - See {@link sap.ui.base.ManagedObject#extractBindingInfo} method
+		 * @param {any} vPropertyBinding - See source of <code>sap.ui.base.ManagedObject#extractBindingInfo</code> method
 		 * @public
 		 */
 		setPropertyBinding: function (vControl, sPropertyName, vPropertyBinding) {},
@@ -515,6 +590,7 @@ sap.ui.define([
 		 * @param {string} sCustomDataKey - Key for the Custom Data
 		 * @param {string} sValue - Value for the Custom Data
 		 * @param {sap.ui.core.Component} oAppComponent - App Component Instance
+		 * @param {Promise} resolves when async processing is done
 		 */
 		createAndAddCustomData: function(oControl, sCustomDataKey, sValue, oAppComponent) {},
 
@@ -528,18 +604,17 @@ sap.ui.define([
 		 * @param {string} [oSelector.id] - Control ID targeted by the change
 		 * @param {boolean} [oSelector.isLocalId] - <code>true</code> if the ID within the selector is a local ID or a global ID
 		 * @param {object} [mSettings] - Further settings or properties for the control that is created
-		 * @param {boolean} bAsync - Determines whether a synchronous (promise) or an asynchronous value should be returned
-		 * @returns {Element|Promise} Element or promise with element of the control that is created
+		 * @returns {Promise<Element>} Promise with Element of the control that is created
 		 * @public
 		 */
-		createControl: function (sClassName, oAppComponent, oView, oSelector, mSettings, bAsync) {},
+		createControl: function (sClassName, oAppComponent, oView, oSelector, mSettings) {},
 
 		/**
 		 * See {@link sap.ui.base.ManagedObject#applySettings} method.
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
 		 * @param {object} mSettings - Further settings or properties for the control
-		 * @returns {Element} XML node of the control being created
+		 * @returns {Promise<Element>} XML node of the control being created wrapped into promise
 		 * @public
 		 */
 		applySettings: function(vControl, mSettings) {},
@@ -605,7 +680,7 @@ sap.ui.define([
 		 * See {@link sap.ui.base.ManagedObjectMetadata#getAllAggregations} method.
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
-		 * @return {Object<string,object>} Map of aggregation info objects keyed by aggregation names
+		 * @return {Promise<Object>} Map of aggregation info objects keyed by aggregation names wrapped in a Promise
 		 * @public
 		 */
 		getAllAggregations: function (vControl) {},
@@ -615,7 +690,7 @@ sap.ui.define([
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vParent - Control which has the aggregation
 		 * @param {string} sName - Aggregation name
-		 * @returns {sap.ui.base.ManagedObject[]|Element[]} Aggregation content
+		 * @returns {Promise<sap.ui.base.ManagedObject[]|Element[]>} Aggregation content
 		 * @public
 		 */
 		getAggregation: function (vParent, sName) {},
@@ -629,9 +704,11 @@ sap.ui.define([
 		 * @param {sap.ui.base.ManagedObject|Element} oObject - XML node or element of the control that will be inserted
 		 * @param {int} iIndex - Index for <code>oObject</code> in the aggregation
 		 * @param {Element} [oView] - XML node of the view, needed in XML case to potentially create (aggregation) nodes
+		 * @param {boolean} [bSkipAdjustIndex] - true in case of inserting an XML node or element at an extension point, needed only in XML case
+		 * @returns {Promise} resolves when async processing is done
 		 * @public
 		 */
-		insertAggregation: function (vParent, sAggregationName, oObject, iIndex, oView) {},
+		insertAggregation: function (vParent, sAggregationName, oObject, iIndex, oView, bSkipAdjustIndex) {},
 
 
 		/**
@@ -641,6 +718,7 @@ sap.ui.define([
 		 * @param {sap.ui.base.ManagedObject|Element} vParent - Control representation
 		 * @param {string} sAggregationName - Aggregation name
 		 * @param {sap.ui.base.ManagedObject|Element} oObject - Aggregated object to be set
+		 * @returns {Promise} resolves when async processing is done
 		 * @public
 		 */
 		removeAggregation: function (vParent, sAggregationName, oObject) {},
@@ -651,6 +729,7 @@ sap.ui.define([
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vParent - Control representation
 		 * @param {string} sAggregationName - Aggregation name
+		 * @returns {Promise} resolves when async processing is done
 		 * @public
 		 */
 		removeAllAggregation: function (vParent, sAggregationName) {},
@@ -661,6 +740,7 @@ sap.ui.define([
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
 		 * @param {string} sAggregationName - Aggregation name
+		 * @returns {Promise} resolves when async processing is done
 		 * @public
 		 */
 		getBindingTemplate: function (vControl, sAggregationName) {},
@@ -670,6 +750,7 @@ sap.ui.define([
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vParent - Control representation
 		 * @param {string} sAggregationName - Aggregation name
+		 * @returns {Promise} resolves when async processing is done
 		 * @public
 		 */
 		updateAggregation: function (vParent, sAggregationName) {},
@@ -677,8 +758,8 @@ sap.ui.define([
 		/**
 		 * Finds the index of the control in its parent aggregation.
 		 *
-		 * @param {sap.ui.base.ManagedObject|Element} vParent - Control representation
-		 * @returns {int} Index of the control
+		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
+		 * @returns {Promise<int>} Index of the control wrapped in a Promise
 		 * @public
 		 */
 		findIndexInParentAggregation: function (vControl) {},
@@ -688,10 +769,19 @@ sap.ui.define([
 		 *
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
 		 * @param {sap.ui.base.ManagedObject|Element} [vParent] - Control representation of the parent only needed in XML case
-		 * @returns {string} Parent aggregation name
+		 * @returns {Promise<string>} Parent aggregation name wrapped in a Promise
 		 * @public
 		 */
 		getParentAggregationName: function (vControl, vParent) {},
+
+		/**
+		 * Finds the aggregation by the given aggregation name.
+		 *
+		 * @param {sap.ui.base.ManagedObject|Element} oControl - Control representation
+		 * @param {string} sAggregationName - Aggregation name to be found
+		 * @returns {Promise} Aggregation object
+		 */
+		findAggregation: function(oControl, sAggregationName) {},
 
 		/**
 		 * Validates if the control has the correct type for the aggregation.
@@ -701,7 +791,7 @@ sap.ui.define([
 		 * @param {sap.ui.base.ManagedObject|Element} vParent - Parent of the control
 		 * @param {string} sFragment - Path to the fragment that contains the control whose type is to be checked
 		 * @param {int} iIndex - Index of the current control in the parent aggregation
-		 * @returns {boolean} <code>true</code> if the type matches
+		 * @returns {Promise<boolean>} <code>true</code> if the type matches wrapped in a Promise
 		 * @public
 		 */
 		validateType: function(vControl, mAggregationMetadata, vParent, sFragment, iIndex) {},
@@ -720,7 +810,7 @@ sap.ui.define([
 
 		/**
 		 * Loads a fragment, processes the XML templating and turns the result into an array of nodes or controls.
-		 * See {@link sap.ui.core.util.XMLPreprocessor#process}
+		 * See {@link sap.ui.core.util.XMLPreprocessor.process}
 		 *
 		 * @param {string} sFragmentName - XML fragment name (e.g. some.path.fragmentName)
 		 * @param {object} [mPreprocessorSettings={}] - Map/JSON object with initial property values, etc.
@@ -810,9 +900,10 @@ sap.ui.define([
 		 * @param {string} sEventName - Event name
 		 * @param {string} sFunctionPath - Absolute path to a function
 		 * @param {object} vData - Predefined values for event handler function
+		 * @returns {Promise} resolves when async processing is done
 		 * @public
 		 */
-		attachEvent: function(oObject, sEventName, sFunctionPath, vData) {},
+		attachEvent: function(vControl, sEventName, sFunctionPath, vData) {},
 
 		/**
 		 * Detaches event from the specified ManagedObject.
@@ -820,16 +911,17 @@ sap.ui.define([
 		 * @param {sap.ui.base.ManagedObject|Element} vControl - Control representation
 		 * @param {string} sEventName - Event name
 		 * @param {string} sFunctionPath - Absolute path to a function
+		 * @returns {Promise} resolves when async processing is done
 		 * @public
 		 */
-		detachEvent: function(oObject, sEventName, sFunctionPath) {},
+		detachEvent: function(vControl, sEventName, sFunctionPath) {},
 
 		/**
 		 * Returns an object containing parent control, aggregation name and index for controls to be added of the given extension point.
 		 *
 		 * @param {string} sExtensionPointName - Name of the extension point
 		 * @param {sap.ui.core.mvc.View|Element} oView - View control or XML node of the view
-		 * @returns {{parent: object, aggregation: string, index: number, defaultContent: array}} - Object containing parent control, aggregation name, index and the defaultContent of the extensionpoint if exists.
+		 * @returns {Promise<{parent: object, aggregation: string, index: number, defaultContent: array}>} - Object containing parent control, aggregation name, index and the defaultContent of the extensionpoint if exists. It is wrapped in a Promise
 		 * @experimental
 		 */
 		getExtensionPointInfo: function(sExtensionPointName, oView) {}

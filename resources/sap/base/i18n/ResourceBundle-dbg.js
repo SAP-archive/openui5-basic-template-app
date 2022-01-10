@@ -59,14 +59,15 @@ sap.ui.define([
 
 	/**
 	 * HANA XS Engine can't handle private extensions in BCP47 language tags.
-	 * Therefore, the agreed BCP47 codes for the technical languages 1Q and 2Q
+	 * Therefore, the agreed BCP47 codes for the technical languages 1Q..3Q
 	 * don't work as Accept-Header and need to be send as URL parameters as well.
 	 * @const
 	 * @private
 	 */
 	var M_SUPPORTABILITY_TO_XS = {
-		"en_US_saptrc" : "1Q",
-		"en_US_sappsd" : "2Q"
+		"en_US_saptrc"  : "1Q",
+		"en_US_sappsd"  : "2Q",
+		"en_US_saprigi" : "3Q"
 	};
 
 	/**
@@ -76,7 +77,7 @@ sap.ui.define([
 	 */
 	var sDefaultFallbackLocale = "en";
 
-	var rSAPSupportabilityLocales = /(?:^|-)(saptrc|sappsd)(?:-|$)/i;
+	var rSAPSupportabilityLocales = /(?:^|-)(saptrc|sappsd|saprigi)(?:-|$)/i;
 
 	/**
 	 * Helper to normalize the given locale (in BCP-47 syntax) to the java.util.Locale format.
@@ -285,8 +286,11 @@ sap.ui.define([
 		this.bIncludeInfo = bIncludeInfo;
 		// list of custom bundles
 		this.aCustomBundles = [];
-		// declare list of property files that are loaded
+		// declare list of property files that are loaded,
+		// along with a list of origins
 		this.aPropertyFiles = [];
+		this.aPropertyOrigins = [];
+
 		this.aLocales = [];
 
 		// list of calculated fallbackLocales
@@ -341,7 +345,7 @@ sap.ui.define([
 	 * For more details on the replacement mechanism refer to {@link module:sap/base/strings/formatMessage}.
 	 *
 	 * @param {string} sKey Key to retrieve the text for
-	 * @param {string[]} [aArgs] List of parameter values which should replace the placeholders "{<i>n</i>}"
+	 * @param {any[]} [aArgs] List of parameter values which should replace the placeholders "{<i>n</i>}"
 	 *     (<i>n</i> is the index) in the found locale-specific string value. Note that the replacement is done
 	 *     whenever <code>aArgs</code> is given, no matter whether the text contains placeholders or not
 	 *     and no matter whether <code>aArgs</code> contains a value for <i>n</i> or not.
@@ -365,10 +369,10 @@ sap.ui.define([
 			return sValue;
 		}
 
-		assert(false, "could not find any translatable text for key '" + sKey + "' in bundle '" + this.oUrlInfo.url + "'");
-		if (bIgnoreKeyFallback){
+		if (bIgnoreKeyFallback) {
 			return undefined;
 		} else {
+			assert(false, "could not find any translatable text for key '" + sKey + "' in bundle file(s): '" + this.aPropertyOrigins.join("', '") + "'");
 			return this._formatValue(sKey, sKey, aArgs);
 		}
 	};
@@ -389,9 +393,9 @@ sap.ui.define([
 			}
 
 			if (this.bIncludeInfo) {
-				/* eslint-disable no-new-wrappers */
+				// String object is created on purpose and must not be a string literal
+				// eslint-disable-next-line no-new-wrappers
 				sValue = new String(sValue);
-				/* eslint-enable no-new-wrappers */
 				sValue.originInfo = {
 					source: "Resource Bundle",
 					url: this.oUrlInfo.url,
@@ -575,6 +579,7 @@ sap.ui.define([
 			var addProperties = function(oProps) {
 				if ( oProps ) {
 					oBundle.aPropertyFiles.push(oProps);
+					oBundle.aPropertyOrigins.push(sUrl);
 					oBundle.aLocales.push(sLocale);
 				}
 				return oProps;

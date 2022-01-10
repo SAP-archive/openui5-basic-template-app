@@ -94,7 +94,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @public
@@ -210,7 +210,7 @@ sap.ui.define([
 		 * Sets the sideContentVisibility property.
 		 * @param {sap.ui.layout.SideContentVisibility} sVisibility Determines on which breakpoints the side content is visible.
 		 * @param {boolean} bSuppressVisualUpdate Determines if the visual state is updated
-		 * @returns {sap.ui.layout.DynamicSideContent} this pointer for chaining
+		 * @returns {this} this pointer for chaining
 		 * @override
 		 * @public
 		 */
@@ -228,7 +228,7 @@ sap.ui.define([
 		 * Sets the showSideContent property.
 		 * @param {boolean} bVisible Determines if the side content part is visible
 		 * @param {boolean} bSuppressVisualUpdate Determines if the visual state is updated
-		 * @returns {sap.ui.layout.DynamicSideContent} this pointer for chaining
+		 * @returns {this} this pointer for chaining
 		 * @override
 		 * @public
 		 */
@@ -253,7 +253,7 @@ sap.ui.define([
 		 * Sets the showMainContent property.
 		 * @param {boolean} bVisible Determines if the main content part is visible
 		 * @param {boolean} bSuppressVisualUpdate Determines if the visual state is updated
-		 * @returns {sap.ui.layout.DynamicSideContent} this pointer for chaining
+		 * @returns {this} this pointer for chaining
 		 * @override
 		 * @public
 		 */
@@ -303,7 +303,7 @@ sap.ui.define([
 		/**
 		 * Sets or unsets the page in equalSplit mode.
 		 * @param {boolean}[bState] Determines if the page is set to equalSplit mode
-		 * @returns {sap.ui.layout.DynamicSideContent} this pointer for chaining
+		 * @returns {this} this pointer for chaining
 		 * @override
 		 * @public
 		 */
@@ -322,7 +322,7 @@ sap.ui.define([
 		 * Adds a control to the side content area.
 		 * Only the side content part in the aggregation is re-rendered.
 		 * @param {object} oControl Object to be added in the aggregation
-		 * @returns {sap.ui.layout.DynamicSideContent} this pointer for chaining
+		 * @returns {this} this pointer for chaining
 		 * @override
 		 * @public
 		 */
@@ -337,7 +337,7 @@ sap.ui.define([
 		 * Adds a control to the main content area.
 		 * Only the main content part in the aggregation is re-rendered.
 		 * @param {object} oControl Object to be added in the aggregation
-		 * @returns {sap.ui.layout.DynamicSideContent} this pointer for chaining
+		 * @returns {this} this pointer for chaining
 		 * @override
 		 * @public
 		 */
@@ -354,7 +354,7 @@ sap.ui.define([
 		 * This helper method is used to implement a button/switch for changing
 		 * between the main and side content areas.
 		 * Only works if the current breakpoint is "S".
-		 * @returns {sap.ui.layout.DynamicSideContent} this pointer for chaining
+		 * @returns {this} this pointer for chaining
 		 * @public
 		 */
 		DynamicSideContent.prototype.toggle = function () {
@@ -384,9 +384,10 @@ sap.ui.define([
 
 		/**
 		 * Returns the breakpoint for the current state of the control.
-		 * If the control is not rendered yet this method will return <code>undefined</code>,
+		 *
+		 * If the control is not rendered yet, this method will return <code>undefined</code>,
 		 * as current break point calculation is based on the parent container width.
-		 * @returns {String} currentBreakpoint
+		 * @returns {string} currentBreakpoint
 		 * @public
 		 */
 		DynamicSideContent.prototype.getCurrentBreakpoint = function () {
@@ -503,7 +504,7 @@ sap.ui.define([
 		 * Re-renders only part of the control that is changed.
 		 * @param {object} aControls Array containing the passed aggregation controls
 		 * @param {object} $domElement DOM reference of the control to be re-rendered
-		 * @returns {sap.ui.layout.DynamicSideContent} this pointer for chaining
+		 * @returns {this} this pointer for chaining
 		 * @private
 		 */
 		DynamicSideContent.prototype._rerenderControl = function (aControls, $domElement) {
@@ -526,7 +527,6 @@ sap.ui.define([
 				sMainContentId = sControlId + "-" + MC_GRID_CELL_SELECTOR;
 
 			if (!this._oSCScroller && !this._oMCScroller) {
-				var ScrollEnablement = sap.ui.requireSync("sap/ui/core/delegate/ScrollEnablement");
 				this._oSCScroller = new ScrollEnablement(this, null, {
 					scrollContainerId: sSideContentId,
 					horizontal: false,
@@ -620,7 +620,7 @@ sap.ui.define([
 		 * control mode.
 		 * @param {string} sSizeName Possible values S, M, L, XL
 		 * @param {boolean} bComparison Checks if the page is in equalSplit mode
-		 * @returns {sap.ui.layout.DynamicSideContent} this pointer for chaining
+		 * @returns {this} this pointer for chaining
 		 * @private
 		 */
 		DynamicSideContent.prototype._setResizeData = function (sSizeName, bComparison) {

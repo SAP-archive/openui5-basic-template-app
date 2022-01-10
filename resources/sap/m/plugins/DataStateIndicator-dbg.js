@@ -19,7 +19,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @since 1.73
@@ -33,21 +33,18 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 			 * Defines a predicate to test each message of the data state.
 			 *
 			 * This callback gets called using the {@link sap.ui.core.message.Message message} and {@link sap.ui.core.Control related control} parameters.
-			 * Returns <code>true</code> to keep the message, <code>false</code> otherwise.
+			 * Return <code>true</code> to keep the message, <code>false</code> otherwise.
 			 */
 			filter: {type: "function", invalidate: false},
 
 			/**
-			 * Defines the text for the link in the message strip.
-			 * @since 1.79
+			 * Enables filtering for data state messages if this property is set to <code>true</code>. A link is provided to the user that allows them to filter.
+			 * After the binding-related messages have been filtered by the user, all the existing filters are only taken into account once the message filter has been cleared again.
+			 *
+			 * <b>Note:</b> This feature must be enabled for OData models only.
+			 * @since 1.89
 			 */
-			messageLinkText: {type: "string", visibility: "hidden"},
-
-			/**
-			 * Defines the visibility of the link control in the message strip.
-			 * @since 1.79
-			 */
-			messageLinkVisible: {type: "boolean", defaultValue: true, visibility: "hidden"}
+			enableFiltering: { type: "boolean", defaultValue: false, invalidate: false }
 		},
 		events: {
 			/**
@@ -63,75 +60,38 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 					/**
 					 * The messages (@see sap.ui.core.message.Message) from the current <code>dataState</code> object filtered by the given <code>filter</code> function.
 					 */
-					filteredMessages: {type: "any[]"}
+					filteredMessages: {type: "object[]"}
 				}
+			},
+
+			/**
+			 * This event is fired when the user filters data state messages and if the <code>enableFiltering</code> property is set to <code>true</code>.
+			 *
+			 * @since 1.89
+			 */
+			applyFilter: {
+				allowPreventDefault: true,
+				parameters: {
+					/**
+					 * The filter object representing the entries with messages.
+					 */
+					filter: {type: "sap.ui.model.Filter"}
+				}
+			},
+
+			/**
+			 * This event is fired when the user clears the data state message filter and if the <code>enableFiltering</code> property is set to <code>true</code>.
+			 *
+			 * @since 1.89
+			 */
+			clearFilter: {
+				allowPreventDefault: true
 			}
 		}
 	}});
 
-	/**
-	 * Defines the text to be shown for the link control of the message strip.
-	 * @param {string} [sLinkText] The text for the link control
-	 * @returns {sap.m.plugins.DataStateIndicator} The control instance
-	 * @since 1.79
-	 * @private
-	 */
-	DataStateIndicator.prototype.setMessageLinkText = function(sLinkText) {
-		this.setProperty("messageLinkText", sLinkText, true);
-		// update the link aggregation of the message strip
-		this._updateMessageLinkControl();
-		return this;
-	};
-
-	/**
-	 * Returns the message link text.
-	 * @returns {string} message link text
-	 * @since 1.79
-	 * @private
-	 */
-	DataStateIndicator.prototype.getMessageLinkText = function() {
-		return this.getProperty("messageLinkText");
-	};
-
-	/**
-	 * Defines the visibility of the link control in the message strip.
-	 * @param {boolean} [bVisible] Visibility of the link control
-	 * @return {sap.m.plugins.DataStateIndicator} The control instance
-	 * @since 1.79
-	 * @private
-	 */
-	DataStateIndicator.prototype.setMessageLinkVisible = function(bVisible) {
-		this.setProperty("messageLinkVisible", bVisible, true);
-
-		if (this._oLink) {
-			this._oLink.setVisible(bVisible);
-		}
-
-		return this;
-	};
-
-	/**
-	 * Returns the property value of <code>messageLinkVisible</code>.
-	 * @returns {boolean} The <code>messageLinkVisible</code> property value
-	 * @since 1.79
-	 * @private
-	 */
-	DataStateIndicator.prototype.getMessageLinkVisible = function() {
-		return this.getProperty("messageLinkVisible");
-	};
-
-	DataStateIndicator.prototype.isApplicable = function(oControl) {
-		if (!oControl.addAriaLabelledBy ||
-			!PluginBase.prototype.isApplicable.apply(this, arguments) ||
-			!oControl.getMetadata().getAllPrivateAggregations()["_messageStrip"] ||
-			!this._getBindingName()) {
-			return false;
-		}
-
-		return true;
-	};
-
 	DataStateIndicator.prototype.onActivate = function(oControl) {
+		this._bFiltering = false;
 		var sBindingName = this._getBindingName();
 		var oBinding = oControl.getBinding(sBindingName);
 
@@ -155,6 +115,10 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 			});
 		}
 
+		if (this._bFiltering) {
+			this._clearFilter();
+		}
+
 		if (this._oMessageStrip) {
 			this._oMessageStrip.destroy();
 			this._oMessageStrip = null;
@@ -165,11 +129,35 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 			this._oLink = null;
 		}
 
+		if (this._oInfoToolbar) {
+			this._oInfoToolbar.destroy();
+			this._oInfoToolbar = this._oInfoText = null;
+		}
+
 		this._oObserver.unobserve(oControl, { bindings: [sBindingName] });
 		this._oObserver.destroy();
 		this._oObserver = null;
 	};
 
+	DataStateIndicator.prototype._setLinkText = function(sLinkText) {
+		this._sLinkText = sLinkText;
+		this._updateLinkControl();
+	};
+
+	DataStateIndicator.prototype.setEnableFiltering = function(bEnableFiltering) {
+		if ((bEnableFiltering = !!bEnableFiltering) == this.getEnableFiltering()) {
+			return this;
+		}
+
+		this.setProperty("enableFiltering", bEnableFiltering, true);
+		if (this.isActive()) {
+			if (bEnableFiltering) {
+				this.refresh();
+			} else {
+				this._clearFilter(true);
+			}
+		}
+	};
 
 	/**
 	 * Shows a message.
@@ -185,101 +173,239 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 
 		if (this._oMessageStrip) {
 			this._oMessageStrip.setText(sText).setType(sType).setVisible(!!sText);
-			return;
-		}
+		} else {
+			sap.ui.require(["sap/m/MessageStrip"], function(MessageStrip) {
+				var oControl = this.getControl();
+				this._oMessageStrip = new MessageStrip({
+					showCloseButton: true,
+					showIcon: true,
+					close: function() {
+						oControl.focus();
+					}
+				}).addStyleClass("sapUiTinyMargin");
 
-		sap.ui.require(["sap/m/MessageStrip"], function(MessageStrip) {
-			var oControl = this.getControl();
-			this._oMessageStrip = new MessageStrip({
-				showCloseButton: true,
-				showIcon: true,
-				close: function() {
-					oControl.focus();
-				}
-			}).addStyleClass("sapUiTinyMargin");
-
-			// update the link aggregation of the message strip
-			this._updateMessageLinkControl();
-
-			oControl.setAggregation("_messageStrip", this._oMessageStrip);
-			oControl.addAriaLabelledBy(this._oMessageStrip);
-			this.showMessage(sText, sType);
-		}.bind(this));
-	};
-
-	/**
-	 * Creates or updates the link control of the message strip.
-	 * @since 1.79
-	 * @private
-	 */
-	DataStateIndicator.prototype._updateMessageLinkControl = function() {
-		if (!this._oMessageStrip) {
-			return;
-		}
-
-		var sMessageLinkText = this.getMessageLinkText();
-		if (!sMessageLinkText) {
-			this._oMessageStrip.setLink(null);
-			return;
-		} else if (this._oLink) {
-			this._oLink.setText(sMessageLinkText);
-			this._oMessageStrip.setLink(this._oLink);
-		}
-
-		if (!this._oLink) {
-			sap.ui.require(["sap/m/Link"], function(Link) {
-				this._oLink = new Link({
-					text: sMessageLinkText,
-					visible: this.getMessageLinkVisible(),
-					press: [function() {
-						// private event fired when the link is pressed
-						this.fireEvent("messageLinkPressed");
-					}, this]
-				});
-				this._oMessageStrip.setLink(this._oLink);
+				oControl.setAggregation("_messageStrip", this._oMessageStrip);
+				oControl.addAriaLabelledBy(this._oMessageStrip);
+				this._updateLinkControl();
+				this.showMessage(sText, sType);
 			}.bind(this));
 		}
 	};
 
 	/**
-	 * Refreshes the messages displayed for the current data state.
+	 * Return whether message filtering is active or not.
 	 *
+	 * @public
+	 * @since 1.89
+	 * @returns {boolean} Whether message filtering is active or not
+	 */
+	DataStateIndicator.prototype.isFiltering = function() {
+		return !!this._bFiltering;
+	};
+
+	/**
+	 * Refreshes the messages displayed for the current data state.
 	 * The current data state is evaluated again, and the filters are applied.
 	 *
 	 * @public
 	 */
 	DataStateIndicator.prototype.refresh = function() {
 		if (this.isActive()) {
-			var sBindingName = this._getBindingName();
-			var oBinding = this.getControl().getBinding(sBindingName);
+			var oBinding = this.getControl().getBinding(this._getBindingName());
 			if (oBinding) {
-				this._processDataState(oBinding.getDataState());
+				this._processDataState(oBinding.getDataState(), true);
+				if (oBinding.requestFilterForMessages && this._bFiltering) {
+					this._applyFilter();
+				}
 			}
 		}
 	};
 
+	/**
+	 * Creates or updates the link control of the message strip.
+	 * @private
+	 */
+	DataStateIndicator.prototype._updateLinkControl = function() {
+		if (!this._oMessageStrip) {
+			return;
+		}
 
-	DataStateIndicator.prototype._getBindingName = function() {
-		return this.getControlPluginConfig("defaultBindingName");
+		if (!this._sLinkText) {
+			this._oMessageStrip.setLink(null);
+		} else if (this._oLink) {
+			this._oLink.setText(this._sLinkText);
+			this._oMessageStrip.setLink(this._oLink);
+		} else {
+			sap.ui.require(["sap/m/Link"], function(Link) {
+				this._oLink = new Link({
+					press: [this._onLinkPress, this]
+				});
+				this._updateLinkControl();
+			}.bind(this));
+		}
 	};
 
-	DataStateIndicator.prototype._translate = function(sBundleKey) {
-		var sBundleText = "DATASTATE_" + sBundleKey;
-		var oMetadata = this.getControl().getMetadata();
-		var sLibraryName = oMetadata.getLibraryName();
-		var sControlName = oMetadata.getName().split(".").pop().toUpperCase();
-		var oResourceBundle = Core.getLibraryResourceBundle(sLibraryName);
-		var sControlBundleText = sControlName + "_" + sBundleText;
+	DataStateIndicator.prototype._getBindingName = function() {
+		return this.getConfig("defaultBindingName");
+	};
 
-		if (oResourceBundle.hasText(sControlBundleText)){
-			return oResourceBundle.getText(sControlBundleText);
+	DataStateIndicator.prototype._processDataState = function(oDataState, bIgnoreChanges) {
+		if (!oDataState) {
+			return;
 		}
 
-		if (sLibraryName == "sap.m") {
-			return oResourceBundle.getText(sBundleText);
+		if (!bIgnoreChanges && !oDataState.getChanges().messages) {
+			return;
 		}
 
-		return Core.getLibraryResourceBundle("sap.m").getText(sBundleText);
+
+		var oParent = this.getParent();
+		var oControl = this.getControl();
+		var oBinding = oControl && oControl.getBinding(this._getBindingName());
+		if (oBinding && oBinding.bIsBeingDestroyed) {
+			return;
+		}
+
+		var aMessages = oDataState.getMessages();
+		var fnFilter = this.getFilter();
+		if (fnFilter) {
+			aMessages = aMessages.filter(function(oMessage) {
+				return fnFilter(oMessage, oParent);
+			});
+		}
+
+		if (!this.fireDataStateChange({ dataState: oDataState, filteredMessages: aMessages})) {
+			return;
+		}
+
+		if (aMessages.length) {
+			var sMessage = "";
+			var bUpdateMessageModel = false;
+			var oFirstMessage = aMessages[0];
+
+			aMessages.forEach(function(oMessage) {
+				if (oMessage.getControlIds().indexOf(oControl.getId()) == -1) {
+					oMessage.addControlId(oControl.getId());
+					bUpdateMessageModel = true;
+				}
+			});
+
+			this._sCombinedType = this._getCombinedType(aMessages);
+			if (aMessages.length == 1 && oFirstMessage.getTarget() && oFirstMessage.getTarget().endsWith(oBinding.getPath())) {
+				sMessage = oFirstMessage.getMessage();
+			} else {
+				sMessage = this._translate(this._sCombinedType.toUpperCase());
+			}
+
+			this.showMessage(sMessage, oFirstMessage.getType());
+			if (!this._bFiltering && oBinding.requestFilterForMessages && this.getEnableFiltering()) {
+				var fnFilter = this.getFilter();
+				var fnMessageFilter = fnFilter && function(oMessage) {
+					return fnFilter(oMessage, oParent);
+				};
+
+				oBinding.requestFilterForMessages(fnMessageFilter).then(function(oFilter) {
+					oFilter && this._setLinkText(this._translate("FILTER_ITEMS"));
+				}.bind(this));
+			}
+
+			if (bUpdateMessageModel) {
+				Core.getMessageManager().getMessageModel().checkUpdate(false, true);
+			}
+		} else {
+			this.showMessage("");
+			if (this._bFiltering) {
+				this._clearFilter(true);
+			}
+		}
+	};
+
+	DataStateIndicator.prototype._onLinkPress = function() {
+		if (this._bFiltering) {
+			this._clearFilter();
+		} else {
+			this._applyFilter();
+		}
+	};
+
+	DataStateIndicator.prototype._clearFilter = function(bClearLink) {
+		if (this._bFiltering) {
+			this._bFiltering = false;
+			this._hideFilterInfo(bClearLink);
+			if (this.fireClearFilter() && this._fnLastFilter) {
+				this._fnLastFilter("Application");
+				delete this.getControl().getBinding(this._getBindingName()).filter;
+			}
+		}
+	};
+
+	DataStateIndicator.prototype._applyFilter = function() {
+		var fnFilter = this.getFilter();
+		var oControl = this.getControl();
+		var oBinding = oControl.getBinding(this._getBindingName());
+		var fnMessageFilter = fnFilter && function(oMessage) {
+			return fnFilter(oMessage, oControl);
+		};
+
+		oBinding.requestFilterForMessages(fnMessageFilter).then(function(oFilter) {
+			if (!oFilter) {
+				return this._setLinkText("");
+			}
+
+			var bRefresh = this._bFiltering;
+			if (!bRefresh) {
+				this._bFiltering = true;
+				this._showFilterInfo();
+			}
+
+			if (!this.fireApplyFilter({ filter : oFilter, revert : this._clearFilter.bind(this) })) {
+				return;
+			}
+
+			if (!bRefresh) {
+				this._fnLastFilter = oBinding.filter.bind(oBinding, oBinding.aApplicationFilters);
+				this._fnBindingFilter = oBinding.filter;
+			} else {
+				delete oBinding.filter;
+			}
+
+			oBinding.filter(oFilter, "Application");
+			oBinding.filter = function(aFilters, sFilterType) {
+				if (sFilterType == "Application") {
+					this._fnLastFilter = this._fnBindingFilter.bind(oBinding, aFilters);
+					return oBinding;
+				}
+				return this._fnBindingFilter.apply(oBinding, arguments);
+			}.bind(this);
+		}.bind(this));
+	};
+
+	DataStateIndicator.prototype._hideFilterInfo = function(bClearLink) {
+		this._oMessageStrip.setShowCloseButton(true);
+		this._setLinkText(bClearLink ? "" : this._translate("FILTER_ITEMS"));
+		this.getConfig("hideInfoToolbar", this.getControl());
+	};
+
+	DataStateIndicator.prototype._showFilterInfo = function() {
+		if (this._oInfoText) {
+			this._oMessageStrip.setShowCloseButton(false);
+			this._setLinkText(this._translate("CLEAR_FILTER"));
+			this._oInfoText.setText(this._translate("FILTERED_BY_" + this._sCombinedType.toUpperCase()));
+			if (!this._oInfoToolbar.getParent()) {
+				this.getConfig("showInfoToolbar", this.getControl(), this._oInfoToolbar);
+			}
+		} else {
+			sap.ui.require(["sap/m/Text", "sap/m/Toolbar"], function(Text, Toolbar) {
+				this._oInfoText = new Text();
+				this._oInfoToolbar = new Toolbar({
+					design: "Info",
+					content: this._oInfoText,
+					active: this.hasListeners("filterInfoPress"),
+					press: this.fireEvent.bind(this, "filterInfoPress")
+				});
+				this._showFilterInfo();
+			}.bind(this));
+		}
 	};
 
 	DataStateIndicator.prototype._getCombinedType = function(aMessages) {
@@ -293,69 +419,19 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 
 			if (iSeverity & mTypes.Error && iSeverity & mTypes.Warning) {
 				return "Issue";
-			} else if (iSeverity & mTypes.Error) {
+			}
+			if (iSeverity & mTypes.Error) {
 				return "Error";
-			} else if (iSeverity & mTypes.Warning) {
+			}
+			if (iSeverity & mTypes.Warning) {
 				return "Warning";
-			} else if (iSeverity & mTypes.Success || iSeverity & mTypes.Information) {
+			}
+			if (iSeverity & mTypes.Success || iSeverity & mTypes.Information) {
 				return "Notification";
 			}
 		}
 
 		return "";
-	};
-
-	DataStateIndicator.prototype._processDataState = function(oDataState) {
-		if (!oDataState || !oDataState.getChanges().messages) {
-			return;
-		}
-
-		var aMessages = oDataState.getMessages();
-		var oControl = this.getControl();
-		var fnFilter = this.getFilter();
-		if (fnFilter) {
-			aMessages = aMessages.filter(function(oMessage) {
-				return fnFilter(oMessage, oControl);
-			});
-		}
-
-		if (!this.fireDataStateChange({ dataState: oDataState, filteredMessages: aMessages})) {
-			return;
-		}
-
-		if (aMessages.length) {
-			var oFirstMessage = aMessages[0];
-			var sBindingName = this._getBindingName();
-			var sBindingPath = oControl.getBinding(sBindingName).getPath();
-			var bUpdateMessageModel = false;
-			var sBundleKey = "";
-			var sMessage = "";
-
-			aMessages.forEach(function(oMessage) {
-				if (oMessage.getControlIds().indexOf(oControl.getId()) == -1) {
-					oMessage.addControlId(oControl.getId());
-					bUpdateMessageModel = true;
-				}
-			});
-
-			if (aMessages.length == 1 && oFirstMessage.getTarget() && oFirstMessage.getTarget().endsWith(sBindingPath)) {
-				sMessage = oFirstMessage.getMessage();
-			} else {
-				sBundleKey = this._getCombinedType(aMessages);
-
-				if (sBundleKey) {
-					sMessage = this._translate(sBundleKey.toUpperCase());
-				}
-			}
-
-			this.showMessage(sMessage, oFirstMessage.getType());
-
-			if (bUpdateMessageModel) {
-				Core.getMessageManager().getMessageModel().checkUpdate(false, true);
-			}
-		} else {
-			this.showMessage("");
-		}
 	};
 
 	DataStateIndicator.prototype._onAggregatedDataStateChange = function(oEvent) {
@@ -370,18 +446,74 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 		}
 	};
 
+	DataStateIndicator.prototype._translate = function(sBundleKey) {
+		var sBundleText = "DATASTATE_" + sBundleKey;
+		var oMetadata = this.getControl().getMetadata();
+		var sLibraryName = oMetadata.getLibraryName();
+		var sControlName = oMetadata.getName().split(".").pop().toUpperCase();
+		var oResourceBundle = Core.getLibraryResourceBundle(sLibraryName);
+		var sControlBundleText = sControlName + "_" + sBundleText;
+
+		if (oResourceBundle.hasText(sControlBundleText)) {
+			return oResourceBundle.getText(sControlBundleText);
+		}
+
+		if (sLibraryName == "sap.m") {
+			return oResourceBundle.getText(sBundleText);
+		}
+
+		return Core.getLibraryResourceBundle("sap.m").getText(sBundleText);
+	};
+
+
 	/**
 	 * Plugin-specific control configurations
 	 */
-	PluginBase.setConfig({
+	PluginBase.setConfigs({
 		"sap.m.ListBase": {
-			defaultBindingName: "items"
+			defaultBindingName: "items",
+			useInfoToolbar: function(oParent) {
+				return oParent && oParent.getUseInfoToolbar && oParent.getUseInfoToolbar() == "Off" ? false : true;
+			},
+			showInfoToolbar: function(oControl, oInfoToolbar) {
+				if (this.useInfoToolbar(oControl.getParent())) {
+					this._oOldInfoToolbar = oControl.getInfoToolbar();
+					this._oNewInfoToolbar = oInfoToolbar;
+					oControl.setInfoToolbar(oInfoToolbar);
+				}
+			},
+			hideInfoToolbar: function(oControl) {
+				if (this._oNewInfoToolbar) {
+					oControl.setInfoToolbar(this._oOldInfoToolbar);
+					this._oNewInfoToolbar = this._oOldInfoToolbar = null;
+				}
+			},
+			onDeactivate: function(oControl) {
+				this.hideInfoToolbar(oControl);
+			}
 		},
 		"sap.ui.table.Table": {
-			defaultBindingName: "rows"
+			defaultBindingName: "rows",
+			useInfoToolbar: function(oParent) {
+				return oParent && oParent.getUseInfoToolbar && oParent.getUseInfoToolbar() == "Off" ? false : true;
+			},
+			showInfoToolbar: function(oControl, oInfoToolbar) {
+				if (this.useInfoToolbar(oControl.getParent())) {
+					this._oInfoToolbar = oInfoToolbar;
+					oControl.addExtension(oInfoToolbar);
+				}
+			},
+			hideInfoToolbar: function(oControl) {
+				if (this._oInfoToolbar) {
+					oControl.removeExtension(this._oInfoToolbar);
+					this._oInfoToolbar = null;
+				}
+			},
+			onDeactivate: function(oControl) {
+				this.hideInfoToolbar(oControl);
+			}
 		}
 	}, DataStateIndicator);
-
 
 	return DataStateIndicator;
 

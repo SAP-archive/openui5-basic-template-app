@@ -50,11 +50,12 @@ sap.ui.define([
 	 * @extends sap.ui.layout.form.FormLayout
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.16.0
+	 * @deprecated As of version 1.93, replaced by {@link sap.ui.layout.form.ColumnLayout ColumnLayout}
 	 * @alias sap.ui.layout.form.ResponsiveLayout
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
@@ -185,7 +186,7 @@ sap.ui.define([
 				oRm.openEnd();
 
 				// container header
-				oLayout.getRenderer().renderHeader(oRm, oToolbar, oTitle, oContainer._oExpandButton, bExpandable, false, oContainer.getId());
+				oLayout.getRenderer().renderHeader(oRm, oToolbar, oTitle, oContainer._oExpandButton, bExpandable, oLayout._sFormSubTitleSize, oContainer.getId());
 
 				if (oContent) {
 					oRm.openStart("div");
@@ -204,6 +205,8 @@ sap.ui.define([
 	/* eslint-disable no-lonely-if */
 
 	ResponsiveLayout.prototype.init = function(){
+
+		FormLayout.prototype.init.apply(this, arguments);
 
 		this.mContainers = {}; //association of container to panel and ResponsiveFlowLayout
 		this._defaultLayoutData = new ResponsiveFlowLayoutData({margin: false});
@@ -229,6 +232,8 @@ sap.ui.define([
 	};
 
 	ResponsiveLayout.prototype.onBeforeRendering = function( oEvent ){
+
+		FormLayout.prototype.onBeforeRendering.apply(this, arguments);
 
 		var oForm = this.getParent();
 		if (!oForm || !(oForm instanceof Form)) {
@@ -318,7 +323,7 @@ sap.ui.define([
 				if (this.mContainers[sContainerId][0]) {
 					var oPanel = this.mContainers[sContainerId][0];
 					return oPanel.getDomRef();
-				}else if (this.mContainers[sContainerId][1]){
+				} else if (this.mContainers[sContainerId][1]){
 					// no panel used -> return RFLayout
 					var oRFLayout = this.mContainers[sContainerId][1];
 					return oRFLayout.getDomRef();
@@ -624,7 +629,7 @@ sap.ui.define([
 					}
 				};
 			}
-		}else if (oContainer) {
+		} else if (oContainer) {
 			oRFLayout._getAccessibleRole = function() {
 
 				var oContainer = sap.ui.getCore().byId(this.__myParentContainerId);

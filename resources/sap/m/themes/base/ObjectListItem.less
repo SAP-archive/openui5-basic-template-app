@@ -11,10 +11,6 @@
 	white-space: normal;
 }
 
-.sapMObjLItem > .sapMLIBContent {
-	overflow: hidden;
-}
-
 .sapMLIB.sapMObjLItem {
 	padding: 1rem;
 }
@@ -62,13 +58,16 @@ html .sapUiContainer-Narrow .sapMText.sapMObjLTitle {
 	word-break: break-word;
 	-webkit-hyphens: auto;
 	-moz-hyphens: auto;
-	-ms-hyphens: auto;
 	hyphens: auto;
 }
 
 .sapMObjLNumberDiv {
 	float: right;
 	padding-left: 1rem;
+
+	.sapMObjectNumber {
+		line-height: initial;
+	}
 }
 
 .sapMObjLNumberDiv .sapMObjectNumber.sapMObjectNumberStatusNone {
@@ -78,7 +77,9 @@ html .sapUiContainer-Narrow .sapMText.sapMObjLTitle {
 .sapMObjLNumberDiv .sapMObjectNumber .sapMObjectNumberText {
 	font-family: @sapUiFontHeaderFamily;
 	font-size: 1.375rem;
+	line-height: 1.375rem;
 	font-weight: @sapUiFontHeaderWeight;
+	white-space: nowrap;
 }
 
 .sapMObjLNumberDiv .sapMObjectNumber .sapMObjectNumberUnit {
@@ -91,7 +92,6 @@ html .sapUiContainer-Narrow .sapMText.sapMObjLTitle {
 }
 
 .sapMObjLAttrRow {
-	font-size: .875rem;
 	padding-top: .313rem;
 }
 
@@ -156,7 +156,7 @@ html[dir=rtl] .sapMObjLStatusDiv {
 }
 
 .sapMObjLAttrRow .sapMObjStatus {
-	overflow: hidden;
+	overflow: visible;
 	white-space: nowrap;
 	text-overflow: ellipsis;
 	width: 100%;
@@ -167,7 +167,8 @@ html[dir=rtl] .sapMObjLStatusDiv {
 
 // invertedStatus in ObjectListItem
 .sapMObjLAttrRow .sapMObjStatusInverted {
-	height: 1.1875rem;
+	height: 1rem;
+	line-height: 0.75rem;
 }
 
 .sapMObjLBottomRow .sapMObjStatusIcon {
@@ -186,12 +187,6 @@ html[dir=rtl] .sapMObjLStatusDiv {
 	-webkit-box-align: center;
 	flex-direction: row;
 	align-items: center;
-}
-
-/* TODO remove after the end of support for Internet Explorer */
-html[data-sap-ui-browser="ie11"] .sapMObjLItem > .sapMLIBContent
-{
-	width: 100%;
 }
 
 /* overwrite transform for the markers favorite and flag icon */
@@ -217,13 +212,6 @@ html[dir=rtl] .sapMObjStatusMarker > .sapUiIcon.sapUiIconMirrorInRTL {
 
 .sapMObjLItem .sapMObjStatusMarker .sapUiIcon:before {
 	vertical-align: top;
-}
-
-//outline-offset alternative for ObjectAttribute inside ObjectListItem. Otherwise the offset may be cut.
-html[data-sap-ui-browser ^= "ie"], html[data-sap-ui-browser^="ed"] {
-	.sapMObjLAttrDiv > .sapMObjectAttributeActive.sapMObjectAttributeDiv {
-		padding: 0.125rem;
-	}
 }
 
 .sapMObjLIcon {

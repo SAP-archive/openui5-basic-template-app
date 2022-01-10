@@ -26,6 +26,9 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	// shortcut for sap.m.WrappingType
 	var WrappingType = library.WrappingType;
 
+	// shortcut for sap.m.EmptyIndicator
+	var EmptyIndicatorMode = library.EmptyIndicatorMode;
+
 	/**
 	 * Constructor for a new Text.
 	 *
@@ -48,10 +51,10 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	 * to <code>true</code>.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @implements sap.ui.core.IShrinkable, sap.ui.core.IFormContent
+	 * @implements sap.ui.core.IShrinkable, sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -66,6 +69,7 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 			interfaces: [
 				"sap.ui.core.IShrinkable",
 				"sap.ui.core.IFormContent",
+				"sap.ui.core.ISemanticFormContent",
 				"sap.m.IHyphenation"
 			],
 			library: "sap.m",
@@ -120,7 +124,14 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 				 *
 				 * @since 1.51
 				 */
-				renderWhitespace: { type: "boolean", group: "Appearance", defaultValue: false }
+				renderWhitespace: { type: "boolean", group: "Appearance", defaultValue: false },
+
+				/**
+				 * Specifies if an empty indicator should be displayed when there is no text.
+				 *
+				 * @since 1.87
+				 */
+				emptyIndicatorMode: { type: "sap.m.EmptyIndicatorMode", group: "Appearance", defaultValue: EmptyIndicatorMode.Off }
 			},
 
 			designtime: "sap/m/designtime/Text.designtime"
@@ -179,7 +190,7 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	 *
 	 * @protected
 	 * @param {HTMLElement} oDomRef DOM reference of the text node container.
-	 * @param {String} [sNodeValue] new Node value.
+	 * @param {string} [sNodeValue] new Node value.
 	 * @since 1.30.3
 	 */
 	Text.setNodeValue = function (oDomRef, sNodeValue) {
@@ -282,7 +293,7 @@ function(library, Core, Control, coreLibrary, Device, HyphenationSupport, TextRe
 	 *
 	 * @since 1.20
 	 * @protected
-	 * @return {Boolean}
+	 * @return {boolean}
 	 */
 	Text.prototype.canUseNativeLineClamp = function () {
 		// has line clamp feature

@@ -462,7 +462,8 @@ sap.ui.define([
 	}
 
 	return function (iLinesOfContext, iThreshold, fnGetTestedModules, oCoverageData) {
-		var oDiv, oModel, aTestedModules;
+		var oDiv, oModel, aTestedModules,
+			oUriParameters = UriParameters.fromQuery(window.location.search);
 
 		/*
 		 * Tells whether the given module corresponds 1:1 to a single class.
@@ -483,7 +484,8 @@ sap.ui.define([
 				aTestedModules && aTestedModules.map(convertToFile));
 			oDiv = getDiv();
 
-			if (UriParameters.fromQuery(window.location.search).get("testId")
+			if (oCoverageData.stats.failures
+				|| oUriParameters.get("filter") || oUriParameters.get("testId")
 				|| aTestedModules && !aTestedModules.every(isSingleClass)) {
 				// do not fail due to coverage
 				createViewAndPlaceAt(oModel, oDiv);

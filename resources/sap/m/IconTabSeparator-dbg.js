@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -105,9 +105,7 @@ sap.ui.define([
 			this._oImageControl.destroy();
 		}
 
-		if (Item.prototype.exit) {
-			Item.prototype.exit.call(this, oEvent);
-		}
+		Element.prototype.exit.call(this, oEvent);
 	};
 
 	/**

@@ -5,8 +5,12 @@
  */
 
 // Provides control sap.ui.core.InvisibleText.
-sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/encodeXML"],
-	function(Control, library, Log, encodeXML) {
+sap.ui.define([
+	"./Control",
+	"sap/base/Log",
+	"sap/base/security/encodeXML",
+	"./library" // ensure loading of CSS
+], function(Control, Log, encodeXML) {
 	"use strict";
 
 
@@ -25,7 +29,7 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @since 1.27.0
@@ -79,7 +83,7 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	}
 
 	/**
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.27, local BusyIndicator is not supported by control.
 	 * @function
@@ -87,7 +91,7 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	InvisibleText.prototype.setBusy = makeNotSupported("Property busy");
 
 	/**
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.27, local BusyIndicator is not supported by control.
 	 * @function
@@ -95,7 +99,7 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	InvisibleText.prototype.setBusyIndicatorDelay = makeNotSupported("Property busy");
 
 	/**
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.54, local BusyIndicator is not supported by control.
 	 * @function
@@ -103,7 +107,7 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	InvisibleText.prototype.setBusyIndicatorSize = makeNotSupported("Property busy");
 
 	/**
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.27, property <code>visible</code> is not supported by control.
 	 * @function
@@ -111,7 +115,7 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	InvisibleText.prototype.setVisible = makeNotSupported("Property visible");
 
 	/**
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.27, tooltip is not supported by control.
 	 * @function
@@ -137,7 +141,7 @@ sap.ui.define(['./Control', './library', "sap/base/Log", "sap/base/security/enco
 	/**
 	 * Adds <code>this</code> control into the static, hidden area UI area container.
 	 *
-	 * @return {sap.ui.core.InvisibleText} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 * @see sap.ui.core.Control#placeAt
 	 */

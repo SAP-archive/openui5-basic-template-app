@@ -27,15 +27,16 @@ sap.ui.define([
 
 	ColumnLayoutRenderer.renderContainers = function(oRm, oLayout, oForm){
 
-		var iColumnsM = oLayout.getColumnsM();
-		var iColumnsL = oLayout.getColumnsL();
-		var iColumnsXL = oLayout.getColumnsXL();
 		var aContainers = oForm.getVisibleFormContainers();
 		var iContainers = aContainers.length;
 
 		if (iContainers > 0) {
-			// if more that one container render a DIV around containers
-			if (iContainers > 1 || oLayout.getLayoutDataForElement(aContainers[0], "sap.ui.layout.form.ColumnContainerData")) {
+			var bOneContainerFullSize = iContainers === 1 && !oLayout.getLayoutDataForElement(aContainers[0], "sap.ui.layout.form.ColumnContainerData");
+			if (!bOneContainerFullSize) {
+				// if more that one container or one container is not full size render a DIV around containers
+				var iColumnsM = oLayout.getColumnsM();
+				var iColumnsL = oLayout.getColumnsL();
+				var iColumnsXL = oLayout.getColumnsXL();
 				oRm.openStart("div");
 				oRm.class("sapUiFormCLContent");
 				oRm.class("sapUiFormCLColumnsM" + iColumnsM);
@@ -49,7 +50,7 @@ sap.ui.define([
 				this.renderContainer(oRm, oLayout, oContainer);
 			}
 
-			if (iContainers > 1) {
+			if (!bOneContainerFullSize) {
 				oRm.close("div");
 			}
 		}
@@ -112,7 +113,7 @@ sap.ui.define([
 
 		oRm.openEnd();
 
-		this.renderHeader(oRm, oToolbar, oTitle, oContainer._oExpandButton, bExpandable, false, oContainer.getId());
+		this.renderHeader(oRm, oToolbar, oTitle, oContainer._oExpandButton, bExpandable, oLayout._sFormSubTitleSize, oContainer.getId());
 
 		oRm.openStart("div", oContainer.getId() + "-content")
 			.class("sapUiFormCLContainerCont")

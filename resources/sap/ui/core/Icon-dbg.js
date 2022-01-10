@@ -9,7 +9,7 @@ sap.ui.define([
 	'sap/base/assert',
 	'../Device',
 	'./Control',
-	'./IconPool',
+	'./_IconRegistry',
 	'./InvisibleText',
 	'./library',
 	"./IconRenderer",
@@ -21,7 +21,7 @@ sap.ui.define([
 		assert,
 		Device,
 		Control,
-		IconPool,
+		_IconRegistry,
 		InvisibleText,
 		library,
 		IconRenderer,
@@ -70,129 +70,132 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @public
 	 * @since 1.11.1
 	 * @alias sap.ui.core.Icon
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Icon = Control.extend("sap.ui.core.Icon", /** @lends sap.ui.core.Icon.prototype */ { metadata : {
+	var Icon = Control.extend("sap.ui.core.Icon", /** @lends sap.ui.core.Icon.prototype */ {
+		metadata : {
 
-		interfaces : ["sap.ui.core.IFormContent"],
-		library : "sap.ui.core",
-		designtime: "sap/ui/core/designtime/Icon.designtime",
-		properties : {
+			interfaces : ["sap.ui.core.IFormContent"],
+			library : "sap.ui.core",
+			designtime: "sap/ui/core/designtime/Icon.designtime",
+			properties : {
 
-			/**
-			 * This property should be set by the return value of calling sap.ui.core.IconPool.getIconURI with an Icon name parameter and an optional collection parameter which is required when using application extended Icons. A list of standard FontIcon is available here.
-			 */
-			src : {type : "sap.ui.core.URI", group : "Data", defaultValue : null},
+				/**
+				 * This property should be set by the return value of calling sap.ui.core.IconPool.getIconURI with an Icon name parameter and an optional collection parameter which is required when using application extended Icons. A list of standard FontIcon is available here.
+				 */
+				src : {type : "sap.ui.core.URI", group : "Data", defaultValue : null},
 
-			/**
-			 * Since Icon uses font, this property will be applied to the css font-size property on the rendered DOM element.
-			 */
-			size : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
+				/**
+				 * Since Icon uses font, this property will be applied to the css font-size property on the rendered DOM element.
+				 */
+				size : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
 
-			/**
-			 * The color of the Icon. If color is not defined here, the Icon inherits the color from its DOM parent.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			color : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * The color of the Icon. If color is not defined here, the Icon inherits the color from its DOM parent.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				color : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * This color is shown when icon is hovered. This property has no visual effect when run on mobile device.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			hoverColor : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * This color is shown when icon is hovered. This property has no visual effect when run on mobile device.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				hoverColor : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * This color is shown when icon is pressed/activated by the user.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			activeColor : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * This color is shown when icon is pressed/activated by the user.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				activeColor : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * This is the width of the DOM element which contains the Icon. Setting this property doesn't affect the size of the font. If you want to make the font bigger, increase the size property.
-			 */
-			width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
+				/**
+				 * This is the width of the DOM element which contains the Icon. Setting this property doesn't affect the size of the font. If you want to make the font bigger, increase the size property.
+				 */
+				width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
 
-			/**
-			 * This is the height of the DOM element which contains the Icon. Setting this property doesn't affect the size of the font. If you want to make the font bigger, increase the size property.
-			 */
-			height : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
+				/**
+				 * This is the height of the DOM element which contains the Icon. Setting this property doesn't affect the size of the font. If you want to make the font bigger, increase the size property.
+				 */
+				height : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
 
-			/**
-			 * Background color of the Icon in normal state.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			backgroundColor : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * Background color of the Icon in normal state.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				backgroundColor : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * Background color for Icon in hover state. This property has no visual effect when run on mobile device.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			hoverBackgroundColor : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * Background color for Icon in hover state. This property has no visual effect when run on mobile device.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				hoverBackgroundColor : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * Background color for Icon in active state.
-			 *
-			 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
-			 */
-			activeBackgroundColor : {type : "string", group : "Appearance", defaultValue : null},
+				/**
+				 * Background color for Icon in active state.
+				 *
+				 * The property can be set with {@link sap.ui.core.CSSColor CSS Color} or {@link sap.ui.core.IconColor Semantic Icon Color}.
+				 */
+				activeBackgroundColor : {type : "string", group : "Appearance", defaultValue : null},
 
-			/**
-			 * A decorative icon is included for design reasons. Accessibility tools will ignore decorative icons. Tab stop isn't affected by this property anymore and it's now controlled by the existence of press event handler and the noTabStop property.
-			 * @since 1.16.4
-			 */
-			decorative : {type : "boolean", group : "Accessibility", defaultValue : true},
+				/**
+				 * A decorative icon is included for design reasons. Accessibility tools will ignore decorative icons. Tab stop isn't affected by this property anymore and it's now controlled by the existence of press event handler and the noTabStop property.
+				 * @since 1.16.4
+				 */
+				decorative : {type : "boolean", group : "Accessibility", defaultValue : true},
 
-			/**
-			 * Decides whether a default Icon tooltip should be used if no tooltip is set.
-			 * @since 1.30.0
-			 */
-			useIconTooltip : {type : "boolean", group : "Accessibility", defaultValue : true},
+				/**
+				 * Decides whether a default Icon tooltip should be used if no tooltip is set.
+				 * @since 1.30.0
+				 */
+				useIconTooltip : {type : "boolean", group : "Accessibility", defaultValue : true},
 
-			/**
-			 * This defines the alternative text which is used for outputting the aria-label attribute on the DOM.
-			 * @since 1.30.0
-			 */
-			alt : {type : "string", group : "Accessibility", defaultValue : null},
+				/**
+				 * This defines the alternative text which is used for outputting the aria-label attribute on the DOM.
+				 * @since 1.30.0
+				 */
+				alt : {type : "string", group : "Accessibility", defaultValue : null},
 
-			/**
-			 * Defines whether the tab stop of icon is controlled by the existence of press event handler. When it's set to false, Icon control has tab stop when press event handler is attached.
-			 * If it's set to true, Icon control never has tab stop no matter whether press event handler exists or not.
-			 * @since 1.30.1
-			 */
-			noTabStop : {type : "boolean", group : "Accessibility", defaultValue : false}
+				/**
+				 * Defines whether the tab stop of icon is controlled by the existence of press event handler. When it's set to false, Icon control has tab stop when press event handler is attached.
+				 * If it's set to true, Icon control never has tab stop no matter whether press event handler exists or not.
+				 * @since 1.30.1
+				 */
+				noTabStop : {type : "boolean", group : "Accessibility", defaultValue : false}
+			},
+			aggregations: {
+
+				/**
+				 * Hidden aggregation for holding the InvisibleText instance which is used for outputing the text labeling the control
+				 */
+				_invisibleText : {type : "sap.ui.core.InvisibleText", multiple : false, visibility : "hidden"}
+			},
+			associations : {
+
+				/**
+				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
+				 */
+				ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
+			},
+			events : {
+
+				/**
+				 * This event is fired when icon is pressed/activated by the user. When a handler is attached to this event, the Icon gets tab stop. If you want to disable this behavior, set the noTabStop property to true.
+				 */
+				press : {}
+			}
 		},
-		aggregations: {
-
-			/**
-			 * Hidden aggregation for holding the InvisibleText instance which is used for outputing the text labeling the control
-			 */
-			_invisibleText : {type : "sap.ui.core.InvisibleText", multiple : false, visibility : "hidden"}
-		},
-		associations : {
-
-			/**
-			 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
-			 */
-			ariaLabelledBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
-		},
-		events : {
-
-			/**
-			 * This event is fired when icon is pressed/activated by the user. When a handler is attached to this event, the Icon gets tab stop. If you want to disable this behavior, set the noTabStop property to true.
-			 */
-			press : {}
-		}
-	}});
+		renderer: IconRenderer
+	});
 
 	/* =========================================================== */
 	/* Event handlers                                              */
@@ -280,6 +283,7 @@ sap.ui.define([
 	/**
 	 * Handle the click or tap event on the Icon.
 	 *
+	 * @param {sap.ui.base.Event} oEvent The event
 	 * @private
 	 */
 	Icon.prototype[Device.support.touch && !Device.system.desktop ? "ontap" : "onclick"] = function(oEvent) {
@@ -391,7 +395,7 @@ sap.ui.define([
 	/* =========================================================== */
 
 	Icon.prototype.setSrc = function(sSrc) {
-		assert(sSrc == null || IconPool.isIconURI(sSrc), this + ": Property 'src' (value: '" + sSrc + "') should be a valid Icon URI (sap-icon://...)");
+		assert(sSrc == null || _IconRegistry.isIconURI(sSrc), this + ": Property 'src' (value: '" + sSrc + "') should be a valid Icon URI (sap-icon://...)");
 
 		return this.setProperty("src", sSrc);
 	};
@@ -499,10 +503,9 @@ sap.ui.define([
 		var sAlt = this.getAlt(),
 			sTooltip = this.getTooltip_AsString(),
 			bUseIconTooltip = this.getUseIconTooltip(),
-			sLabel = sAlt || sTooltip || (bUseIconTooltip && oIconInfo && (oIconInfo.text || oIconInfo.name)),
-			sOutputTitle = this._getOutputTitle(oIconInfo);
+			sLabel = sAlt || sTooltip || (bUseIconTooltip && oIconInfo && (oIconInfo.text || oIconInfo.name));
 
-		if (sLabel && sLabel !== sOutputTitle) {
+		if (sLabel) {
 			return sLabel;
 		}
 	};
@@ -533,12 +536,10 @@ sap.ui.define([
 		if (this.getDecorative()) {
 			mAccAttributes.role = "presentation";
 			mAccAttributes.hidden = "true";
+		} else if (this.hasListeners("press")) {
+			mAccAttributes.role = "button";
 		} else {
-			if (this.hasListeners("press")) {
-				mAccAttributes.role = "button";
-			} else {
-				mAccAttributes.role = "img";
-			}
+			mAccAttributes.role = "img";
 		}
 
 		if (aLabelledBy.length > 0) {
@@ -555,6 +556,7 @@ sap.ui.define([
 	};
 
 	/**
+	 * @returns {object} Current accessibility state of the Icon
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @protected
 	 */
@@ -564,7 +566,7 @@ sap.ui.define([
 		}
 
 		var bHasPressListeners = this.hasListeners("press");
-		var oIconInfo = IconPool.getIconInfo(this.getSrc(), undefined, "sync");
+		var oIconInfo = _IconRegistry.getIconInfo(this.getSrc(), undefined, "sync");
 
 		return {
 			role: bHasPressListeners ? "button" : "img",

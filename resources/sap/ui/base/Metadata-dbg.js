@@ -7,12 +7,11 @@
 // Provides class sap.ui.base.Metadata
 sap.ui.define([
 	'sap/base/util/ObjectPath',
-	'sap/ui/Device',
 	"sap/base/assert",
 	"sap/base/Log",
 	"sap/base/util/array/uniqueSort"
 ],
-	function(ObjectPath, Device, assert, Log, uniqueSort) {
+	function(ObjectPath, assert, Log, uniqueSort) {
 	"use strict";
 
 
@@ -27,7 +26,7 @@ sap.ui.define([
 	 *
 	 * @class Metadata for a class.
 	 * @author Frank Weigel
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @since 0.8.6
 	 * @public
 	 * @alias sap.ui.base.Metadata
@@ -144,7 +143,10 @@ sap.ui.define([
 
 	/**
 	 * Stereotype of the described class.
+	 *
 	 * @experimental might be enhanced to a set of stereotypes
+	 * @private
+	 * @ui5-restricted
 	 */
 	Metadata.prototype.getStereotype = function() {
 		return this._sStereotype;

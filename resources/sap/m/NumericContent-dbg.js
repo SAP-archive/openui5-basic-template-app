@@ -25,6 +25,7 @@ sap.ui.define([
 		"cs": 4,
 		"da": 4,
 		"de": 8,
+		"de-de": 8,
 		"de_at": 8,
 		"de_ch": 8,
 		"el": 4,
@@ -93,7 +94,8 @@ sap.ui.define([
 		"zh_tw": 6
 	};
 
-	var ValueColor = library.ValueColor;
+	var DeviationIndicator = library.DeviationIndicator,
+		ValueColor = library.ValueColor;
 
 	/**
 	 * Constructor for a new sap.m.GenericTile control.
@@ -105,7 +107,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @since 1.34
 	 *
 	 * @public
@@ -157,7 +159,7 @@ sap.ui.define([
 				 * Updates the size of the control. If not set, then the default size is applied based on the device tile.
 				 * @deprecated Since version 1.38.0. The NumericContent control has now a fixed size, depending on the used media (desktop, tablet or phone).
 				 */
-				"size": {type: "sap.m.Size", group: "Appearance", defaultValue: "Auto"},
+				"size": {type: "sap.m.Size", group: "Appearance", defaultValue: "Auto", deprecated: true},
 
 				/**
 				 * The number of characters of the <code>value</code> property to display.
@@ -348,7 +350,6 @@ sap.ui.define([
 		var sValue = this.getValue();
 		var sScale = this.getScale();
 		var sEmptyValue;
-		var sMeaning = this._rb.getText(("SEMANTIC_COLOR_" + this.getValueColor()).toUpperCase());
 		var sAltText = "";
 		if (this.getNullifyValue()) {
 			sEmptyValue = "0";
@@ -364,11 +365,12 @@ sap.ui.define([
 		} else {
 			sAltText = sAltText.concat(sEmptyValue);
 		}
-		if (this.getIndicator() && this.getIndicator() !== library.DeviationIndicator.None) {
+		if (this.getIndicator() && this.getIndicator() !== DeviationIndicator.None) {
 			sAltText = sAltText.concat("\n");
 			sAltText = sAltText.concat(this._rb.getText(("NUMERICCONTENT_DEVIATION_" + this.getIndicator()).toUpperCase()));
 		}
 		if (this.getValueColor() !== ValueColor.None) {
+			var sMeaning = this._rb.getText(("SEMANTIC_COLOR_" + this.getValueColor()).toUpperCase());
 			sAltText = sAltText.concat("\n");
 			sAltText = sAltText.concat(sMeaning);
 		}

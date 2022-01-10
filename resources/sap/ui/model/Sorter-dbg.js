@@ -3,7 +3,7 @@
  * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-
+/*eslint-disable max-len */
 // Provides the concept of a sorter for list bindings
 sap.ui.define(['sap/ui/base/Object', "sap/base/Log"],
 	function(BaseObject, Log) {
@@ -27,7 +27,11 @@ sap.ui.define(['sap/ui/base/Object', "sap/base/Log"],
 	 *        context (e.g. oContext.getProperty("date").getYear() for year grouping). The control needs to
 	 *        implement the grouping behaviour for the aggregation which you want to group. In case a function
 	 *        is provided it must either return a primitive type value as the group key or an object containing
-	 *        a "key" property and additional properties needed for group visualization.
+	 *        a "key" property and additional properties needed for group visualization. This object
+	 *        or the object with the primitive type return value as "key" property is passed to
+	 *        the <code>groupHeaderFactory</code> function that has been specified to create the
+	 *        group header for the control aggregation; see
+	 *        {@link sap.ui.base.ManagedObject#bindAggregation}.
 	 *        <b>Note:</b> Grouping is only possible (and only makes sense) for the primary sort property.
 	 * @param {function} [fnComparator] A custom comparator function, which is used for client-side sorting instead
 	 *        of the default comparator method. Information about parameters and expected return values of such a

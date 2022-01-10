@@ -4,31 +4,9 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*global Promise, document */
-sap.ui.define(["sap/ui/Device", "sap/base/assert"],
-	function(Device, assert) {
+sap.ui.define(["sap/base/assert"],
+	function(assert) {
 	"use strict";
-
-	function isIEError(oEvent) {
-		if (Device.browser.msie || Device.browser.edge) {
-			try {
-				// in cross-origin scenarios IE / Edge can still access the rules of the stylesheet
-				// if the stylesheet has been loaded properly
-				if (oEvent.target.sheet.rules.length > 0) {
-					return false;
-				}
-				// in cross-origin scenarios now the catch block will be executed because we
-				// cannot access the rules of the stylesheet but for non cross-origin stylesheets
-				// we will get an empty rules array and finally we cannot differ between
-				// empty stylesheet or loading issue correctly => documented in JSDoc!
-			} catch (ex) {
-				// exception happens when the stylesheet could not be loaded from the server
-				// we now ignore this and know that the stylesheet doesn't exists => trigger error
-			}
-			return true;
-		} else {
-			return false;
-		}
-	}
 
 	function _includeStyleSheet(sUrl, mAttributes, fnLoadCallback, fnErrorCallback) {
 
@@ -47,7 +25,7 @@ sap.ui.define(["sap/ui/Device", "sap/base/assert"],
 			}
 
 			function listener(oEvent) {
-				var bError = oEvent.type === "error" || isIEError(oEvent);
+				var bError = oEvent.type === "error";
 				oLink.setAttribute("data-sap-ui-ready", !bError);
 				oLink.removeEventListener("load", listener);
 				oLink.removeEventListener("error", listener);
@@ -114,10 +92,6 @@ sap.ui.define(["sap/ui/Device", "sap/base/assert"],
 	 * @param {string|object} [vId] id that should be used for the link tag or map of attributes
 	 * @param {function} [fnLoadCallback] callback function to get notified once the stylesheet has been loaded
 	 * @param {function} [fnErrorCallback] callback function to get notified once the stylesheet loading failed.
-	 *        In case of usage in IE the error callback will also be executed if an empty stylesheet
-	 *        is loaded. This is the only option how to determine in IE if the load was successful
-	 *        or not since the native onerror callback for link elements doesn't work in IE. The IE
-	 *        always calls the onload callback of the link element.
 	 * @return {void|Promise} When using the configuration object a <code>Promise</code> will be returned. The
 	 *         documentation for the <code>fnLoadCallback</code> applies to the <code>resolve</code>
 	 *         handler of the <code>Promise</code> and the one for the <code>fnErrorCallback</code>

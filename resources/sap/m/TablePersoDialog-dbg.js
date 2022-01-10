@@ -65,7 +65,8 @@ sap.ui.define([
 	// shortcut for sap.m.ListMode
 	var ListMode = library.ListMode;
 
-
+	// shortcut for sap.m.WrappingType
+	var WrappingType = library.WrappingType;
 
 	/**
 	 * The TablePersoDialog can be used to display and allow modification of personalization settings relating to a Table. It displays the columns of the table that it refers to by using
@@ -86,7 +87,7 @@ sap.ui.define([
 	 * @class Table Personalization Dialog
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @alias sap.m.TablePersoDialog
 	 */
 	var TablePersoDialog = ManagedObject.extend("sap.m.TablePersoDialog", /** @lends sap.m.TablePersoDialog */
@@ -182,6 +183,8 @@ sap.ui.define([
 			type: "Active",
 			cells: [
 				new Label({
+					wrapping: true,
+					wrappingType: WrappingType.Hyphenated,
 					text: "{Personalization>text}"
 				})
 			],
@@ -280,7 +283,6 @@ sap.ui.define([
 
 		this._resetAllButton = new Button(this.getId() + "-buttonUndo", {
 			text: this._oRb.getText("VIEWSETTINGS_RESET"),
-			tooltip: this._oRb.getText('PERSODIALOG_UNDO'),
 			press : function () {
 				this._resetAll();
 			}.bind(this)
@@ -626,7 +628,7 @@ sap.ui.define([
 	/**
 	 * Setter to turn on/ switch off TablePersoDialog's grouping mode.
 	 * @param {boolean} bHasGrouping groping mode on or off.
-	 * @return {sap.m.TablePersoDialog} the TablePersoDialog instance.
+	 * @returns {this} the TablePersoDialog instance.
 	 * @public
 	 */
 	TablePersoDialog.prototype.setHasGrouping = function (bHasGrouping) {
@@ -649,7 +651,7 @@ sap.ui.define([
 	/**
 	 * Setter to show/hide TablePersoDialog's 'selectAll' checkbox.
 	 * @param {boolean} bShowSelectAll selectAll checkbox visible or not.
-	 * @return {sap.m.TablePersoDialog} the TablePersoDialog instance.
+	 * @returns {this} the TablePersoDialog instance.
 	 * @public
 	 */
 	TablePersoDialog.prototype.setShowSelectAll = function (bShowSelectAll) {
@@ -665,7 +667,7 @@ sap.ui.define([
 	/**
 	 * Setter to show/hide TablePersoDialog's 'Undo Personalization' button.
 	 * @param {boolean} bShowResetAll 'undo Personalization' button visible or not.
-	 * @return {sap.m.TablePersoDialog} the TablePersoDialog instance.
+	 * @returns {this} the TablePersoDialog instance.
 	 * @public
 	 */
 	TablePersoDialog.prototype.setShowResetAll = function (bShowResetAll) {

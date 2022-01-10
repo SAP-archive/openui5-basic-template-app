@@ -25,6 +25,7 @@ sap.ui.define([
 	'./TabStripRenderer',
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
+	"sap/ui/events/KeyCodes",
 	// jQuery Plugin "control"
 	"sap/ui/dom/jquery/control",
 	// jQuery Plugin "scrollLeftRTL"
@@ -50,7 +51,8 @@ function(
 	SelectListRenderer,
 	TabStripRenderer,
 	Log,
-	jQuery
+	jQuery,
+	KeyCodes
 ) {
 		"use strict";
 
@@ -71,7 +73,7 @@ function(
 		 * space is exceeded, a horizontal scrollbar appears.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.84.11
+		 * @version 1.96.2
 		 *
 		 * @constructor
 		 * @private
@@ -422,6 +424,13 @@ function(
 			return bScrollNeeded;
 		};
 
+		TabStrip.prototype.onkeyup = function (oEvent){
+			if (oEvent && oEvent.keyCode === KeyCodes.ARROW_LEFT || oEvent.keyCode === KeyCodes.ARROW_RIGHT) {
+				var oTarget = jQuery(oEvent.target).control(0);
+				this._scrollIntoView(oTarget, 500);
+			}
+		};
+
 		TabStrip.prototype._handleOverflowButtons = function() {
 			var oTabsDomRef = this.getDomRef("tabs"),
 				oTabsContainerDomRef = this.getDomRef("tabsContainer"),
@@ -561,10 +570,9 @@ function(
 		 */
 		TabStrip.prototype._scroll = function(iDelta, iDuration) {
 			var iScrollLeft = this.getDomRef("tabsContainer").scrollLeft,
-				bIE_Edge = Device.browser.internet_explorer || Device.browser.edge,// TODO remove after the end of support for Internet Explorer
 				iScrollTarget;
 
-			if (this._bRtl && !bIE_Edge) {// TODO remove after the end of support for Internet Explorer
+			if (this._bRtl) {
 				iScrollTarget = iScrollLeft - iDelta;
 
 				if (Device.browser.firefox) {
@@ -601,38 +609,31 @@ function(
 		TabStrip.prototype._scrollIntoView = function (oItem, iDuration) {
 			var $tabs = this.$("tabs"),
 				$item = oItem.$(),
+				iLeftButtonWidth = this.$("leftOverflowButtons") ? this.$("leftOverflowButtons").width() : 0,
+				iRigtButtonWidth = this.$("rightOverflowButtons") ? this.$("rightOverflowButtons").width() : 0,
 				iTabsPaddingWidth = $tabs.innerWidth() - $tabs.width(),
 				iItemWidth = $item.outerWidth(true),
 				iItemPosLeft = $item.position().left - iTabsPaddingWidth / 2,
 				oTabsContainerDomRef = this.getDomRef("tabsContainer"),
 				iScrollLeft = oTabsContainerDomRef.scrollLeft,
 				iContainerWidth = this.$("tabsContainer").width(),
-				iNewScrollLeft = iScrollLeft,
-				bIE_Edge = Device.browser.internet_explorer || Device.browser.edge;
+				iNewScrollLeft = iScrollLeft;
 
 			// check if item is outside of viewport
-			if (iItemPosLeft < 0 || iItemPosLeft > iContainerWidth - iItemWidth) {
-
+			if (iItemPosLeft < iLeftButtonWidth || iItemPosLeft + iRigtButtonWidth > iContainerWidth - iItemWidth) {
 				if (this._bRtl && Device.browser.firefox) {
-					if (iItemPosLeft < 0) { // right side: make this the last item
-						iNewScrollLeft += iItemPosLeft + iItemWidth - iContainerWidth;
+					if (iItemPosLeft > iLeftButtonWidth) { // right side: make this the last item
+						iNewScrollLeft += iItemPosLeft + iItemWidth - iContainerWidth + iRigtButtonWidth;
 					} else { // left side: make this the first item
-						iNewScrollLeft += iItemPosLeft;
-					}
-				} else if (this._bRtl && bIE_Edge) {
-					if (iItemPosLeft < 0) { // right side: make this the first item
-						iNewScrollLeft -= iItemPosLeft;
-					} else { // left side: make this the last item
-						iNewScrollLeft -= iItemPosLeft + iItemWidth - iContainerWidth;
+						iNewScrollLeft += iItemPosLeft - iLeftButtonWidth;
 					}
 				} else {
-					if (iItemPosLeft < 0) { // left side: make this the first item
-						iNewScrollLeft += iItemPosLeft;
+					if (iItemPosLeft < iLeftButtonWidth) { // left side: make this the first item
+						iNewScrollLeft += iItemPosLeft - iRigtButtonWidth;
 					} else { // right side: make this the last item
-						iNewScrollLeft += iItemPosLeft + iItemWidth - iContainerWidth;
+						iNewScrollLeft += iItemPosLeft + iItemWidth - iContainerWidth + iLeftButtonWidth;
 					}
 				}
-
 				// store current scroll state to set it after re-rendering
 				this._iCurrentScrollLeft = iNewScrollLeft;
 				this._oScroller.scrollTo(iNewScrollLeft, 0, iDuration);
@@ -765,7 +766,7 @@ function(
 		 * @param {string} sAggregationName The name of the aggregation where the new entity is to be added
 		 * @param {any} oObject The value of the aggregation to be added
 		 * @param {boolean} bSuppressInvalidate Whether to suppress invalidation
-		 * @returns {sap.m.TabStrip} <code>this</code> pointer for chaining
+		 * @returns {this} <code>this</code> pointer for chaining
 		 * @override
 		 */
 		TabStrip.prototype.addAggregation = function(sAggregationName, oObject, bSuppressInvalidate) {
@@ -782,7 +783,7 @@ function(
 		 * @param {any} oObject The value of the aggregation to be inserted
 		 * @param {int} iIndex The index to be inserted in
 		 * @param {boolean} bSuppressInvalidate Whether to suppress invalidation
-		 * @returns {sap.m.TabStrip} <code>this</code> pointer for chaining
+		 * @returns {this} <code>this</code> pointer for chaining
 		 * @override
 		 */
 		TabStrip.prototype.insertAggregation = function(sAggregationName, oObject, iIndex, bSuppressInvalidate) {
@@ -798,7 +799,7 @@ function(
 		 * @param {string} sAggregationName The name of the aggregation
 		 * @param {any} oObject The value of aggregation to be removed
 		 * @param {boolean} bSuppressInvalidate Whether to suppress invalidation
-		 * @returns {sap.m.TabStrip} <code>this</code> pointer for chaining
+		 * @returns {sap.ui.base.ManagedObject} The removed aggregated item
 		 * @override
 		 */
 		TabStrip.prototype.removeAggregation = function(sAggregationName, oObject, bSuppressInvalidate) {
@@ -813,7 +814,7 @@ function(
 		 *
 		 * @param {string} sAggregationName The name of aggregation
 		 * @param {boolean} bSuppressInvalidate Whether to suppress invalidation
-		 * @returns {sap.m.TabStrip} <code>this</code> pointer for chaining
+		 * @returns {sap.ui.base.ManagedObject[]} the removed aggregated items
 		 * @override
 		 */
 		TabStrip.prototype.removeAllAggregation = function(sAggregationName, bSuppressInvalidate) {
@@ -828,7 +829,7 @@ function(
 		 *
 		 * @param {string} sAggregationName The name of aggregation
 		 * @param {boolean} bSuppressInvalidate Whether to suppress invalidation
-		 * @returns {sap.m.TabStrip} <code>this</code> pointer for chaining
+		 * @returns {this} <code>this</code> pointer for chaining
 		 * @override
 		 */
 		TabStrip.prototype.destroyAggregation = function(sAggregationName, bSuppressInvalidate) {
@@ -842,7 +843,7 @@ function(
 		 * Sets a <code>TabStripItem</code> as current.
 		 *
 		 * @param {sap.m.TabStripItem} oSelectedItem the item that should be set as current
-		 * @returns {sap.m.TabStrip} <code>this</code> pointer for chaining
+		 * @returns {this} <code>this</code> pointer for chaining
 		 * @override
 		 */
 		TabStrip.prototype.setSelectedItem = function(oSelectedItem) {
@@ -876,7 +877,7 @@ function(
 		 * @param {string} sPropertyName The property name to be set
 		 * @param {any} vValue The property value to be set
 		 * @param {boolean} bSuppressInvalidate Whether to suppress invalidation
-		 * @returns {sap.m.TabStrip} <code>this</code> pointer for chaining
+		 * @returns {this} <code>this</code> pointer for chaining
 		 * @override
 		 */
 		TabStrip.prototype.setProperty = function(sPropertyName, vValue, bSuppressInvalidate) {
@@ -1004,7 +1005,7 @@ function(
 		 *
 		 * @param {array} aArgs
 		 * @param {boolean} bIsAdding
-		 * @returns {sap.m.TabStrip} <code>this</code> instance for chaining
+		 * @returns {this} <code>this</code> instance for chaining
 		 */
 		TabStrip.prototype._handleItemsAggregation = function (aArgs, bIsAdding) {
 			var sAggregationName = 'items', // name of the aggregation in CustomSelect
@@ -1299,7 +1300,7 @@ function(
 		/*
 		 * Destroys all <code>TabStripItem</code> entities from the <code>items</code> aggregation of the <code>TabStrip</code>.
 		 *
-		 * @returns {sap.m.TabStrip} This instance for chaining
+		 * @returns {this} This instance for chaining
 		 * @override
 		 */
 		TabStrip.prototype.destroyItems = function() {

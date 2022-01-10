@@ -17,6 +17,7 @@ sap.ui.define([
 	'sap/ui/base/Object',
 	'sap/ui/base/ManagedObjectObserver',
 	'sap/m/library',
+	'sap/ui/core/library',
 	'sap/m/Button',
 	'sap/m/OverflowToolbarLayoutData',
 	'sap/ui/core/IconPool',
@@ -25,6 +26,7 @@ sap.ui.define([
 	function(BaseObject,
 			 ManagedObjectObserver,
 			 library,
+			 coreLibrary,
 			 Button,
 			 OverflowToolbarLayoutData,
 			 IconPool,
@@ -35,6 +37,9 @@ sap.ui.define([
 	// shortcut for sap.m.OverflowToolbarPriority
 	var OverflowToolbarPriority = library.OverflowToolbarPriority;
 
+	// shortcut for sap.ui.core.aria.HasPopup
+	var AriaHasPopup = coreLibrary.aria.HasPopup;
+
 	/**
 	 * Constructor for an sap.m.semantic.ShareMenu.
 	 *
@@ -43,7 +48,7 @@ sap.ui.define([
 	 * ShareMenu is a special menu that is represented by (1) an actionSheet with the menu items and (2) a button that opens the actionSheet.
 	 * If the menu has only one item, then that item appears in place of the button that opens the actionSheet.
 	 *
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @private
 	 * @since 1.30.0
 	 * @alias sap.m.semantic.ShareMenu
@@ -157,7 +162,7 @@ sap.ui.define([
 	 *
 	 * @param {sap.m.Button} oButton - the new button to be added
 	 * @param {boolean} bSuppressInvalidate - if true, the menu as well as the added child are not marked as changed
-	 * @return {sap.m.semantic.ShareMenu} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 */
 	ShareMenu.prototype.addContent = function (oButton, bSuppressInvalidate) {
 		var sMode = this._getMode();
@@ -185,7 +190,7 @@ sap.ui.define([
 	 * @param {sap.m.Button} oButton - the new button to be inserted
 	 * @param {number} iIndex - the insert index
 	 * @param {boolean} bSuppressInvalidate - if true, the menu as well as the inserted child are not marked as changed
-	 * @return {sap.m.semantic.ShareMenu} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 */
 	ShareMenu.prototype.insertContent = function (oButton, iIndex, bSuppressInvalidate) {
 		var sMode = this._getMode();
@@ -307,7 +312,7 @@ sap.ui.define([
 	 *
 	 * @param {boolean} bSuppressInvalidate - if true, the menu as well as the inserted child are not marked as changed
 	 * @param {sap.m.Button} oButton - the new base button
-	 * @return {sap.m.semantic.ShareMenu} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 */
 	ShareMenu.prototype._setBaseButton = function (oButton, bSuppressInvalidate) {
 		if (this._oBaseButton === oButton) {
@@ -343,7 +348,7 @@ sap.ui.define([
 	 * @param {boolean} bSuppressInvalidate - flag to suppress control invalidation upon change
 	 * @param oBaseButton - when the new mode is ShareMenu._Mode.button, a reference to that button
 	 *
-	 * @return {sap.m.semantic.ShareMenu} Returns <code>this</code> to allow method chaining
+	 * @return {this} Returns <code>this</code> to allow method chaining
 	 */
 	ShareMenu.prototype._setMode = function (sMode, bSuppressInvalidate, oBaseButton) {
 
@@ -401,6 +406,7 @@ sap.ui.define([
 			var that = this;
 
 			this._oShareMenuBtn = new Button(this._oActionSheet.getParent().getId() + "-shareButton", {
+				ariaHasPopup: AriaHasPopup.Menu,
 				icon: IconPool.getIconURI("action"),
 				tooltip: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("SEMANTIC_CONTROL_ACTION_SHARE"),
 				layoutData: new OverflowToolbarLayoutData({
@@ -408,12 +414,6 @@ sap.ui.define([
 				}),
 				press: function () {
 					that._oActionSheet.openBy(that._oShareMenuBtn);
-				}
-			});
-
-			this._oShareMenuBtn.addEventDelegate({
-				onAfterRendering: function() {
-					that._oShareMenuBtn.$().attr("aria-haspopup", "menu");
 				}
 			});
 		}

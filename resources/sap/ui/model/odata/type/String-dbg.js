@@ -84,7 +84,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @alias sap.ui.model.odata.type.String
 	 * @param {object} [oFormatOptions]
@@ -125,6 +125,7 @@ sap.ui.define([
 						= oFormatOptions ? oFormatOptions.parseKeepsEmptyString : undefined;
 
 				ODataType.apply(this, arguments);
+				this.oFormatOptions = oFormatOptions;
 				setConstraints(this, oConstraints);
 
 				this._sParsedEmptyString = null;
@@ -238,6 +239,8 @@ sap.ui.define([
 			if (oConstraints.nullable !== false) {
 				return;
 			}
+		} else if (sValue === "" && this._sParsedEmptyString === "") {
+			return;
 		} else if (typeof sValue !== "string") {
 			throw new ValidateException("Illegal " + this.getName() + " value: " + sValue);
 		} else if (oConstraints.isDigitSequence) {

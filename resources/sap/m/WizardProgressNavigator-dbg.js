@@ -11,6 +11,7 @@ sap.ui.define([
 	"sap/ui/core/delegate/ItemNavigation",
 	"sap/ui/Device",
 	"sap/m/ActionSheet",
+	"sap/ui/core/InvisibleText",
 	"./WizardProgressNavigatorRenderer",
 	"./Button",
 	"sap/ui/thirdparty/jquery"
@@ -22,6 +23,7 @@ function(
 	ItemNavigation,
 	Device,
 	ActionSheet,
+	InvisibleText,
 	WizardProgressNavigatorRenderer,
 	Button,
 	jQuery
@@ -41,7 +43,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @private
@@ -148,7 +150,7 @@ function(
 		this._removeStepAriaDisabledAttribute(iZeroBasedActiveStep);
 
 		this._updateStepCurrentAttribute(iZeroBasedCurrentStep);
-		this._updateStepAriaLabelAttribute(iZeroBasedCurrentStep);
+		this._updateStepAriaCurrentAttribute(iZeroBasedCurrentStep);
 
 		this._updateOpenSteps();
 		ResizeHandler.register(this.getDomRef(), this._updateOpenSteps.bind(this));
@@ -195,6 +197,11 @@ function(
 		this._oStepNavigation.destroy();
 		this._oStepNavigation = null;
 
+		if (this._oActionSheetInvisibleText) {
+			this._oActionSheetInvisibleText.destroy();
+			this._oActionSheetInvisibleText = null;
+		}
+
 		this._oActionSheet.destroy();
 		this._oActionSheet = null;
 
@@ -227,7 +234,7 @@ function(
 
 	/**
 	 * Moves the selection backwards by one step.
-	 * @returns {sap.m.WizardProgressNavigator} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @public
 	 */
 	WizardProgressNavigator.prototype.previousStep = function () {
@@ -242,7 +249,7 @@ function(
 
 	/**
 	 * Moves the selection forwards by one step.
-	 * @returns {sap.m.WizardProgressNavigator} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @public
 	 */
 	WizardProgressNavigator.prototype.nextStep = function () {
@@ -251,7 +258,7 @@ function(
 
 	/**
 	 * Moves the selection forwards to the next step that requires input.
-	 * @returns {sap.m.WizardProgressNavigator} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @public
 	 */
 	WizardProgressNavigator.prototype.incrementProgress = function () {
@@ -432,24 +439,43 @@ function(
 	 * @param {number} iOldIndex The old index at which the attribute was set. Zero-based.
 	 * @private
 	 */
-	WizardProgressNavigator.prototype._updateStepAriaLabelAttribute = function (iNewIndex, iOldIndex) {
+	WizardProgressNavigator.prototype._updateStepAriaCurrentAttribute = function (iNewIndex, iOldIndex) {
+		var oStepNew = this._aCachedSteps[iNewIndex];
+
 		if (iOldIndex !== undefined && this._aCachedSteps[iOldIndex]) {
 			this._aCachedSteps[iOldIndex]
 				.removeAttribute(WizardProgressNavigatorRenderer.ATTRIBUTES.ARIA_CURRENT);
 		}
 
-		if (this._aCachedSteps[iNewIndex]) {
-			this._aCachedSteps[iNewIndex]
+		if (oStepNew) {
+			oStepNew
 				.setAttribute(
-					WizardProgressNavigatorRenderer.ATTRIBUTES.ARIA_CURRENT, "step");
+					WizardProgressNavigatorRenderer.ATTRIBUTES.ARIA_CURRENT, true);
 		}
+	};
 
+	/**
+	 * Updates the step aria-label attribute in the DOM structure of the Control.
+	 * @param {number} iIndex The index at which the attribute should be set. Zero-based.
+	 * @private
+	 */
+	 WizardProgressNavigator.prototype._updateStepAriaLabelAttribute = function (iIndex) {
+		var oStep = this._aCachedSteps[iIndex];
+		var sStepActive = this._isActiveStep(iIndex) ? "ACTIVE" : "INACTIVE";
+		var sStepOptional = this._aStepOptionalIndication[iIndex] ? this._oResourceBundle.getText("WIZARD_STEP_OPTIONAL_STEP_TEXT") : "";
+		var sValueText = this._oResourceBundle.getText("WIZARD_STEP_" + sStepActive + "_LABEL", [iIndex + 1, this.getStepTitles()[iIndex], sStepOptional]);
+
+		if (oStep) {
+			oStep
+				.setAttribute(
+					WizardProgressNavigatorRenderer.ATTRIBUTES.ARIA_LABEL, sValueText);
+		}
 	};
 
 	/**
 	 * Move to the specified step while updating the current step and active step.
 	 * @param {number} iNewStep The step number to which current step will be set. Non zero-based.
-	 * @returns {sap.m.WizardProgressNavigator} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @private
 	 */
 	WizardProgressNavigator.prototype._moveToStep = function (iNewStep) {
@@ -481,13 +507,14 @@ function(
 		this._updateStepNavigation(iZeroBasedNewStep);
 		this._removeStepAriaDisabledAttribute(iZeroBasedNewStep);
 		this._updateStepActiveAttribute(iZeroBasedNewStep, iZeroBasedOldStep);
+		this._updateStepAriaLabelAttribute(iZeroBasedNewStep);
 	};
 
 	/**
 	 * Updates the current step in the control instance as well as the DOM structure.
 	 * @param {number} iNewStep The step number to which current step will be set. Non zero-based.
 	 * @param {number} iOldStep The step number to which current step was set. Non zero-based.
-	 * @returns {sap.m.WizardProgressNavigator} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @private
 	 */
 	WizardProgressNavigator.prototype._updateCurrentStep = function (iNewStep, iOldStep) {
@@ -498,7 +525,7 @@ function(
 		this._updateStepZIndex();
 		this._updateOpenSteps();
 		this._updateStepCurrentAttribute(iZeroBasedNewStep, iZeroBasedOldStep);
-		this._updateStepAriaLabelAttribute(iZeroBasedNewStep, iZeroBasedOldStep);
+		this._updateStepAriaCurrentAttribute(iZeroBasedNewStep, iZeroBasedOldStep);
 
 		return this;
 	};
@@ -617,12 +644,19 @@ function(
 	WizardProgressNavigator.prototype._showActionSheet = function (oDomTarget, bAtStart) {
 		var iFromStep = bAtStart ? 0 : this._getStepNumber(oDomTarget) - 1;
 		var iToStep = bAtStart ? this._getStepNumber(oDomTarget) : this._aCachedSteps.length;
-		var sIcon, sTitle;
+		var sIcon, sStepNumber, sStepTextContent, sTitle, oStepTitleSpan, oActionSheetParent, sActionSheetAriaLabelId;
+
+		this._oActionSheetInvisibleText = new InvisibleText({
+			text: this._oResourceBundle.getText("WIZARD_STEPS")
+		}).toStatic();
 
 		this._oActionSheet.removeAllButtons();
 		for (var i = iFromStep; i < iToStep; i++) {
 			sIcon = this.getStepIcons()[i];
-			sTitle = this._aCachedSteps[i].getAttribute("aria-roledescription");
+			sStepNumber = (i + 1) + ".";
+			oStepTitleSpan = this._aCachedSteps[i].querySelector(".sapMWizardProgressNavStepTitle");
+			sStepTextContent = oStepTitleSpan && oStepTitleSpan.textContent;
+			sTitle = sStepNumber + " " + sStepTextContent;
 
 			this._oActionSheet.addButton(new Button({
 				width: "200px",
@@ -635,8 +669,14 @@ function(
 				}.bind(this, i + 1)
 			}));
 		}
-
 		this._oActionSheet.openBy(oDomTarget);
+
+		sActionSheetAriaLabelId = this._oActionSheetInvisibleText.getId();
+		oActionSheetParent = this._oActionSheet.getParent();
+
+		if (oActionSheetParent && oActionSheetParent.getAriaLabelledBy().indexOf(sActionSheetAriaLabelId) === -1) {
+			oActionSheetParent.addAriaLabelledBy(sActionSheetAriaLabelId);
+		}
 	};
 
 	/**

@@ -11,9 +11,8 @@ sap.ui.define([
 	"sap/base/util/isEmptyObject",
 	"sap/base/util/merge",
 	"sap/base/util/uid",
-	"sap/ui/base/SyncPromise",
 	"sap/ui/thirdparty/URI"
-], function (Log, deepEqual, isEmptyObject, merge, uid, SyncPromise, URI) {
+], function (Log, deepEqual, isEmptyObject, merge, uid, URI) {
 	"use strict";
 
 	var rAmpersand = /&/g,
@@ -23,11 +22,16 @@ sap.ui.define([
 		rEscapedOpenBracket = /%28/g,
 		rEscapedTick = /%27/g,
 		rHash = /#/g,
-		_Helper,
 		// matches the rest of a segment after '(' and any segment that consists only of a number
 		rNotMetaContext = /\([^/]*|\/-?\d+/g,
 		rPlus = /\+/g,
-		rSingleQuote = /'/g;
+		rSingleQuote = /'/g,
+		rSingleQuoteTwice = /''/g,
+		rWhitespace = /\s+/g,
+		/**
+		 * @alias sap.ui.model.odata.v4.lib._Helper
+		 */
+		_Helper;
 
 	_Helper = {
 		/**
@@ -100,6 +104,71 @@ sap.ui.define([
 		},
 
 		/**
+		 * Adjusts the target and all additional targets of the given message according to the
+		 * operation metadata.
+		 *
+		 * @param {object} oMessage
+		 *   The message whose targets should be adjusted
+		 * @param {object} oOperationMetadata
+		 *   The operation metadata to determine whether a given message target is a parameter
+		 *   of the operation
+		 * @param {string} sParameterContextPath
+		 *   The parameter context path
+		 * @param {string} [sContextPath]
+		 *   The context path for a bound operation
+		 */
+		adjustTargets : function (oMessage, oOperationMetadata, sParameterContextPath,
+				sContextPath) {
+			var sAdditionalTargetsKey = _Helper.getAnnotationKey(oMessage, ".additionalTargets"),
+				aTargets;
+
+			aTargets = [oMessage.target].concat(oMessage[sAdditionalTargetsKey])
+				.map(function (sTarget) {
+					return sTarget && _Helper.getAdjustedTarget(sTarget, oOperationMetadata,
+						sParameterContextPath, sContextPath);
+				}).filter(function (sTarget) {
+					return sTarget;
+				});
+
+			// Note: If oMessage.target is unknown, we use the first valid additional target!
+			oMessage.target = aTargets[0];
+			if (sAdditionalTargetsKey) {
+				oMessage[sAdditionalTargetsKey] = aTargets.slice(1);
+			}
+		},
+
+		/**
+		 * Adjusts all targets and additional targets of the given error instance according to the
+		 * operation metadata.
+		 *
+		 * @param {Error} oError
+		 *   The error instance containing the error messages to adjust
+		 * @param {object} oOperationMetadata
+		 *   The operation metadata to determine whether a given message target is a parameter
+		 *   of the operation
+		 * @param {string} sParameterContextPath
+		 *   The parameter context path
+		 * @param {string} [sContextPath]
+		 *   The context path for a bound operation
+		 */
+		adjustTargetsInError : function (oError, oOperationMetadata, sParameterContextPath,
+				sContextPath) {
+			if (!oError.error) {
+				return;
+			}
+
+			_Helper.adjustTargets(oError.error, oOperationMetadata, sParameterContextPath,
+				sContextPath);
+
+			if (oError.error.details) {
+				oError.error.details.forEach(function (oMessage) {
+					_Helper.adjustTargets(oMessage, oOperationMetadata, sParameterContextPath,
+						sContextPath);
+				});
+			}
+		},
+
+		/**
 		 * Recursively merges $select and $expand from mQueryOptions into mAggregatedQueryOptions.
 		 * All other query options in mAggregatedQueryOptions remain untouched.
 		 *
@@ -107,7 +176,7 @@ sap.ui.define([
 		 * @param {object} mQueryOptions The query options to merge into the aggregated query
 		 *   options
 		 */
-		aggregateQueryOptions : function (mAggregatedQueryOptions, mQueryOptions) {
+		aggregateExpandSelect : function (mAggregatedQueryOptions, mQueryOptions) {
 			if (mQueryOptions.$select) {
 				_Helper.addToSelect(mAggregatedQueryOptions, mQueryOptions.$select);
 			}
@@ -115,7 +184,7 @@ sap.ui.define([
 				mAggregatedQueryOptions.$expand = mAggregatedQueryOptions.$expand || {};
 				Object.keys(mQueryOptions.$expand).forEach(function (sPath) {
 					if (mAggregatedQueryOptions.$expand[sPath]) {
-						_Helper.aggregateQueryOptions(mAggregatedQueryOptions.$expand[sPath],
+						_Helper.aggregateExpandSelect(mAggregatedQueryOptions.$expand[sPath],
 							mQueryOptions.$expand[sPath]);
 					} else {
 						mAggregatedQueryOptions.$expand[sPath] = mQueryOptions.$expand[sPath];
@@ -145,9 +214,9 @@ sap.ui.define([
 		 * @returns {string} a composite path built from all arguments
 		 */
 		buildPath : function () {
-			var i,
-				sPath = "",
-				sSegment;
+			var sPath = "",
+				sSegment,
+				i;
 
 			for (i = 0; i < arguments.length; i += 1) {
 				sSegment = arguments[i];
@@ -244,20 +313,25 @@ sap.ui.define([
 		 *   The message for the <code>Error</code> instance; code and status text of the HTTP error
 		 *   are appended
 		 * @param {string} [sRequestUrl]
-		 *   The request URL
+		 *   The request URL, must be an absolute path starting with the service URL
 		 * @param {string} [sResourcePath]
 		 *   The path by which this resource has originally been requested
 		 * @returns {Error}
 		 *   An <code>Error</code> instance with the following properties:
 		 *   <ul>
-		 *     <li> <code>error</code>: The "error" value from the OData V4 error response JSON
-		 *       object (if available)
-		 *     <li> <code>isConcurrentModification</code>: <code>true</code> In case of a
+		 *     <li> <code>error</code>: (optional) The "error" value from the OData V4 error
+		 *       response JSON object (if available)
+		 *     <li> <code>isConcurrentModification</code>: (optional) <code>true</code> In case of a
 		 *       concurrent modification detected via ETags (i.e. HTTP status code 412)
+		 *     <li> <code>strictHandlingFailed</code>: (optional) <code>true</code> In case of HTTP
+		 *       status code 412 and response header "Preference-Applied:handling=strict"
 		 *     <li> <code>message</code>: Error message
-		 *     <li> <code>requestUrl</code>: The request URL
-		 *     <li> <code>resourcePath</code>: The path by which this resource has originally been
-		 *       requested
+		 *     <li> <code>requestUrl</code>: (optional) The absolute request URL
+		 *     <li> <code>resourcePath</code>: (optional) The path by which this resource has
+		 *       originally been requested
+		 *     <li> <code>retryAfter</code>: (optional) The absolute <code>Date</code> value
+		 *       corresponding to the value of the "Retry-After" HTTP response header, no matter if
+		 *       that header value was an HTTP date or a delay in seconds.
 		 *     <li> <code>status</code>: HTTP status code
 		 *     <li> <code>statusText</code>: (optional) HTTP status text
 		 *   </ul>
@@ -268,7 +342,10 @@ sap.ui.define([
 		createError : function (jqXHR, sMessage, sRequestUrl, sResourcePath) {
 			var sBody = jqXHR.responseText,
 				sContentType = jqXHR.getResponseHeader("Content-Type"),
-				oResult = new Error(sMessage + ": " + jqXHR.status + " " + jqXHR.statusText);
+				sPreference,
+				oResult = new Error(sMessage + ": " + jqXHR.status + " " + jqXHR.statusText),
+				sRetryAfter = jqXHR.getResponseHeader("Retry-After"),
+				iRetryAfter;
 
 			oResult.status = jqXHR.status;
 			oResult.statusText = jqXHR.statusText;
@@ -282,7 +359,19 @@ sap.ui.define([
 				sContentType = sContentType.split(";")[0];
 			}
 			if (jqXHR.status === 412) {
-				oResult.isConcurrentModification = true;
+				sPreference = jqXHR.getResponseHeader("Preference-Applied");
+
+				if (sPreference && sPreference.replace(rWhitespace, '') === "handling=strict") {
+					oResult.strictHandlingFailed = true;
+				} else {
+					oResult.isConcurrentModification = true;
+				}
+			}
+			if (sRetryAfter) {
+				iRetryAfter = parseInt(sRetryAfter);
+				oResult.retryAfter = new Date(Number.isNaN(iRetryAfter)
+					? sRetryAfter
+					: Date.now() + iRetryAfter * 1000);
 			}
 			if (sContentType === "application/json") {
 				try {
@@ -310,7 +399,7 @@ sap.ui.define([
 		 *
 		 * @param {string} sFetch
 		 *   A "fetch*" method's name
-		 * @param {boolean} [bThrow=false]
+		 * @param {boolean} [bThrow]
 		 *   Whether the "get*" method throws if the promise is not (yet) fulfilled instead of just
 		 *   returning <code>undefined</code> (Note:
 		 *   {@link sap.ui.model.odata.v4.ODataMetaModel#getObject} intentionally never throws
@@ -337,6 +426,28 @@ sap.ui.define([
 		},
 
 		/**
+		 * Drills down into the given object according to the given path, creating missing objects
+		 * along the way, and setting a <code>null<code> value at the end in case the final
+		 * property is missing.
+		 *
+		 * @param {object} oObject
+		 *   The object to start at
+		 * @param {string[]} aSegments
+		 *   Relative path to drill-down into, as array of segments
+		 * @throws {Error}
+		 *   If a property along the way exists, but has an <code>undefined</code> or
+		 *   <code>null</code> value
+		 */
+		createMissing : function (oObject, aSegments) {
+			aSegments.reduce(function (oCurrent, sSegment, i) {
+				if (!(sSegment in oCurrent)) { // Note: TypeError if !oCurrent
+					oCurrent[sSegment] = i + 1 < aSegments.length ? {} : null;
+				}
+				return oCurrent[sSegment];
+			}, oObject);
+		},
+
+		/**
 		 * Returns a "request*" method corresponding to the given "fetch*" method.
 		 *
 		 * @param {string} sFetch
@@ -354,6 +465,7 @@ sap.ui.define([
 		/**
 		 * Creates a technical details object that contains a property <code>originalMessage</code>
 		 * and an optional property <code>httpStatus</code> with the original error's HTTP status.
+		 * <code>isConcurrentModification</code> and <code>retryAfter</code> are copied as well.
 		 *
 		 * @param {object} oMessage
 		 *   The message for which to get technical details
@@ -376,9 +488,12 @@ sap.ui.define([
 				if (oError.isConcurrentModification) {
 					oTechnicalDetails.isConcurrentModification = true;
 				}
+				if (oError.retryAfter) {
+					oTechnicalDetails.retryAfter = oError.retryAfter;
+				}
 			}
 			// We don't need the original message for internal errors (errors NOT returned from the
-			// back-end, but raised within our framework)
+			// back end, but raised within our framework)
 			if (!(oOriginalMessage instanceof Error)) {
 				Object.defineProperty(oTechnicalDetails, "originalMessage", {
 					enumerable : true,
@@ -408,11 +523,13 @@ sap.ui.define([
 		 *   assigned to the corresponding request.
 		 * @param {object[]} aRequests
 		 *   Requests belonging to a single change set
+		 * @param {string} sServiceUrl
+		 *   URL of the service document used to resolve relative request URLs
 		 * @returns {Error[]}
 		 *   One error for each request given, suitable for
 		 *   {@link sap.ui.model.odata.v4.ODataModel#reportError}
 		 */
-		decomposeError : function (oError, aRequests) {
+		decomposeError : function (oError, aRequests, sServiceUrl) {
 			var aDetailContentIDs = oError.error.details
 					&& oError.error.details.map(function (oDetail) {
 						return _Helper.getContentID(oDetail);
@@ -444,7 +561,7 @@ sap.ui.define([
 				}
 
 				oClone.error = _Helper.clone(oError.error);
-				oClone.requestUrl = oRequest.url;
+				oClone.requestUrl = sServiceUrl + oRequest.url;
 				oClone.resourcePath = oRequest.$resourcePath;
 				oClone.status = oError.status;
 				oClone.statusText = oError.statusText;
@@ -485,20 +602,20 @@ sap.ui.define([
 		},
 
 		/**
-		 * Drills down into the given object according to <code>aPath</code>.
+		 * Drills down into the given object according to the given path.
 		 *
-		 * @param {object} oData
+		 * @param {object} oObject
 		 *   The object to start at
-		 * @param {string[]} aPath
+		 * @param {string[]} aSegments
 		 *   Relative path to drill-down into, as array of segments
 		 * @returns {*}
-		 *   The result matching to <code>aPath</code> or <code>undefined</code> if the path leads
+		 *   The result matching to the given path, or <code>undefined</code> if the path leads
 		 *   into void
 		 */
-		drillDown : function (oData, aPath) {
-			return aPath.reduce(function (oData, sSegment) {
-				return (oData && sSegment in oData) ? oData[sSegment] : undefined;
-			}, oData);
+		drillDown : function (oObject, aSegments) {
+			return aSegments.reduce(function (oCurrent, sSegment) {
+				return (oCurrent && sSegment in oCurrent) ? oCurrent[sSegment] : undefined;
+			}, oObject);
 		},
 
 		/**
@@ -534,6 +651,92 @@ sap.ui.define([
 		 */
 		encodePair : function (sKey, sValue) {
 			return _Helper.encode(sKey, true) + "=" + _Helper.encode(sValue, false);
+		},
+
+		/**
+		 * Extracts all (top and detail) messages from the given error instance.
+		 *
+		 * @param {Error} oError
+		 *   An error instance as created by {@link .createError} or {@link .decomposeError}
+		 * @param {object} [oError.error]
+		 *   An error response as sent from the OData server
+		 * @param {object[]} [oError.error.details]
+		 *   A list of detail messages sent from the OData server. These messages are reported, too.
+		 * @param {boolean} [oError.error.$ignoreTopLevel]
+		 *   Whether <code>oError.error</code> itself is not reported, but only the
+		 *   <code>oError.error.details</code>
+		 * @param {string} [oError.requestUrl]
+		 *   The absolute request URL of the failed OData request; required to resolve a long text
+		 *   URL
+		 * @returns {object[]}
+		 *   An array of raw message objects suitable for
+		 *   {@link sap.ui.model.odata.v4.ODataModel#createUI5Message}
+		 *
+		 * @private
+		 */
+		extractMessages : function (oError) {
+			var aMessages = [];
+
+			/*
+			 * Creates a raw message object taking all relevant properties, converts the annotations
+			 * for numeric severity and longtext to the corresponding properties and adds it to one
+			 * of the arrays to be reported later.
+			 * @param {object} oMessage The message
+			 * @param {number} [iNumericSeverity] The numeric severity
+			 * @param {boolean} [bTechnical] Whether the message is reported as technical
+			 */
+			function addMessage(oMessage, iNumericSeverity, bTechnical) {
+				var oRawMessage = {
+						additionalTargets : _Helper.getAdditionalTargets(oMessage),
+						code : oMessage.code,
+						message : oMessage.message,
+						numericSeverity : iNumericSeverity,
+						technical : bTechnical || oMessage.technical,
+						// use "@$ui5." prefix to overcome name collisions with instance annotations
+						// returned from back end.
+						"@$ui5.error" : oError,
+						"@$ui5.originalMessage" : oMessage
+					};
+
+				Object.keys(oMessage).forEach(function (sProperty) {
+					if (sProperty[0] === '@') {
+						// cannot use .getAnnotation() for compatibility reasons
+						if (sProperty.endsWith(".numericSeverity")) {
+							oRawMessage.numericSeverity = oMessage[sProperty];
+						} else if (sProperty.endsWith(".longtextUrl") && oError.requestUrl
+								&& oMessage[sProperty]) {
+							oRawMessage.longtextUrl
+								= _Helper.makeAbsolute(oMessage[sProperty], oError.requestUrl);
+						}
+					}
+				});
+
+				if (typeof oMessage.target === "string") {
+					if (oMessage.target[0] === "$" || !oError.resourcePath) {
+						// target for the bound message is a system query option or cannot be
+						// resolved -> report as unbound message
+						oRawMessage.message = oMessage.target + ": " + oMessage.message;
+					} else {
+						oRawMessage.target = oMessage.target;
+					}
+				}
+				oRawMessage.transition = true;
+				aMessages.push(oRawMessage);
+			}
+
+			if (oError.error) {
+				if (!oError.error.$ignoreTopLevel) {
+					addMessage(oError.error, 4 /*Error*/, true);
+				}
+				if (oError.error.details) {
+					oError.error.details.forEach(function (oMessage) {
+						addMessage(oMessage);
+					});
+				}
+			} else {
+				addMessage(oError, 4 /*Error*/, true);
+			}
+			return aMessages;
 		},
 
 		/**
@@ -580,6 +783,27 @@ sap.ui.define([
 					});
 				}
 				return oProperty;
+			});
+		},
+
+		/**
+		 * Filters out every path in <code>aPathsToFilter</code> if any meta path in
+		 * <code>aMetaPaths</code> is a prefix of its meta path.
+		 *
+		 * @param {string[]} aMetaPaths
+		 *   A list of absolute meta paths
+		 * @param {string[]} aPathsToFilter
+		 *   A list of absolute paths
+		 * @returns {string[]}
+		 *   The filtered list
+		 */
+		filterPaths : function (aMetaPaths, aPathsToFilter) {
+			return aPathsToFilter.filter(function (sPathToFilter) {
+				var sMetaPathToFilter = _Helper.getMetaPath(sPathToFilter);
+
+				return aMetaPaths.every(function (sMetaPath) {
+					return !_Helper.hasPathPrefix(sMetaPathToFilter, sMetaPath);
+				});
 			});
 		},
 
@@ -650,35 +874,160 @@ sap.ui.define([
 			}
 
 			switch (sType) {
-			case "Edm.Binary":
-				return "binary'" + vValue + "'";
+				case "Edm.Binary":
+					return "binary'" + vValue + "'";
 
-			case "Edm.Boolean":
-			case "Edm.Byte":
-			case "Edm.Double":
-			case "Edm.Int16":
-			case "Edm.Int32":
-			case "Edm.SByte":
-			case "Edm.Single":
-				return String(vValue);
+				case "Edm.Boolean":
+				case "Edm.Byte":
+				case "Edm.Double":
+				case "Edm.Int16":
+				case "Edm.Int32":
+				case "Edm.SByte":
+				case "Edm.Single":
+					return String(vValue);
 
-			case "Edm.Date":
-			case "Edm.DateTimeOffset":
-			case "Edm.Decimal":
-			case "Edm.Guid":
-			case "Edm.Int64":
-			case "Edm.TimeOfDay":
-				return vValue;
+				case "Edm.Date":
+				case "Edm.DateTimeOffset":
+				case "Edm.Decimal":
+				case "Edm.Guid":
+				case "Edm.Int64":
+				case "Edm.TimeOfDay":
+					return vValue;
 
-			case "Edm.Duration":
-				return "duration'" + vValue + "'";
+				case "Edm.Duration":
+					return "duration'" + vValue + "'";
 
-			case "Edm.String":
-				return "'" + vValue.replace(rSingleQuote, "''") + "'";
+				case "Edm.String":
+					return "'" + vValue.replace(rSingleQuote, "''") + "'";
 
-			default:
-				throw new Error("Unsupported type: " + sType);
+				default:
+					throw new Error("Unsupported type: " + sType);
 			}
+		},
+
+		/**
+		 * Returns the "@Org.OData.Core.V1.additionalTargets" annotation for the given message,
+		 * ignoring the alias. Logs a warning if duplicates are found.
+		 *
+		 * @param {object} oMessage
+		 *   A single message from an OData error response
+		 * @returns {string[]|undefined}
+		 *   The value of the additionalTargets annotation, or <code>undefined</code> in case there
+		 *   is not exactly one such annotation (ignoring the alias)
+		 */
+		getAdditionalTargets : function (oMessage) {
+			return _Helper.getAnnotation(oMessage, ".additionalTargets");
+		},
+
+		/**
+		 * Returns the adjusted target according to the given operation metadata.
+		 *
+		 * For a bound operation:
+		 * In case the original target is '_it/Property' with '_it' as the name of the
+		 * binding parameter, the result is '/Set(key)/Property' where '/Set(key)' is
+		 * the current context the operation is called on.
+		 * In case the target points to a certain parameter like 'Param' the result is
+		 * '/Set(key)/name.space.Operation(...)/$Parameter/Param' with
+		 * 'name.space.Operation' as the fully-qualified operation name.
+		 *
+		 * For an unbound operation:
+		 * In case the target points to a certain parameter like 'Param' the result is
+		 * '/OperationImport/$Parameter/Param' with 'OperationImport' as the name of the
+		 * operation import.
+		 *
+		 * All other targets are deleted because they can not be associated to operation
+		 * parameters or the binding parameter and the message is reported as unbound.
+		 *
+		 * @param {string} sTarget
+		 *   The message target
+		 * @param {object} oOperationMetadata
+		 *   The operation metadata to determine whether a given message target is a parameter
+		 *   of the operation
+		 * @param {string} sParameterContextPath
+		 *   The parameter context path
+		 * @param {string} [sContextPath]
+		 *   The context path for a bound operation
+		 * @returns {string|undefined} The adjusted target, or <code>undefined</code> if the target
+		 *   is unknown
+		 */
+		getAdjustedTarget : function (sTarget, oOperationMetadata, sParameterContextPath,
+					sContextPath) {
+			var bIsParameterName,
+				sParameterName,
+				aSegments;
+
+			aSegments = sTarget.split("/");
+			sParameterName = aSegments.shift();
+			if (sParameterName === "$Parameter") {
+				sTarget = aSegments.join("/");
+				sParameterName = aSegments.shift();
+			}
+			if (oOperationMetadata.$IsBound
+					&& sParameterName === oOperationMetadata.$Parameter[0].$Name) {
+				sTarget = _Helper.buildPath(sContextPath, aSegments.join("/"));
+				return sTarget;
+			}
+			bIsParameterName = oOperationMetadata.$Parameter.some(function (oParameter) {
+				return sParameterName === oParameter.$Name;
+			});
+			if (bIsParameterName) {
+				sTarget = sParameterContextPath + "/" + sTarget;
+				return sTarget;
+			}
+		},
+
+		/**
+		 * Returns the instance annotation with a given name for the given message, ignoring the
+		 * alias. Logs a warning if duplicates are found.
+		 *
+		 * @param {object} oMessage
+		 *   A single message from an OData error response
+		 * @param {object} sName
+		 *   The name of the annotation without prefix "@" and namespace, e.g. ".ContentID" for a
+		 *   annotation "@Org.OData.Core.V1.ContentID"
+		 * @returns {any|undefined}
+		 *   The value of the annotation, or <code>undefined</code> in case there is not exactly one
+		 *   such annotation (ignoring the alias)
+		 */
+		getAnnotation : function (oMessage, sName) {
+			var sAnnotationKey = _Helper.getAnnotationKey(oMessage, sName);
+
+			return sAnnotationKey && oMessage[sAnnotationKey];
+		},
+
+		/**
+		 * Returns the instance annotation key with a given name for the given object, ignoring the
+		 * alias. Logs a warning if duplicates are found.
+		 *
+		 * @param {object} oObject
+		 *   Any object
+		 * @param {string} sName
+		 *   The name of the annotation w/o prefix "@" and namespace, e.g. ".ContentID" for a
+		 *   annotation "@Org.OData.Core.V1.ContentID"
+		 * @param {string} [sProperty]
+		 *   The name of the annotated property, e.g. "Budget" in "Budget@Core.Permissions" for a
+		 *   property "Budget" annotated with "@Core.Permissions"
+		 * @returns {string|undefined}
+		 *   The key of the annotation, or <code>undefined</code> in case there is not exactly one
+		 *   such annotation (ignoring the alias)
+		 */
+		getAnnotationKey : function (oObject, sName, sProperty) {
+			var sAnnotationKey,
+				bDuplicate,
+				sPrefix = (sProperty || "") + "@";
+
+			Object.keys(oObject).forEach(function (sKey) {
+				if (sKey.startsWith(sPrefix) && sKey.endsWith(sName)) {
+					if (sAnnotationKey) {
+						Log.warning("Cannot distinguish " + sAnnotationKey + " from " + sKey,
+							undefined, sClassName);
+						bDuplicate = true;
+					}
+					sAnnotationKey = sKey;
+				}
+			});
+
+			return bDuplicate ? undefined : sAnnotationKey;
 		},
 
 		/**
@@ -692,21 +1041,7 @@ sap.ui.define([
 		 *   exactly one such annotation (ignoring the alias)
 		 */
 		getContentID : function (oMessage) {
-			var sContentID, sContentIDKey, bDuplicate;
-
-			Object.keys(oMessage).forEach(function (sKey) {
-				if (sKey[0] === "@" && sKey.endsWith(".ContentID")) {
-					if (sContentID) {
-						Log.warning("Cannot distinguish " + sContentIDKey + " from " + sKey,
-							undefined, sClassName);
-						bDuplicate = true;
-					}
-					sContentID = oMessage[sKey];
-					sContentIDKey = sKey;
-				}
-			});
-
-			return bDuplicate ? undefined : sContentID;
+			return _Helper.getAnnotation(oMessage, ".ContentID");
 		},
 
 		/**
@@ -776,7 +1111,7 @@ sap.ui.define([
 			if (!mKey2Value) {
 				return undefined;
 			}
-			aKeyProperties = Object.keys(mKey2Value).map(function (sAlias, iIndex, aKeys) {
+			aKeyProperties = Object.keys(mKey2Value).map(function (sAlias, _iIndex, aKeys) {
 				var vValue = encodeURIComponent(mKey2Value[sAlias]);
 
 				return bKeepSingleProperty || aKeys.length > 1
@@ -801,7 +1136,7 @@ sap.ui.define([
 		 *   A list of key properties, either as a string or an object with one property (its name
 		 *   is the alias in the key predicate, its value is the path in the instance); if not
 		 *   given, the entity's key is used
-		 * @param {boolean} [bReturnAlias=false]
+		 * @param {boolean} [bReturnAlias]
 		 *   Whether to return the aliases instead of the keys
 		 * @returns {object}
 		 *   The key properties map. For the metadata
@@ -822,7 +1157,7 @@ sap.ui.define([
 
 			aKeyProperties = aKeyProperties || mTypeForMetaPath[sMetaPath].$Key;
 			bFailed = aKeyProperties.some(function (vKey) {
-				var sKey, sKeyPath, aPath, sPropertyName, oType, vValue;
+				var sKey, sKeyPath, sPropertyName, aSegments, oType, vValue;
 
 				if (typeof vKey === "string") {
 					sKey = sKeyPath = vKey;
@@ -833,17 +1168,17 @@ sap.ui.define([
 						sKey = sKeyPath;
 					}
 				}
-				aPath = sKeyPath.split("/");
+				aSegments = sKeyPath.split("/");
 
-				vValue = _Helper.drillDown(oInstance, aPath);
+				vValue = _Helper.drillDown(oInstance, aSegments);
 				if (vValue === undefined) {
 					return true;
 				}
 
 				// the last path segment is the name of the simple property
-				sPropertyName = aPath.pop();
+				sPropertyName = aSegments.pop();
 				// find the type containing the simple property
-				oType = mTypeForMetaPath[_Helper.buildPath(sMetaPath, aPath.join("/"))];
+				oType = mTypeForMetaPath[_Helper.buildPath(sMetaPath, aSegments.join("/"))];
 				vValue = _Helper.formatLiteral(vValue, oType[sPropertyName].$Type);
 				mKey2Value[sKey] = vValue;
 			});
@@ -924,8 +1259,9 @@ sap.ui.define([
 		},
 
 		/**
-		 * Returns the relative path for a given (absolute) path by stripping off the base path.
-		 * Note that the resulting path may start with a key predicate.
+		 * Returns the path suffix of <code>sPath</code> which is relative to
+		 * <code>sBasePath</code>. Either both paths have to be absolute or none of them. Note that
+		 * the resulting path may start with a key predicate.
 		 *
 		 * Examples: (The base path is "/foo/bar"):
 		 * "/foo/bar/baz" -> "baz"
@@ -937,24 +1273,27 @@ sap.ui.define([
 		 * @param {string} sPath
 		 *   A path
 		 * @param {string} sBasePath
-		 *   The (absolute) base path to strip off
+		 *   The base path to strip off
 		 * @returns {string}
-		 *   The path relative to the base path or <code>undefined</code> if the path does not start
-		 *   with the base path
+		 *   The path suffix of <code>sPath</code> which is relative to <code>sBasePath</code>, or
+		 *   <code>undefined</code> if there is no such suffix, or <code>sPath</code> if
+		 *   <code>sBasePath</code> is empty.
 		 *
 		 * @see .hasPathPrefix
 		 */
 		getRelativePath : function (sPath, sBasePath) {
-			if (!sPath.startsWith(sBasePath)) {
-				return undefined;
-			}
-			sPath = sPath.slice(sBasePath.length);
-			if (sPath) {
-				if (sPath[0] === "/") {
-					return sPath.slice(1);
-				}
-				if (sPath[0] !== "(") {
+			if (sBasePath.length) {
+				if (!sPath.startsWith(sBasePath)) {
 					return undefined;
+				}
+				sPath = sPath.slice(sBasePath.length);
+				if (sPath) {
+					if (sPath[0] === "/") {
+						return sPath.slice(1);
+					}
+					if (sPath[0] !== "(") {
+						return undefined;
+					}
 				}
 			}
 			return sPath;
@@ -1014,6 +1353,42 @@ sap.ui.define([
 					}
 				});
 			}
+		},
+
+		/**
+		 * Inherits a property value according to the given path from the given source object to the
+		 * given target. That is, the value is copied unless the target already has a value. Creates
+		 * missing objects along the way.
+		 *
+		 * Like the following, but for paths ;-)
+		 * if (!(sProperty in oTarget)) {
+		 *     oTarget[sProperty] = oSource[sProperty];
+		 * }
+		 *
+		 * @param {string[]} aSegments
+		 *   Relative path to drill-down into, as array of segments
+		 * @param {object} oSource
+		 *   The source object to inherit from
+		 * @param {object} oTarget
+		 *   The target object to inherit into
+		 * @throws {Error}
+		 *   If a property along the way exists, but has an <code>undefined</code> or
+		 *   <code>null</code> value
+		 */
+		inheritPathValue : function (aSegments, oSource, oTarget) {
+			aSegments.forEach(function (sSegment, i) {
+				var bMissing = !(sSegment in oTarget); // Note: TypeError if !oTarget
+
+				if (i + 1 < aSegments.length) { // intermediate step
+					if (bMissing) {
+						oTarget[sSegment] = {};
+					}
+					oSource = oSource[sSegment];
+					oTarget = oTarget[sSegment];
+				} else if (bMissing) {
+					oTarget[sSegment] = oSource[sSegment];
+				}
+			});
 		},
 
 		/**
@@ -1079,6 +1454,7 @@ sap.ui.define([
 
 				return aSegments.every(function (sSegment, i) {
 					return i === 0 && bSkipFirstSegment
+						|| sSegment === "$count"
 						|| fnFetchMetadata(
 								sRootMetaPath + "/" + aSegments.slice(0, i + 1).join("/")
 							).getResult().$kind === "Property";
@@ -1277,8 +1653,7 @@ sap.ui.define([
 		},
 
 		/**
-		 * Parses a literal to the model value. The types "Edm.Binary" and "Edm.String" are
-		 * unsupported.
+		 * Parses a literal to the model value. The type "Edm.Binary" is unsupported.
 		 *
 		 * @param {string} sLiteral The literal value
 		 * @param {string} sType The type
@@ -1301,27 +1676,29 @@ sap.ui.define([
 			}
 
 			switch (sType) {
-			case "Edm.Boolean":
-				return sLiteral === "true";
-			case "Edm.Byte":
-			case "Edm.Int16":
-			case "Edm.Int32":
-			case "Edm.SByte":
-				return checkNaN(parseInt(sLiteral));
-			case "Edm.Date":
-			case "Edm.DateTimeOffset":
-			case "Edm.Decimal":
-			case "Edm.Guid":
-			case "Edm.Int64":
-			case "Edm.TimeOfDay":
-				return sLiteral;
-			case "Edm.Double":
-			case "Edm.Single":
-				return sLiteral === "INF" || sLiteral === "-INF" || sLiteral === "NaN"
-					? sLiteral
-					: checkNaN(parseFloat(sLiteral));
-			default:
-				throw new Error(sPath + ": Unsupported type: " + sType);
+				case "Edm.Boolean":
+					return sLiteral === "true";
+				case "Edm.Byte":
+				case "Edm.Int16":
+				case "Edm.Int32":
+				case "Edm.SByte":
+					return checkNaN(parseInt(sLiteral));
+				case "Edm.Date":
+				case "Edm.DateTimeOffset":
+				case "Edm.Decimal":
+				case "Edm.Guid":
+				case "Edm.Int64":
+				case "Edm.TimeOfDay":
+					return sLiteral;
+				case "Edm.Double":
+				case "Edm.Single":
+					return sLiteral === "INF" || sLiteral === "-INF" || sLiteral === "NaN"
+						? sLiteral
+						: checkNaN(parseFloat(sLiteral));
+				case "Edm.String":
+					return sLiteral.slice(1, -1).replace(rSingleQuoteTwice, "'");
+				default:
+					throw new Error(sPath + ": Unsupported type: " + sType);
 			}
 		},
 
@@ -1331,14 +1708,16 @@ sap.ui.define([
 		 *
 		 * @param {any} vValue
 		 *   Any value, including <code>undefined</code>
+		 * @param {boolean} [bRemoveClientAnnotations]
+		 *   Whether to remove all client-side annotations, not just private ones
 		 * @returns {any}
 		 *   A public clone
 		 *
 		 * @see sap.ui.model.odata.v4.lib._Helper.clone
 		 */
-		publicClone : function (vValue) {
+		publicClone : function (vValue, bRemoveClientAnnotations) {
 			return _Helper.clone(vValue, function (sKey, vValue) {
-				if (sKey !== "@$ui5._") {
+				if (bRemoveClientAnnotations ? !sKey.startsWith("@$ui5.") : sKey !== "@$ui5._") {
 					return vValue;
 				}
 				// return undefined;
@@ -1466,7 +1845,7 @@ sap.ui.define([
 		/**
 		 * Converts given value to an array.
 		 * <code>null</code> and <code>undefined</code> are converted to the empty array, a
-		 * non-array value is wrapped with an array and an array is returned as it is.
+		 * non-array value is wrapped with an array and an array is returned as a shallow copy.
 		 *
 		 * @param {any} [vElement]
 		 *   The element to be converted into an array.
@@ -1478,7 +1857,7 @@ sap.ui.define([
 				return [];
 			}
 			if (Array.isArray(vElement)) {
-				return vElement;
+				return vElement.slice();
 			}
 			return [vElement];
 		},
@@ -1628,8 +2007,8 @@ sap.ui.define([
 		/**
 		 * Updates the old value with the given new value for the selected properties (see
 		 * {@link #updateExisting}). If no selected properties are given or if "*" is contained in
-		 * the selected properties, then all properties are selected. <code>@odata.etag</code> is
-		 * always selected. Fires change events for all changed properties.
+		 * the selected properties, then all properties are selected. Fires change events for all
+		 * changed properties.
 		 *
 		 * Restrictions:
 		 * - oOldValue and oNewValue are expected to have the same structure; when there is an
@@ -1637,7 +2016,7 @@ sap.ui.define([
 		 *   <code>null</code>.
 		 * - "*" in aSelect does not work correctly if oNewValue contains navigation properties
 		 * - no change events for collection-valued properties
-		 * - does not update navigation properties
+		 * - does not update navigation properties (ignores both key predicates and $count)
 		 *
 		 * @param {object} mChangeListeners
 		 *   A map of change listeners by path
@@ -1652,8 +2031,6 @@ sap.ui.define([
 		 *   from oNewValue
 		 */
 		updateSelected : function (mChangeListeners, sPath, oOldValue, oNewValue, aSelect) {
-			var sPredicate;
-
 			/*
 			 * Take over the property value from source to target and fires an event if the property
 			 * is changed
@@ -1699,25 +2076,10 @@ sap.ui.define([
 				return;
 			}
 
-			// fetch the selected properties plus the ETag;
-			// _Cache#visitResponse is called with the response data before updateSelected
-			// copies the selected values to the cache. visitResponse computes
-			// - $count values for collections, which are not relevant for POST (deep create is
-			//   not yet supported);
-			// - key predicates, which are relevant only for the top level element as no deep
-			//   create is supported
-			// and reports bound messages. Messages need to be copied only if they are selected.
-			aSelect = aSelect.concat("@odata.etag");
-
 			// take over properties from the new value and fire change events
 			aSelect.forEach(function (sProperty) {
 				copyPathValue(sProperty, oNewValue, oOldValue);
 			});
-			// copy key predicate, but do not fire change event
-			sPredicate = _Helper.getPrivateAnnotation(oNewValue, "predicate");
-			if (sPredicate) {
-				_Helper.setPrivateAnnotation(oOldValue, "predicate", sPredicate);
-			}
 		},
 
 		/**
@@ -1772,12 +2134,12 @@ sap.ui.define([
 		wrapChildQueryOptions : function (sBaseMetaPath, sChildMetaPath, mChildQueryOptions,
 				fnFetchMetadata) {
 			var sExpandSelectPath = "",
-				i,
 				aMetaPathSegments = sChildMetaPath.split("/"),
 				oProperty,
 				sPropertyMetaPath = sBaseMetaPath,
 				mQueryOptions = {},
-				mQueryOptionsForPathPrefix = mQueryOptions;
+				mQueryOptionsForPathPrefix = mQueryOptions,
+				i;
 
 			if (sChildMetaPath === "") {
 				return mChildQueryOptions;

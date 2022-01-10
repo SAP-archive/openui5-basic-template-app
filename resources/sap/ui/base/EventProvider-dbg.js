@@ -18,7 +18,7 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	 * @abstract
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 * @public
 	 * @alias sap.ui.base.EventProvider
 	 */
@@ -68,7 +68,7 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	 * @param {object}
 	 *            [oListener] The object that wants to be notified when the event occurs (<code>this</code> context within the
 	 *                        handler function). If it is not specified, the handler function is called in the context of the event provider.
-	 * @return {sap.ui.base.EventProvider} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventProvider.prototype.attachEvent = function(sEventId, oData, fnFunction, oListener) {
@@ -118,7 +118,7 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	 * @param {object}
 	 *            [oListener] The object that wants to be notified when the event occurs (<code>this</code> context within the
 	 *                        handler function). If it is not specified, the handler function is called in the context of the event provider.
-	 * @return {sap.ui.base.EventProvider} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventProvider.prototype.attachEventOnce = function(sEventId, oData, fnFunction, oListener) {
@@ -152,7 +152,7 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	 *            fnFunction The handler function to detach from the event
 	 * @param {object}
 	 *            [oListener] The object that wanted to be notified when the event occurred
-	 * @return {sap.ui.base.EventProvider} Returns <code>this</code> to allow method chaining
+	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 * @public
 	 */
 	EventProvider.prototype.detachEvent = function(sEventId, fnFunction, oListener) {
@@ -215,7 +215,7 @@ sap.ui.define(['./Event', './Object', './ObjectPool', "sap/base/assert"],
 	 * @param {boolean}
 	 *            [bEnableEventBubbling] Defines whether event bubbling is enabled on the fired event. Set to <code>true</code> the event is also forwarded to the parent(s)
 	 *                                   of the event provider ({@link #getEventingParent}) until the bubbling of the event is stopped or no parent is available anymore.
-	 * @return {sap.ui.base.EventProvider|boolean} Returns <code>this</code> to allow method chaining. When <code>preventDefault</code> is supported on the fired event
+	 * @return {this|boolean} Returns <code>this</code> to allow method chaining. When <code>preventDefault</code> is supported on the fired event
 	 *                                             the function returns <code>true</code> if the default action should be executed, <code>false</code> otherwise.
 	 * @protected
 	 */

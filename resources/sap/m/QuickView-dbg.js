@@ -42,7 +42,7 @@ sap.ui.define([
 	 * The quick view is used to show business information on either a person or an entity (e.g. a company). It uses a set of pre-defined controls.
 	 * Objects can be linked together and you can navigate between several objects. An unlimited number of objects can be linked.
 	 * <h3>Structure</h3>
-	 * Each card is represented by a {@link sap.m.QuickViewPage} which holds all the information (icon, title, header, description) for the object.
+	 * Each card is represented by a {@link sap.m.QuickViewPage} which holds all the information (avatar, title, header, description) for the object.
 	 * A single quick view can hold multiple objects, each showing information on a single entity.
 	 * <h3>Usage</h3>
 	 * <h4>When to use</h4>
@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @extends sap.m.QuickViewBase
 	 *
 	 * @author SAP SE
-	 * @version 1.84.11
+	 * @version 1.96.2
 	 *
 	 * @constructor
 	 * @public
@@ -243,8 +243,8 @@ sap.ui.define([
 			var oPage = this._oNavContainer.getCurrentPage();
 			if (oPage) {
 				var oHeader = oPage.getCustomHeader();
-				if (oHeader) {
-					this._oPopover.addAriaDescribedBy(oHeader.getId());
+				if (oHeader && oHeader.getContentMiddle()[0]) {
+					this._oPopover.addAriaLabelledBy(oHeader.getContentMiddle()[0].getId());
 				}
 			}
 
@@ -387,7 +387,7 @@ sap.ui.define([
 	 * The method sets placement position of the QuickView.
 	 *
 	 * @param {sap.m.PlacementType} sPlacement The side from which the QuickView appears relative to the control that opens it.
-	 * @returns {sap.m.QuickView} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @public
 	 */
 	QuickView.prototype.setPlacement = function (sPlacement) {
@@ -401,7 +401,7 @@ sap.ui.define([
 	 * The method sets the width of the QuickView.
 	 * Works only on desktop or tablet.
 	 * @param {sap.ui.core.CSSSize} sWidth The new width of the QuickView.
-	 * @returns {sap.m.QuickView} Pointer to the control instance for chaining
+	 * @returns {this} Pointer to the control instance for chaining
 	 * @public
 	 */
 	QuickView.prototype.setWidth = function (sWidth) {
@@ -416,7 +416,7 @@ sap.ui.define([
 	/**
 	 * Opens the QuickView.
 	 * @param {sap.ui.core.Control} oControl The control which opens the QuickView.
-	 * @returns {sap.m.QuickView} Pointer to the control instance for chaining
+	 * @returns {this} Pointer to the control instance for chaining
 	 * @public
 	 */
 	QuickView.prototype.openBy = function(oControl) {
@@ -428,7 +428,7 @@ sap.ui.define([
 
 	/**
 	 * Closes the QuickView.
-	 * @returns {sap.m.QuickView} Pointer to the control instance for chaining
+	 * @returns {this} Pointer to the control instance for chaining
 	 * @public
 	 */
 	QuickView.prototype.close = function() {
@@ -455,22 +455,16 @@ sap.ui.define([
 
 	["setModel", "bindAggregation", "setAggregation", "insertAggregation", "addAggregation",
 		"removeAggregation", "removeAllAggregation", "destroyAggregation"].forEach(function (sFuncName) {
-			QuickView.prototype["_" + sFuncName + "Old"] = QuickView.prototype[sFuncName];
 			QuickView.prototype[sFuncName] = function () {
-				var newArgs = [],
-					result,
-					i;
-
-				for (i = 0; i < arguments.length; i++) {
-					newArgs.push(arguments[i]);
-				}
+				var newArgs = Array.prototype.slice.call(arguments),
+					result;
 
 				// suppress invalidation
 				if (["setModel", "bindAggregation"].indexOf(sFuncName) === -1) {
 					newArgs.push(true);
 				}
 
-				result = QuickView.prototype["_" + sFuncName + "Old"].apply(this, newArgs);
+				result = QuickViewBase.prototype[sFuncName].apply(this, newArgs);
 
 				// Marks items aggregation as changed and invalidate popover to trigger rendering
 				this._bItemsChanged = true;
