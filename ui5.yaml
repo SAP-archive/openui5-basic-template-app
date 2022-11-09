@@ -2,11 +2,13 @@ specVersion: '2.6'
 metadata:
   name: openui5-basic-template-app
 type: application
-framework:
-  name: OpenUI5
-  version: "1.96.2"
-  libraries:
-    - name: sap.m
-    - name: sap.ui.core
-    - name: sap.ui.layout
-    - name: themelib_sap_horizon
+
+server:
+  customMiddleware:
+  - name: ui5-middleware-livereload
+    afterMiddleware: compression
+    configuration:
+      debug: true
+      extraExts: "xml,json,properties"
+      port: 35729
+      watchPath: webapp
