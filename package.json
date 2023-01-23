@@ -1,30 +1,38 @@
 {
-  "name": "openui5-basic-template-app",
-  "version": "0.1.0",
-  "description": "Best-practice starting point for building a freestyle app",
-  "private": true,
-  "scripts": {
-    "start": "ui5 serve -o /index.html",
-    "lint": "eslint webapp",
-    "karma": "karma start",
-    "karma-ci": "karma start karma-ci.conf.js",
-    "watch": "npm run karma",
-    "test": "npm run lint && rimraf coverage && npm run karma-ci",
-    "build": "rimraf dist && ui5 build --a"
-  },
-  "devDependencies": {
-    "@ui5/cli": "^2.14.2",
-    "eslint": "^8.6.0",
-    "karma": "^6.3.10",
-    "karma-chrome-launcher": "^3.1.0",
-    "karma-coverage": "^2.1.0",
-    "karma-ui5": "^2.4.0",
-    "rimraf": "^3.0.2",
-    "ui5-middleware-livereload": "^0.7.0"
-  },
-  "ui5": {
-    "dependencies": [
-      "ui5-middleware-livereload"
-    ]
-  }
+    "name": "openui5-basic-template-app",
+    "version": "0.1.0",
+    "description": "Best-practice starting point for building a freestyle app",
+    "private": true,
+    "scripts": {
+        "start": "ui5 serve -o /index.html",
+        "lint": "eslint webapp",
+        "karma": "karma start",
+        "karma-ci": "karma start karma-ci.conf.js",
+        "watch": "npm run karma",
+        "test": "npm run lint && rimraf coverage && npm run karma-ci",
+        "build": "rimraf dist && ui5 build --a",
+        "wdi5": "wdio run ./wdio.conf.js"
+    },
+    "devDependencies": {
+        "@ui5/cli": "^2.14.2",
+        "@wdio/cli": "^7.30.0",
+        "@wdio/local-runner": "^7.30.0",
+        "@wdio/mocha-framework": "^7.26.0",
+        "@wdio/spec-reporter": "^7.29.1",
+        "chromedriver": "^109.0.0",
+        "eslint": "^8.6.0",
+        "karma": "^6.3.10",
+        "karma-chrome-launcher": "^3.1.0",
+        "karma-coverage": "^2.1.0",
+        "karma-ui5": "^2.4.0",
+        "rimraf": "^3.0.2",
+        "ui5-middleware-livereload": "^0.7.0",
+        "wdio-chromedriver-service": "^7.3.2",
+        "wdio-ui5-service": "^1.0.5"
+    },
+    "ui5": {
+        "dependencies": [
+            "ui5-middleware-livereload"
+        ]
+    }
 }
