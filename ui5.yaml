@@ -1,10 +1,10 @@
-specVersion: '2.6'
+specVersion: '3.1'
 metadata:
   name: openui5-basic-template-app
 type: application
 framework:
   name: OpenUI5
-  version: "1.96.2"
+  version: "1.119.0"
   libraries:
     - name: sap.m
     - name: sap.ui.core
